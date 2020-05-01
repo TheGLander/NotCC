@@ -16,10 +16,12 @@ export class Playable extends Actor {
 	create(pos: [number, number], direction: Direction, level: LevelState) {
 		const ret: Playable = super.create(pos, direction, level) as Playable
 		ret.selected = false
+		if (level.playables.length === 0) ret.selected = true
 		level.playables.push(ret)
 		return ret
 	}
 	acceptInput() {
+		if (!this.selected) return
 		const keysToProcess: string[] = []
 		for (const i in this.lastInputs)
 			if (this.lastInputs[i]) keysToProcess.push(i)
@@ -54,10 +56,6 @@ export class Playable extends Actor {
 					break
 			}
 		}
-	}
-	tick() {
-		super.tick()
-		this.acceptInput()
 	}
 }
 
