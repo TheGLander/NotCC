@@ -18,7 +18,7 @@ const defaultOnTick = [
 ]
 export default class Actor {
 	//Constants
-	moveSpeed: number = 2
+	moveSpeed: number = 4
 	playable: boolean = false
 	/**
 		Flag to do everything based on relative directions, otherwise absolute directions are used
