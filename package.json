@@ -1,0 +1,42 @@
+{
+	"name": "notcc",
+	"private": true,
+	"version": "0.0.0",
+	"description": "NotCC, standing for Nice Optimal Terrific Cool Challenge, is a tile based game(WIP)",
+	"main": " ",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "npx webpack",
+		"watch": "env NODE_ENV=development npm run build"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/TheGLander/NotCC.git"
+	},
+	"author": "G lander",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/TheGLander/NotCC/issues"
+	},
+	"homepage": "https://github.com/TheGLander/NotCC#readme",
+	"dependencies": {
+		"@types/mathjs": "^6.0.5",
+		"clone": "^2.1.2",
+		"mathjs": "^6.6.4"
+	},
+	"devDependencies": {
+		"@types/clone": "^0.1.30",
+		"babel-minify-webpack-plugin": "^0.3.1",
+		"copy-webpack-plugin": "^5.1.1",
+		"css-loader": "^3.5.3",
+		"eslint": "^6.8.0",
+		"html-webpack-plugin": "^4.2.1",
+		"keycode": "^2.2.0",
+		"progress-webpack-plugin": "0.0.24",
+		"style-loader": "^1.2.1",
+		"ts-loader": "^7.0.1",
+		"typescript": "^3.8.3",
+		"webpack": "^4.43.0",
+		"webpack-cli": "^3.3.11"
+	}
+}

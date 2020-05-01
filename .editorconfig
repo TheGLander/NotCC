@@ -1,0 +1,6 @@
+[*]
+tab_width = 2
+indent_size = 1
+indent_style = tab
+insert_final_newline = true
+end_of_line = lf

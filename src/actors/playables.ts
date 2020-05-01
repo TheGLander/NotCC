@@ -1,0 +1,58 @@
+import Actor from "../actor"
+import { Direction } from "../helpers"
+import { LevelState } from "../level"
+import { KeyInputs } from "../pulse"
+export class Playable extends Actor {
+	selected: boolean | null = null
+	playable = true
+	relativeMovement = false
+	lastInputs: KeyInputs
+	create(pos: [number, number], direction: Direction, level: LevelState) {
+		const ret: Playable = super.create(pos, direction, level) as Playable
+		ret.selected = false
+		level.playables.push(ret)
+		return ret
+	}
+	acceptInput() {
+		const keysToProcess: string[] = []
+		for (const i in this.lastInputs)
+			if (this.lastInputs[i]) keysToProcess.push(i)
+		for (; keysToProcess.length !== 0; ) {
+			const key = keysToProcess.shift()
+			switch (key) {
+				case "up":
+					if (!this.moving) {
+						this.move(Direction.UP)
+						this.rotate(Direction.UP)
+					}
+					break
+				case "down":
+					if (!this.moving) {
+						this.move(Direction.DOWN)
+						this.rotate(Direction.DOWN)
+					}
+					break
+				case "left":
+					if (!this.moving) {
+						this.move(Direction.LEFT)
+						this.rotate(Direction.LEFT)
+					}
+					break
+				case "right":
+					if (!this.moving) {
+						this.move(Direction.RIGHT)
+						this.rotate(Direction.RIGHT)
+					}
+					break
+				default:
+					break
+			}
+		}
+	}
+	tick() {
+		super.tick()
+		this.acceptInput()
+	}
+}
+
+export const chip = new Playable("chip")

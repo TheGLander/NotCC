@@ -1,0 +1,10 @@
+.hidden {
+	display: none;
+}
+
+tr,
+td {
+	width: 100px;
+	height: 100px;
+	overflow-wrap: break-word;
+}
