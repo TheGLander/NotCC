@@ -21,10 +21,7 @@ export default class Actor {
 	created: boolean = false
 	direction: number | null = null
 	moveProgress: number | null = null
-	constructor(
-		public name: string = "unknown",
-		public extName: string = "unknown"
-	) {
+	constructor(public name: string, public extName: string = "unknown") {
 		this.fullname = `${extName}.${name}`
 		actorDB[this.fullname] = this
 	}
