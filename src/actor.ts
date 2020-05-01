@@ -1,6 +1,16 @@
 import { LevelState } from "./level"
 import { Direction, clone } from "./helpers"
 import { actorDB } from "./const"
+
+const defaultOnTick = [
+	function (this: Actor) {
+		if (this.moveProgress < this.moveSpeed && this.moving) this.moveProgress++
+		if (this.moveProgress === this.moveSpeed) {
+			this.moving = false
+			this.moveProgress = 0
+		}
+	},
+]
 export default class Actor {
 	//Constants
 	moveSpeed: number = 2
@@ -23,6 +33,7 @@ export default class Actor {
 	moveProgress: number | null = null
 	constructor(public name: string, public extName: string = "unknown") {
 		this.fullname = `${extName}.${name}`
+		this.onTick = this.onTick.concat(defaultOnTick)
 		actorDB[this.fullname] = this
 	}
 	/**
@@ -43,11 +54,6 @@ export default class Actor {
 	 */
 	tick(): void {
 		for (const i in this.onTick) this.onTick[i].call(this)
-		if (this.moveProgress < this.moveSpeed && this.moving) this.moveProgress++
-		if (this.moveProgress === this.moveSpeed) {
-			this.moving = false
-			this.moveProgress = 0
-		}
 	}
 	onTick: (() => void)[] = []
 

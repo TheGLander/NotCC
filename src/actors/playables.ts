@@ -7,6 +7,12 @@ export class Playable extends Actor {
 	playable = true
 	relativeMovement = false
 	lastInputs: KeyInputs
+	constructor(name: string, extname?: string) {
+		super(name, extname)
+		this.onTick.push(function (this: Playable) {
+			this.acceptInput()
+		})
+	}
 	create(pos: [number, number], direction: Direction, level: LevelState) {
 		const ret: Playable = super.create(pos, direction, level) as Playable
 		ret.selected = false
