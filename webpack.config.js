@@ -8,9 +8,9 @@ let plugins = [
 	new HtmlWebpackPlugin({
 		template: "src/index.html",
 	}),
-	new ProgressPlugin(),
 ]
 if (prod) plugins.push(new MinifyPlugin({}, { comments: false }))
+else plugins.push(new ProgressPlugin())
 module.exports = {
 	entry: "./src/index.ts",
 	output: {
