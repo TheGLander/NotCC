@@ -1,7 +1,11 @@
 import Actor from "../actor"
 import { Direction } from "../helpers"
-
-export const centipede = new Actor("centipede")
+class Monster extends Actor {
+	constructor(name: string, extName?: string) {
+		super(name, "monster", extName)
+	}
+}
+export const centipede = new Monster("centipede")
 centipede.onTick.push(function (this: Actor) {
 	if (this.moving) return
 	//Try to move right

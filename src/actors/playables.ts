@@ -8,7 +8,7 @@ export class Playable extends Actor {
 	relativeMovement = false
 	lastInputs: KeyInputs
 	constructor(name: string, extname?: string) {
-		super(name, extname)
+		super(name, "playable", extname)
 		this.onTick.push(function (this: Playable) {
 			this.acceptInput()
 		})

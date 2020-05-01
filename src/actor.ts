@@ -1,7 +1,12 @@
 import { LevelState } from "./level"
 import { Direction, clone } from "./helpers"
 import { actorDB } from "./const"
-
+export type actorType =
+	| "playable"
+	| "monster"
+	| "terrain"
+	| "static"
+	| "pushable"
 const defaultOnTick = [
 	function (this: Actor) {
 		if (this.moveProgress < this.moveSpeed && this.moving) this.moveProgress++
@@ -31,7 +36,12 @@ export default class Actor {
 	created: boolean = false
 	direction: number | null = null
 	moveProgress: number | null = null
-	constructor(public name: string, public extName: string = "unknown") {
+
+	constructor(
+		public name: string,
+		public actorType: actorType,
+		public extName: string = "unknown"
+	) {
 		this.fullname = `${extName}.${name}`
 		this.onTick = this.onTick.concat(defaultOnTick)
 		actorDB[this.fullname] = this
