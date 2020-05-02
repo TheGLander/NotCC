@@ -7,15 +7,22 @@ export type actorType =
 	| "terrain"
 	| "static"
 	| "pushable"
-const defaultOnTick = [
-	function (this: Actor) {
-		if (this.moveProgress < this.moveSpeed && this.moving) this.moveProgress++
-		if (this.moveProgress === this.moveSpeed) {
-			this.moving = false
-			this.moveProgress = 0
-		}
-	},
-]
+export namespace defaults {
+	export const onTick = [
+		function (this: Actor) {
+			if (this.moveProgress < this.moveSpeed && this.moving) this.moveProgress++
+			if (this.moveProgress === this.moveSpeed) {
+				this.moving = false
+				this.moveProgress = 0
+				const thisStack = this.getCurrentStack()
+				for (const i in thisStack) {
+					thisStack[i].collision(this)
+					this.collision(thisStack[i])
+				}
+			}
+		},
+	]
+}
 export default class Actor {
 	//Constants
 	moveSpeed: number = 4
@@ -43,7 +50,6 @@ export default class Actor {
 		public extName: string = "unknown"
 	) {
 		this.fullname = `${extName}.${name}`
-		this.onTick = this.onTick.concat(defaultOnTick)
 		actorDB[this.fullname] = this
 	}
 	/**
@@ -63,6 +69,7 @@ export default class Actor {
 	 * Execute tick related functions
 	 */
 	tick(): void {
+		for (const i in defaults.onTick) defaults.onTick[i].call(this)
 		for (const i in this.onTick) this.onTick[i].call(this)
 	}
 	onTick: (() => void)[] = []
@@ -103,6 +110,10 @@ export default class Actor {
 
 		//Add to the new tile
 		destinationTile.push(this)
+		for (const i in destinationTile) {
+			destinationTile[i].weakCollision(this)
+			this.weakCollision(destinationTile[i])
+		}
 		//Update coordinates
 		this.x = destination[0]
 		this.y = destination[1]
@@ -123,6 +134,9 @@ export default class Actor {
 	getNeighbor(direction: Direction) {
 		let destination = this.directionToCoords(direction)
 		return this.level.field[destination[0]]?.[destination[1]]
+	}
+	getCurrentStack() {
+		return this?.level.field[this.x]?.[this.y]
 	}
 	/**
 	 * Gets coordinates of tiles relative to the actor and returns them
@@ -151,4 +165,22 @@ export default class Actor {
 		if (this.relativeMovement) this.direction = (this.direction + direction) % 4
 		else this.direction = direction
 	}
+	/**
+	 * Called when two actors are in strong collision, AKA they are on the same tile and aren't moving
+	 * @param second The actor this actor is in collision with
+	 */
+	collision(second: Actor) {
+		for (const i in this.onCollision) this.onCollision[i].call(this, second)
+	}
+	onCollision: ((this: this, second: Actor) => void)[] = []
+
+	/**
+	 * Called when two actors are in weak collision, AKA they are on the same tile
+	 * @param second The actor this actor is in collision with
+	 */
+	weakCollision(second: Actor) {
+		for (const i in this.onWeakCollision)
+			this.onWeakCollision[i].call(this, second)
+	}
+	onWeakCollision: ((this: this, second: Actor) => void)[] = []
 }
