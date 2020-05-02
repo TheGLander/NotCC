@@ -1,15 +1,20 @@
-import { Field, joinRecursively } from "./helpers"
+import { Field } from "./helpers"
 import Actor from "./actor"
 
 interface LevelData {
 	field: Field<Actor[]>
 	width: number
 	height: number
+	camera: {
+		width: number
+		height: number
+		screens: number
+	}
 	extUsed: string[]
 	timeLimit: number
 }
 const manifestVer = 0
-
+/*
 export function encode(level: LevelData): string {
 	//Get all appearances to find out what to archive
 	const appearances: Map<string, number> = new Map()
@@ -30,16 +35,20 @@ export function encode(level: LevelData): string {
 	})
 
 	//Initialize the storage
-	let storage: (string[] | string[][])[] = []
+	const storage: (string[] | string[][])[] = []
 	//Write metadata
-	storage.push([
-		manifestVer.toString(),
-		level.width.toString(),
-		level.height.toString(),
-		level.timeLimit.toString(),
-	])
+	const metadata: number[] = [
+		manifestVer,
+		level.width,
+		level.height,
+		level.timeLimit,
+		level.camera.width,
+		level.camera.height,
+		level.camera.screens,
+	]
+	storage.push(metadata.map(val => val.toString()))
 	//Write archive data
-	let archiveStorage = []
+	const archiveStorage = []
 	for (const key in archived) {
 		archiveStorage.push(key)
 	}
@@ -60,3 +69,23 @@ export function encode(level: LevelData): string {
 
 	return JSON.stringify(storage)
 }
+
+export function decode(srcData: string): LevelData {
+	let level: LevelData
+	const data: (string[] | string[][])[] = JSON.parse(srcData)
+	level = {
+		field: [],
+		width: parseInt(data[0][1] as string),
+		height: parseInt(data[0][2] as string),
+		camera: {
+			width: parseInt(data[0][4] as string),
+			height: parseInt(data[0][5] as string),
+			screens: parseInt(data[0][6] as string),
+		},
+		extUsed: [],
+		timeLimit: parseInt(data[0][3] as string),
+	}
+	const archived = data[1] as string[]
+	
+}
+*/
