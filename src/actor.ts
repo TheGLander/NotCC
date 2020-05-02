@@ -22,6 +22,9 @@ export namespace defaults {
 			}
 		},
 	]
+	export const solidChecks: ((this: Actor, second: Actor) => boolean)[] = []
+	export const onCollision = []
+	export const onWeakCollision = []
 }
 export default class Actor {
 	//Constants
@@ -57,6 +60,8 @@ export default class Actor {
 	 * @param second The second actor
 	 */
 	solidTo(second: Actor): boolean {
+		for (const i in defaults.solidChecks)
+			if (defaults.solidChecks[i].call(this, second)) return true
 		for (const i in this.solidChecks)
 			if (this.solidChecks[i].call(this, second)) return true
 		return false
@@ -74,12 +79,8 @@ export default class Actor {
 	}
 	onTick: (() => void)[] = []
 
-	create(
-		pos: [number, number],
-		direction: Direction,
-		level: LevelState
-	): Actor {
-		const newActor: Actor = clone(this)
+	create(pos: [number, number], direction: Direction, level: LevelState): this {
+		const newActor = clone(this)
 		newActor.x = pos[0]
 		newActor.y = pos[1]
 		newActor.inventory = []
@@ -170,6 +171,8 @@ export default class Actor {
 	 * @param second The actor this actor is in collision with
 	 */
 	collision(second: Actor) {
+		for (const i in defaults.onCollision)
+			defaults.onCollision[i].call(this, second)
 		for (const i in this.onCollision) this.onCollision[i].call(this, second)
 	}
 	onCollision: ((this: this, second: Actor) => void)[] = []
@@ -179,6 +182,8 @@ export default class Actor {
 	 * @param second The actor this actor is in collision with
 	 */
 	weakCollision(second: Actor) {
+		for (const i in defaults.onWeakCollision)
+			defaults.onWeakCollision[i].call(this, second)
 		for (const i in this.onWeakCollision)
 			this.onWeakCollision[i].call(this, second)
 	}
