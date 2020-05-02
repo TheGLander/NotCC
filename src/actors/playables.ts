@@ -14,7 +14,7 @@ export class Playable extends Actor {
 		})
 	}
 	create(pos: [number, number], direction: Direction, level: LevelState) {
-		const ret: Playable = super.create(pos, direction, level) as Playable
+		const ret = super.create(pos, direction, level)
 		ret.selected = false
 		if (level.playables.length === 0) ret.selected = true
 		level.playables.push(ret)
