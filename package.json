@@ -22,8 +22,9 @@
 	"homepage": "https://github.com/TheGLander/NotCC#readme",
 	"dependencies": {
 		"@types/mathjs": "^6.0.5",
-		"clone": "^2.1.2",
-		"mathjs": "^6.6.4"
+		"deepclone": "^1.0.2",
+		"mathjs": "^6.6.4",
+		"pixi.js": "^5.3.2"
 	},
 	"devDependencies": {
 		"@types/clone": "^0.1.30",

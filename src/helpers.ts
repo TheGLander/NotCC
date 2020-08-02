@@ -1,5 +1,5 @@
 export type Field<T> = T[][]
-import libClone from "clone"
+import libClone from "deepclone"
 /**
  * All the directions, clockwise
  */

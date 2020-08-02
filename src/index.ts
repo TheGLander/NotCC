@@ -5,6 +5,7 @@ import "./base.css"
 import { initPulse } from "./pulse"
 import { centipede } from "./actors/enemies"
 import { chip } from "./actors/playables"
+import "./visuals"
 
 // Enable crash handling
 window.addEventListener("error", ev => {
