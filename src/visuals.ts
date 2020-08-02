@@ -28,30 +28,24 @@ function createTiles(
 		}
 }
 
-loader
-	.add("https://raw.githubusercontent.com/zrax/tworld2/master/res/tiles.bmp")
-	.load(() => {
-		createTiles(
-			[
-				["wall", "grass", "tile"],
-				["wallEnd", null, null],
-				["chest", "redChest", null],
-			],
-			[48, 48],
-			"https://raw.githubusercontent.com/zrax/tworld2/master/res/tiles.bmp"
-		)
-		//Create the cat sprite
-		for (const i in loader.resources) {
-			if (
-				i ===
-				"https://raw.githubusercontent.com/zrax/tworld2/master/res/tiles.bmp"
-			)
-				continue
-			const sprite = new PIXI.Sprite(PIXI.Loader.shared.resources[i].texture)
-			sprite.x = Math.random() * 128
+loader.add("./img/tiles.png").load(() => {
+	createTiles(
+		[
+			["wall", "grass", "tile"],
+			["wallEnd", null, null],
+			["chest", "redChest", null],
+		],
+		[48, 48],
+		"./img/tiles.png"
+	)
+	//Create the cat sprite
+	for (const i in loader.resources) {
+		if (i === "./img/tiles.png") continue
+		const sprite = new PIXI.Sprite(PIXI.Loader.shared.resources[i].texture)
+		sprite.x = Math.random() * 128
 
-			sprite.y = Math.random() * 128
-			//Add the cat to the stage
-			app.stage.addChild(sprite)
-		}
-	})
+		sprite.y = Math.random() * 128
+		//Add the cat to the stage
+		app.stage.addChild(sprite)
+	}
+})
