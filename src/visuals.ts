@@ -199,32 +199,23 @@ export default class Renderer {
 		//Catch up on new actors
 		for (; this.lastId < this.level.nextId; this.lastId++) {
 			const sprite = new PIXI.Sprite(loader.resources.unknown.texture)
+			const actor = this.level.activeActors[this.lastId]
 			this.sprites.push(sprite)
 			this.app.stage.addChild(sprite)
 			this.moveProgress[this.lastId] = 0
-			this.moveProgressDirection[this.lastId] = -1
+			//debugger
+			sprite.position.set(actor.x * 48, actor.y * 48)
 		}
 		for (let i = 0; i < this.level.activeActors.length; i++) {
 			const actor = this.level.activeActors[i]
-			const animSpeed = actor.moveSpeed * config.tickPulseModulo
+			const animSpeed = actor.moveSpeed
 			const movedPos = [actor.x, actor.y]
-			//if (actor.id === 1 && this.moveProgress[i] >= 4) debugger
-			if (this.moveProgress[i] >= animSpeed) {
-				//Teleportation
-				//console.log("stop")
-				this.moveProgress[i] = 0
-				this.moveProgressDirection[i] = actor.direction
-			}
 			if (actor.moving) {
-				//Normal movement
-				this.moveProgress[i]++
 				const mults = convertDirection(actor.direction)
-				const progressMult = this.moveProgress[i] / animSpeed
-				movedPos[0] += progressMult * mults[0] - 1 * mults[0]
-				movedPos[1] += progressMult * mults[1] - 1 * mults[1]
-				console.log(this.moveProgress[i])
+				const offsetMult = 1 - (actor.moveProgress + 1) / animSpeed
+				movedPos[0] -= offsetMult * mults[0]
+				movedPos[1] -= offsetMult * mults[1]
 			}
-
 			this.sprites[i].position.set(movedPos[0] * 48, movedPos[1] * 48)
 		}
 	}
