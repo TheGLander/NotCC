@@ -3,6 +3,7 @@ import { l } from "./helpers"
 import config from "./config"
 import { Direction } from "./helpers"
 import keycode from "keycode"
+import Renderer from "./visuals"
 
 enum keymap {
 	up = "up",
@@ -22,7 +23,7 @@ export interface KeyInputs {
 	rotateInv: boolean
 	switchPlayable: boolean
 }
-export function initPulse(level: LevelState) {
+export async function initPulse(level: LevelState) {
 	const buttonsPressed: KeyInputs = {
 		up: false,
 		down: false,
@@ -32,24 +33,11 @@ export function initPulse(level: LevelState) {
 		rotateInv: false,
 		switchPlayable: false,
 	}
-	/**
-	 * Draws the visuals
-	 */
-	function drawFrame() {
-		l("renderSpace").innerHTML = ""
-		for (const x in level.field) {
-			const column = document.createElement("td")
-			for (const y in level.field[x]) {
-				const row = document.createElement("tr")
-				row.innerText = `${level.field[x][y][0]?.name || "None"} `
-				row.innerText += level.field[x][y][0]
-					? Direction[level.field[x][y][0].direction]
-					: ""
-				column.appendChild(row)
-			}
-			l("renderSpace").appendChild(column)
-		}
-	}
+
+	const renderer = new Renderer(level)
+
+	await renderer.ready
+
 	/**
 	 * Renders and updates devtool stuff
 	 */
@@ -91,15 +79,15 @@ export function initPulse(level: LevelState) {
 	function pulse(): void {
 		devtools()
 		if (pulseI % config.tickPulseModulo === 0) tickLevel()
-		if (pulseI % config.framePulseModulo === 0) drawFrame()
+		if (pulseI % config.framePulseModulo === 0) renderer.frame()
 		pulseI = (pulseI + 1) % (config.pulsesPerSecond + 1)
 	}
 	//Devtools
 	l("forceTick").addEventListener("click", () => {
 		tickLevel(true)
-		drawFrame()
+		renderer.frame()
 	})
-	l("forceRender").addEventListener("click", () => drawFrame())
+	l("forceRender").addEventListener("click", renderer.frame.bind(renderer))
 
 	//Key things
 	window.addEventListener("keydown", ev => {
@@ -108,6 +96,6 @@ export function initPulse(level: LevelState) {
 	window.addEventListener("keyup", ev => {
 		if (keycode(ev) in keymap) buttonsPressed[keymap[keycode(ev)]] = false
 	})
-	drawFrame()
+	renderer.frame()
 	setInterval(pulse, 1000 / config.pulsesPerSecond)
 }
