@@ -11,6 +11,7 @@ export class LevelState {
 	lost: boolean = false
 	field: Field<Actor[]> = []
 	activeActors: Actor[] = []
+	nextId = 0
 	tick(): void {
 		for (const i in this.activeActors) this.activeActors[i].tick()
 		if (this.playables.length === 0) this.lost = true

@@ -46,6 +46,7 @@ export default class Actor {
 	created: boolean = false
 	direction: number | null = null
 	moveProgress: number | null = null
+	id: number | null = null
 
 	constructor(
 		public name: string,
@@ -89,6 +90,7 @@ export default class Actor {
 		newActor.moving = false
 		newActor.direction = direction
 		newActor.onTick = this.onTick.map(func => func.bind(newActor))
+		newActor.id = level.nextId++
 		level.field[newActor.x][newActor.y].push(newActor)
 		level.activeActors.push(newActor)
 		return newActor
