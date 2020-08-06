@@ -1,7 +1,6 @@
 import * as PIXI from "pixi.js"
 import { clone, Direction } from "./helpers"
 import { LevelState } from "./level"
-import config from "./config"
 
 const loader = PIXI.Loader.shared
 
@@ -56,7 +55,10 @@ export default class Renderer {
 	constructor(public level: LevelState) {
 		this.ready = new Promise(resolve => {
 			//Create a Pixi Application
-			const app = new PIXI.Application({ width: 256, height: 256 })
+			const app = new PIXI.Application({
+				width: level.width * 48,
+				height: level.height * 48,
+			})
 			this.app = app
 			//Add the canvas that Pixi automatically created for you to the HTML document
 			document.body.appendChild(app.view)
@@ -188,6 +190,13 @@ export default class Renderer {
 					[48, 48],
 					"./img/tiles.png"
 				)
+				const bg = new PIXI.TilingSprite(
+					loader.resources.empty.texture,
+					level.width * 48,
+					level.height * 48
+				)
+				app.stage.addChild(bg)
+
 				resolve()
 			})
 		})
@@ -216,6 +225,9 @@ export default class Renderer {
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
+			this.sprites[i].texture =
+				loader.resources[actor.art()]?.texture ??
+				loader.resources.unknown.texture
 			this.sprites[i].position.set(movedPos[0] * 48, movedPos[1] * 48)
 		}
 	}

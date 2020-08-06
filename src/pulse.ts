@@ -65,7 +65,7 @@ export async function initPulse(level: LevelState) {
 	}
 
 	function tickLevel(force: boolean = false): void {
-		if (level.lost) {
+		if (level.lost && !force) {
 			alert("Bummer")
 			return
 		}
