@@ -3,7 +3,7 @@ import { Direction } from "./helpers"
 import config from "./config"
 import "./base.css"
 import { initPulse } from "./pulse"
-import { centipede } from "./actors/enemies"
+import { centipede, spider } from "./actors/enemies"
 import { chip } from "./actors/playables"
 import "./visuals"
 import { wall } from "./actors/walls"
@@ -20,7 +20,8 @@ in ${ev.filename}
 
 const level = new LevelState(5, 5)
 centipede.create([1, 1], Direction.UP, level)
-centipede.create([4, 2], Direction.UP, level)
+centipede.create([3, 0], Direction.LEFT, level)
+spider.create([4, 1], Direction.DOWN, level)
 chip.create([4, 3], Direction.DOWN, level)
 wall.create([4, 4], Direction.LEFT, level)
 export { level, Direction, config }
