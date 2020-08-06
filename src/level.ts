@@ -13,6 +13,7 @@ export class LevelState {
 	activeActors: Actor[] = []
 	nextId = 0
 	tick(): void {
+		for (const i in this.activeActors) this.activeActors[i].preTick()
 		for (const i in this.activeActors) this.activeActors[i].tick()
 		if (this.playables.length === 0) this.lost = true
 	}

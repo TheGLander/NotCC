@@ -8,7 +8,8 @@ export type actorType =
 	| "static"
 	| "pushable"
 export namespace defaults {
-	export const onTick = [
+	export const onTick: ((this: Actor) => void)[] = []
+	export const onPreTick = [
 		function (this: Actor) {
 			if (this.moveProgress < this.moveSpeed && this.moving) this.moveProgress++
 			if (this.moveProgress === this.moveSpeed) {
@@ -23,8 +24,8 @@ export namespace defaults {
 		},
 	]
 	export const solidChecks: ((this: Actor, second: Actor) => boolean)[] = []
-	export const onCollision = []
-	export const onWeakCollision = []
+	export const onCollision: ((this: Actor, second: Actor) => boolean)[] = []
+	export const onWeakCollision: ((this: Actor, second: Actor) => boolean)[] = []
 }
 export default class Actor {
 	//Constants
@@ -85,6 +86,15 @@ export default class Actor {
 		for (const i in this.onTick) this.onTick[i].call(this)
 	}
 	onTick: (() => void)[] = []
+
+	/**
+	 * Execute functions before everyone's tick
+	 */
+	preTick(): void {
+		for (const i in defaults.onPreTick) defaults.onPreTick[i].call(this)
+		for (const i in this.onPreTick) this.onPreTick[i].call(this)
+	}
+	onPreTick: (() => void)[] = []
 
 	create(pos: [number, number], direction: Direction, level: LevelState): this {
 		const newActor = clone(this)
