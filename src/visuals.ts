@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js"
-import { clone, Direction } from "./helpers"
+import { clone, Direction, l } from "./helpers"
 import { LevelState } from "./level"
 
 const loader = PIXI.Loader.shared
@@ -61,7 +61,7 @@ export default class Renderer {
 			})
 			this.app = app
 			//Add the canvas that Pixi automatically created for you to the HTML document
-			document.body.appendChild(app.view)
+			l("renderSpace").appendChild(app.view)
 
 			loader.add("./img/tiles.png").load(() => {
 				createTiles(
