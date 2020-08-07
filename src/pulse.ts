@@ -1,6 +1,6 @@
 import { LevelState } from "./level"
 import { l } from "./helpers"
-import config from "./config"
+import { Config } from "./config"
 import { Direction } from "./helpers"
 import keycode from "keycode"
 import Renderer from "./visuals"
@@ -23,7 +23,7 @@ export interface KeyInputs {
 	rotateInv: boolean
 	switchPlayable: boolean
 }
-export async function initPulse(level: LevelState) {
+export async function initPulse(level: LevelState, config: Config) {
 	const buttonsPressed: KeyInputs = {
 		up: false,
 		down: false,
@@ -75,7 +75,10 @@ export async function initPulse(level: LevelState) {
 	//Pulse stuff
 	let lastPulse = new Date().getTime()
 	let pulseI = 0
-	const fpsRecords = new Array(config.framesPerSecond)
+	const fpsRecords: number[] = []
+	for (let i = 0; i < config.framePulseModulo * config.pulsesPerSecond; i++) {
+		fpsRecords.push(0)
+	}
 	function pulse(): void {
 		devtools()
 		if (pulseI % config.tickPulseModulo === 0) tickLevel()

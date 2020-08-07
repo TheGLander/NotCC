@@ -1,6 +1,5 @@
 import { LevelState } from "./level"
 import { Direction } from "./helpers"
-import config from "./config"
 import "./base.css"
 import { initPulse } from "./pulse"
 import { centipede, spider } from "./actors/enemies"
@@ -24,6 +23,11 @@ centipede.create([3, 0], Direction.LEFT, level)
 spider.create([4, 1], Direction.DOWN, level)
 chip.create([4, 3], Direction.DOWN, level)
 wall.create([4, 4], Direction.LEFT, level)
-export { level, Direction, config }
+export { level, Direction }
 
-initPulse(level)
+initPulse(level, {
+	tickPulseModulo: 3,
+	framePulseModulo: 1,
+	pulsesPerSecond: 60,
+	debugMode: location.href.includes("localhost"),
+})
