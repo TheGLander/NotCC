@@ -1,12 +1,7 @@
 import { LevelState } from "./level"
 import { Direction, clone } from "./helpers"
 import { actorDB } from "./const"
-export type actorType =
-	| "playable"
-	| "monster"
-	| "terrain"
-	| "static"
-	| "pushable"
+export type actorType = "playable" | "monster" | "static" | "pushable"
 export namespace defaults {
 	export const onTick: ((this: Actor) => void)[] = []
 	export const onPreTick = [
@@ -118,7 +113,7 @@ export default class Actor {
 			throw new Error(
 				"Can't access created-only method while not being created"
 			)
-		if (this.moving) return false
+		if (this.moving || this.actorType === "static") return false
 		//Find the destination tile
 		const destination = this.directionToCoords(direction)
 		const destinationTile = this.getNeighbor(direction)
