@@ -3,8 +3,8 @@ class Wall extends Actor {
 	constructor(name: string, extName?: string) {
 		super(name, "static", extName)
 	}
-	art: (this: this) => string = function () {
-		return this.name
+	art: (this: this) => { art: string } = function () {
+		return { art: this.name }
 	}
 }
 export const wall = new Wall("wall")

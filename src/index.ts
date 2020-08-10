@@ -6,6 +6,7 @@ import { centipede, spider } from "./actors/enemies"
 import { chip } from "./actors/playables"
 import "./visuals"
 import { wall } from "./actors/walls"
+import { forceFloor } from "./actors/miscStatic"
 
 // Enable crash handling
 window.addEventListener("error", ev => {
@@ -19,6 +20,7 @@ in ${ev.filename}
 
 const level = new LevelState(5, 5)
 centipede.create([1, 1], Direction.UP, level)
+forceFloor.create([0, 0], Direction.DOWN, level)
 centipede.create([3, 0], Direction.LEFT, level)
 spider.create([4, 1], Direction.DOWN, level)
 chip.create([4, 3], Direction.DOWN, level)

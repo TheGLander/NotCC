@@ -214,6 +214,7 @@ export default class Renderer {
 			this.moveProgress[this.lastId] = 0
 			//debugger
 			sprite.position.set(actor.x * 48, actor.y * 48)
+			sprite.anchor.set(0.5, 0.5)
 		}
 		for (let i = 0; i < this.level.activeActors.length; i++) {
 			const actor = this.level.activeActors[i]
@@ -225,10 +226,11 @@ export default class Renderer {
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
+			const art = actor.art()
 			this.sprites[i].texture =
-				loader.resources[actor.art()]?.texture ??
-				loader.resources.unknown.texture
-			this.sprites[i].position.set(movedPos[0] * 48, movedPos[1] * 48)
+				loader.resources[art.art]?.texture ?? loader.resources.unknown.texture
+			this.sprites[i].angle = art.rotation ?? 0
+			this.sprites[i].position.set(movedPos[0] * 48 + 24, movedPos[1] * 48 + 24)
 		}
 	}
 }

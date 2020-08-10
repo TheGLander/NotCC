@@ -30,11 +30,13 @@ export default class Actor {
 		Flag to do everything based on relative directions, otherwise absolute directions are used
 	 */
 	relativeMovement: boolean = true
-	art: (this: this) => string = function () {
+	art: (this: this) => { art: string; rotation?: number } = function () {
 		const dirString = Direction[this.direction]
-		return `${this.name}${
-			dirString.substr(0, 1).toUpperCase() + dirString.substr(1).toLowerCase()
-		}`
+		return {
+			art: `${this.name}${
+				dirString.substr(0, 1).toUpperCase() + dirString.substr(1).toLowerCase()
+			}`,
+		}
 	}
 
 	// Semi constant
