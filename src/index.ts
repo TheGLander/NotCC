@@ -7,7 +7,7 @@ import { chip } from "./actors/playables"
 import "./visuals"
 import { wall } from "./actors/walls"
 import { forceFloor } from "./actors/miscStatic"
-
+import "./parsers/c2m"
 // Enable crash handling
 window.addEventListener("error", ev => {
 	alert(`Yikes! Something went wrong...
