@@ -1,6 +1,5 @@
 import AutoReadDataView from "./autoReader"
 import { LevelData } from "../encoder"
-import { WatchIgnorePlugin } from "webpack"
 
 // Optional.   Show the copy icon when dragging over.  Seems to only work for chrome.
 document.addEventListener("dragover", e => {
@@ -15,7 +14,11 @@ document.addEventListener("drop", async e => {
 	e.preventDefault()
 	const file = e.dataTransfer.files[0]
 	const buffer = await file.arrayBuffer()
-	parseC2M(buffer)
+	try {
+		parseC2M(buffer)
+	} catch (err) {
+		alert((err as Error).message)
+	}
 })
 
 function parseC2M(buff: ArrayBuffer): LevelData {
