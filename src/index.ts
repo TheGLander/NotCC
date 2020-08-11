@@ -20,7 +20,7 @@ in ${ev.filename}
 
 const level = new LevelState(5, 5)
 centipede.create([1, 1], Direction.UP, level)
-forceFloor.create([0, 0], Direction.DOWN, level)
+forceFloor.create([0, 0], Direction.LEFT, level)
 centipede.create([3, 0], Direction.LEFT, level)
 spider.create([4, 1], Direction.DOWN, level)
 chip.create([4, 3], Direction.DOWN, level)
