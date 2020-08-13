@@ -12,7 +12,7 @@ export interface LevelData {
 	}
 	extUsed: string[]
 	timeLimit: number
-	blobMode: "1" | "4" | "256" | "true"
+	blobMode: number | "true"
 }
 const manifestVer = 0
 /*

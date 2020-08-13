@@ -1,10 +1,15 @@
 export default class AutoReadDataView extends DataView {
 	offset: number = 0
 	smallEndian = true
-	getUint8(): number {
-		const ret = super.getUint8(this.offset)
-		this.offset += 1
-		return ret
+	getUint8(): number
+	getUint8(amount: number): number[]
+	getUint8(amount: number = 1): number | number[] {
+		const rets: number[] = []
+		for (let i = 0; i < amount; i++) {
+			rets.push(super.getUint8(this.offset))
+			this.offset += 1
+		}
+		return rets.length === 1 ? rets[0] : rets
 	}
 	getUint8UntilNull(): number[] {
 		const ret: number[] = []
@@ -13,6 +18,12 @@ export default class AutoReadDataView extends DataView {
 		}
 		if (this.offset < this.byteLength) this.offset++
 		return ret
+	}
+	pushUint8(...values: number[]): void {
+		for (const i in values) {
+			super.setUint8(this.offset, values[i] & 0xff)
+			this.offset++
+		}
 	}
 	getUint16(): number {
 		const ret = super.getUint16(this.offset, this.smallEndian)

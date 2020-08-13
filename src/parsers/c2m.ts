@@ -1,5 +1,6 @@
 import AutoReadDataView from "./autoReader"
 import { LevelData } from "../encoder"
+import { ViewableBuffer } from "pixi.js"
 
 // Optional.   Show the copy icon when dragging over.  Seems to only work for chrome.
 document.addEventListener("dragover", e => {
@@ -18,8 +19,46 @@ document.addEventListener("drop", async e => {
 		parseC2M(buffer)
 	} catch (err) {
 		alert((err as Error).message)
+		throw err
 	}
 })
+
+function forceIterable<T>(val: T | Iterable<T>): Iterable<T> {
+	if (!val[Symbol.iterator]) return [val as T]
+	else return val as Iterable<T>
+}
+
+function unpackageCompressedField(buff: ArrayBuffer): ArrayBuffer {
+	const view = new AutoReadDataView(buff)
+	const totalLength = view.getUint16()
+	const newBuff = new ArrayBuffer(totalLength)
+	const newView = new AutoReadDataView(newBuff)
+	while (newView.offset < totalLength) {
+		const length = view.getUint8()
+		if (length < 0x80) {
+			// Data block
+			newView.pushUint8(...forceIterable(view.getUint8(length)))
+		} else {
+			// Back-reference block
+			const amount = length - 0x80
+			const offset = view.getUint8()
+			if (offset > newView.offset) throw new Error("Invalid compressed buffer!")
+
+			for (let copied = 0; copied < amount; ) {
+				const copyAmount = Math.min(amount - copied, offset)
+				// Go back ~~in time~~
+				newView.skipBytes(-offset - copied)
+				// Get the bytes
+				const bytes = newView.getUint8(copyAmount)
+				// Return
+				newView.skipBytes(offset - copyAmount + copied)
+				newView.pushUint8(...forceIterable(bytes))
+				copied += copyAmount
+			}
+		}
+	}
+	return newBuff
+}
 
 function parseC2M(buff: ArrayBuffer): LevelData {
 	const view = new AutoReadDataView(buff)
@@ -34,7 +73,7 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 		},
 		extUsed: ["cc", "cc2"],
 		timeLimit: 0,
-		blobMode: "1",
+		blobMode: 1,
 	}
 	const OPTNFuncs = [
 		() => {
@@ -70,15 +109,18 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 		() => view.skipBytes(1),
 		() => view.skipBytes(1),
 		() => {
-			data.blobMode = { 0: "1", 1: "4", 2: "256" }[view.getUint8()]
+			data.blobMode = { 0: 1, 1: 4, 2: 256 }[view.getUint8()]
 		},
 	]
 	let solutionHash: string
+
 	while (view.offset < view.byteLength) {
 		const sectionName = view.getString(4)
-		debugger
+		//debugger
 		const length = view.getUint32()
 		const oldOffset = view.offset
+		let levelData: ArrayBuffer
+		let solutionData: ArrayBuffer
 		switch (sectionName) {
 			case "CC2M":
 				if (view.getStringUntilNull() !== "7") throw new Error("Outdated file!")
@@ -94,16 +136,25 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 			case "OPTN":
 				for (let i = 0; view.offset < oldOffset + length; i++) OPTNFuncs[i]()
 				break
+			case "PACK":
+				levelData = unpackageCompressedField(
+					buff.slice(view.offset, view.offset + length)
+				)
+			case "MAP ":
+				if (sectionName === "MAP ")
+					levelData = buff.slice(view.offset, view.offset + length)
+				view.skipBytes(length)
+				break
 			case "LOCK":
 				// Discard
 				view.getStringUntilNull()
 				break
-			case "KEY":
+			case "KEY ":
 				// Discard
 				view.skipBytes(16)
 				break
 			default:
-				throw new Error("Invalid section!")
+				throw new Error(`Unknown section "${sectionName}"`)
 		}
 		if (oldOffset + length !== view.offset) throw new Error("Invalid file!")
 	}
