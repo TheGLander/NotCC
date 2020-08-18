@@ -53,6 +53,7 @@ function convertBitField(
 		const tiles = clone(data[tileId])
 		for (let i = 0; i < tiles.length; i++) {
 			const tile = tiles[i]
+			if (tile?.[0] === "glider") debugger
 			if (tile === null) {
 				tiles.pop()
 				tiles.push(...parseTile())
@@ -103,6 +104,14 @@ function convertBitField(
 									modTiles[0][2] = String.fromCharCode(options)
 								else throw new Error("Invalid letter tile!")
 								break
+							case "cloneMachine":
+								const directions = ["u", "r", "d", "l"]
+								modTiles[0][2] = ""
+								for (let j = 0; j < 4; j++)
+									if (getBit(options, j)) modTiles[0][2] += directions[j]
+								tiles.unshift(...modTiles)
+								break
+
 							default:
 								break
 						}
