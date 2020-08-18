@@ -1,6 +1,7 @@
 import AutoReadDataView from "./autoReader"
 import { LevelData } from "../encoder"
-import { ViewableBuffer } from "pixi.js"
+import { Field, Direction, clone } from "../helpers"
+import data from "./c2mData"
 
 // Optional.   Show the copy icon when dragging over.  Seems to only work for chrome.
 document.addEventListener("dragover", e => {
@@ -23,9 +24,105 @@ document.addEventListener("drop", async e => {
 	}
 })
 
+/**
+ * Checks if the value is an iterable, if not, creates an array out of it
+ * @param val
+ */
 function forceIterable<T>(val: T | Iterable<T>): Iterable<T> {
 	if (!val[Symbol.iterator]) return [val as T]
 	else return val as Iterable<T>
+}
+
+/**
+ * Gets a bit from a number
+ * @param number The number to use
+ * @param bitPosition The position of the bit to use, starts from right
+ */
+function getBit(number: number, bitPosition: number): boolean {
+	return (number & (1 << bitPosition)) !== 0
+}
+
+function convertBitField(
+	bitField: ArrayBuffer,
+	size: [number, number]
+): Field<[string, Direction, string?][]> {
+	const view = new AutoReadDataView(bitField)
+	const field: Field<[string, Direction, string?][]> = []
+	function parseTile(): [string, Direction, string?][] {
+		const tileId = view.getUint8()
+		const tiles = clone(data[tileId])
+		for (const i in tiles) {
+			const tile = tiles[i]
+			if (tile === null) {
+				tiles.pop()
+				tiles.push(...parseTile())
+				continue
+			}
+			if (tile[1] === null) tile[1] = view.getUint8()
+			if (tile[2] === null) {
+				// Handle special cases
+				switch (tile[0]) {
+					case "thinWall": {
+						const options = view.getUint8()
+						const additions: [string, Direction][] = []
+						for (let i = 0; i < 3; i++)
+							if (getBit(options, i)) additions.unshift(["thinWall", i])
+						if (getBit(options, 4)) additions.unshift(["canopy", 0])
+						tiles.splice(tiles.indexOf(tile), 1, ...additions)
+						break
+					}
+					case "directionalBlock": {
+						const options = view.getUint8()
+						const directions = ["u", "r", "d", "l"]
+						tile[2] = ""
+						for (let i = 0; i < 3; i++)
+							if (getBit(options, i)) tile[2] += directions[i]
+						break
+					}
+					case "modifier8": {
+						const options = view.getUint8()
+						const modTiles = parseTile()
+						tiles.splice(tiles.indexOf(tile), 1)
+						switch (modTiles[0][0]) {
+							case "floor":
+							case "steelWall":
+							case "toggleSwitch":
+							case "transmogrifier":
+							case "teleportRed":
+							case "teleportBlue":
+								tiles.unshift(...modTiles)
+								for (let i = 0; i < 4; i++)
+									if (getBit(options, i)) tiles.unshift(["wire", i])
+								for (let i = 4; i < 8; i++)
+									if (getBit(options, i)) tiles.unshift(["wireTunnel", i])
+								break
+							case "letterTile":
+								if (options >= 0x1c && options <= 0x1f)
+									modTiles[0][2] = Direction[options - 0x1c]
+								else if (options >= 0x20 && options <= 0x5f)
+									modTiles[0][2] = String.fromCharCode(options)
+								else throw new Error("Invalid letter tile!")
+								break
+							default:
+								break
+						}
+						break
+					}
+					default:
+						break
+				}
+			}
+		}
+
+		return tiles
+	}
+	for (let x = 0; x < size[0]; x++) {
+		field.push([])
+		for (let y = 0; y < size[1]; y++) {
+			field[x][y] = parseTile()
+		}
+	}
+	return field
 }
 
 function unpackageCompressedField(buff: ArrayBuffer): ArrayBuffer {
@@ -133,6 +230,10 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 				// Discard (temp)
 				view.getStringUntilNull()
 				break
+			case "NOTE":
+				// Discard (temp)
+				view.getStringUntilNull()
+				break
 			case "OPTN":
 				for (let i = 0; view.offset < oldOffset + length; i++) OPTNFuncs[i]()
 				break
@@ -144,6 +245,8 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 				if (sectionName === "MAP ")
 					levelData = buff.slice(view.offset, view.offset + length)
 				view.skipBytes(length)
+				const [width, height] = new Uint8Array(levelData)
+				convertBitField(levelData.slice(2), [height, width])
 				break
 			case "LOCK":
 				// Discard
