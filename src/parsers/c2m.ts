@@ -53,7 +53,6 @@ function convertBitField(
 		const tiles = clone(data[tileId])
 		for (let i = 0; i < tiles.length; i++) {
 			const tile = tiles[i]
-			if (tile?.[0] === "glider") debugger
 			if (tile === null) {
 				tiles.pop()
 				tiles.push(...parseTile())
