@@ -51,7 +51,7 @@ function convertBitField(
 	function parseTile(): [string, Direction, string?][] {
 		const tileId = view.getUint8()
 		const tiles = clone(data[tileId])
-		for (const i in tiles) {
+		for (let i = 0; i < tiles.length; i++) {
 			const tile = tiles[i]
 			if (tile === null) {
 				tiles.pop()
@@ -65,8 +65,8 @@ function convertBitField(
 					case "thinWall": {
 						const options = view.getUint8()
 						const additions: [string, Direction][] = []
-						for (let i = 0; i < 3; i++)
-							if (getBit(options, i)) additions.unshift(["thinWall", i])
+						for (let j = 0; j < 4; j++)
+							if (getBit(options, j)) additions.unshift(["thinWall", j])
 						if (getBit(options, 4)) additions.unshift(["canopy", 0])
 						tiles.splice(tiles.indexOf(tile), 1, ...additions)
 						break
@@ -75,8 +75,8 @@ function convertBitField(
 						const options = view.getUint8()
 						const directions = ["u", "r", "d", "l"]
 						tile[2] = ""
-						for (let i = 0; i < 3; i++)
-							if (getBit(options, i)) tile[2] += directions[i]
+						for (let j = 0; j < 4; j++)
+							if (getBit(options, j)) tile[2] += directions[j]
 						break
 					}
 					case "modifier8": {
@@ -91,10 +91,10 @@ function convertBitField(
 							case "teleportRed":
 							case "teleportBlue":
 								tiles.unshift(...modTiles)
-								for (let i = 0; i < 4; i++)
-									if (getBit(options, i)) tiles.unshift(["wire", i])
-								for (let i = 4; i < 8; i++)
-									if (getBit(options, i)) tiles.unshift(["wireTunnel", i])
+								for (let j = 0; j < 4; j++)
+									if (getBit(options, j)) tiles.unshift(["wire", j])
+								for (let j = 4; j < 8; j++)
+									if (getBit(options, j)) tiles.unshift(["wireTunnel", j])
 								break
 							case "letterTile":
 								if (options >= 0x1c && options <= 0x1f)
