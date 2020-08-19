@@ -1,7 +1,7 @@
 import { Direction } from "../helpers"
 
-export default [
-	null,
+const cc2Tiles = [
+	[["unknown", 0, ""]],
 	[["floor", 0, ""]],
 	[["wall", 0, ""]],
 	[["ice", 0, ""]],
@@ -84,18 +84,18 @@ export default [
 	[["steelWall", 0, ""]],
 	[["tnt", 0, ""], null],
 	[["helmet", 0, ""], null],
-	null,
-	null,
-	null,
+	[["unknown", 0, ""]],
+	[["unknown", 0, ""]],
+	[["unknown", 0, ""]],
 	[["melinda", null, ""], null],
 	[["teethBlue", null, ""], null],
-	null,
+	[["unknown", 0, ""]],
 	[["bootDirt", 0, ""], null],
 	[["signMale", 0, ""]],
 	[["signFemale", 0, ""]],
 	[["notGate", 0, ""]], // Custom stuff
-	null,
-	null,
+	[["unknown", 0, ""]],
+	[["unknown", 0, ""]],
 	[["flameJet", 0, "off"]],
 	[["flameJet", 0, "on"]],
 	[["buttonOrange", 0, ""]],
@@ -104,25 +104,25 @@ export default [
 	[["complexButtonYellow", 0, ""]],
 	[["mirrorChip", null, ""], null],
 	[["mirrorMelinda", null, ""], null],
-	null,
+	[["unknown", 0, ""]],
 	[["bowlingBall", 0, ""], null],
 	[["rover", null, ""], null],
 	[["timeBonus", 0, "minus"], null],
 	[["customFloor", 0, null]],
-	null,
+	[["unknown", 0, ""]],
 	[["thinWall", 0, null], null],
-	null,
+	[["unknown", 0, ""]],
 	[["railroadSign", 0, ""], null],
 	[["customWall", 0, null]],
 	[["letterTile", 0, null]],
 	[["outlineContinuos", 0, "on"]],
 	[["outlineContinuos", 0, "off"]],
-	null,
-	null,
+	[["unknown", 0, ""]],
+	[["unknown", 0, ""]],
 	[["modifier8", 0, null]],
 	[["modifier16", 0, null]],
 	[["modifier32", 0, null]],
-	null,
+	[["unknown", 0, ""]],
 	[["bonus", 0, "10"], null],
 	[["bonus", 0, "100"], null],
 	[["bonus", 0, "1000"], null],
@@ -134,8 +134,8 @@ export default [
 	[["floorMimic", null, ""], null],
 	[["greenBomb", 0, ""], null],
 	[["greenChip", 0, ""], null],
-	null,
-	null,
+	[["unknown", 0, ""]],
+	[["unknown", 0, ""]],
 	[["buttonBlack", 0, ""]],
 	[["toggleSwitch", 0, "off"]],
 	[["toggleSwitch", 0, "on"]],
@@ -146,6 +146,17 @@ export default [
 	[["eye", 0, ""], null],
 	[["bribe", 0, ""], null],
 	[["bootSpeed", 0, ""], null],
-	null,
+	[["unknown", 0, ""]],
 	[["hook", 0, ""], null],
-] as [string, Direction, string?][][]
+] as const
+
+export type cc2TileNames =
+	| typeof cc2Tiles[number][0][0]
+	// Indirect tile additions
+	| "canopy"
+	| "wire"
+	| "wireTunnel"
+	| "andGate"
+export type cc2Tile = [cc2TileNames, Direction, string?]
+
+export default (cc2Tiles as unknown) as cc2Tile[][]

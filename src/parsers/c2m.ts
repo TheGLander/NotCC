@@ -1,7 +1,7 @@
 import AutoReadDataView from "./autoReader"
 import { LevelData } from "../encoder"
 import { Field, Direction, clone } from "../helpers"
-import data from "./c2mData"
+import data, { cc2Tile } from "./c2mData"
 
 // Optional.   Show the copy icon when dragging over.  Seems to only work for chrome.
 document.addEventListener("dragover", e => {
@@ -48,9 +48,10 @@ function convertBitField(
 ): Field<[string, Direction, string?][]> {
 	const view = new AutoReadDataView(bitField)
 	const field: Field<[string, Direction, string?][]> = []
-	function parseTile(): [string, Direction, string?][] {
+	function parseTile(): cc2Tile[] {
 		const tileId = view.getUint8()
 		const tiles = clone(data[tileId])
+
 		for (let i = 0; i < tiles.length; i++) {
 			const tile = tiles[i]
 			if (tile === null) {
@@ -64,7 +65,7 @@ function convertBitField(
 				switch (tile[0]) {
 					case "thinWall": {
 						const options = view.getUint8()
-						const additions: [string, Direction][] = []
+						const additions: cc2Tile[] = []
 						for (let j = 0; j < 4; j++)
 							if (getBit(options, j)) additions.unshift(["thinWall", j])
 						if (getBit(options, 4)) additions.unshift(["canopy", 0])
@@ -123,8 +124,35 @@ function convertBitField(
 							case "customFloor":
 							case "customWall":
 								tile[2] = ["green", "pink", "yellow", "blue"][view.getUint8()]
+								if (tile[2] === undefined)
+									throw new Error("Invalid custom wall/floor!")
 								tiles.unshift(...modTiles)
 								break
+							/*case "notGate":
+								if (
+									options >= 0x44 ||
+									(options >= 0x18 && options <= 0x1d) ||
+									(options >= 0x27 && options <= 0x3f)
+								)
+									throw new Error("Voodoo tiles not supported(for now)")
+								let keyOptions = options
+								loop: while (keyOptions < 0x44) {
+									switch (keyOptions) {
+										case 0x3:
+											// Subtract [offset from 0] to get direction, 0 in this case
+											tile[1] = options - 0x0
+											break loop
+										case 0x7:
+											tile[0] = "andGate"
+											// Subtract [offset from 0] to get direction, 0 in this case
+											tile[1] = options - 0x4
+											break loop
+										default:
+											keyOptions++
+											break
+									}
+								}
+								break*/
 							default:
 								throw new Error("Invalid 8-bit modifier!")
 						}
