@@ -79,6 +79,15 @@ function convertBitField(
 							if (getBit(options, j)) tile[2] += directions[j]
 						break
 					}
+					// By default custom tiles are green
+					case "customFloor":
+					case "customWall":
+						tile[2] = "green"
+						break
+					// By default letter tiles have a space
+					case "letterTile":
+						tile[2] = " "
+						break
 					case "modifier8": {
 						const options = view.getUint8()
 						const modTiles = parseTile()
@@ -102,6 +111,7 @@ function convertBitField(
 								else if (options >= 0x20 && options <= 0x5f)
 									modTiles[0][2] = String.fromCharCode(options)
 								else throw new Error("Invalid letter tile!")
+								tiles.unshift(...modTiles)
 								break
 							case "cloneMachine":
 								const directions = ["u", "r", "d", "l"]
@@ -110,14 +120,22 @@ function convertBitField(
 									if (getBit(options, j)) modTiles[0][2] += directions[j]
 								tiles.unshift(...modTiles)
 								break
-
-							default:
+							case "customFloor":
+							case "customWall":
+								tile[2] = ["green", "pink", "yellow", "blue"][view.getUint8()]
+								tiles.unshift(...modTiles)
 								break
+							default:
+								throw new Error("Invalid 8-bit modifier!")
 						}
 						break
 					}
 					default:
-						break
+						throw new Error(
+							`(Internal) Bad c2m data provided! (Tile with 2 null: ${JSON.stringify(
+								tile
+							)})`
+						)
 				}
 			}
 		}
@@ -235,6 +253,10 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 				view.getStringUntilNull()
 				break
 			case "AUTH":
+				// Discard (temp)
+				view.getStringUntilNull()
+				break
+			case "CLUE":
 				// Discard (temp)
 				view.getStringUntilNull()
 				break
