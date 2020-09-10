@@ -1,8 +1,8 @@
-import { Field } from "./helpers"
+import { Field, Direction } from "./helpers"
 import Actor from "./actor"
 
 export interface LevelData {
-	field: Field<string[]>
+	field: Field<[string, Direction, string?][]>
 	width: number
 	height: number
 	camera: {
@@ -13,6 +13,7 @@ export interface LevelData {
 	extUsed: string[]
 	timeLimit: number
 	blobMode: number | "true"
+	name: string
 }
 const manifestVer = 0
 /*

@@ -95,7 +95,7 @@ const cc2Tiles = [
 	[["signFemale", 0, ""]],
 	[["notGate", 0, ""]], // Custom stuff
 	[["unknown", 0, ""]],
-	[["unknown", 0, ""]],
+	[["buttonPurple", 0, ""]],
 	[["flameJet", 0, "off"]],
 	[["flameJet", 0, "on"]],
 	[["buttonOrange", 0, ""]],
@@ -157,6 +157,12 @@ export type cc2TileNames =
 	| "wire"
 	| "wireTunnel"
 	| "andGate"
+	| "orGate"
+	| "xorGate"
+	| "latchGate"
+	| "countGate"
+	| "nandGate"
+	| "latchGateMirror"
 export type cc2Tile = [cc2TileNames, Direction, string?]
 
 export default (cc2Tiles as unknown) as cc2Tile[][]

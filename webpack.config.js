@@ -39,4 +39,5 @@ module.exports = {
 	},
 	watch: !prod,
 	resolve: { extensions: [".ts", ".js", ".json"] },
+	devtool: "source-map",
 }

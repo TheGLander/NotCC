@@ -100,6 +100,8 @@ function convertBitField(
 							case "transmogrifier":
 							case "teleportRed":
 							case "teleportBlue":
+							case "buttonPurple":
+							case "buttonBlack":
 								tiles.unshift(...modTiles)
 								for (let j = 0; j < 4; j++)
 									if (getBit(options, j)) tiles.unshift(["wire", j])
@@ -128,7 +130,7 @@ function convertBitField(
 									throw new Error("Invalid custom wall/floor!")
 								tiles.unshift(...modTiles)
 								break
-							/*case "notGate":
+							case "notGate":
 								if (
 									options >= 0x44 ||
 									(options >= 0x18 && options <= 0x1d) ||
@@ -136,23 +138,55 @@ function convertBitField(
 								)
 									throw new Error("Voodoo tiles not supported(for now)")
 								let keyOptions = options
+								const curTile = modTiles[0]
 								loop: while (keyOptions < 0x44) {
 									switch (keyOptions) {
 										case 0x3:
 											// Subtract [offset from 0] to get direction, 0 in this case
-											tile[1] = options - 0x0
+											curTile[1] = options - 0x0
 											break loop
 										case 0x7:
-											tile[0] = "andGate"
-											// Subtract [offset from 0] to get direction, 0 in this case
-											tile[1] = options - 0x4
+											curTile[0] = "andGate"
+											// Subtract [offset from 0] to get direction
+											curTile[1] = options - 0x4
+											break loop
+										case 0xb:
+											curTile[0] = "orGate"
+											// Subtract [offset from 0] to get direction
+											curTile[1] = options - 0x8
+											break loop
+										case 0xf:
+											curTile[0] = "xorGate"
+											// Subtract [offset from 0] to get direction
+											curTile[1] = options - 0xc
+											break loop
+										case 0x13:
+											curTile[0] = "latchGate"
+											// Subtract [offset from 0] to get direction
+											curTile[1] = options - 0x10
+											break loop
+										case 0x17:
+											curTile[0] = "nandGate"
+											// Subtract [offset from 0] to get direction
+											curTile[1] = options - 0x14
+											break loop
+										case 0x27:
+											curTile[0] = "countGate"
+											// Subtract [offset from 0] to get direction
+											curTile[2] = (options - 0x1e).toString(10)
+											break loop
+										case 0x43:
+											curTile[0] = "latchGateMirror"
+											// Subtract [offset from 0] to get direction
+											curTile[1] = options - 0x40
 											break loop
 										default:
 											keyOptions++
 											break
 									}
 								}
-								break*/
+								tiles.push(...modTiles)
+								break
 							default:
 								throw new Error("Invalid 8-bit modifier!")
 						}
@@ -225,6 +259,7 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 		extUsed: ["cc", "cc2"],
 		timeLimit: 0,
 		blobMode: 1,
+		name: null,
 	}
 	const OPTNFuncs = [
 		() => {
@@ -278,7 +313,7 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 				break
 			case "TITL":
 				// Discard (temp)
-				view.getStringUntilNull()
+				data.name = view.getStringUntilNull()
 				break
 			case "AUTH":
 				// Discard (temp)
@@ -304,7 +339,7 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 					levelData = buff.slice(view.offset, view.offset + length)
 				view.skipBytes(length)
 				const [width, height] = new Uint8Array(levelData)
-				convertBitField(levelData.slice(2), [height, width])
+				data.field = convertBitField(levelData.slice(2), [height, width])
 				break
 			case "LOCK":
 				// Discard
@@ -315,7 +350,7 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 				view.skipBytes(16)
 				break
 			default:
-				throw new Error(`Unknown section "${sectionName}"`)
+				view.skipBytes(length)
 		}
 		if (oldOffset + length !== view.offset) throw new Error("Invalid file!")
 	}
