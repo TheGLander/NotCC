@@ -20,6 +20,7 @@ class Tile extends Array<Array<Actor>> {
 		actors: Actor[]
 	) {
 		super()
+		for (let i = 0; i <= 4; i++) this[i] = []
 		;[this.x, this.y] = position
 		this.addActors(actors)
 	}
@@ -28,18 +29,28 @@ class Tile extends Array<Array<Actor>> {
 	 */
 	addActors(actors: Actor[]): void {
 		this.allActors.push(...actors)
-		for (const actor of actors) this[actor.layer].push(actor)
+		for (const actor of actors) {
+			this[actor.layer].push(actor)
+		}
 	}
 	getNeighbor(direction: Direction): Tile | null {
 		switch (direction) {
 			case Direction.UP:
-				return this.level.field[this.position[0] - 1][this.position[1]] ?? null
+				return (
+					this.level.field[this.position[0]]?.[this.position[1] - 1] ?? null
+				)
 			case Direction.LEFT:
-				return this.level.field[this.position[0]][this.position[1] - 1] ?? null
+				return (
+					this.level.field[this.position[0] - 1]?.[this.position[1]] ?? null
+				)
 			case Direction.DOWN:
-				return this.level.field[this.position[0] + 1][this.position[1]] ?? null
+				return (
+					this.level.field[this.position[0]]?.[this.position[1] + 1] ?? null
+				)
 			case Direction.RIGHT:
-				return this.level.field[this.position[0]][this.position[1] + 1] ?? null
+				return (
+					this.level.field[this.position[0] + 1]?.[this.position[1]] ?? null
+				)
 		}
 	}
 }

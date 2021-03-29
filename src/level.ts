@@ -20,7 +20,10 @@ export class LevelState {
 		for (const actor of this.activeActors) actor._internalDecide(forcedOnly)
 	}
 	protected moveTick(): void {
-		for (const actor of this.activeActors) actor._internalMove()
+		for (const actor of this.activeActors) {
+			actor._internalMove()
+			actor._internalDoCooldown()
+		}
 	}
 	/**
 	 * Ticks the whole level by one subtick

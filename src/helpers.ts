@@ -9,44 +9,12 @@ export enum Direction {
 	LEFT,
 }
 
-// #region Internal enums for `relativeToAbsolute`
-
-enum AbsoluteUp {
-	FORWARD,
-	RIGHT,
-	OPPOSITE,
-	LEFT,
-}
-
-enum AbsoluteRight {
-	LEFT,
-	FORWARD,
-	RIGHT,
-	OPPOSITE,
-}
-
-enum AbsoluteDown {
-	OPPOSITE,
-	LEFT,
-	FORWARD,
-	RIGHT,
-}
-
-enum AbsoluteLeft {
-	RIGHT,
-	OPPOSITE,
-	LEFT,
-	FORWARD,
-}
-
 const absoluteEnums = [
-	AbsoluteUp,
-	AbsoluteRight,
-	AbsoluteDown,
-	AbsoluteRight,
+	{ FORWARD: 0, RIGHT: 1, BACKWARD: 2, LEFT: 3 },
+	{ FORWARD: 1, RIGHT: 2, BACKWARD: 3, LEFT: 0 },
+	{ FORWARD: 2, RIGHT: 3, BACKWARD: 0, LEFT: 1 },
+	{ FORWARD: 3, RIGHT: 0, BACKWARD: 1, LEFT: 2 },
 ] as const
-
-//#endregion
 
 /**
  * Creates an enum of relative directions from an absolute one
@@ -54,7 +22,7 @@ const absoluteEnums = [
  */
 export function relativeToAbsolute(
 	direction: Direction
-): typeof absoluteEnums[Direction] {
+): Record<"FORWARD" | "BACKWARD" | "LEFT" | "RIGHT", Direction> {
 	return absoluteEnums[direction]
 }
 

@@ -90,10 +90,12 @@ export abstract class Actor {
 		// Welp, something stole our spot, too bad
 		if (!canMove) return
 		const newTile = this.tile.getNeighbor(direction)
+		if (!newTile) return
 		// TODO Speed mods
 		const moveLength = this.moveSpeed * 3
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
+		this.tile = newTile
 		// Finally, move ourselves to the new tile
 	}
 	_internalMove(): void {
@@ -107,5 +109,8 @@ export abstract class Actor {
 	_internalBlocks(other: Actor): boolean {
 		if (this.blocks?.(other)) return true
 		return other.blockedBy?.(this) ?? false
+	}
+	_internalDoCooldown() {
+		if (this.cooldown > 0) this.cooldown--
 	}
 }

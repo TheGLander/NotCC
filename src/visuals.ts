@@ -221,7 +221,7 @@ export default class Renderer {
 		for (let i = 0; i < this.level.activeActors.length; i++) {
 			const actor = this.level.activeActors[i]
 
-			const movedPos = actor.tile.position
+			const movedPos = [actor.tile.x, actor.tile.y]
 			if (actor.cooldown && actor.currentMoveSpeed) {
 				const mults = convertDirection(actor.direction)
 				const offsetMult =
