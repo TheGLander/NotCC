@@ -1,206 +1,111 @@
 import { LevelState } from "./level"
-import { Direction, clone } from "./helpers"
-import { actorDB } from "./const"
-export type actorType = "playable" | "monster" | "static" | "pushable"
-export namespace defaults {
-	export const onTick: ((this: Actor) => void)[] = []
-	export const onPreTick = [
-		function (this: Actor) {
-			if (this.moveProgress < this.moveSpeed && this.moving) this.moveProgress++
-			if (this.moveProgress === this.moveSpeed) {
-				this.moving = false
-				this.moveProgress = 0
-				const thisStack = this.getCurrentStack()
-				for (const i in thisStack) {
-					thisStack[i].collision(this)
-					this.collision(thisStack[i])
-				}
-			}
-		},
-	]
-	export const solidChecks: ((this: Actor, second: Actor) => boolean)[] = []
-	export const onCollision: ((this: Actor, second: Actor) => boolean)[] = []
-	export const onWeakCollision: ((this: Actor, second: Actor) => boolean)[] = []
-}
-export default class Actor {
-	//Constants
-	moveSpeed: number = 4
-	playable: boolean = false
-	/**
-		Flag to do everything based on relative directions, otherwise absolute directions are used
-	 */
-	relativeMovement: boolean = true
-	art: (this: this) => { art: string; rotation?: number } = function () {
-		const dirString = Direction[this.direction]
-		return {
-			art: `${this.name}${
-				dirString.substr(0, 1).toUpperCase() + dirString.substr(1).toLowerCase()
-			}`,
-		}
-	}
+import { Decision } from "./const"
+import { Direction } from "./helpers"
+import { Layers } from "./tile"
+import Tile from "./tile"
 
-	// Semi constant
-	fullname: string
-	//Changes while in level
-	moving: boolean | null = null
-	x: number | null = null
-	y: number | null = null
-	inventory: string[] | null = null
-	level: LevelState | null = null
-	created: boolean = false
-	direction: number | null = null
-	moveProgress: number | null = null
-	id: number | null = null
+/**
+ * Current state of sliding, playables can escape weak sliding.
+ */
+enum SlidingState {
+	NONE,
+	// Force floors
+	WEAK,
+	// Ice
+	STRONG,
+}
+
+export abstract class Actor {
+	moveDecision = Decision.NONE
+	currentMoveSpeed: number | null = null
+	oldTile: Tile | null = null
+	cooldown = 0
+	pendingDecision = Decision.NONE
+	slidingState = SlidingState.NONE
+	abstract layer: Layers
+	/**
+	 * Amount of ticks it takes for the actor to move
+	 */
+	abstract moveSpeed: number
+	tile: Tile
 
 	constructor(
-		public name: string,
-		public actorType: actorType,
-		public extName: string = "unknown"
+		public level: LevelState,
+		public direction: Direction,
+		position: [number, number]
 	) {
-		this.fullname = `${extName}.${name}`
-		actorDB[this.fullname] = this
+		level.activeActors.unshift(this)
+		this.tile = level.field[position[0]][position[1]]
+		this.tile.addActors([this])
 	}
 	/**
-	 * Check if the actor is solid to a second actor
-	 * @param second The second actor
+	 * Decides the movements the actor will attempt to do
+	 * Must return an array of absolute directions
 	 */
-	solidTo(second: Actor): boolean {
-		for (const i in defaults.solidChecks)
-			if (defaults.solidChecks[i].call(this, second)) return true
-		for (const i in this.solidChecks)
-			if (this.solidChecks[i].call(this, second)) return true
-		return false
-	}
-	/**
-	The checks to do to define if the actor is solid to a second actor
- */
-	solidChecks: ((second: Actor) => boolean)[] = []
-	/**
-	 * Execute tick related functions
-	 */
-	tick(): void {
-		for (const i in defaults.onTick) defaults.onTick[i].call(this)
-		for (const i in this.onTick) this.onTick[i].call(this)
-	}
-	onTick: (() => void)[] = []
-
-	/**
-	 * Execute functions before everyone's tick
-	 */
-	preTick(): void {
-		for (const i in defaults.onPreTick) defaults.onPreTick[i].call(this)
-		for (const i in this.onPreTick) this.onPreTick[i].call(this)
-	}
-	onPreTick: (() => void)[] = []
-
-	create(pos: [number, number], direction: Direction, level: LevelState): this {
-		const newActor = clone(this)
-		newActor.x = pos[0]
-		newActor.y = pos[1]
-		newActor.inventory = []
-		newActor.level = level
-		newActor.created = true
-		newActor.moving = false
-		newActor.direction = direction
-		newActor.onTick = this.onTick.map(func => func.bind(newActor))
-		newActor.id = level.nextId++
-		level.field[newActor.x][newActor.y].push(newActor)
-		level.activeActors.push(newActor)
-		return newActor
-	}
-
-	move(direction: Direction): boolean {
-		//Sanity checks
-		if (!this.created)
-			throw new Error(
-				"Can't access created-only method while not being created"
-			)
-		if (this.moving || this.actorType === "static") return false
-		//Find the destination tile
-		const destination = this.directionToCoords(direction)
-		const destinationTile = this.getNeighbor(direction)
-		if (!this.canMoveTo(direction)) return false
-		//Remove from the old tile
-		const thisStack = this.level.field[this.x][this.y]
-		thisStack.splice(thisStack.indexOf(this), 1)
-
-		//Add to the new tile
-		destinationTile.push(this)
-		for (const i in destinationTile) {
-			destinationTile[i].weakCollision(this)
-			this.weakCollision(destinationTile[i])
+	decideMovement?(): (Direction | (() => Direction))[]
+	onBlocked?(blocker?: Actor): void
+	_internalDecide(forcedOnly = false): void {
+		this.moveDecision = Decision.NONE
+		if (this.cooldown) return
+		this.currentMoveSpeed = this.oldTile = null
+		// This is where the decision *actually* begins
+		// If the thing has a decision queued up, do it forcefully
+		// (Currently only used for blocks pushed while sliding)
+		if (this.pendingDecision) {
+			this.moveDecision = this.pendingDecision
+			return
 		}
-		//Update coordinates
-		this.x = destination[0]
-		this.y = destination[1]
-		//Create a move timeout
-		this.moving = true
-		return true
-	}
-	canMoveTo(direction: Direction) {
-		//Find the destination tile
-		const destinationTile = this.getNeighbor(direction)
-		//Exit if out of bounds
-		if (!destinationTile) return false
-		//Check if anything on it is solid
-		for (const i in destinationTile)
-			if (destinationTile[i].solidTo(this)) return false
-		return true
-	}
-	getNeighbor(direction: Direction) {
-		let destination = this.directionToCoords(direction)
-		return this.level.field[destination[0]]?.[destination[1]]
-	}
-	getCurrentStack() {
-		return this?.level.field[this.x]?.[this.y]
-	}
-	/**
-	 * Gets coordinates of tiles relative to the actor and returns them
-	 * @param direction The direction of the tile to get
-	 * @param considerContext To consider the actors current direction
-	 */
-	directionToCoords(
-		direction: Direction,
-		considerContext: boolean = this.relativeMovement
-	): [number, number] {
-		let newDirection = direction + 0
-		if (considerContext) newDirection += this.direction
-		newDirection %= 4
-		switch (newDirection) {
-			case Direction.UP:
-				return [this.x, this.y - 1]
-			case Direction.DOWN:
-				return [this.x, this.y + 1]
-			case Direction.LEFT:
-				return [this.x - 1, this.y]
-			case Direction.RIGHT:
-				return [this.x + 1, this.y]
+		// Since this is a generic actor, we cannot override weak sliding
+		// TODO Ghost ice shenanigans
+		if (this.slidingState) {
+			this.moveDecision = this.direction + 1
+			return
+		}
+		if (forcedOnly) return
+		// TODO Traps
+		const directions = this.decideMovement?.()
+
+		if (!directions) return
+
+		// eslint-disable-next-line prefer-const
+		for (let [i, direction] of directions.entries()) {
+			direction = typeof direction === "function" ? direction() : direction
+			// TODO Force redirection of movement (train tracks)
+
+			if (this.level.checkCollision(this, direction)) {
+				// Yeah, we can go here
+				this.moveDecision = direction + 1
+				return
+			}
+
+			// Force last decision if all other fail
+			if (i === directions.length - 1) this.moveDecision = direction + 1
 		}
 	}
-	rotate(direction: Direction) {
-		if (this.relativeMovement) this.direction = (this.direction + direction) % 4
-		else this.direction = direction
+	// This is defined separately only because of Instabonking:tm:
+	_internalStep(direction: Direction): void {
+		// TODO Force redirection of movement (train tracks)
+		this.direction = direction
+		const canMove = this.level.checkCollision(this, direction, true)
+		// Welp, something stole our spot, too bad
+		if (!canMove) return
+		const newTile = this.tile.getNeighbor(direction)
+		// TODO Speed mods
+		const moveLength = this.moveSpeed * 3
+		this.currentMoveSpeed = this.cooldown = moveLength
+		this.oldTile = this.tile
+		// Finally, move ourselves to the new tile
 	}
-	/**
-	 * Called when two actors are in strong collision, AKA they are on the same tile and aren't moving
-	 * @param second The actor this actor is in collision with
-	 */
-	collision(second: Actor) {
-		for (const i in defaults.onCollision)
-			defaults.onCollision[i].call(this, second)
-		for (const i in this.onCollision) this.onCollision[i].call(this, second)
+	_internalMove(): void {
+		if (this.cooldown > 0 || !this.moveDecision) return
+		this._internalStep(this.moveDecision - 1)
+		this.pendingDecision = Decision.NONE
+		// TODO Instabonking:tm:
 	}
-	onCollision: ((this: this, second: Actor) => void)[] = []
-
-	/**
-	 * Called when two actors are in weak collision, AKA they are on the same tile
-	 * @param second The actor this actor is in collision with
-	 */
-	weakCollision(second: Actor) {
-		for (const i in defaults.onWeakCollision)
-			defaults.onWeakCollision[i].call(this, second)
-		for (const i in this.onWeakCollision)
-			this.onWeakCollision[i].call(this, second)
+	blocks?(other: Actor): boolean
+	blockedBy?(other: Actor): boolean
+	_internalBlocks(other: Actor): boolean {
+		if (this.blocks?.(other)) return true
+		return other.blockedBy?.(this) ?? false
 	}
-	onWeakCollision: ((this: this, second: Actor) => void)[] = []
 }

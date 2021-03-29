@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js"
-import { clone, Direction, l } from "./helpers"
+import { Direction } from "./helpers"
 import { LevelState } from "./level"
+import clone from "deepclone"
 
 const loader = PIXI.Loader.shared
 
@@ -13,9 +14,10 @@ function createTiles(
 	if (!source) throw new Error("Invalid image!")
 	for (let y = 0; y < matrix.length; y++)
 		for (let x = 0; x < matrix[y].length; x++) {
-			if (matrix[y][x] === null) continue
-			loader.resources[matrix[y][x]] = clone(source)
-			loader.resources[matrix[y][x]].texture.frame = new PIXI.Rectangle(
+			const matrixEntry = matrix[y][x]
+			if (matrixEntry === null) continue
+			loader.resources[matrixEntry] = clone(source)
+			loader.resources[matrixEntry].texture.frame = new PIXI.Rectangle(
 				x * tileSize[0],
 				y * tileSize[1],
 				tileSize[0],
@@ -43,7 +45,7 @@ function convertDirection(direction: Direction): [number, number] {
 
 export default class Renderer {
 	ready: Promise<void>
-	lastId: number = 0
+	lastId = 0
 	sprites: PIXI.Sprite[] = []
 	app: PIXI.Application
 	moveProgress: number[] = []
@@ -53,15 +55,15 @@ export default class Renderer {
 	 * @param level
 	 */
 	constructor(public level: LevelState) {
+		//Create a Pixi Application
+		const app = new PIXI.Application({
+			width: level.width * 48,
+			height: level.height * 48,
+		})
+		this.app = app
 		this.ready = new Promise(resolve => {
-			//Create a Pixi Application
-			const app = new PIXI.Application({
-				width: level.width * 48,
-				height: level.height * 48,
-			})
-			this.app = app
 			//Add the canvas that Pixi automatically created for you to the HTML document
-			l("renderSpace").appendChild(app.view)
+			document.getElementById("renderSpace")?.appendChild(app.view)
 
 			loader.add("./img/tiles.png").load(() => {
 				createTiles(
@@ -202,31 +204,33 @@ export default class Renderer {
 		})
 	}
 	/**
-	 * Renders a frame and returns
+	 * Updates the positions of the rendred sprites
 	 */
 	frame(): void {
 		//Catch up on new actors
-		for (; this.lastId < this.level.nextId; this.lastId++) {
+		for (; this.lastId < this.level.activeActors.length; this.lastId++) {
 			const sprite = new PIXI.Sprite(loader.resources.unknown.texture)
 			const actor = this.level.activeActors[this.lastId]
 			this.sprites.push(sprite)
 			this.app.stage.addChild(sprite)
 			this.moveProgress[this.lastId] = 0
 			//debugger
-			sprite.position.set(actor.x * 48, actor.y * 48)
+			sprite.position.set(actor.tile.x * 48, actor.tile.y * 48)
 			sprite.anchor.set(0.5, 0.5)
 		}
 		for (let i = 0; i < this.level.activeActors.length; i++) {
 			const actor = this.level.activeActors[i]
-			const animSpeed = actor.moveSpeed
-			const movedPos = [actor.x, actor.y]
-			if (actor.moving) {
+
+			const movedPos = actor.tile.position
+			if (actor.cooldown && actor.currentMoveSpeed) {
 				const mults = convertDirection(actor.direction)
-				const offsetMult = 1 - (actor.moveProgress + 1) / animSpeed
+				const offsetMult =
+					1 -
+					(actor.currentMoveSpeed - actor.cooldown + 1) / actor.currentMoveSpeed
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
-			const art = actor.art()
+			const art = { art: "no", rotation: null } // actor.art()
 			this.sprites[i].texture =
 				loader.resources[art.art]?.texture ?? loader.resources.unknown.texture
 			this.sprites[i].angle = art.rotation ?? 0

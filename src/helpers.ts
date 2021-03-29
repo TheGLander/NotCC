@@ -1,5 +1,4 @@
 export type Field<T> = T[][]
-import libClone from "deepclone"
 /**
  * All the directions, clockwise
  */
@@ -9,6 +8,56 @@ export enum Direction {
 	DOWN,
 	LEFT,
 }
+
+// #region Internal enums for `relativeToAbsolute`
+
+enum AbsoluteUp {
+	FORWARD,
+	RIGHT,
+	OPPOSITE,
+	LEFT,
+}
+
+enum AbsoluteRight {
+	LEFT,
+	FORWARD,
+	RIGHT,
+	OPPOSITE,
+}
+
+enum AbsoluteDown {
+	OPPOSITE,
+	LEFT,
+	FORWARD,
+	RIGHT,
+}
+
+enum AbsoluteLeft {
+	RIGHT,
+	OPPOSITE,
+	LEFT,
+	FORWARD,
+}
+
+const absoluteEnums = [
+	AbsoluteUp,
+	AbsoluteRight,
+	AbsoluteDown,
+	AbsoluteRight,
+] as const
+
+//#endregion
+
+/**
+ * Creates an enum of relative directions from an absolute one
+ * @param direction The direction to convert
+ */
+export function relativeToAbsolute(
+	direction: Direction
+): typeof absoluteEnums[Direction] {
+	return absoluteEnums[direction]
+}
+
 /**
  * Find neighbors from a center and return them
  * @param center The center coordinates of the radius, 0-based
@@ -22,7 +71,7 @@ export function findNeighbors<T>(
 ): T[] {
 	const x = center[0]
 	const y = center[1]
-	let neighbors = []
+	let neighbors: T[] = []
 	if (radius > 0) neighbors = [...findNeighbors(center, field, radius - 1)]
 	for (let turnAt = radius; turnAt >= -radius; turnAt--) {
 		neighbors.push(field[y + turnAt][x + Math.abs(turnAt) - radius])
@@ -31,47 +80,4 @@ export function findNeighbors<T>(
 			neighbors.push(field[y + turnAt][x - Math.abs(turnAt) + radius])
 	}
 	return neighbors
-}
-/**
- * A simple function to get an HTML element, by either ID or query selector
- * @param id The ID of the element or a query selector
- */
-export function l(id: string): HTMLElement {
-	return document.getElementById(id) ?? document.querySelector(id)
-}
-
-/**
- * Recursively join arrays
- * @param array The array to join
- * @param separator The separator to use
- */
-export function joinRecursively(
-	array: (string[] | string[][])[],
-	separator: string
-): string {
-	let maxLayer = 1
-	function findLayer(val: any) {
-		if (val instanceof Array) {
-			maxLayer++
-			val.forEach(findLayer)
-		}
-	}
-	array.forEach(findLayer)
-	let depth = -1
-	let output = ""
-	function joinArray(val: any) {
-		depth++
-		if (val instanceof Array) {
-			val.forEach(joinArray)
-			output.substring(0, output.length - (maxLayer - depth - 1))
-		} else output += val
-		for (let i = 0; i < maxLayer - depth; i++) output += separator
-		depth--
-	}
-	array.forEach(joinArray)
-	return output
-}
-
-export function clone<T>(oldObj: T & object): T {
-	return libClone(oldObj)
 }

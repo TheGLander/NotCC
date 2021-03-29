@@ -1,27 +1,23 @@
 import AutoReadDataView from "./autoReader"
 import { LevelData } from "../encoder"
-import { Field, Direction, clone } from "../helpers"
+import { Field, Direction } from "../helpers"
 import data, { cc2Tile } from "./c2mData"
+import clone from "deepclone"
 
-// Optional.   Show the copy icon when dragging over.  Seems to only work for chrome.
 document.addEventListener("dragover", e => {
 	e.stopPropagation()
 	e.preventDefault()
-	e.dataTransfer.dropEffect = "copy"
+	//e.dataTransfer.dropEffect = "copy"
 })
 
 // Get file data on drop
 document.addEventListener("drop", async e => {
 	e.stopPropagation()
 	e.preventDefault()
-	const file = e.dataTransfer.files[0]
+	const file = e.dataTransfer?.files[0]
+	if (!file) return
 	const buffer = await file.arrayBuffer()
-	try {
-		parseC2M(buffer)
-	} catch (err) {
-		alert((err as Error).message)
-		throw err
-	}
+	parseC2M(buffer)
 })
 
 /**
@@ -29,6 +25,7 @@ document.addEventListener("drop", async e => {
  * @param val
  */
 function forceIterable<T>(val: T | Iterable<T>): Iterable<T> {
+	// @ts-expect-error Ts doesn't understand iterables
 	if (!val[Symbol.iterator]) return [val as T]
 	else return val as Iterable<T>
 }
@@ -116,13 +113,14 @@ function convertBitField(
 								else throw new Error("Invalid letter tile!")
 								tiles.unshift(...modTiles)
 								break
-							case "cloneMachine":
+							case "cloneMachine": {
 								const directions = ["u", "r", "d", "l"]
 								modTiles[0][2] = ""
 								for (let j = 0; j < 4; j++)
 									if (getBit(options, j)) modTiles[0][2] += directions[j]
 								tiles.unshift(...modTiles)
 								break
+							}
 							case "customFloor":
 							case "customWall":
 								tile[2] = ["green", "pink", "yellow", "blue"][view.getUint8()]
@@ -130,7 +128,7 @@ function convertBitField(
 									throw new Error("Invalid custom wall/floor!")
 								tiles.unshift(...modTiles)
 								break
-							case "notGate":
+							case "notGate": {
 								if (
 									options >= 0x44 ||
 									(options >= 0x18 && options <= 0x1d) ||
@@ -187,6 +185,7 @@ function convertBitField(
 								}
 								tiles.push(...modTiles)
 								break
+							}
 							default:
 								throw new Error("Invalid 8-bit modifier!")
 						}
@@ -247,10 +246,7 @@ function unpackageCompressedField(buff: ArrayBuffer): ArrayBuffer {
 
 function parseC2M(buff: ArrayBuffer): LevelData {
 	const view = new AutoReadDataView(buff)
-	const data: LevelData = {
-		field: null,
-		width: null,
-		height: null,
+	const data: Partial<LevelData> = {
 		camera: {
 			height: 10,
 			width: 10,
@@ -259,7 +255,6 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 		extUsed: ["cc", "cc2"],
 		timeLimit: 0,
 		blobMode: 1,
-		name: null,
 	}
 	const OPTNFuncs = [
 		() => {
@@ -295,7 +290,7 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 		() => view.skipBytes(1),
 		() => view.skipBytes(1),
 		() => {
-			data.blobMode = { 0: 1, 1: 4, 2: 256 }[view.getUint8()]
+			data.blobMode = [1, 4, 256][view.getUint8()]
 		},
 	]
 	let solutionHash: string
@@ -334,13 +329,18 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 				levelData = unpackageCompressedField(
 					buff.slice(view.offset, view.offset + length)
 				)
-			case "MAP ":
+			// eslint-disable-next-line no-fallthrough
+			case "MAP ": {
 				if (sectionName === "MAP ")
 					levelData = buff.slice(view.offset, view.offset + length)
 				view.skipBytes(length)
+				// @ts-expect-error This case will be either from PACK or MAP, in both cases it will be set
+				// eslint-disable-next-line no-case-declarations, no-self-assign
+				levelData = levelData
 				const [width, height] = new Uint8Array(levelData)
 				data.field = convertBitField(levelData.slice(2), [height, width])
 				break
+			}
 			case "LOCK":
 				// Discard
 				view.getStringUntilNull()
@@ -354,5 +354,6 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 		}
 		if (oldOffset + length !== view.offset) throw new Error("Invalid file!")
 	}
-	return data
+	// TODO Check that all properties are in place
+	return data as LevelData
 }

@@ -1,5 +1,5 @@
 import { Field, Direction } from "./helpers"
-import Actor from "./actor"
+//import Actor from "./actor"
 
 export interface LevelData {
 	field: Field<[string, Direction, string?][]>

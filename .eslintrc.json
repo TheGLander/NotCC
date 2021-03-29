@@ -1,0 +1,33 @@
+{
+	"env": {
+		"browser": true,
+		"es6": true,
+		"node": true
+	},
+	"extends": [
+		"eslint:recommended",
+		"plugin:@typescript-eslint/eslint-recommended",
+		"plugin:@typescript-eslint/recommended",
+		"prettier"
+	],
+	"globals": {
+		"Atomics": "readonly",
+		"SharedArrayBuffer": "readonly",
+		"page": true,
+		"browser": true
+	},
+	"parser": "@typescript-eslint/parser",
+	"parserOptions": {
+		"ecmaVersion": 2018,
+		"sourceType": "module"
+	},
+	"plugins": ["@typescript-eslint", "prettier"],
+	"rules": {
+		"indent": [0, "tab", { "SwitchCase": 1 }], //Prettier automatically handles this too
+		"linebreak-style": ["error", "unix"],
+		"quotes": [0, "double"], //Prettier automatically handles them
+		"semi": ["error", "never"],
+		"prettier/prettier": "error",
+		"@typescript-eslint/ban-types": ["error", { "types": { "object": false } }]
+	}
+}
