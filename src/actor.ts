@@ -92,7 +92,7 @@ export abstract class Actor {
 		const newTile = this.tile.getNeighbor(direction)
 		if (!newTile) return
 		// TODO Speed mods
-		const moveLength = this.moveSpeed * 3
+		const moveLength = this.moveSpeed * 3 + 3
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
 		this.tile = newTile
