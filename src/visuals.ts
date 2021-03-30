@@ -79,7 +79,7 @@ export default class Renderer {
 						],
 						[
 							"wall",
-							"block",
+							"dirtBlock",
 							"itemThief",
 							"cloneMachine",
 							"spiderLeft",

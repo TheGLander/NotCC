@@ -50,6 +50,12 @@ export class LevelState {
 				this.field[x].push(new Tile(this, [x, y], []))
 		}
 	}
+	/**
+	 * Checks if a specific actor can move in a certain direction
+	 * @param actor The actor to check for
+	 * @param direction The direction the actor wants to move in
+	 * @param pushBlocks If true, it will push blocks
+	 */
 	checkCollision(
 		actor: Actor,
 		direction: Direction,
@@ -67,6 +73,8 @@ export class LevelState {
 
 		if (!newTile) return false
 
+		const toPush: Actor[] = []
+
 		// Do stuff on the entering tile
 		for (const layer of [
 			Layers.STATIONARY,
@@ -74,9 +82,22 @@ export class LevelState {
 			Layers.ITEM,
 			Layers.ITEM_SUFFIX,
 		]) {
-			for (const blockActor of newTile[layer])
-				if (blockActor._internalBlocks(actor)) return false
-			// TODO Pushing
+			for (const blockActor of newTile[layer]) {
+				if (!blockActor._internalBlocks(actor)) continue
+				// TODO Refactor this into a method
+				if (blockActor.pushable && actor instanceof Playable)
+					toPush.push(blockActor)
+				else return false
+			}
+		}
+		if (!pushBlocks && toPush.length) return false
+		for (const pushable of toPush) {
+			if (pushable.slidingState) {
+				pushable.pendingDecision = direction + 1
+				// We did not move, shame, but we did queue this block push
+				return false
+			}
+			pushable._internalStep(direction)
 		}
 		// TODO Decision time hooking
 		return true

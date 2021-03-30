@@ -110,7 +110,8 @@ export abstract class Actor {
 		this.oldTile = this.tile
 		this.tile = newTile
 		// Finally, move ourselves to the new tile
-		// TODO Actually move to the new tile
+		this.oldTile.removeActors(this)
+		this.tile.addActors(this)
 	}
 	_internalMove(): void {
 		if (this.cooldown > 0 || !this.moveDecision) return
