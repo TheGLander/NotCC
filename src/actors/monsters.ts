@@ -9,7 +9,5 @@ export class Centipede extends Actor {
 	get layer(): Layers {
 		return Layers.MOVABLE
 	}
-	get moveSpeed(): number {
-		return 4
-	}
+	moveSpeed = 4
 }

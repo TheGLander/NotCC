@@ -26,7 +26,7 @@ export abstract class Actor {
 	/**
 	 * Amount of ticks it takes for the actor to move
 	 */
-	abstract moveSpeed: number
+	moveSpeed = 0
 	tile: Tile
 
 	constructor(
@@ -88,11 +88,11 @@ export abstract class Actor {
 		this.direction = direction
 		const canMove = this.level.checkCollision(this, direction, true)
 		// Welp, something stole our spot, too bad
-		if (!canMove) return
+		if (!canMove || !this.moveSpeed) return
 		const newTile = this.tile.getNeighbor(direction)
 		if (!newTile) return
 		// TODO Speed mods
-		const moveLength = this.moveSpeed * 3 + 3
+		const moveLength = this.moveSpeed * 3
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
 		this.tile = newTile
