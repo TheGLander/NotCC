@@ -17,7 +17,7 @@ document.addEventListener("drop", async e => {
 	const file = e.dataTransfer?.files[0]
 	if (!file) return
 	const buffer = await file.arrayBuffer()
-	parseC2M(buffer)
+	console.log(parseC2M(buffer))
 })
 
 /**
