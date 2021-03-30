@@ -1,6 +1,7 @@
 import { Actor, genericDirectionableArt } from "../actor"
 import { Layers } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
+import { Playable } from "./playables"
 export class Centipede extends Actor {
 	art = genericDirectionableArt("centipede")
 	decideMovement(): Direction[] {
@@ -9,6 +10,9 @@ export class Centipede extends Actor {
 	}
 	get layer(): Layers {
 		return Layers.MOVABLE
+	}
+	blocks(other: Actor): boolean {
+		return !(other instanceof Playable)
 	}
 	moveSpeed = 4
 }
