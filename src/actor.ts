@@ -7,7 +7,7 @@ import Tile from "./tile"
 /**
  * Current state of sliding, playables can escape weak sliding.
  */
-enum SlidingState {
+export enum SlidingState {
 	NONE,
 	// Force floors
 	WEAK,
@@ -110,8 +110,7 @@ export abstract class Actor {
 		this.oldTile = this.tile
 		this.tile = newTile
 		// Finally, move ourselves to the new tile
-		this.oldTile.removeActors(this)
-		this.tile.addActors(this)
+		this._internalUpdateTileStates()
 		return true
 	}
 	_internalMove(): void {
@@ -122,12 +121,30 @@ export abstract class Actor {
 	}
 	blocks?(other: Actor): boolean
 	blockedBy?(other: Actor): boolean
+	/**
+	 * Called when another actor leaves the current tile
+	 */
+	actorLeft?(other: Actor): void
+	/**
+	 * Called when another actor joins the current tile
+	 */
+	actorJoined?(other: Actor): void
 	_internalBlocks(other: Actor): boolean {
 		if (this.blocks?.(other)) return true
 		return other.blockedBy?.(this) ?? false
 	}
 	_internalDoCooldown() {
 		if (this.cooldown > 0) this.cooldown--
+	}
+	/**
+	 * Updates tile states and calls hooks
+	 */
+	_internalUpdateTileStates() {
+		this.oldTile?.removeActors(this)
+		this.tile.addActors(this)
+		for (const actor of this.oldTile?.allActors ?? []) actor.actorLeft?.(this)
+		this.slidingState = SlidingState.NONE
+		for (const actor of this.tile.allActors) actor.actorJoined?.(this)
 	}
 }
 /**
