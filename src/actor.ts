@@ -28,6 +28,7 @@ export abstract class Actor {
 	 */
 	moveSpeed = 0
 	tile: Tile
+	pushable = false
 
 	constructor(
 		public level: LevelState,
@@ -97,6 +98,7 @@ export abstract class Actor {
 		this.oldTile = this.tile
 		this.tile = newTile
 		// Finally, move ourselves to the new tile
+		// TODO Actually move to the new tile
 	}
 	_internalMove(): void {
 		if (this.cooldown > 0 || !this.moveDecision) return

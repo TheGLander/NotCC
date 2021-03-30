@@ -1,7 +1,7 @@
 import { Actor } from "./actor"
 import { Field, Direction } from "./helpers"
 import { KeyInputs } from "./pulse"
-//import { Playable } from "./actors/playables"
+import { Playable } from "./actors/playables"
 import Tile from "./tile"
 import { Layers } from "./tile"
 /**
@@ -9,8 +9,8 @@ import { Layers } from "./tile"
  */
 
 export class LevelState {
-	//playables: Playable[] = []
-	//selectedPlayable: Playable
+	playables: Playable[] = []
+	selectedPlayable?: Playable
 	lost = false
 	field: Field<Tile> = []
 	activeActors: Actor[] = []
@@ -39,7 +39,7 @@ export class LevelState {
 		} else this.subtick++
 	}
 	giveInput(input: KeyInputs): void {
-		//	for (const i in this.playables) this.playables[i].lastInputs = input
+		for (const i in this.playables) this.playables[i].lastInputs = input
 	}
 	constructor(public width: number, public height: number) {
 		//Init field

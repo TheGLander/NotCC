@@ -7,16 +7,17 @@ import clone from "deepclone"
 document.addEventListener("dragover", e => {
 	e.stopPropagation()
 	e.preventDefault()
-	//e.dataTransfer.dropEffect = "copy"
+	if (e.dataTransfer) e.dataTransfer.dropEffect = "copy"
 })
 
 // Get file data on drop
 document.addEventListener("drop", async e => {
 	e.stopPropagation()
 	e.preventDefault()
-	const file = e.dataTransfer?.files[0]
+	const file = e.dataTransfer?.items[0]
 	if (!file) return
-	const buffer = await file.arrayBuffer()
+	const buffer = await file?.getAsFile()?.arrayBuffer()
+	if (!buffer) return
 	console.log(parseC2M(buffer))
 })
 
