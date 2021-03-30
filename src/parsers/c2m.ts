@@ -256,6 +256,9 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 		timeLimit: 0,
 		blobMode: 1,
 	}
+
+	let solutionHash: string
+
 	const OPTNFuncs = [
 		() => {
 			data.timeLimit = view.getUint16()
@@ -293,7 +296,6 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 			data.blobMode = [1, 4, 256][view.getUint8()]
 		},
 	]
-	let solutionHash: string
 
 	while (view.offset < view.byteLength) {
 		const sectionName = view.getString(4)
