@@ -15,6 +15,17 @@ enum SlidingState {
 	STRONG,
 }
 
+export interface ActorArt {
+	/**
+	 * Name of the art piece to display
+	 */
+	art: string
+	/**
+	 * The direction the art piece should be facing
+	 */
+	rotation?: number
+}
+
 export abstract class Actor {
 	moveDecision = Decision.NONE
 	currentMoveSpeed: number | null = null
@@ -23,6 +34,7 @@ export abstract class Actor {
 	pendingDecision = Decision.NONE
 	slidingState = SlidingState.NONE
 	abstract layer: Layers
+	art?: ActorArt | (() => ActorArt)
 	/**
 	 * Amount of ticks it takes for the actor to move
 	 */
@@ -116,3 +128,12 @@ export abstract class Actor {
 		if (this.cooldown > 0) this.cooldown--
 	}
 }
+/**
+ * Creates an art function for a generic directionable actor
+ */
+export const genericDirectionableArt = (name: string) =>
+	function (this: Actor): ActorArt {
+		return {
+			art: `${name}${["Up", "Right", "Down", "Left"][this.direction]}`,
+		}
+	}

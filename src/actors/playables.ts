@@ -1,4 +1,4 @@
-import { Actor } from "../actor"
+import { Actor, genericDirectionableArt } from "../actor"
 import { Layers } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { KeyInputs } from "../pulse"
@@ -6,6 +6,7 @@ import { LevelState } from "../level"
 import { Decision } from "../const"
 
 export class Playable extends Actor {
+	art = genericDirectionableArt("chip")
 	lastInputs?: KeyInputs
 	constructor(
 		level: LevelState,

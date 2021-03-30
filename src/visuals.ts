@@ -230,7 +230,10 @@ export default class Renderer {
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
-			const art = { art: "no", rotation: null } // actor.art()
+			const art =
+				typeof actor.art === "function"
+					? actor.art()
+					: actor.art ?? { art: "unknown" }
 			this.sprites[i].texture =
 				loader.resources[art.art]?.texture ?? loader.resources.unknown.texture
 			this.sprites[i].angle = art.rotation ?? 0
