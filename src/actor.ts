@@ -96,14 +96,14 @@ export abstract class Actor {
 		}
 	}
 	// This is defined separately only because of Instabonking:tm:
-	_internalStep(direction: Direction): void {
+	_internalStep(direction: Direction): boolean {
 		// TODO Force redirection of movement (train tracks)
 		this.direction = direction
 		const canMove = this.level.checkCollision(this, direction, true)
 		// Welp, something stole our spot, too bad
-		if (!canMove || !this.moveSpeed) return
+		if (!canMove || !this.moveSpeed) return false
 		const newTile = this.tile.getNeighbor(direction)
-		if (!newTile) return
+		if (!newTile) return false
 		// TODO Speed mods
 		const moveLength = this.moveSpeed * 3
 		this.currentMoveSpeed = this.cooldown = moveLength
@@ -112,6 +112,7 @@ export abstract class Actor {
 		// Finally, move ourselves to the new tile
 		this.oldTile.removeActors(this)
 		this.tile.addActors(this)
+		return true
 	}
 	_internalMove(): void {
 		if (this.cooldown > 0 || !this.moveDecision) return

@@ -97,7 +97,7 @@ export class LevelState {
 				// We did not move, shame, but we did queue this block push
 				return false
 			}
-			pushable._internalStep(direction)
+			if (!pushable._internalStep(direction)) return false
 		}
 		// TODO Decision time hooking
 		return true
