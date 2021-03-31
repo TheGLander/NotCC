@@ -2,6 +2,8 @@ import { Actor, genericDirectionableArt } from "../actor"
 import { Layers } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
+import { actorDB } from "../const"
+
 export class Centipede extends Actor {
 	art = genericDirectionableArt("centipede")
 	decideMovement(): Direction[] {
@@ -16,3 +18,5 @@ export class Centipede extends Actor {
 	}
 	moveSpeed = 4
 }
+
+actorDB["centipede"] = Centipede

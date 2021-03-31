@@ -1,9 +1,9 @@
 export default class AutoReadDataView extends DataView {
-	offset: number = 0
+	offset = 0
 	smallEndian = true
 	getUint8(): number
 	getUint8(amount: number): number[]
-	getUint8(amount: number = 1): number | number[] {
+	getUint8(amount = 1): number | number[] {
 		const rets: number[] = []
 		for (let i = 0; i < amount; i++) {
 			rets.push(super.getUint8(this.offset))

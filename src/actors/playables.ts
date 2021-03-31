@@ -3,7 +3,7 @@ import { Layers } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { KeyInputs } from "../pulse"
 import { LevelState } from "../level"
-import { Decision } from "../const"
+import { Decision, actorDB } from "../const"
 
 export class Playable extends Actor {
 	art = genericDirectionableArt("chip")
@@ -95,3 +95,5 @@ export class Playable extends Actor {
 	}
 	moveSpeed = 4
 }
+
+actorDB["chip"] = Playable

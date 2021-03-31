@@ -1,9 +1,9 @@
-import { LevelState } from "./level"
+import { LevelState, createLevelFromData } from "./level"
 import { Direction } from "./helpers"
 import "./base.css"
 import { initPulse } from "./pulse"
 import "./visuals"
-import "./parsers/c2m"
+import { parseC2M } from "./parsers/c2m"
 import { Centipede } from "./actors/monsters"
 import { Wall } from "./actors/walls"
 import { Playable } from "./actors/playables"
@@ -19,7 +19,7 @@ in ${ev.filename}
 `)
 )
 
-const level = new LevelState(15, 15)
+let level = new LevelState(15, 15)
 
 new Centipede(level, Direction.UP, [1, 1])
 new Wall(level, Direction.UP, [2, 1])
@@ -41,4 +41,25 @@ new ForceFloor(level, Direction.UP, [7, 8])
 
 export { level, Direction }
 
-initPulse(level)
+let pulseHelpers = initPulse(level)
+
+document.addEventListener("dragover", e => {
+	e.stopPropagation()
+	e.preventDefault()
+	if (e.dataTransfer) e.dataTransfer.dropEffect = "copy"
+})
+
+// Get file data on drop
+document.addEventListener("drop", async e => {
+	e.stopPropagation()
+	e.preventDefault()
+	const file = e.dataTransfer?.items[0]
+	if (!e.dataTransfer) return console.log("Did not get a dataTransfer option")
+	if (!file) return console.log("Did not get a file")
+	const buffer = await file?.getAsFile()?.arrayBuffer()
+	if (!buffer) return console.log("Did not get file contents")
+	const levelData = parseC2M(buffer)
+	level = createLevelFromData(levelData)
+	;(await pulseHelpers).stopPulsing()
+	pulseHelpers = initPulse(level)
+})

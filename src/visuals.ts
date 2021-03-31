@@ -43,6 +43,130 @@ function convertDirection(direction: Direction): [number, number] {
 	}
 }
 
+const fetchTiles = new Promise<void>(resolve =>
+	loader.add("./img/tiles.png").load(() => {
+		createTiles(
+			[
+				[
+					"empty",
+					null,
+					null,
+					"panelCorner",
+					"spiderUp",
+					"gliderUp",
+					"centipedeUp",
+				],
+				[
+					"wall",
+					"dirtBlock",
+					"itemThief",
+					"cloneMachine",
+					"spiderLeft",
+					"gliderLeft",
+					"centipedeLeft",
+				],
+				[
+					"echip",
+					"forceFloor",
+					"echipGate",
+					"forceFloorRandom",
+					"spiderDown",
+					"gliderDown",
+					"centipedeDown",
+				],
+				[
+					"water",
+					null,
+					"buttonGreen",
+					null,
+					"spiderRight",
+					"gliderRight",
+					"centipedeRight",
+				],
+				["fire", null, "buttonRed", null, "fireballUp", "teethUp", "keyBlue"],
+				[
+					null,
+					"exit",
+					"greenOutlineOn",
+					"unknown",
+					"fireballLeft",
+					"teethLeft",
+					"keyRed",
+				],
+				[
+					"panel",
+					"lockBlue",
+					"greenOutlineOff",
+					"boom",
+					"fireballDown",
+					"teethDown",
+					"keyGreen",
+				],
+				[
+					null,
+					"lockRed",
+					"buttonBrown",
+					"boom2",
+					"fireballRight",
+					"teethRight",
+					"keyBlue",
+				],
+				[
+					null,
+					"lockGreen",
+					"buttonBlue",
+					null,
+					"ball",
+					"walkerVert",
+					"bootBlue",
+				],
+				[
+					null,
+					"lockYellow",
+					"portalBlue",
+					null,
+					null,
+					"walkerHoriz",
+					"bootRed",
+				],
+				[null, "iceCorner", "bomb", null, null, null, "bootLightBlue"],
+				["dirt", null, "trap", null, null, null, "bootGreen"],
+				["ice", null, null, "chipWaterUp", "blueTankUp", "slime", "chipUp"],
+				[
+					null,
+					null,
+					"gravel",
+					"chipWaterLeft",
+					"blueTankLeft",
+					null,
+					"chipLeft",
+				],
+				[
+					null,
+					"blueWall",
+					"popupWall",
+					"chipWaterDown",
+					"blueTankDown",
+					null,
+					"chipDown",
+				],
+				[
+					null,
+					null,
+					"hint",
+					"chipWaterRight",
+					"blueTankRight",
+					null,
+					"chipRight",
+				],
+			],
+			[48, 48],
+			"./img/tiles.png"
+		)
+		resolve()
+	})
+)
+
 export default class Renderer {
 	ready: Promise<void>
 	lastId = 0
@@ -61,147 +185,18 @@ export default class Renderer {
 			height: level.height * 48,
 		})
 		this.app = app
-		this.ready = new Promise(resolve => {
+
+		this.ready = (async () => {
+			await fetchTiles
+			const bg = new PIXI.TilingSprite(
+				loader.resources.empty.texture,
+				level.width * 48,
+				level.height * 48
+			)
+			app.stage.addChild(bg)
 			//Add the canvas that Pixi automatically created for you to the HTML document
 			document.getElementById("renderSpace")?.appendChild(app.view)
-
-			loader.add("./img/tiles.png").load(() => {
-				createTiles(
-					[
-						[
-							"empty",
-							null,
-							null,
-							"panelCorner",
-							"spiderUp",
-							"gliderUp",
-							"centipedeUp",
-						],
-						[
-							"wall",
-							"dirtBlock",
-							"itemThief",
-							"cloneMachine",
-							"spiderLeft",
-							"gliderLeft",
-							"centipedeLeft",
-						],
-						[
-							"echip",
-							"forceFloor",
-							"echipGate",
-							"forceFloorRandom",
-							"spiderDown",
-							"gliderDown",
-							"centipedeDown",
-						],
-						[
-							"water",
-							null,
-							"buttonGreen",
-							null,
-							"spiderRight",
-							"gliderRight",
-							"centipedeRight",
-						],
-						[
-							"fire",
-							null,
-							"buttonRed",
-							null,
-							"fireballUp",
-							"teethUp",
-							"keyBlue",
-						],
-						[
-							null,
-							"exit",
-							"greenOutlineOn",
-							"unknown",
-							"fireballLeft",
-							"teethLeft",
-							"keyRed",
-						],
-						[
-							"panel",
-							"lockBlue",
-							"greenOutlineOff",
-							"boom",
-							"fireballDown",
-							"teethDown",
-							"keyGreen",
-						],
-						[
-							null,
-							"lockRed",
-							"buttonBrown",
-							"boom2",
-							"fireballRight",
-							"teethRight",
-							"keyBlue",
-						],
-						[
-							null,
-							"lockGreen",
-							"buttonBlue",
-							null,
-							"ball",
-							"walkerVert",
-							"bootBlue",
-						],
-						[
-							null,
-							"lockYellow",
-							"portalBlue",
-							null,
-							null,
-							"walkerHoriz",
-							"bootRed",
-						],
-						[null, "iceCorner", "bomb", null, null, null, "bootLightBlue"],
-						["dirt", null, "trap", null, null, null, "bootGreen"],
-						["ice", null, null, "chipWaterUp", "blueTankUp", "slime", "chipUp"],
-						[
-							null,
-							null,
-							"gravel",
-							"chipWaterLeft",
-							"blueTankLeft",
-							null,
-							"chipLeft",
-						],
-						[
-							null,
-							"blueWall",
-							"popupWall",
-							"chipWaterDown",
-							"blueTankDown",
-							null,
-							"chipDown",
-						],
-						[
-							null,
-							null,
-							"hint",
-							"chipWaterRight",
-							"blueTankRight",
-							null,
-							"chipRight",
-						],
-					],
-					[48, 48],
-					"./img/tiles.png"
-				)
-				const bg = new PIXI.TilingSprite(
-					loader.resources.empty.texture,
-					level.width * 48,
-					level.height * 48
-				)
-				app.stage.addChild(bg)
-
-				resolve()
-			})
-		})
+		})()
 	}
 	/**
 	 * Updates the positions of the rendred sprites
@@ -239,5 +234,8 @@ export default class Renderer {
 			this.sprites[i].angle = art.rotation ?? 0
 			this.sprites[i].position.set(movedPos[0] * 48 + 24, movedPos[1] * 48 + 24)
 		}
+	}
+	destroy() {
+		this.app.destroy(true)
 	}
 }

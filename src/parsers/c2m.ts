@@ -4,23 +4,6 @@ import { Field, Direction } from "../helpers"
 import data, { cc2Tile } from "./c2mData"
 import clone from "deepclone"
 
-document.addEventListener("dragover", e => {
-	e.stopPropagation()
-	e.preventDefault()
-	if (e.dataTransfer) e.dataTransfer.dropEffect = "copy"
-})
-
-// Get file data on drop
-document.addEventListener("drop", async e => {
-	e.stopPropagation()
-	e.preventDefault()
-	const file = e.dataTransfer?.items[0]
-	if (!file) return
-	const buffer = await file?.getAsFile()?.arrayBuffer()
-	if (!buffer) return
-	console.log(parseC2M(buffer))
-})
-
 /**
  * Checks if the value is an iterable, if not, creates an array out of it
  * @param val
@@ -124,8 +107,8 @@ function convertBitField(
 							}
 							case "customFloor":
 							case "customWall":
-								tile[2] = ["green", "pink", "yellow", "blue"][view.getUint8()]
-								if (tile[2] === undefined)
+								modTiles[0][2] = ["green", "pink", "yellow", "blue"][options]
+								if (modTiles[0][2] === undefined)
 									throw new Error("Invalid custom wall/floor!")
 								tiles.unshift(...modTiles)
 								break
@@ -135,7 +118,7 @@ function convertBitField(
 									(options >= 0x18 && options <= 0x1d) ||
 									(options >= 0x27 && options <= 0x3f)
 								)
-									throw new Error("Voodoo tiles not supported(for now)")
+									throw new Error("Voodoo tiles not supported (for now)")
 								let keyOptions = options
 								const curTile = modTiles[0]
 								loop: while (keyOptions < 0x44) {
@@ -188,13 +171,13 @@ function convertBitField(
 								break
 							}
 							default:
-								throw new Error("Invalid 8-bit modifier!")
+								throw new Error("8-bit modified on unrelated tile!")
 						}
 						break
 					}
 					default:
 						throw new Error(
-							`(Internal) Bad c2m data provided! (Tile with 2 null: ${JSON.stringify(
+							`(Internal) Bad c2mData.ts provided! (Tile with 2 null without special code: ${JSON.stringify(
 								tile
 							)})`
 						)
@@ -245,9 +228,18 @@ function unpackageCompressedField(buff: ArrayBuffer): ArrayBuffer {
 	return newBuff
 }
 
-function parseC2M(buff: ArrayBuffer): LevelData {
+type PartialLevelData = Omit<LevelData, "field" | "width" | "height" | "name"> &
+	Partial<LevelData>
+
+function isPartialDataFull(partial: PartialLevelData): partial is LevelData {
+	return (
+		!!partial.field && !!partial.height && !!partial.width && !!partial.name
+	)
+}
+
+export function parseC2M(buff: ArrayBuffer): LevelData {
 	const view = new AutoReadDataView(buff)
-	const data: Partial<LevelData> = {
+	const data: PartialLevelData = {
 		camera: {
 			height: 10,
 			width: 10,
@@ -281,8 +273,12 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 						screens: 1,
 					}
 					break
+				case 2:
+					// TODO Check actual screen sizes for multiplayer
+					data.camera = { width: 10, height: 10, screens: 2 }
+					break
 				default:
-					throw new Error("Invalid file!")
+					throw new Error("Invalid camera mode!")
 			}
 		},
 		() => view.skipBytes(1),
@@ -307,7 +303,8 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 		let solutionData: ArrayBuffer
 		switch (sectionName) {
 			case "CC2M":
-				if (view.getStringUntilNull() !== "7") throw new Error("Outdated file!")
+				if (view.getStringUntilNull() !== "7")
+					throw new Error("Outdated file! (CC2M version is not 7)")
 				break
 			case "TITL":
 				// Discard (temp)
@@ -341,6 +338,7 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 				// eslint-disable-next-line no-case-declarations, no-self-assign
 				levelData = levelData
 				const [width, height] = new Uint8Array(levelData)
+				;[data.width, data.height] = [width, height]
 				data.field = convertBitField(levelData.slice(2), [height, width])
 				break
 			}
@@ -355,8 +353,10 @@ function parseC2M(buff: ArrayBuffer): LevelData {
 			default:
 				view.skipBytes(length)
 		}
-		if (oldOffset + length !== view.offset) throw new Error("Invalid file!")
+		if (oldOffset + length !== view.offset)
+			throw new Error("Offsets don't match up!")
 	}
-	// TODO Check that all properties are in place
-	return data as LevelData
+	if (!isPartialDataFull(data))
+		throw new Error("This level is missing essential properties!")
+	return data
 }

@@ -24,7 +24,7 @@ const cc2Tiles = [
 	[["exit", 0, ""]],
 	[["slime", 0, ""]],
 	[["chip", null, ""], null],
-	[["block", null, ""], null],
+	[["dirtBlock", null, ""], null],
 	[["walker", null, ""], null],
 	[["glider", null, ""], null],
 	[["iceBlock", null, ""], null],

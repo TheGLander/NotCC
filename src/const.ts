@@ -1,7 +1,9 @@
 import { Actor } from "./actor"
-import { Direction } from "./helpers"
 
-export const actorDB: Record<string, Actor> = {}
+/**
+ * An object which matched IDs and and actor classes, is used for loading level actors
+ */
+export const actorDB: Record<string, typeof Actor> = {}
 
 /**
  * A decision an actor can take

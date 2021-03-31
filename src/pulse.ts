@@ -21,6 +21,9 @@ export interface KeyInputs {
 	rotateInv: boolean
 	switchPlayable: boolean
 }
+
+const fpsCounter = document.querySelector<HTMLElement>("#fpsCounter")
+
 export async function initPulse(level: LevelState) {
 	const buttonsPressed: KeyInputs = {
 		up: false,
@@ -47,18 +50,23 @@ export async function initPulse(level: LevelState) {
 			buttonsPressed
 		)*/
 	}
+
+	let lastPulse = new Date().getTime()
+	const fpsRecords: number[] = []
+
 	/**
 	 * Tracks Fps
 	 */
 	function trackFps() {
 		const thisPulse = new Date().getTime()
-		//Add new FPS measure to the array
+		// Add new FPS measure to the array
 		fpsRecords.push((1 / (thisPulse - lastPulse)) * 1000)
-		fpsRecords.shift()
-		//Find medium from all the elements
-		/*l("fps").innerText = Math.round(
-			fpsRecords.reduce((acc, val) => acc + val) / fpsRecords.length
-		).toString()*/
+		if (fpsRecords.length === 30) fpsRecords.shift()
+		// Find medium from all the elements
+		if (fpsCounter)
+			fpsCounter.innerText = Math.round(
+				fpsRecords.reduce((acc, val) => acc + val) / fpsRecords.length
+			).toString()
 		lastPulse = thisPulse
 	}
 
@@ -71,11 +79,7 @@ export async function initPulse(level: LevelState) {
 		level.tick()
 	}
 	//Pulse stuff
-	let lastPulse = new Date().getTime()
-	const fpsRecords: number[] = []
-	for (let i = 0; i < 300; i++) {
-		fpsRecords.push(0)
-	}
+
 	function pulse(): void {
 		devtools()
 		tickLevel()
@@ -104,5 +108,10 @@ export async function initPulse(level: LevelState) {
 		buttonsPressed[keymap[key]] = false
 	})
 	renderer.frame()
-	setInterval(pulse, 1000 / 60)
+	const pulseId = setInterval(pulse, 1000 / 60)
+	function stopPulsing(): void {
+		renderer.destroy()
+		clearInterval(pulseId)
+	}
+	return { stopPulsing }
 }

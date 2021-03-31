@@ -1,5 +1,6 @@
 import { Actor, SlidingState, ActorArt } from "../actor"
 import { Layers } from "../tile"
+import { actorDB } from "../const"
 
 export class Ice extends Actor {
 	art = { art: "ice" }
@@ -15,6 +16,7 @@ export class Ice extends Actor {
 		other.direction %= 4
 	}
 }
+actorDB["ice"] = Ice
 
 export class ForceFloor extends Actor {
 	art = (): ActorArt => ({ art: "forceFloor", rotation: this.direction * 90 })
@@ -30,3 +32,5 @@ export class ForceFloor extends Actor {
 		other.cooldown++
 	}
 }
+
+actorDB["forceFloor"] = ForceFloor
