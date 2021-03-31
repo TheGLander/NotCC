@@ -115,12 +115,21 @@ export abstract class Actor {
 	}
 	_internalMove(): void {
 		if (this.cooldown > 0 || !this.moveDecision) return
-		this._internalStep(this.moveDecision - 1)
+		const ogDirection = this.moveDecision - 1
+		const bonked = !this._internalStep(ogDirection)
 		this.pendingDecision = Decision.NONE
-		// TODO Instabonking:tm:
+		if (bonked && this.slidingState) {
+			for (const bonkListener of this.tile.allActors)
+				bonkListener.onMemberSlideBonked?.(this)
+			if (ogDirection !== this.direction) this._internalStep(this.direction)
+		}
 	}
 	blocks?(other: Actor): boolean
 	blockedBy?(other: Actor): boolean
+	/**
+	 * Called when another actor on the tile was bonked while sliding
+	 */
+	onMemberSlideBonked?(other: Actor): void
 	/**
 	 * Called when another actor leaves the current tile
 	 */
@@ -129,17 +138,24 @@ export abstract class Actor {
 	 * Called when another actor joins the current tile
 	 */
 	actorJoined?(other: Actor): void
+	/**
+	 * Called when another actor stops moving after joining a tile
+	 */
+	actorCompletelyJoined?(other: Actor): void
 	_internalBlocks(other: Actor): boolean {
 		if (this.blocks?.(other)) return true
 		return other.blockedBy?.(this) ?? false
 	}
-	_internalDoCooldown() {
+	_internalDoCooldown(): void {
 		if (this.cooldown > 0) this.cooldown--
+		if (this.cooldown === 0)
+			for (const actor of this.tile.allActors)
+				actor.actorCompletelyJoined?.(this)
 	}
 	/**
 	 * Updates tile states and calls hooks
 	 */
-	_internalUpdateTileStates() {
+	_internalUpdateTileStates(): void {
 		this.oldTile?.removeActors(this)
 		this.tile.addActors(this)
 		for (const actor of this.oldTile?.allActors ?? []) actor.actorLeft?.(this)

@@ -8,7 +8,7 @@ import { Centipede } from "./actors/monsters"
 import { Wall } from "./actors/walls"
 import { Playable } from "./actors/playables"
 import { DirtBlock } from "./actors/blocks"
-import { Ice } from "./actors/terrain"
+import { Ice, ForceFloor } from "./actors/terrain"
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -19,7 +19,7 @@ in ${ev.filename}
 `)
 )
 
-const level = new LevelState(10, 10)
+const level = new LevelState(15, 15)
 
 new Centipede(level, Direction.UP, [1, 1])
 new Wall(level, Direction.UP, [2, 1])
@@ -31,6 +31,14 @@ new Ice(level, Direction.UP, [5, 5])
 new Ice(level, Direction.UP, [5, 6])
 new Ice(level, Direction.UP, [6, 5])
 new Ice(level, Direction.UP, [6, 6])
+new Wall(level, Direction.UP, [5, 4])
+
+new ForceFloor(level, Direction.RIGHT, [7, 7])
+new ForceFloor(level, Direction.DOWN, [8, 7])
+new ForceFloor(level, Direction.DOWN, [8, 8])
+new Wall(level, Direction.DOWN, [8, 9])
+new ForceFloor(level, Direction.UP, [7, 8])
+
 export { level, Direction }
 
 initPulse(level)

@@ -55,6 +55,7 @@ export class LevelState {
 	 * @param actor The actor to check for
 	 * @param direction The direction the actor wants to move in
 	 * @param pushBlocks If true, it will push blocks
+	 * @returns If the actor *can* move in that direction
 	 */
 	checkCollision(
 		actor: Actor,
@@ -93,7 +94,7 @@ export class LevelState {
 		if (!pushBlocks && toPush.length) return false
 		for (const pushable of toPush) {
 			if (pushable.slidingState) {
-				pushable.pendingDecision = direction + 1
+				pushable.pendingDecision = pushable.moveDecision = direction + 1
 				// We did not move, shame, but we did queue this block push
 				return false
 			}
