@@ -16,6 +16,7 @@ export class Playable extends Actor {
 	) {
 		super(level, direction, position)
 		level.playables.push(this)
+		if (!level.selectedPlayable) level.selectedPlayable = this
 	}
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)

@@ -1,15 +1,17 @@
 import { Field, Direction } from "./helpers"
 //import Actor from "./actor"
 
+export interface CameraType {
+	width: number
+	height: number
+	screens: number
+}
+
 export interface LevelData {
 	field: Field<[string, Direction, string?][]>
 	width: number
 	height: number
-	camera: {
-		width: number
-		height: number
-		screens: number
-	}
+	camera: CameraType
 	extUsed: string[]
 	timeLimit: number
 	blobMode: number | "true"

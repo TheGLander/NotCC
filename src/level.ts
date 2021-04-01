@@ -4,7 +4,7 @@ import { KeyInputs } from "./pulse"
 import { Playable } from "./actors/playables"
 import Tile from "./tile"
 import { Layers } from "./tile"
-import { LevelData } from "./encoder"
+import { LevelData, CameraType } from "./encoder"
 import { actorDB } from "./const"
 /**
  * The state of a level, used as a hub of realtime level properties, the most important one being `field`
@@ -18,6 +18,7 @@ export class LevelState {
 	activeActors: Actor[] = []
 	subtick: 0 | 1 | 2 = 0
 	currentTick = 0
+	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
 	protected decisionTick(forcedOnly = false): void {
 		for (const actor of this.activeActors) actor._internalDecide(forcedOnly)
 	}
@@ -96,7 +97,7 @@ export class LevelState {
 		if (!pushBlocks && toPush.length) return false
 		for (const pushable of toPush) {
 			if (pushable.slidingState) {
-				pushable.pendingDecision = pushable.moveDecision = direction + 1
+				pushable.moveDecision = direction + 1
 				// We did not move, shame, but we did queue this block push
 				return false
 			}
@@ -109,7 +110,8 @@ export class LevelState {
 
 export function createLevelFromData(data: LevelData): LevelState {
 	const level = new LevelState(data.width, data.height)
-	// TODO Misc data setting, like blob patterns and camera and stuff
+	// TODO Misc data setting, like blob patterns and stuff
+	level.cameraType = data.camera
 	for (let x = 0; x < level.width; x++)
 		for (let y = 0; y < level.height; y++)
 			for (const actor of data.field[x][y]) {

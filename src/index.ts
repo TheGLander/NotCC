@@ -8,7 +8,7 @@ import { Centipede } from "./actors/monsters"
 import { Wall } from "./actors/walls"
 import { Playable } from "./actors/playables"
 import { DirtBlock } from "./actors/blocks"
-import { Ice, ForceFloor } from "./actors/terrain"
+import { Ice, ForceFloor, RecessedWall } from "./actors/terrain"
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -30,6 +30,8 @@ new Playable(level, Direction.UP, [0, 0])
 new Ice(level, Direction.UP, [5, 5])
 new Ice(level, Direction.UP, [5, 6])
 new Ice(level, Direction.UP, [6, 5])
+new RecessedWall(level, Direction.UP, [7, 5])
+new DirtBlock(level, Direction.UP, [7, 5])
 new Ice(level, Direction.UP, [6, 6])
 new Wall(level, Direction.UP, [5, 4])
 

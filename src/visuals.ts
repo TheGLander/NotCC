@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js"
 import { Direction } from "./helpers"
 import { LevelState } from "./level"
 import clone from "deepclone"
+import { Actor } from "./actor"
 
 const loader = PIXI.Loader.shared
 
@@ -169,11 +170,8 @@ const fetchTiles = new Promise<void>(resolve =>
 
 export default class Renderer {
 	ready: Promise<void>
-	lastId = 0
-	sprites: PIXI.Sprite[] = []
+	spriteMap = new WeakMap<Actor, PIXI.Sprite>()
 	app: PIXI.Application
-	moveProgress: number[] = []
-	moveProgressDirection: number[] = []
 	/**
 	 * Initializes the renderer, optional `this.ready` promise
 	 * @param level
@@ -181,11 +179,11 @@ export default class Renderer {
 	constructor(public level: LevelState) {
 		//Create a Pixi Application
 		const app = new PIXI.Application({
-			width: level.width * 48,
-			height: level.height * 48,
+			width: level.cameraType.width * 48,
+			height: level.cameraType.height * 48,
 		})
+		app.stage.sortableChildren = true
 		this.app = app
-
 		this.ready = (async () => {
 			await fetchTiles
 			const bg = new PIXI.TilingSprite(
@@ -202,17 +200,6 @@ export default class Renderer {
 	 * Updates the positions of the rendred sprites
 	 */
 	frame(): void {
-		//Catch up on new actors
-		for (; this.lastId < this.level.activeActors.length; this.lastId++) {
-			const sprite = new PIXI.Sprite(loader.resources.unknown.texture)
-			const actor = this.level.activeActors[this.lastId]
-			this.sprites.push(sprite)
-			this.app.stage.addChild(sprite)
-			this.moveProgress[this.lastId] = 0
-			//debugger
-			sprite.position.set(actor.tile.x * 48, actor.tile.y * 48)
-			sprite.anchor.set(0.5, 0.5)
-		}
 		for (let i = 0; i < this.level.activeActors.length; i++) {
 			const actor = this.level.activeActors[i]
 
@@ -229,13 +216,45 @@ export default class Renderer {
 				typeof actor.art === "function"
 					? actor.art()
 					: actor.art ?? { art: "unknown" }
-			this.sprites[i].texture =
+			let sprite = this.spriteMap.get(actor)
+			// Create actor sprite if it's new
+			if (!sprite) {
+				sprite = new PIXI.Sprite(loader.resources.unknown.texture)
+				sprite.anchor.set(0.5, 0.5)
+				sprite.zIndex = actor.layer * 100
+				this.app.stage.addChild(sprite)
+				this.spriteMap.set(actor, sprite)
+			}
+			sprite.texture =
 				loader.resources[art.art]?.texture ?? loader.resources.unknown.texture
-			this.sprites[i].angle = art.rotation ?? 0
-			this.sprites[i].position.set(movedPos[0] * 48 + 24, movedPos[1] * 48 + 24)
+			sprite.angle = art.rotation ?? 0
+			sprite.position.set(movedPos[0] * 48 + 24, movedPos[1] * 48 + 24)
+			if (actor === this.level.selectedPlayable)
+				this.app.stage.pivot.set(
+					Math.max(
+						0,
+						Math.min(
+							movedPos[0] + 0.5,
+							this.level.width - this.level.cameraType.width / 2
+						) *
+							48 -
+							this.level.cameraType.width * 24
+					),
+					Math.max(
+						0,
+						Math.min(
+							movedPos[1] + 0.5,
+							this.level.height - this.level.cameraType.height / 2
+						) *
+							48 -
+							this.level.cameraType.height * 24
+					)
+				)
 		}
+
+		this.app.render()
 	}
-	destroy() {
+	destroy(): void {
 		this.app.destroy(true)
 	}
 }
