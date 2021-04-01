@@ -4,7 +4,7 @@ import "./base.css"
 import { initPulse } from "./pulse"
 import "./visuals"
 import { parseC2M } from "./parsers/c2m"
-import { Centipede } from "./actors/monsters"
+import { Centipede, Ball } from "./actors/monsters"
 import { Wall } from "./actors/walls"
 import { Playable } from "./actors/playables"
 import { DirtBlock } from "./actors/blocks"
@@ -40,6 +40,11 @@ new ForceFloor(level, Direction.DOWN, [8, 7])
 new ForceFloor(level, Direction.DOWN, [8, 8])
 new Wall(level, Direction.DOWN, [8, 9])
 new ForceFloor(level, Direction.UP, [7, 8])
+
+new RecessedWall(level, Direction.UP, [0, 7])
+new DirtBlock(level, Direction.UP, [0, 7])
+
+new Ball(level, Direction.DOWN, [0, 8])
 
 export { level, Direction }
 
