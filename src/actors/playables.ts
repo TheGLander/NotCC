@@ -95,6 +95,11 @@ export class Playable extends Actor {
 		}
 	}
 	moveSpeed = 4
+	invokeDeath(other: Actor): void {
+		// TODO Helmet stuff
+		this.level.lost = true
+		this.destroy()
+	}
 }
 
 actorDB["chip"] = Playable

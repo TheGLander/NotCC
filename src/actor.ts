@@ -142,15 +142,20 @@ export abstract class Actor {
 	 * Called when another actor stops moving after joining a tile
 	 */
 	actorCompletelyJoined?(other: Actor): void
+	/**
+	 * Called when this actor steps on a new tile
+	 */
+	newTile?(): void
 	_internalBlocks(other: Actor): boolean {
 		if (this.blocks?.(other)) return true
 		return other.blockedBy?.(this) ?? false
 	}
 	_internalDoCooldown(): void {
-		if (this.cooldown > 0) this.cooldown--
-		if (this.cooldown === 0)
+		if (this.cooldown === 1) {
+			this.cooldown--
 			for (const actor of this.tile.allActors)
 				actor.actorCompletelyJoined?.(this)
+		} else if (this.cooldown > 0) this.cooldown--
 	}
 	/**
 	 * Updates tile states and calls hooks
@@ -161,6 +166,11 @@ export abstract class Actor {
 		for (const actor of this.oldTile?.allActors ?? []) actor.actorLeft?.(this)
 		this.slidingState = SlidingState.NONE
 		for (const actor of this.tile.allActors) actor.actorJoined?.(this)
+		this.newTile?.()
+	}
+	destroy(): void {
+		this.tile.removeActors(this)
+		this.level.activeActors.splice(this.level.activeActors.indexOf(this), 1)
 	}
 }
 /**

@@ -47,12 +47,10 @@ export class RecessedWall extends Actor {
 		return !(other instanceof Playable)
 	}
 	actorLeft(): void {
-		this.tile.removeActors(this)
+		this.destroy()
 		this.tile.addActors(
 			new Wall(this.level, this.direction, this.tile.position)
 		)
-		// TODO Proper removal
-		this.level.activeActors.splice(this.level.activeActors.indexOf(this), 1)
 	}
 }
 

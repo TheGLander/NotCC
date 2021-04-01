@@ -69,10 +69,13 @@ export async function initPulse(level: LevelState) {
 			).toString()
 		lastPulse = thisPulse
 	}
-
+	let isDead = false
 	function tickLevel(force = false): void {
 		if (level.lost && !force) {
-			alert("Bummer")
+			if (!isDead) {
+				alert("Bummer")
+				isDead = true
+			}
 			return
 		}
 		level.giveInput(buttonsPressed)
