@@ -1,5 +1,5 @@
 import AutoReadDataView from "./autoReader"
-import { LevelData } from "../encoder"
+import { LevelData, PartialLevelData, isPartialDataFull } from "../encoder"
 import { Field, Direction } from "../helpers"
 import data, { cc2Tile } from "./c2mData"
 import clone from "deepclone"
@@ -188,9 +188,9 @@ function convertBitField(
 		return tiles
 	}
 	for (let x = 0; x < size[0]; x++) {
-		field.push([])
 		for (let y = 0; y < size[1]; y++) {
-			field[x][y] = parseTile()
+			if (x === 0) field.push([])
+			field[y][x] = parseTile()
 		}
 	}
 	return field
@@ -228,15 +228,6 @@ function unpackageCompressedField(buff: ArrayBuffer): ArrayBuffer {
 	return newBuff
 }
 
-type PartialLevelData = Omit<LevelData, "field" | "width" | "height" | "name"> &
-	Partial<LevelData>
-
-function isPartialDataFull(partial: PartialLevelData): partial is LevelData {
-	return (
-		!!partial.field && !!partial.height && !!partial.width && !!partial.name
-	)
-}
-
 export function parseC2M(buff: ArrayBuffer): LevelData {
 	const view = new AutoReadDataView(buff)
 	const data: PartialLevelData = {
@@ -248,6 +239,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		extUsed: ["cc", "cc2"],
 		timeLimit: 0,
 		blobMode: 1,
+		name: "[unnamed]",
 	}
 
 	let solutionHash: string

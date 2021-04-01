@@ -9,7 +9,7 @@ let plugins = [
 	new HtmlWebpackPlugin({
 		template: "src/index.html",
 	}),
-	new CopyPlugin([{ from: "src/img", to: "img/" }]),
+	new CopyPlugin([{ from: "src/data", to: "data/" }]),
 ]
 if (prod) plugins.push(new MinifyPlugin({}, { comments: false }))
 else plugins.push(new ProgressPlugin())

@@ -17,6 +17,16 @@ export interface LevelData {
 	blobMode: number | "true"
 	name: string
 }
+
+export type PartialLevelData = Omit<LevelData, "field" | "width" | "height"> &
+	Partial<LevelData>
+
+export function isPartialDataFull(
+	partial: PartialLevelData
+): partial is LevelData {
+	return !!partial.field && !!partial.height && !!partial.width
+}
+
 const manifestVer = 0
 /*
 export function encode(level: LevelData): string {

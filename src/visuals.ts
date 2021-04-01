@@ -45,7 +45,7 @@ function convertDirection(direction: Direction): [number, number] {
 }
 
 const fetchTiles = new Promise<void>(resolve =>
-	loader.add("./img/tiles.png").load(() => {
+	loader.add("./data/img/tiles.png").load(() => {
 		createTiles(
 			[
 				[
@@ -162,7 +162,7 @@ const fetchTiles = new Promise<void>(resolve =>
 				],
 			],
 			[48, 48],
-			"./img/tiles.png"
+			"./data/img/tiles.png"
 		)
 		resolve()
 	})
