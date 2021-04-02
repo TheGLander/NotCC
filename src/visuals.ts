@@ -79,7 +79,7 @@ const fetchTiles = new Promise<void>(resolve =>
 					"water",
 					null,
 					"buttonGreen",
-					null,
+					"splash",
 					"spiderRight",
 					"gliderRight",
 					"centipedeRight",
@@ -200,9 +200,13 @@ export default class Renderer {
 	 * Updates the positions of the rendred sprites
 	 */
 	frame(): void {
-		for (let i = 0; i < this.level.activeActors.length; i++) {
-			const actor = this.level.activeActors[i]
-
+		for (const actor of this.level.destroyedThisTick) {
+			const sprite = this.spriteMap.get(actor)
+			if (!sprite) continue
+			sprite.destroy()
+			this.spriteMap.delete(actor)
+		}
+		for (const actor of this.level.activeActors) {
 			const movedPos = [actor.tile.x, actor.tile.y]
 			if (actor.cooldown && actor.currentMoveSpeed) {
 				const mults = convertDirection(actor.direction)

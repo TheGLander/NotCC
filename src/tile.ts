@@ -7,7 +7,7 @@ export enum Layers {
 	ITEM,
 	ITEM_SUFFIX,
 	MOVABLE,
-	EFFECT,
+	ANIMATION,
 }
 
 class Tile extends Array<Array<Actor>> {

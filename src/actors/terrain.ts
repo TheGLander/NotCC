@@ -47,7 +47,7 @@ export class RecessedWall extends Actor {
 		return !(other instanceof Playable)
 	}
 	actorLeft(): void {
-		this.destroy()
+		this.destroy(this, null)
 		this.tile.addActors(
 			new Wall(this.level, this.direction, this.tile.position)
 		)
@@ -55,3 +55,43 @@ export class RecessedWall extends Actor {
 }
 
 actorDB["popupWall"] = RecessedWall
+
+export class Void extends Actor {
+	art = { art: "exit" }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		other.destroy(this, null)
+	}
+}
+
+actorDB["void"] = Void
+
+export class Water extends Actor {
+	art = { art: "water" }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		other.destroy(this, "splash")
+	}
+}
+
+actorDB["water"] = Water
+
+export class Dirt extends Actor {
+	art = { art: "dirt" }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	blocks(other: Actor): boolean {
+		// TODO Tag-based blocking
+		return !(other instanceof Playable)
+	}
+	actorCompletelyJoined(): void {
+		this.destroy(this, null)
+	}
+}
+
+actorDB["dirt"] = Dirt

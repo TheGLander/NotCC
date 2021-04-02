@@ -1,5 +1,5 @@
 import { LevelState } from "./level"
-import { Decision } from "./const"
+import { Decision, actorDB } from "./const"
 import { Direction } from "./helpers"
 import { Layers } from "./tile"
 import Tile from "./tile"
@@ -57,8 +57,10 @@ export abstract class Actor {
 	 */
 	decideMovement?(): (Direction | (() => Direction))[]
 	onBlocked?(blocker?: Actor): void
+	onEachDecision?(forcedOnly: boolean): void
 	_internalDecide(forcedOnly = false): void {
 		this.moveDecision = Decision.NONE
+		this.onEachDecision?.(forcedOnly)
 		if (this.cooldown) return
 		this.currentMoveSpeed = this.oldTile = null
 		// This is where the decision *actually* begins
@@ -145,7 +147,12 @@ export abstract class Actor {
 	/**
 	 * Called when this actor steps on a new tile
 	 */
-	newTile?(): void
+	newTileJoined?(): void
+	/**
+	 * Called when this actor stops walking to a new tile
+	 */
+	newTileCompletelyJoined?(): void
+
 	_internalBlocks(other: Actor): boolean {
 		if (this.blocks?.(other)) return true
 		return other.blockedBy?.(this) ?? false
@@ -155,6 +162,7 @@ export abstract class Actor {
 			this.cooldown--
 			for (const actor of this.tile.allActors)
 				actor.actorCompletelyJoined?.(this)
+			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
 	}
 	/**
@@ -166,11 +174,20 @@ export abstract class Actor {
 		for (const actor of this.oldTile?.allActors ?? []) actor.actorLeft?.(this)
 		this.slidingState = SlidingState.NONE
 		for (const actor of this.tile.allActors) actor.actorJoined?.(this)
-		this.newTile?.()
+		this.newTileJoined?.()
 	}
-	destroy(): void {
+	destroy(killer?: Actor | null, animType: string | null = "explosion"): void {
+		// TODO Avoid killing if we ignore the actor
 		this.tile.removeActors(this)
 		this.level.activeActors.splice(this.level.activeActors.indexOf(this), 1)
+		this.level.destroyedThisTick.push(this)
+		if (animType && actorDB[`${animType}Anim`])
+			// @ts-expect-error Obviously, this is not an abstract class
+			new actorDB[`${animType}Anim`](
+				this.level,
+				Direction.UP,
+				this.tile.position
+			)
 	}
 }
 /**

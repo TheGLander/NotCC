@@ -19,6 +19,7 @@ export class LevelState {
 	subtick: 0 | 1 | 2 = 0
 	currentTick = 0
 	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
+	destroyedThisTick: Actor[] = []
 	protected decisionTick(forcedOnly = false): void {
 		for (const actor of this.activeActors) actor._internalDecide(forcedOnly)
 	}
@@ -33,6 +34,7 @@ export class LevelState {
 	 * (Since there are 3 subticks in a tick, and 20 ticks in a second, this should be run 60 times a second)
 	 */
 	tick(): void {
+		this.destroyedThisTick = []
 		this.decisionTick(this.subtick !== 2)
 		this.moveTick()
 		//	if (this.playables.length === 0) this.lost = true
@@ -85,6 +87,7 @@ export class LevelState {
 			Layers.MOVABLE,
 			Layers.ITEM,
 			Layers.ITEM_SUFFIX,
+			Layers.ANIMATION,
 		]) {
 			for (const blockActor of newTile[layer]) {
 				if (!blockActor._internalBlocks(actor)) continue

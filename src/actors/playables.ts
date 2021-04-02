@@ -95,10 +95,10 @@ export class Playable extends Actor {
 		}
 	}
 	moveSpeed = 4
-	invokeDeath(other: Actor): void {
+	destroy(other?: Actor | null, anim?: string | null): void {
 		// TODO Helmet stuff
 		this.level.lost = true
-		this.destroy()
+		super.destroy(other, anim)
 	}
 }
 

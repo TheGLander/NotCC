@@ -12,14 +12,14 @@ export class Monster extends Actor {
 	blocks(other: Actor): boolean {
 		return !(other instanceof Playable)
 	}
-	newTile(): void {
+	newTileJoined(): void {
 		const playable = this.tile[Layers.MOVABLE].find(
 			val => val instanceof Playable
 		)
 		if (playable) this.actorJoined(playable)
 	}
 	actorJoined(other: Actor): void {
-		if (other instanceof Playable) other.invokeDeath(this)
+		if (other instanceof Playable) other.destroy(this)
 	}
 }
 

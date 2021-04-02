@@ -9,6 +9,8 @@ import "./actors/walls"
 import "./actors/playables"
 import "./actors/blocks"
 import "./actors/terrain"
+import "./actors/animation"
+import { actorDB } from "./const"
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -21,7 +23,7 @@ in ${ev.filename}
 
 let level: LevelState
 
-export { level, Direction }
+export { level, Direction, actorDB }
 
 let pulseHelpers: ReturnType<typeof initPulse>
 

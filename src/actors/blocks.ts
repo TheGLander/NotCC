@@ -2,6 +2,8 @@ import { Actor } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
+import { Water } from "./terrain"
+import { Direction } from "../helpers"
 
 export class DirtBlock extends Actor {
 	art = { art: "dirtBlock" }
@@ -13,11 +15,20 @@ export class DirtBlock extends Actor {
 		return true
 	}
 	moveSpeed = 4
-	newTile(): void {
+	newTileJoined(): void {
 		const playable = this.tile[Layers.MOVABLE].find(
 			val => val instanceof Playable
 		) as Playable | undefined
-		playable?.invokeDeath(this)
+		playable?.destroy(this)
+	}
+	newTileCompletelyJoined(): void {
+		const water = this.tile[Layers.STATIONARY].find(val => val instanceof Water)
+		if (water) {
+			water.destroy(this, null)
+
+			// @ts-expect-error This is not an abstract class
+			new actorDB["dirt"](this.level, Direction.UP, this.tile.position)
+		}
 	}
 }
 
