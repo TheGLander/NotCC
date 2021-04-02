@@ -5,11 +5,9 @@ import { Playable } from "./playables"
 
 export class Animation extends Actor {
 	animationCooldown = 16
+	collisionTags = ["playable"]
 	get layer(): Layers {
 		return Layers.ANIMATION
-	}
-	blocks(other: Actor): boolean {
-		return other instanceof Playable
 	}
 	onEachDecision(): void {
 		this.animationCooldown--
@@ -26,6 +24,12 @@ export class Explosion extends Animation {
 }
 
 actorDB["explosionAnim"] = Explosion
+
+export class Explosion2 extends Animation {
+	art = { art: "boom2" }
+}
+
+actorDB["explosion2Anim"] = Explosion
 
 export class Splash extends Animation {
 	art = { art: "splash" }

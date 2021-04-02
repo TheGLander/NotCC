@@ -3,6 +3,7 @@ import { Decision, actorDB } from "./const"
 import { Direction } from "./helpers"
 import { Layers } from "./tile"
 import Tile from "./tile"
+import { Animation } from "./actors/animation"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -35,6 +36,14 @@ export abstract class Actor {
 	slidingState = SlidingState.NONE
 	abstract layer: Layers
 	art?: ActorArt | (() => ActorArt)
+	/**
+	 * General-use tags to use, for example, for collisions
+	 */
+	tags: string[] = []
+	/**
+	 * Tags which this actor blocks. If a tag starts with !, it means that anything but the tag is blocked
+	 */
+	collisionTags: string[] = []
 	/**
 	 * Amount of ticks it takes for the actor to move
 	 */
@@ -154,8 +163,16 @@ export abstract class Actor {
 	newTileCompletelyJoined?(): void
 
 	_internalBlocks(other: Actor): boolean {
-		if (this.blocks?.(other)) return true
-		return other.blockedBy?.(this) ?? false
+		return (
+			this.blocks?.(other) ||
+			other.blockedBy?.(this) ||
+			!!this.collisionTags.find(val =>
+				val.startsWith("!")
+					? !other.tags.includes(val.substr(1))
+					: other.tags.includes(val)
+			) ||
+			false
+		)
 	}
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
@@ -171,9 +188,11 @@ export abstract class Actor {
 	_internalUpdateTileStates(): void {
 		this.oldTile?.removeActors(this)
 		this.tile.addActors(this)
-		for (const actor of this.oldTile?.allActors ?? []) actor.actorLeft?.(this)
+		// Spread from and to to not have actors which create new actors instantly be interacted with
+		if (this.oldTile)
+			for (const actor of [...this.oldTile.allActors]) actor.actorLeft?.(this)
 		this.slidingState = SlidingState.NONE
-		for (const actor of this.tile.allActors) actor.actorJoined?.(this)
+		for (const actor of [...this.tile.allActors]) actor.actorJoined?.(this)
 		this.newTileJoined?.()
 	}
 	destroy(killer?: Actor | null, animType: string | null = "explosion"): void {
@@ -181,13 +200,17 @@ export abstract class Actor {
 		this.tile.removeActors(this)
 		this.level.activeActors.splice(this.level.activeActors.indexOf(this), 1)
 		this.level.destroyedThisTick.push(this)
-		if (animType && actorDB[`${animType}Anim`])
+		if (animType && actorDB[`${animType}Anim`]) {
 			// @ts-expect-error Obviously, this is not an abstract class
-			new actorDB[`${animType}Anim`](
+			const anim: Animation = new actorDB[`${animType}Anim`](
 				this.level,
-				Direction.UP,
+				this.direction,
 				this.tile.position
 			)
+
+			anim.currentMoveSpeed = this.currentMoveSpeed
+			anim.cooldown = this.cooldown
+		}
 	}
 }
 /**

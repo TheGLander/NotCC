@@ -8,6 +8,7 @@ import { Direction } from "../helpers"
 export class DirtBlock extends Actor {
 	art = { art: "dirtBlock" }
 	pushable = true
+	tags = ["block", "cc1collision"]
 	get layer(): Layers {
 		return Layers.MOVABLE
 	}

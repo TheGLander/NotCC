@@ -1,7 +1,6 @@
 import { Actor, SlidingState, ActorArt } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
-import { Playable } from "./playables"
 import { Wall } from "./walls"
 
 export class Ice extends Actor {
@@ -43,9 +42,7 @@ export class RecessedWall extends Actor {
 		return Layers.STATIONARY
 	}
 	// Funny how recessed walls have the exact same collision as monsters
-	blocks(other: Actor): boolean {
-		return !(other instanceof Playable)
-	}
+	collisionTags = ["!playable"]
 	actorLeft(): void {
 		this.destroy(this, null)
 		this.tile.addActors(
@@ -85,10 +82,20 @@ export class Dirt extends Actor {
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
-	blocks(other: Actor): boolean {
-		// TODO Tag-based blocking
-		return !(other instanceof Playable)
+	collisionTags = ["cc1block", "normal-monster", "melinda"]
+	actorCompletelyJoined(): void {
+		this.destroy(this, null)
 	}
+}
+
+actorDB["dirt"] = Dirt
+
+export class Gravel extends Actor {
+	art = { art: "dirt" }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	collisionTags = ["normal-monster", "melinda"]
 	actorCompletelyJoined(): void {
 		this.destroy(this, null)
 	}

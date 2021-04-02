@@ -6,11 +6,10 @@ import { actorDB } from "../const"
 
 export class Monster extends Actor {
 	moveSpeed = 4
+	collisionTags = ["!playable"]
+	tags = ["monster", "normal-monster"]
 	get layer(): Layers {
 		return Layers.MOVABLE
-	}
-	blocks(other: Actor): boolean {
-		return !(other instanceof Playable)
 	}
 	newTileJoined(): void {
 		const playable = this.tile[Layers.MOVABLE].find(

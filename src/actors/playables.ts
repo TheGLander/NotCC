@@ -7,6 +7,8 @@ import { Decision, actorDB } from "../const"
 
 export class Playable extends Actor {
 	art = genericDirectionableArt("chip")
+	tags = ["playable"]
+	collisionTags = ["playable"]
 	lastInputs?: KeyInputs
 	lastStepSlideMode: SlidingState = SlidingState.NONE
 	constructor(
