@@ -52,7 +52,7 @@ const cc2Tiles = [
 	[["blueWall", 0, "real"]],
 	[["blueWall", 0, "fake"]],
 	[["dirt", 0, ""]],
-	[["spider", null, ""], null],
+	[["ant", null, ""], null],
 	[["centipede", null, ""], null],
 	[["ball", null, ""], null],
 	[["blob", null, ""], null],

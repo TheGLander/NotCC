@@ -36,6 +36,38 @@ export class Centipede extends Monster {
 
 actorDB["centipede"] = Centipede
 
+export class Ant extends Monster {
+	art = genericDirectionableArt("ant")
+	decideMovement(): Direction[] {
+		const dir = relativeToAbsolute(this.direction)
+		return [dir.LEFT, dir.FORWARD, dir.RIGHT, dir.BACKWARD]
+	}
+}
+
+actorDB["ant"] = Ant
+
+export class Glider extends Monster {
+	ignoreTags = ["water"]
+	art = genericDirectionableArt("glider")
+	decideMovement(): Direction[] {
+		const dir = relativeToAbsolute(this.direction)
+		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
+	}
+}
+
+actorDB["glider"] = Glider
+
+export class Fireball extends Monster {
+	ignoreTags = ["fire"]
+	art = genericDirectionableArt("fireball")
+	decideMovement(): Direction[] {
+		const dir = relativeToAbsolute(this.direction)
+		return [dir.FORWARD, dir.RIGHT, dir.LEFT, dir.BACKWARD]
+	}
+}
+
+actorDB["fireball"] = Fireball
+
 export class Ball extends Monster {
 	art = { art: "ball" }
 	decideMovement(): Direction[] {

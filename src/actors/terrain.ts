@@ -66,6 +66,7 @@ export class Void extends Actor {
 actorDB["void"] = Void
 
 export class Water extends Actor {
+	tags = ["water"]
 	art = { art: "water" }
 	get layer(): Layers {
 		return Layers.STATIONARY

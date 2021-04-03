@@ -27,6 +27,28 @@ export interface ActorArt {
 	rotation?: number
 }
 
+/**
+ * Checks if a tag collections matches a tag rule of another tag collection.
+ * @param actorTags The tag collection the actor has, they are being tested against the rules, cannot have tags which start with "!"
+ * @param ruleTags The rules which the actor tags are tested for. A rule is considered fulfilled if
+ *
+ * a. The rule tag does not start with "!" and is present in the actor tag collection
+ *
+ * b. The rule tag starts with "!", and the actor tag collection does not contain the rule tag (with the "!" removed)
+ * @example ```js
+ * matchTags(["foo", "bar"], ["bar", "baz"]) // true
+ * matchTags(["foo", "baz"], ["!foo"]) // false
+ * matchTags(["foo", "bar"], ["!foo", "bar"]) // true
+ * ```
+ */
+export function matchTags(actorTags: string[], ruleTags: string[]): boolean {
+	return !!ruleTags.find(val =>
+		val.startsWith("!")
+			? !actorTags.includes(val.substr(1))
+			: actorTags.includes(val)
+	)
+}
+
 export abstract class Actor {
 	moveDecision = Decision.NONE
 	currentMoveSpeed: number | null = null
@@ -45,9 +67,20 @@ export abstract class Actor {
 	 */
 	tags: string[] = []
 	/**
-	 * Tags which this actor blocks. If a tag starts with !, it means that anything but the tag is blocked
+	 * Tags which this actor blocks.
 	 */
 	collisionTags: string[] = []
+	/**
+	 * Tags which this actor will not conduct any interactions with.
+	 */
+	ignoreTags: string[] = []
+	_internalIgnores(other: Actor): boolean {
+		// TODO Item additional tags/code(?)
+		return (
+			matchTags(this.tags, other.ignoreTags) ||
+			matchTags(other.tags, this.ignoreTags)
+		)
+	}
 	/**
 	 * Amount of ticks it takes for the actor to move
 	 */
@@ -169,21 +202,17 @@ export abstract class Actor {
 
 	_internalBlocks(other: Actor): boolean {
 		return (
-			this.blocks?.(other) ||
-			other.blockedBy?.(this) ||
-			!!this.collisionTags.find(val =>
-				val.startsWith("!")
-					? !other.tags.includes(val.substr(1))
-					: other.tags.includes(val)
-			) ||
-			false
+			!this._internalIgnores(other) &&
+			(this.blocks?.(other) ||
+				other.blockedBy?.(this) ||
+				matchTags(other.tags, this.collisionTags))
 		)
 	}
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
 			this.cooldown--
 			for (const actor of this.tile.allActors)
-				actor.actorCompletelyJoined?.(this)
+				if (!this._internalIgnores(actor)) actor.actorCompletelyJoined?.(this)
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
 	}
@@ -195,9 +224,11 @@ export abstract class Actor {
 		this.tile.addActors(this)
 		// Spread from and to to not have actors which create new actors instantly be interacted with
 		if (this.oldTile)
-			for (const actor of [...this.oldTile.allActors]) actor.actorLeft?.(this)
+			for (const actor of [...this.oldTile.allActors])
+				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
 		this.slidingState = SlidingState.NONE
-		for (const actor of [...this.tile.allActors]) actor.actorJoined?.(this)
+		for (const actor of [...this.tile.allActors])
+			if (!this._internalIgnores(actor)) actor.actorJoined?.(this)
 		this.newTileJoined?.()
 	}
 	destroy(killer?: Actor | null, animType: string | null = "explosion"): void {
@@ -224,11 +255,9 @@ export abstract class Actor {
 	bumped?(other: Actor): void
 	_internalCanPush(other: Actor): boolean {
 		return (
-			!!this.pushTags.find(val =>
-				val.startsWith("!")
-					? !other.tags.includes(val.substr(1))
-					: other.tags.includes(val)
-			) && other.pushable
+			!this._internalIgnores(other) &&
+			matchTags(other.tags, this.pushTags) &&
+			other.pushable
 		)
 	}
 }
