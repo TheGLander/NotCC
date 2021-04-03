@@ -92,13 +92,11 @@ export class LevelState {
 			for (const blockActor of newTile[layer]) {
 				blockActor.bumped?.(actor)
 				if (!blockActor._internalBlocks(actor)) continue
-				// TODO Refactor this into a method
-				if (blockActor.pushable && actor instanceof Playable)
+				if (pushBlocks && actor._internalCanPush(blockActor))
 					toPush.push(blockActor)
 				else return false
 			}
 		}
-		if (!pushBlocks && toPush.length) return false
 		for (const pushable of toPush) {
 			if (pushable.slidingState) {
 				pushable.pendingDecision = pushable.moveDecision = direction + 1

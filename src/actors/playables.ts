@@ -9,6 +9,7 @@ export class Playable extends Actor {
 	art = genericDirectionableArt("chip")
 	tags = ["playable"]
 	collisionTags = ["playable"]
+	pushTags = ["block"]
 	lastInputs?: KeyInputs
 	lastStepSlideMode: SlidingState = SlidingState.NONE
 	constructor(

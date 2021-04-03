@@ -37,6 +37,10 @@ export abstract class Actor {
 	abstract layer: Layers
 	art?: ActorArt | (() => ActorArt)
 	/**
+	 * Tags which the actor can push, provided the pushed actor can be pushed
+	 */
+	pushTags: string[] = []
+	/**
 	 * General-use tags to use, for example, for collisions
 	 */
 	tags: string[] = []
@@ -217,6 +221,15 @@ export abstract class Actor {
 	 * @param other The actor which bumped into this actor
 	 */
 	bumped?(other: Actor): void
+	_internalCanPush(other: Actor): boolean {
+		return (
+			!!this.pushTags.find(val =>
+				val.startsWith("!")
+					? !other.tags.includes(val.substr(1))
+					: other.tags.includes(val)
+			) && other.pushable
+		)
+	}
 }
 /**
  * Creates an art function for a generic directionable actor
