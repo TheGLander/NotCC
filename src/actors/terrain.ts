@@ -91,14 +91,11 @@ export class Dirt extends Actor {
 actorDB["dirt"] = Dirt
 
 export class Gravel extends Actor {
-	art = { art: "dirt" }
+	art = { art: "gravel" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
 	collisionTags = ["normal-monster", "melinda"]
-	actorCompletelyJoined(): void {
-		this.destroy(this, null)
-	}
 }
 
-actorDB["dirt"] = Dirt
+actorDB["gravel"] = Gravel

@@ -24,7 +24,11 @@ export interface KeyInputs {
 
 const fpsCounter = document.querySelector<HTMLElement>("#fpsCounter")
 
-export async function initPulse(level: LevelState) {
+export async function initPulse(
+	level: LevelState,
+	renderSpace?: HTMLElement | null,
+	itemSpace?: HTMLElement | null
+) {
 	const buttonsPressed: KeyInputs = {
 		up: false,
 		down: false,
@@ -35,7 +39,7 @@ export async function initPulse(level: LevelState) {
 		switchPlayable: false,
 	}
 
-	const renderer = new Renderer(level)
+	const renderer = new Renderer(level, renderSpace, itemSpace)
 
 	await renderer.ready
 

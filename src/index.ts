@@ -25,13 +25,16 @@ let level: LevelState
 
 export { level, Direction, actorDB }
 
+const renderSpace = document.querySelector<HTMLElement>("#renderSpace")
+const itemSpace = document.querySelector<HTMLElement>("#renderSpace")
+
 let pulseHelpers: ReturnType<typeof initPulse>
 
 async function startNewLevel(buffer: ArrayBuffer): Promise<void> {
 	const levelData = parseC2M(buffer)
 	level = createLevelFromData(levelData)
 	if (pulseHelpers) (await pulseHelpers).stopPulsing()
-	pulseHelpers = initPulse(level)
+	pulseHelpers = initPulse(level, renderSpace, itemSpace)
 }
 
 ;(async () => {

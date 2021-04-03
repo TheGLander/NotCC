@@ -44,6 +44,7 @@ function convertDirection(direction: Direction): [number, number] {
 	}
 }
 
+// TODO Custom tilsets
 const fetchTiles = new Promise<void>(resolve =>
 	loader.add("./data/img/tiles.png").load(() => {
 		createTiles(
@@ -176,7 +177,11 @@ export default class Renderer {
 	 * Initializes the renderer, optional `this.ready` promise
 	 * @param level
 	 */
-	constructor(public level: LevelState) {
+	constructor(
+		public level: LevelState,
+		public renderSpace?: HTMLElement | null,
+		public itemSpace?: HTMLElement | null
+	) {
 		//Create a Pixi Application
 		const app = new PIXI.Application({
 			width: level.cameraType.width * 48,
@@ -192,8 +197,8 @@ export default class Renderer {
 				level.height * 48
 			)
 			app.stage.addChild(bg)
-			//Add the canvas that Pixi automatically created for you to the HTML document
-			document.getElementById("renderSpace")?.appendChild(app.view)
+			// Add the canvas that Pixi automatically created for you to the HTML document
+			renderSpace?.appendChild(app.view)
 		})()
 	}
 	/**
