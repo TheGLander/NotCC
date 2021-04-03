@@ -117,13 +117,12 @@ export function createLevelFromData(data: LevelData): LevelState {
 	for (let y = level.height - 1; y >= 0; y--)
 		for (let x = level.width - 1; x >= 0; x--)
 			for (const actor of data.field[x][y]) {
-				// We have no floor actor
-				if (actor[0] === "floor") continue
 				if (!actorDB[actor[0]])
 					throw new Error(`Cannot find actor with id "${actor[0]}"!`)
 				// @ts-expect-error Obviously, things in the DB thing are not unextended Actor classes
-				new actorDB[actor[0]](level, actor[1], [x, y])
-				// TODO 4th argument of actor classes: custom data
+				const actorInstance: Actor = new actorDB[actor[0]](level, [x, y])
+				actorInstance.direction = actor[1]
+				// TODO 3th argument of actor classes: custom data
 			}
 	return level
 }

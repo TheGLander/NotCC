@@ -2,8 +2,7 @@ import { Actor } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
-import { Water } from "./terrain"
-import { Direction } from "../helpers"
+import { Water, Dirt, Ice } from "./terrain"
 
 export class DirtBlock extends Actor {
 	art = { art: "dirtBlock" }
@@ -26,9 +25,7 @@ export class DirtBlock extends Actor {
 		const water = this.tile[Layers.STATIONARY].find(val => val instanceof Water)
 		if (water) {
 			water.destroy(this, null)
-
-			// @ts-expect-error This is not an abstract class
-			new actorDB["dirt"](this.level, Direction.UP, this.tile.position)
+			new Dirt(this.level, this.tile.position)
 		}
 	}
 }
@@ -57,17 +54,14 @@ export class IceBlock extends Actor {
 		const water = this.tile[Layers.STATIONARY].find(val => val instanceof Water)
 		if (water) {
 			water.destroy(this, null)
-
-			// @ts-expect-error This is not an abstract class
-			new actorDB["ice"](this.level, Direction.UP, this.tile.position)
+			new Ice(this.level, this.tile.position)
 		}
 	}
 	bumped = this.melt
 	melt(other: Actor): void {
 		if (other.tags.includes("melting")) {
 			this.destroy(this, null)
-			// @ts-expect-error This is not an abstract class
-			new actorDB["water"](this.level, Direction.UP, this.tile.position)
+			new Water(this.level, this.tile.position)
 		}
 	}
 }

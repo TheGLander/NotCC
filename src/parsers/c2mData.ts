@@ -2,7 +2,7 @@ import { Direction } from "../helpers"
 
 const cc2Tiles = [
 	[["unknown", 0, ""]],
-	[["floor", 0, ""]],
+	[],
 	[["wall", 0, ""]],
 	[["ice", 0, ""]],
 	[["iceCorner", 2, ""]],
@@ -151,7 +151,7 @@ const cc2Tiles = [
 ] as const
 
 export type cc2TileNames =
-	| typeof cc2Tiles[number][0][0]
+	| Exclude<typeof cc2Tiles[number][0], undefined>[0]
 	// Indirect tile additions
 	| "canopy"
 	| "wire"

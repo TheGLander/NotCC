@@ -45,9 +45,7 @@ export class RecessedWall extends Actor {
 	collisionTags = ["!playable"]
 	actorLeft(): void {
 		this.destroy(this, null)
-		this.tile.addActors(
-			new Wall(this.level, this.direction, this.tile.position)
-		)
+		new Wall(this.level, this.tile.position)
 	}
 }
 

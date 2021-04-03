@@ -87,12 +87,8 @@ export abstract class Actor {
 	moveSpeed = 0
 	tile: Tile
 	pushable = false
-
-	constructor(
-		public level: LevelState,
-		public direction: Direction,
-		position: [number, number]
-	) {
+	direction = Direction.UP
+	constructor(public level: LevelState, position: [number, number]) {
 		level.activeActors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
@@ -240,10 +236,9 @@ export abstract class Actor {
 			// @ts-expect-error Obviously, this is not an abstract class
 			const anim: Animation = new actorDB[`${animType}Anim`](
 				this.level,
-				this.direction,
 				this.tile.position
 			)
-
+			anim.direction = this.direction
 			anim.currentMoveSpeed = this.currentMoveSpeed
 			anim.cooldown = this.cooldown
 		}
