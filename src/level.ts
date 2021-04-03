@@ -90,6 +90,7 @@ export class LevelState {
 			Layers.ANIMATION,
 		]) {
 			for (const blockActor of newTile[layer]) {
+				blockActor.bumped?.(actor)
 				if (!blockActor._internalBlocks(actor)) continue
 				// TODO Refactor this into a method
 				if (blockActor.pushable && actor instanceof Playable)

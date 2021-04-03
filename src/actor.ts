@@ -212,6 +212,11 @@ export abstract class Actor {
 			anim.cooldown = this.cooldown
 		}
 	}
+	/**
+	 * Called when another actor bumps into this actor
+	 * @param other The actor which bumped into this actor
+	 */
+	bumped?(other: Actor): void
 }
 /**
  * Creates an art function for a generic directionable actor

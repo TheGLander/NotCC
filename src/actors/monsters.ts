@@ -20,6 +20,10 @@ export class Monster extends Actor {
 	actorJoined(other: Actor): void {
 		if (other instanceof Playable) other.destroy(this)
 	}
+	bumped(other: Actor): void {
+		// Monsters kill players which bump into them, for some reason (This only applies to slapping)
+		if (other instanceof Playable) other.destroy(this)
+	}
 }
 
 export class Centipede extends Monster {
