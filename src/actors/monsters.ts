@@ -59,6 +59,7 @@ actorDB["glider"] = Glider
 
 export class Fireball extends Monster {
 	ignoreTags = ["fire"]
+	tags = ["monster", "normal-monster", "melting"]
 	art = genericDirectionableArt("fireball")
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)

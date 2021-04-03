@@ -62,6 +62,14 @@ export class IceBlock extends Actor {
 			new actorDB["ice"](this.level, Direction.UP, this.tile.position)
 		}
 	}
+	bumped = this.melt
+	melt(other: Actor): void {
+		if (other.tags.includes("melting")) {
+			this.destroy(this, null)
+			// @ts-expect-error This is not an abstract class
+			new actorDB["water"](this.level, Direction.UP, this.tile.position)
+		}
+	}
 }
 
 actorDB["iceBlock"] = IceBlock

@@ -114,8 +114,8 @@ export function createLevelFromData(data: LevelData): LevelState {
 	const level = new LevelState(data.width, data.height)
 	// TODO Misc data setting, like blob patterns and stuff
 	level.cameraType = data.camera
-	for (let x = 0; x < level.width; x++)
-		for (let y = 0; y < level.height; y++)
+	for (let y = level.height - 1; y >= 0; y--)
+		for (let x = level.width - 1; x >= 0; x--)
 			for (const actor of data.field[x][y]) {
 				// We have no floor actor
 				if (actor[0] === "floor") continue

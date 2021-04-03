@@ -93,7 +93,7 @@ export abstract class Actor {
 		public direction: Direction,
 		position: [number, number]
 	) {
-		level.activeActors.unshift(this)
+		level.activeActors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
 	}
