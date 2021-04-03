@@ -112,6 +112,7 @@ export abstract class Actor {
 	}
 	// This is defined separately only because of Instabonking:tm:
 	_internalStep(direction: Direction): boolean {
+		if (this.cooldown) return false
 		// TODO Force redirection of movement (train tracks)
 		this.direction = direction
 		const canMove = this.level.checkCollision(this, direction, true)
