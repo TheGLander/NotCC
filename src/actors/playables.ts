@@ -12,12 +12,8 @@ export class Playable extends Actor {
 	pushTags = ["block"]
 	lastInputs?: KeyInputs
 	lastStepSlideMode: SlidingState = SlidingState.NONE
-	constructor(
-		level: LevelState,
-		direction: Direction,
-		position: [number, number]
-	) {
-		super(level, direction, position)
+	constructor(level: LevelState, position: [number, number]) {
+		super(level, position)
 		level.playables.push(this)
 		if (!level.selectedPlayable) level.selectedPlayable = this
 	}

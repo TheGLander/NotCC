@@ -228,7 +228,7 @@ export abstract class Actor {
 		this.newTileJoined?.()
 	}
 	destroy(killer?: Actor | null, animType: string | null = "explosion"): void {
-		// TODO Avoid killing if we ignore the actor
+		if (killer && this._internalIgnores(killer)) return
 		this.tile.removeActors(this)
 		this.level.activeActors.splice(this.level.activeActors.indexOf(this), 1)
 		this.level.destroyedThisTick.push(this)

@@ -261,7 +261,7 @@ export default class Renderer {
 				)
 		}
 
-		this.app.render()
+		//this.app.render()
 	}
 	destroy(): void {
 		this.app.destroy(true)

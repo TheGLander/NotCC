@@ -22,7 +22,17 @@ export interface KeyInputs {
 	switchPlayable: boolean
 }
 
+function stabilizeFactory(bufferLength = 60): (val: number) => number {
+	const buffer: number[] = []
+	return num => {
+		buffer.push(num)
+		if (buffer.length === bufferLength) buffer.shift()
+		return buffer.reduce((acc, val) => acc + val) / buffer.length
+	}
+}
+
 const fpsCounter = document.querySelector<HTMLElement>("#fpsCounter")
+const delayCounter = document.querySelector<HTMLElement>("#delayCounter")
 
 export async function initPulse(
 	level: LevelState,
@@ -55,24 +65,21 @@ export async function initPulse(
 		)*/
 	}
 
-	let lastPulse = new Date().getTime()
-	const fpsRecords: number[] = []
-
+	let lastPulse = Date.now()
 	/**
 	 * Tracks Fps
 	 */
+	const stabilizeFps = stabilizeFactory()
+	const stabilizeDelay = stabilizeFactory()
 	function trackFps() {
-		const thisPulse = new Date().getTime()
-		// Add new FPS measure to the array
-		fpsRecords.push((1 / (thisPulse - lastPulse)) * 1000)
-		if (fpsRecords.length === 30) fpsRecords.shift()
-		// Find medium from all the elements
+		const thisPulse = Date.now()
 		if (fpsCounter)
-			fpsCounter.innerText = Math.round(
-				fpsRecords.reduce((acc, val) => acc + val) / fpsRecords.length
-			).toString()
+			fpsCounter.innerText = `FPS: ${Math.round(
+				stabilizeFps((1 / (thisPulse - lastPulse)) * 1000)
+			)}`
 		lastPulse = thisPulse
 	}
+
 	let isDead = false
 	function tickLevel(force = false): void {
 		if (level.lost && !force) {
@@ -90,6 +97,10 @@ export async function initPulse(
 	function pulse(): void {
 		devtools()
 		tickLevel()
+		if (delayCounter)
+			delayCounter.innerText = `Calculation delay: ${
+				Math.round(stabilizeDelay(Date.now() - lastPulse) * 1000) / 1000
+			}ms`
 		renderer.frame()
 	}
 	//Devtools
