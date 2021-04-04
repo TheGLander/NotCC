@@ -16,6 +16,9 @@ export class Ice extends Actor {
 		other.direction += 2
 		other.direction %= 4
 	}
+	speedMod(): 2 {
+		return 2
+	}
 }
 actorDB["ice"] = Ice
 
@@ -31,6 +34,9 @@ export class ForceFloor extends Actor {
 	onMemberSlideBonked(other: Actor): void {
 		// Give them a single subtick of cooldown
 		other.cooldown++
+	}
+	speedMod(): 2 {
+		return 2
 	}
 }
 

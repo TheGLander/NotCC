@@ -149,8 +149,7 @@ export abstract class Actor {
 		if (!canMove || !this.moveSpeed) return false
 		const newTile = this.tile.getNeighbor(direction)
 		if (!newTile) return false
-		// TODO Speed mods
-		const moveLength = this.moveSpeed * 3
+		const moveLength = (this.moveSpeed * 3) / newTile.getSpeedMod(this)
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
 		this.tile = newTile
@@ -255,6 +254,10 @@ export abstract class Actor {
 			other.pushable
 		)
 	}
+	/**
+	 * Called when a new actor enters the tile, must return the number to divide the speed by
+	 */
+	speedMod?(other: Actor): number
 }
 /**
  * Creates an art function for a generic directionable actor

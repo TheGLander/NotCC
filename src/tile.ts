@@ -61,6 +61,12 @@ class Tile extends Array<Array<Actor>> {
 				)
 		}
 	}
+	getSpeedMod(other: Actor): number {
+		return this.allActors.reduce(
+			(acc, val) => (val.speedMod ? val.speedMod(other) * acc : acc),
+			1
+		)
+	}
 }
 
 export default Tile
