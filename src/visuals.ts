@@ -125,7 +125,7 @@ const fetchTiles = new Promise<void>(resolve =>
 				[
 					null,
 					"lockYellow",
-					"portalBlue",
+					"teleportBlue",
 					null,
 					null,
 					"walkerHoriz",
