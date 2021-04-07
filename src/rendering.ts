@@ -48,11 +48,7 @@ uniform vec2 wrapLen;
 uniform sampler2D texture;
 
 void main() {
-	if(isWrap) {
-    gl_FragColor = texture2D(texture, mod(texcoord, wrapLen));
-	} else {
-		gl_FragColor = texture2D(texture, texcoord);
-	}
+	gl_FragColor = texture2D(texture, texcoord);
 	if(gl_FragColor.a < 0.5) discard;
 }`,
 		])
@@ -74,9 +70,6 @@ void main() {
 				this.gl,
 				{
 					src: source,
-					wrapR: this.gl.NEAREST,
-					wrapS: this.gl.NEAREST,
-					wrapT: this.gl.NEAREST,
 				},
 				(err, tex, src: HTMLImageElement | HTMLImageElement[]) => {
 					if (err) {
@@ -106,8 +99,7 @@ void main() {
 		dstX: number,
 		dstY: number,
 		dstWidth: number,
-		dstHeight: number,
-		wrapLen?: [number, number]
+		dstHeight: number
 	): void {
 		const mat = twgl.m4.identity()
 		const tmat = twgl.m4.identity()
@@ -115,13 +107,6 @@ void main() {
 			matrix: mat,
 			textureMatrix: tmat,
 			texture: tex,
-			isWrap: !!wrapLen,
-			wrapLen: wrapLen
-				? new Float32Array([
-						wrapLen[0] / this.canvas.width,
-						wrapLen[1] / this.canvas.height,
-				  ])
-				: new Float32Array([0, 0]),
 		}
 
 		// these adjust the unit quad to generate texture coordinates

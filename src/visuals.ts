@@ -2,7 +2,6 @@ import { Direction } from "./helpers"
 import { LevelState } from "./level"
 import ogData from "./cc2ImageFormat"
 import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
-import { Playable } from "./actors/playables"
 
 type CC2Animation = [number, number] | [[number, number], [number, number]]
 
@@ -17,9 +16,6 @@ export interface InflatedCC2ImageFormat {
 }
 
 const renderer = new WebGLRenderer()
-
-//@ts-expect-error This is for debug only
-window.renderer = renderer
 
 function canvasToBlobURI(canvas: HTMLCanvasElement) {
 	return new Promise<string>(res =>
