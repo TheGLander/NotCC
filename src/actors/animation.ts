@@ -1,4 +1,4 @@
-import { Actor } from "../actor"
+import { Actor, ActorArt } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
@@ -20,19 +20,25 @@ export class Animation extends Actor {
 }
 
 export class Explosion extends Animation {
-	art = { art: "boom" }
+	art = (): ActorArt => {
+		return {
+			actorName: "boom",
+			animation: "default",
+			frame: Math.floor(4 - this.animationCooldown / 4),
+		}
+	}
 }
 
 actorDB["explosionAnim"] = Explosion
 
-export class Explosion2 extends Animation {
-	art = { art: "boom2" }
-}
-
-actorDB["explosion2Anim"] = Explosion
-
 export class Splash extends Animation {
-	art = { art: "splash" }
+	art = (): ActorArt => {
+		return {
+			actorName: "splash",
+			animation: "default",
+			frame: Math.floor(4 - this.animationCooldown / 4),
+		}
+	}
 }
 
 actorDB["splashAnim"] = Splash

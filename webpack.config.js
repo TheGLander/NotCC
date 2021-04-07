@@ -38,6 +38,17 @@ module.exports = {
 		],
 	},
 	watch: !prod,
-	resolve: { extensions: [".ts", ".js", ".json"] },
+	resolve: { extensions: [".ts", ".js", ".json", ".jsonc"] },
 	devtool: "source-map",
+	optimization: {
+		splitChunks: {
+			cacheGroups: {
+				vendor: {
+					chunks: "all",
+					name: "vendor",
+					test: /node_modules/,
+				},
+			},
+		},
+	},
 }

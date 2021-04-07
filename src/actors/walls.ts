@@ -1,8 +1,8 @@
-import { Actor } from "../actor"
+import { Actor, ActorArt } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
 export class Wall extends Actor {
-	art = { art: "wall" }
+	art: ActorArt = { actorName: "wall" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}

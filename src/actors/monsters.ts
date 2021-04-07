@@ -1,4 +1,9 @@
-import { Actor, genericDirectionableArt } from "../actor"
+import {
+	Actor,
+	genericDirectionableArt,
+	ActorArt,
+	genericAnimatedArt,
+} from "../actor"
 import { Layers } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
@@ -27,7 +32,7 @@ export class Monster extends Actor {
 }
 
 export class Centipede extends Monster {
-	art = genericDirectionableArt("centipede")
+	art = genericDirectionableArt("centipede", 3)
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.RIGHT, dir.FORWARD, dir.LEFT, dir.BACKWARD]
@@ -37,7 +42,7 @@ export class Centipede extends Monster {
 actorDB["centipede"] = Centipede
 
 export class Ant extends Monster {
-	art = genericDirectionableArt("ant")
+	art = genericDirectionableArt("ant", 4)
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.LEFT, dir.FORWARD, dir.RIGHT, dir.BACKWARD]
@@ -48,7 +53,7 @@ actorDB["ant"] = Ant
 
 export class Glider extends Monster {
 	ignoreTags = ["water"]
-	art = genericDirectionableArt("glider")
+	art = genericDirectionableArt("glider", 2)
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
@@ -60,7 +65,8 @@ actorDB["glider"] = Glider
 export class Fireball extends Monster {
 	ignoreTags = ["fire"]
 	tags = ["monster", "normal-monster", "melting"]
-	art = genericDirectionableArt("fireball")
+	// TODO Rotation
+	art = genericAnimatedArt("fireball", 4)
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.RIGHT, dir.LEFT, dir.BACKWARD]
@@ -70,7 +76,7 @@ export class Fireball extends Monster {
 actorDB["fireball"] = Fireball
 
 export class Ball extends Monster {
-	art = { art: "ball" }
+	art: ActorArt = { actorName: "ball" }
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.BACKWARD]

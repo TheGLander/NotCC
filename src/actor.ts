@@ -17,14 +17,12 @@ export enum SlidingState {
 }
 
 export interface ActorArt {
+	actorName: string
 	/**
-	 * Name of the art piece to display
+	 * Name of the art piece to display, "default" by default
 	 */
-	art: string
-	/**
-	 * The direction the art piece should be facing
-	 */
-	rotation?: number
+	animation?: string
+	frame?: number
 }
 
 /**
@@ -57,6 +55,9 @@ export abstract class Actor {
 	pendingDecision = Decision.NONE
 	slidingState = SlidingState.NONE
 	abstract layer: Layers
+	// @ts-expect-error Why
+	static abstract id: string
+	id: string
 	art?: ActorArt | (() => ActorArt)
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
@@ -89,6 +90,7 @@ export abstract class Actor {
 	pushable = false
 	direction = Direction.UP
 	constructor(public level: LevelState, position: [number, number]) {
+		this.id = Object.getPrototypeOf(this).id
 		level.activeActors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
@@ -262,9 +264,25 @@ export abstract class Actor {
 /**
  * Creates an art function for a generic directionable actor
  */
-export const genericDirectionableArt = (name: string) =>
-	function (this: Actor): ActorArt {
+export const genericDirectionableArt = (name: string, animLength: number) => {
+	let currentFrame = 0
+	return function (this: Actor): ActorArt {
 		return {
-			art: `${name}${["Up", "Right", "Down", "Left"][this.direction]}`,
+			actorName: name,
+			animation: ["up", "right", "down", "left"][this.direction],
+			frame: this.cooldown
+				? Math.floor((currentFrame++ % (animLength * 3)) / 3)
+				: 0,
 		}
 	}
+}
+
+export const genericAnimatedArt = (name: string, animLength: number) => {
+	let currentFrame = 0
+	return function (this: Actor): ActorArt {
+		return {
+			actorName: name,
+			frame: Math.floor((currentFrame++ % (animLength * 3)) / 3),
+		}
+	}
+}

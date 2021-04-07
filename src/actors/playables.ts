@@ -6,7 +6,7 @@ import { LevelState } from "../level"
 import { Decision, actorDB } from "../const"
 
 export class Playable extends Actor {
-	art = genericDirectionableArt("chip")
+	art = genericDirectionableArt("chip", 8)
 	tags = ["playable"]
 	collisionTags = ["playable"]
 	pushTags = ["block"]

@@ -1,4 +1,4 @@
-import { Actor, SlidingState } from "../actor"
+import { Actor, SlidingState, genericAnimatedArt } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
 
@@ -6,7 +6,7 @@ export class BlueTeleport extends Actor {
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
-	art = { art: "teleportBlue" }
+	art = genericAnimatedArt("teleportBlue", 4)
 	actorCompletelyJoined(other: Actor): void {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		let otherTeleport: BlueTeleport = this

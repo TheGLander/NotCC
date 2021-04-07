@@ -1,10 +1,16 @@
-import { Actor, SlidingState, ActorArt } from "../actor"
+import {
+	Actor,
+	SlidingState,
+	ActorArt,
+	genericDirectionableArt,
+} from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
 import { Wall } from "./walls"
+import { genericAnimatedArt } from "../actor"
 
 export class Ice extends Actor {
-	art = { art: "ice" }
+	art: ActorArt = { actorName: "ice", animation: "normal" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
@@ -23,7 +29,7 @@ export class Ice extends Actor {
 actorDB["ice"] = Ice
 
 export class ForceFloor extends Actor {
-	art = (): ActorArt => ({ art: "forceFloor", rotation: this.direction * 90 })
+	art = genericDirectionableArt("forceFloor", 2)
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
@@ -43,7 +49,7 @@ export class ForceFloor extends Actor {
 actorDB["forceFloor"] = ForceFloor
 
 export class RecessedWall extends Actor {
-	art = { art: "popupWall" }
+	art = { actorName: "popupWall" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
@@ -58,7 +64,7 @@ export class RecessedWall extends Actor {
 actorDB["popupWall"] = RecessedWall
 
 export class Void extends Actor {
-	art = { art: "exit" }
+	art = { actorName: "exit" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
@@ -71,7 +77,7 @@ actorDB["void"] = Void
 
 export class Water extends Actor {
 	tags = ["water"]
-	art = { art: "water" }
+	art = genericAnimatedArt("water", 4)
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
@@ -83,7 +89,7 @@ export class Water extends Actor {
 actorDB["water"] = Water
 
 export class Dirt extends Actor {
-	art = { art: "dirt" }
+	art = { actorName: "dirt" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
@@ -96,7 +102,7 @@ export class Dirt extends Actor {
 actorDB["dirt"] = Dirt
 
 export class Gravel extends Actor {
-	art = { art: "gravel" }
+	art: ActorArt = { actorName: "gravel" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}

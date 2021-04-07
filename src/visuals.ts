@@ -1,32 +1,81 @@
-import * as PIXI from "pixi.js"
 import { Direction } from "./helpers"
 import { LevelState } from "./level"
-import clone from "deepclone"
-import { Actor } from "./actor"
+import ogData from "./cc2ImageFormat"
+import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
+import { Playable } from "./actors/playables"
 
-const loader = PIXI.Loader.shared
+type CC2Animation = [number, number] | [[number, number], [number, number]]
 
-function createTiles(
-	matrix: (string | null)[][],
-	tileSize: [number, number],
-	image: string
-): void {
-	const source = loader.resources[image]
-	if (!source) throw new Error("Invalid image!")
-	for (let y = 0; y < matrix.length; y++)
-		for (let x = 0; x < matrix[y].length; x++) {
-			const matrixEntry = matrix[y][x]
-			if (matrixEntry === null) continue
-			loader.resources[matrixEntry] = clone(source)
-			loader.resources[matrixEntry].texture.frame = new PIXI.Rectangle(
-				x * tileSize[0],
-				y * tileSize[1],
-				tileSize[0],
-				tileSize[1]
-			)
-		}
+type CC2AnimationCollection = Record<string, CC2Animation>
+
+export interface CC2ImageFormat {
+	actorMapping: Record<string, CC2Animation | CC2AnimationCollection>
 }
 
+export interface InflatedCC2ImageFormat {
+	actorMapping: Record<string, Record<string, [number, number][]>>
+}
+
+const renderer = new WebGLRenderer()
+
+//@ts-expect-error This is for debug only
+window.renderer = renderer
+
+function canvasToBlobURI(canvas: HTMLCanvasElement) {
+	return new Promise<string>(res =>
+		canvas.toBlob(blob => res(URL.createObjectURL(blob)))
+	)
+}
+
+async function removeBackground(
+	link: string,
+	bgColor: number
+): Promise<string> {
+	const img = await new Promise<HTMLImageElement>((res, rej) => {
+		const img = new Image()
+		img.addEventListener("load", () => res(img))
+		img.addEventListener("error", err => rej(err.error))
+		img.src = link
+	})
+	const ctx = document.createElement("canvas").getContext("2d")
+	if (!ctx) throw new Error("When does this even happen, anyways?")
+	;[ctx.canvas.width, ctx.canvas.height] = [img.width, img.height]
+	ctx.drawImage(img, 0, 0)
+	const rawData = ctx.getImageData(0, 0, img.width, img.height)
+	for (let i = 0; i < rawData.data.length; i += 4) {
+		if (
+			rawData.data[i] * 0x010000 +
+				rawData.data[i + 1] * 0x000100 +
+				rawData.data[i + 2] * 0x000001 ===
+			bgColor
+		)
+			rawData.data[i + 3] = 0
+	}
+	ctx.putImageData(rawData, 0, 0)
+	return canvasToBlobURI(ctx.canvas)
+}
+
+const data: InflatedCC2ImageFormat = { actorMapping: {} }
+
+// Convert the shortcutted image data to the full, bloat-ish version
+for (const actorAnimsName in ogData.actorMapping) {
+	data.actorMapping[actorAnimsName] = {}
+	let actorAnims = ogData.actorMapping[actorAnimsName]
+	if (actorAnims instanceof Array) actorAnims = { default: actorAnims }
+	for (const actorAnimName in actorAnims) {
+		const actorAnim = actorAnims[actorAnimName]
+		if (actorAnim[0] instanceof Array) {
+			data.actorMapping[actorAnimsName][actorAnimName] = []
+			const animRanges = actorAnim as [[number, number], [number, number]]
+			for (let x = animRanges[0][0]; x <= animRanges[1][0]; x++)
+				for (let y = animRanges[0][1]; y <= animRanges[1][1]; y++)
+					data.actorMapping[actorAnimsName][actorAnimName].push([x, y])
+		} else
+			data.actorMapping[actorAnimsName][actorAnimName] = [
+				actorAnim as [number, number],
+			]
+	}
+}
 /**
  * Converts a direction to x and y multipliers
  * @param direction
@@ -44,135 +93,21 @@ function convertDirection(direction: Direction): [number, number] {
 	}
 }
 
+const tileSize = 32 as const
+
 // TODO Custom tilsets
-const fetchTiles = new Promise<void>(resolve =>
-	loader.add("./data/img/tiles.png").load(() => {
-		createTiles(
-			[
-				[
-					"empty",
-					null,
-					null,
-					"panelCorner",
-					"antUp",
-					"gliderUp",
-					"centipedeUp",
-				],
-				[
-					"wall",
-					"dirtBlock",
-					"itemThief",
-					"cloneMachine",
-					"antLeft",
-					"gliderLeft",
-					"centipedeLeft",
-				],
-				[
-					"echip",
-					"forceFloor",
-					"echipGate",
-					"forceFloorRandom",
-					"antDown",
-					"gliderDown",
-					"centipedeDown",
-				],
-				[
-					"water",
-					null,
-					"buttonGreen",
-					"splash",
-					"antRight",
-					"gliderRight",
-					"centipedeRight",
-				],
-				["fire", null, "buttonRed", null, "fireballUp", "teethUp", "keyBlue"],
-				[
-					null,
-					"exit",
-					"greenOutlineOn",
-					"unknown",
-					"fireballLeft",
-					"teethLeft",
-					"keyRed",
-				],
-				[
-					"panel",
-					"lockBlue",
-					"greenOutlineOff",
-					"boom",
-					"fireballDown",
-					"teethDown",
-					"keyGreen",
-				],
-				[
-					null,
-					"lockRed",
-					"buttonBrown",
-					"boom2",
-					"fireballRight",
-					"teethRight",
-					"keyBlue",
-				],
-				[
-					null,
-					"lockGreen",
-					"buttonBlue",
-					null,
-					"ball",
-					"walkerVert",
-					"bootBlue",
-				],
-				[
-					null,
-					"lockYellow",
-					"teleportBlue",
-					null,
-					null,
-					"walkerHoriz",
-					"bootRed",
-				],
-				[null, "iceCorner", "bomb", null, null, null, "bootLightBlue"],
-				["dirt", null, "trap", null, null, null, "bootGreen"],
-				["ice", null, null, "chipWaterUp", "blueTankUp", "slime", "chipUp"],
-				[
-					null,
-					null,
-					"gravel",
-					"chipWaterLeft",
-					"blueTankLeft",
-					null,
-					"chipLeft",
-				],
-				[
-					null,
-					"blueWall",
-					"popupWall",
-					"chipWaterDown",
-					"blueTankDown",
-					null,
-					"chipDown",
-				],
-				[
-					null,
-					null,
-					"hint",
-					"chipWaterRight",
-					"blueTankRight",
-					null,
-					"chipRight",
-				],
-			],
-			[48, 48],
-			"./data/img/tiles.png"
-		)
-		resolve()
-	})
-)
+const fetchTiles = (async (): Promise<SizedWebGLTexture> =>
+	renderer.addTexture(
+		await removeBackground("./data/img/tiles.png", 0x52ce6b)
+	))()
 
 export default class Renderer {
 	ready: Promise<void>
-	spriteMap = new WeakMap<Actor, PIXI.Sprite>()
-	app: PIXI.Application
+	readyBool = false
+	// @ts-expect-error We don't use it unless we have it
+	renderTexture: SizedWebGLTexture
+	// @ts-expect-error We don't use it unless we have it
+	backgroundFiller: SizedWebGLTexture
 	/**
 	 * Initializes the renderer, optional `this.ready` promise
 	 * @param level
@@ -182,36 +117,119 @@ export default class Renderer {
 		public renderSpace?: HTMLElement | null,
 		public itemSpace?: HTMLElement | null
 	) {
-		//Create a Pixi Application
-		const app = new PIXI.Application({
-			width: level.cameraType.width * 48,
-			height: level.cameraType.height * 48,
-		})
-		app.stage.sortableChildren = true
-		this.app = app
+		renderer.scaling = 2
+		;[renderer.canvas.width, renderer.canvas.height] = [
+			level.cameraType.width * tileSize,
+			level.cameraType.height * tileSize,
+		]
+		renderer.updateSize()
 		this.ready = (async () => {
-			await fetchTiles
-			const bg = new PIXI.TilingSprite(
-				loader.resources.empty.texture,
-				level.width * 48,
-				level.height * 48
+			this.renderTexture = await fetchTiles
+			this.readyBool = true
+			const ctx = document.createElement("canvas").getContext("2d")
+			if (!ctx) return
+			ctx.canvas.width = (this.level.cameraType.width + 1) * tileSize
+			ctx.canvas.height = (this.level.cameraType.height + 1) * tileSize
+			const img = await new Promise<HTMLImageElement>(res => {
+				const img = new Image()
+				img.addEventListener("load", () => res(img))
+				img.src = this.renderTexture.source
+			})
+			for (let x = 0; x < this.level.cameraType.width + 1; x++)
+				for (let y = 0; y < this.level.cameraType.height + 1; y++)
+					ctx.drawImage(
+						img,
+						data.actorMapping.floor.normal[0][0] * tileSize,
+						data.actorMapping.floor.normal[0][1] * tileSize,
+						tileSize,
+						tileSize,
+						x * tileSize,
+						y * tileSize,
+						tileSize,
+						tileSize
+					)
+			this.backgroundFiller = await renderer.addTexture(
+				await canvasToBlobURI(ctx.canvas)
 			)
-			app.stage.addChild(bg)
 			// Add the canvas that Pixi automatically created for you to the HTML document
-			renderSpace?.appendChild(app.view)
+			renderSpace?.appendChild(renderer.canvas)
 		})()
 	}
 	/**
 	 * Updates the positions of the rendred sprites
 	 */
 	frame(): void {
-		for (const actor of this.level.destroyedThisTick) {
-			const sprite = this.spriteMap.get(actor)
-			if (!sprite) continue
-			sprite.destroy()
-			this.spriteMap.delete(actor)
+		if (!this.readyBool) return
+		// Update the camera ASAP
+		let cameraPos: [number, number] = [0, 0]
+		if (this.level.selectedPlayable) {
+			const movedPos = [
+				this.level.selectedPlayable.tile.x,
+				this.level.selectedPlayable.tile.y,
+			]
+			if (
+				this.level.selectedPlayable.cooldown &&
+				this.level.selectedPlayable.currentMoveSpeed
+			) {
+				const mults = convertDirection(this.level.selectedPlayable.direction)
+				const offsetMult =
+					1 -
+					(this.level.selectedPlayable.currentMoveSpeed -
+						this.level.selectedPlayable.cooldown +
+						1) /
+						this.level.selectedPlayable.currentMoveSpeed
+				movedPos[0] -= offsetMult * mults[0]
+				movedPos[1] -= offsetMult * mults[1]
+			}
+			cameraPos = [
+				Math.max(
+					0,
+					Math.min(
+						movedPos[0] + 0.5,
+						this.level.width - this.level.cameraType.width / 2
+					) -
+						this.level.cameraType.width / 2
+				),
+				Math.max(
+					0,
+					Math.min(
+						movedPos[1] + 0.5,
+						this.level.height - this.level.cameraType.height / 2
+					) -
+						this.level.cameraType.height / 2
+				),
+			]
+			renderer.cameraPosition = [
+				cameraPos[0] * tileSize,
+				cameraPos[1] * tileSize,
+			]
 		}
-		for (const actor of this.level.activeActors) {
+		renderer.drawImage(
+			this.backgroundFiller.texture,
+			this.backgroundFiller.width,
+			this.backgroundFiller.height,
+			0,
+			0,
+			this.backgroundFiller.width,
+			this.backgroundFiller.height,
+			renderer.cameraPosition[0] - (renderer.cameraPosition[0] % tileSize),
+			renderer.cameraPosition[1] - (renderer.cameraPosition[1] % tileSize),
+			this.backgroundFiller.width,
+			this.backgroundFiller.height
+		)
+		const sortedActors = this.level.activeActors.sort(
+			(a, b) => a.layer - b.layer
+		)
+		for (const actor of sortedActors) {
+			if (
+				actor.tile.x < Math.floor(cameraPos[0] - 1) ||
+				actor.tile.x >
+					Math.ceil(cameraPos[0] + this.level.cameraType.width + 1) ||
+				actor.tile.y < Math.floor(cameraPos[1] - 1) ||
+				actor.tile.y >
+					Math.ceil(cameraPos[1] + this.level.cameraType.height + 1)
+			)
+				continue
 			const movedPos = [actor.tile.x, actor.tile.y]
 			if (actor.cooldown && actor.currentMoveSpeed) {
 				const mults = convertDirection(actor.direction)
@@ -221,49 +239,32 @@ export default class Renderer {
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
+
 			const art =
 				typeof actor.art === "function"
 					? actor.art()
-					: actor.art ?? { art: "unknown" }
-			let sprite = this.spriteMap.get(actor)
-			// Create actor sprite if it's new
-			if (!sprite) {
-				sprite = new PIXI.Sprite(loader.resources.unknown.texture)
-				sprite.anchor.set(0.5, 0.5)
-				sprite.zIndex = actor.layer * 100
-				this.app.stage.addChild(sprite)
-				this.spriteMap.set(actor, sprite)
-			}
-			sprite.texture =
-				loader.resources[art.art]?.texture ?? loader.resources.unknown.texture
-			sprite.angle = art.rotation ?? 0
-			sprite.position.set(movedPos[0] * 48 + 24, movedPos[1] * 48 + 24)
-			if (actor === this.level.selectedPlayable)
-				this.app.stage.pivot.set(
-					Math.max(
-						0,
-						Math.min(
-							movedPos[0] + 0.5,
-							this.level.width - this.level.cameraType.width / 2
-						) *
-							48 -
-							this.level.cameraType.width * 24
-					),
-					Math.max(
-						0,
-						Math.min(
-							movedPos[1] + 0.5,
-							this.level.height - this.level.cameraType.height / 2
-						) *
-							48 -
-							this.level.cameraType.height * 24
-					)
-				)
+					: actor.art ?? { actorName: "unknown" }
+			const frame =
+				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
+					art.frame ?? 0
+				] ?? data.actorMapping.floor.normal[0]
+			renderer.drawImage(
+				this.renderTexture.texture,
+				this.renderTexture.width,
+				this.renderTexture.height,
+				frame[0] * tileSize,
+				frame[1] * tileSize,
+				tileSize,
+				tileSize,
+				movedPos[0] * tileSize,
+				movedPos[1] * tileSize,
+				tileSize,
+				tileSize
+			)
+			// [movedPos[0] * tileSize, movedPos[1] * tileSize]
 		}
-
-		//this.app.render()
 	}
 	destroy(): void {
-		this.app.destroy(true)
+		this.renderSpace?.removeChild(renderer.canvas)
 	}
 }
