@@ -24,8 +24,6 @@ in ${ev.filename}
 
 let level = new LevelState(0, 0)
 
-export { level, Direction, actorDB }
-
 const renderSpace = document.querySelector<HTMLElement>("#renderSpace")
 const itemSpace = document.querySelector<HTMLElement>("#renderSpace")
 
@@ -35,6 +33,8 @@ pulseManager.eventsRegistered.stateChange.push(() => {
 	if (level.levelData)
 		pulseManager.setNewLevel(createLevelFromData(level.levelData))
 })
+
+export { level, Direction, actorDB, pulseManager }
 
 async function startNewLevel(buffer: ArrayBuffer): Promise<void> {
 	await pulseManager.ready

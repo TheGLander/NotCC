@@ -101,6 +101,15 @@ export class PulseManager {
 	}
 	async setNewLevel(level: LevelState): Promise<void> {
 		this.renderer.level = this.level = level
+		this.keysPressed = {
+			up: false,
+			down: false,
+			left: false,
+			right: false,
+			drop: false,
+			rotateInv: false,
+			switchPlayable: false,
+		}
 		await this.renderer.updateCameraData()
 	}
 	tickLevel(): void {
