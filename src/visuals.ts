@@ -121,7 +121,6 @@ export default class Renderer {
 		renderer.updateSize()
 		this.ready = (async () => {
 			this.renderTexture = await fetchTiles
-			this.readyBool = true
 			const ctx = document.createElement("canvas").getContext("2d")
 			if (!ctx) return
 			ctx.canvas.width = (this.level.cameraType.width + 1) * tileSize
@@ -147,8 +146,8 @@ export default class Renderer {
 			this.backgroundFiller = await renderer.addTexture(
 				await canvasToBlobURI(ctx.canvas)
 			)
-			// Add the canvas that Pixi automatically created for you to the HTML document
 			renderSpace?.appendChild(renderer.canvas)
+			this.readyBool = true
 		})()
 	}
 	/**

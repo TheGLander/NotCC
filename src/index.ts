@@ -1,7 +1,7 @@
 import { LevelState, createLevelFromData } from "./level"
 import { Direction } from "./helpers"
 import "./base.css"
-import { initPulse } from "./pulse"
+import { PulseManager } from "./pulse"
 import "./visuals"
 import { parseC2M } from "./parsers/c2m"
 import "./actors/monsters"
@@ -22,20 +22,20 @@ in ${ev.filename}
 `)
 )
 
-let level: LevelState
+let level = new LevelState(0, 0)
 
 export { level, Direction, actorDB }
 
 const renderSpace = document.querySelector<HTMLElement>("#renderSpace")
 const itemSpace = document.querySelector<HTMLElement>("#renderSpace")
 
-let pulseHelpers: ReturnType<typeof initPulse>
+const pulseManager = new PulseManager(level, renderSpace, itemSpace)
 
 async function startNewLevel(buffer: ArrayBuffer): Promise<void> {
+	await pulseManager.ready
 	const levelData = parseC2M(buffer)
 	level = createLevelFromData(levelData)
-	if (pulseHelpers) (await pulseHelpers).stopPulsing()
-	pulseHelpers = initPulse(level, renderSpace, itemSpace)
+	pulseManager.setNewLevel(level)
 }
 
 ;(async () => {

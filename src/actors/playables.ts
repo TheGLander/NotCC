@@ -2,7 +2,7 @@ import { Actor, genericDirectionableArt, SlidingState } from "../actor"
 import { Layers } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { KeyInputs } from "../pulse"
-import { LevelState } from "../level"
+import { GameState, LevelState } from "../level"
 import { Decision, actorDB } from "../const"
 
 export class Playable extends Actor {
@@ -95,8 +95,13 @@ export class Playable extends Actor {
 	moveSpeed = 4
 	destroy(other?: Actor | null, anim?: string | null): void {
 		// TODO Helmet stuff
-		this.level.lost = true
+		this.level.gameState = GameState.LOST
 		super.destroy(other, anim)
+		this.level.playables.splice(this.level.playables.indexOf(this), 1)
+		if (this === this.level.selectedPlayable) {
+			if (this.level.playables[0])
+				this.level.selectedPlayable = this.level.playables[0]
+		}
 	}
 }
 

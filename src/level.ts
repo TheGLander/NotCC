@@ -6,6 +6,13 @@ import Tile from "./tile"
 import { Layers } from "./tile"
 import { LevelData, CameraType } from "./encoder"
 import { actorDB } from "./const"
+
+export enum GameState {
+	PLAYING,
+	LOST,
+	WON,
+}
+
 /**
  * The state of a level, used as a hub of realtime level properties, the most important one being `field`
  */
@@ -13,13 +20,14 @@ import { actorDB } from "./const"
 export class LevelState {
 	playables: Playable[] = []
 	selectedPlayable?: Playable
-	lost = false
+	gameState = GameState.PLAYING
 	field: Field<Tile> = []
 	activeActors: Actor[] = []
 	subtick: 0 | 1 | 2 = 0
 	currentTick = 0
 	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
 	destroyedThisTick: Actor[] = []
+	levelData?: LevelData
 	protected decisionTick(forcedOnly = false): void {
 		for (const actor of this.activeActors) actor._internalDecide(forcedOnly)
 	}
@@ -127,6 +135,7 @@ export class LevelState {
 
 export function createLevelFromData(data: LevelData): LevelState {
 	const level = new LevelState(data.width, data.height)
+	level.levelData = data
 	// TODO Misc data setting, like blob patterns and stuff
 	level.cameraType = data.camera
 	for (let y = level.height - 1; y >= 0; y--)

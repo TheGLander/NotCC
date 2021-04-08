@@ -8,6 +8,8 @@ import { Layers } from "../tile"
 import { actorDB } from "../const"
 import { Wall } from "./walls"
 import { genericAnimatedArt } from "../actor"
+import { Playable } from "./playables"
+import { GameState } from "../level"
 
 export class Ice extends Actor {
 	art: ActorArt = { actorName: "ice", animation: "normal" }
@@ -110,3 +112,20 @@ export class Gravel extends Actor {
 }
 
 actorDB["gravel"] = Gravel
+
+export class Exit extends Actor {
+	art = genericAnimatedArt("exit", 4)
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	collisionTags = ["monster", "cc1block"]
+	actorCompletelyJoined(other: Actor): void {
+		if (other instanceof Playable) {
+			other.destroy(this, null)
+			if (this.level.playables.length === 0)
+				this.level.gameState = GameState.WON
+		}
+	}
+}
+
+actorDB["exit"] = Exit
