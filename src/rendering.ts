@@ -7,6 +7,7 @@ export interface SizedWebGLTexture {
 	srcSize?: [number, number]
 	texture: WebGLTexture
 	source: string
+	image: HTMLImageElement
 }
 
 export class WebGLRenderer {
@@ -82,6 +83,7 @@ void main() {
 						width: src.width,
 						texture: tex,
 						source,
+						image: src,
 					}
 					res(this.textures[source])
 				}

@@ -36,6 +36,9 @@ const checkIfRelevant = (key: string): key is keyof typeof keymap =>
 
 const fpsCounter = document.querySelector<HTMLElement>("#fpsCounter")
 const delayCounter = document.querySelector<HTMLElement>("#delayCounter")
+
+type EventNames = "stateChange" | "win" | "lose"
+
 export class PulseManager {
 	keysPressed: KeyInputs = {
 		up: false,
@@ -49,6 +52,12 @@ export class PulseManager {
 	renderer: Renderer
 	ready: Promise<void>
 	lastLevelGameState = GameState.PLAYING
+	eventsRegistered: Record<EventNames, (() => void)[]> = {
+		lose: [],
+		win: [],
+		stateChange: [],
+	}
+
 	protected countFps = stabilizeFactory()
 	protected countDelay = stabilizeFactory()
 	protected keyDownFunc(ev: KeyboardEvent): void {
@@ -90,20 +99,27 @@ export class PulseManager {
 			}ms`
 		if (this.renderer.readyBool) this.renderer.frame()
 	}
-	setNewLevel(level: LevelState): void {
-		this.renderer.destroy()
-		this.level = level
-		this.renderer = new Renderer(level, this.renderSpace, this.itemSpace)
+	async setNewLevel(level: LevelState): Promise<void> {
+		this.renderer.level = this.level = level
+		await this.renderer.updateCameraData()
 	}
 	tickLevel(): void {
 		this.level.giveInput(this.keysPressed)
 		this.level.tick()
 		switch (this.level.gameState) {
 			case GameState.LOST:
-				if (this.lastLevelGameState === GameState.PLAYING) alert("Bummer")
+				if (this.lastLevelGameState === GameState.PLAYING) {
+					alert("Bummer")
+					this.eventsRegistered.lose.forEach(val => val())
+					this.eventsRegistered.stateChange.forEach(val => val())
+				}
 				break
 			case GameState.WON:
-				if (this.lastLevelGameState === GameState.PLAYING) alert("You won!")
+				if (this.lastLevelGameState === GameState.PLAYING) {
+					alert("You won!")
+					this.eventsRegistered.win.forEach(val => val())
+					this.eventsRegistered.stateChange.forEach(val => val())
+				}
 				break
 		}
 		this.lastLevelGameState = this.level.gameState

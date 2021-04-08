@@ -31,6 +31,11 @@ const itemSpace = document.querySelector<HTMLElement>("#renderSpace")
 
 const pulseManager = new PulseManager(level, renderSpace, itemSpace)
 
+pulseManager.eventsRegistered.stateChange.push(() => {
+	if (level.levelData)
+		pulseManager.setNewLevel(createLevelFromData(level.levelData))
+})
+
 async function startNewLevel(buffer: ArrayBuffer): Promise<void> {
 	await pulseManager.ready
 	const levelData = parseC2M(buffer)

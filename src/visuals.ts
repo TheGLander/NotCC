@@ -104,6 +104,7 @@ export default class Renderer {
 	renderTexture: SizedWebGLTexture
 	// @ts-expect-error We don't use it unless we have it
 	backgroundFiller: SizedWebGLTexture
+	backgroundFillerCanvas?: HTMLCanvasElement
 	/**
 	 * Initializes the renderer, optional `this.ready` promise
 	 * @param level
@@ -121,34 +122,47 @@ export default class Renderer {
 		renderer.updateSize()
 		this.ready = (async () => {
 			this.renderTexture = await fetchTiles
-			const ctx = document.createElement("canvas").getContext("2d")
-			if (!ctx) return
-			ctx.canvas.width = (this.level.cameraType.width + 1) * tileSize
-			ctx.canvas.height = (this.level.cameraType.height + 1) * tileSize
-			const img = await new Promise<HTMLImageElement>(res => {
-				const img = new Image()
-				img.addEventListener("load", () => res(img))
-				img.src = this.renderTexture.source
-			})
-			for (let x = 0; x < this.level.cameraType.width + 1; x++)
-				for (let y = 0; y < this.level.cameraType.height + 1; y++)
-					ctx.drawImage(
-						img,
-						data.actorMapping.floor.normal[0][0] * tileSize,
-						data.actorMapping.floor.normal[0][1] * tileSize,
-						tileSize,
-						tileSize,
-						x * tileSize,
-						y * tileSize,
-						tileSize,
-						tileSize
-					)
-			this.backgroundFiller = await renderer.addTexture(
-				await canvasToBlobURI(ctx.canvas)
-			)
+			this.backgroundFillerCanvas = document.createElement("canvas")
+			this.backgroundFillerCanvas.width = this.backgroundFillerCanvas.height = 0
+			await this.updateCameraData()
 			renderSpace?.appendChild(renderer.canvas)
 			this.readyBool = true
 		})()
+	}
+	/**
+	 * Updates all camera-related camera, so a renderer can be reused
+	 */
+	async updateCameraData(): Promise<void> {
+		const ctx = this.backgroundFillerCanvas?.getContext("2d")
+		if (!ctx) return
+		const oldWidth = ctx.canvas.width,
+			oldHeight = ctx.canvas.height
+		ctx.canvas.width = Math.max(
+			(this.level.cameraType.width + 1) * tileSize,
+			oldWidth
+		)
+		ctx.canvas.height = Math.max(
+			(this.level.cameraType.height + 1) * tileSize,
+			oldHeight
+		)
+		// If the thing is already up-to-date, no need to regenerate it
+		if (ctx.canvas.height === oldHeight && ctx.canvas.width === oldWidth) return
+		for (let x = oldWidth; x < this.level.cameraType.width + 1; x++)
+			for (let y = oldHeight; y < this.level.cameraType.height + 1; y++)
+				ctx.drawImage(
+					this.renderTexture.image,
+					data.actorMapping.floor.normal[0][0] * tileSize,
+					data.actorMapping.floor.normal[0][1] * tileSize,
+					tileSize,
+					tileSize,
+					x * tileSize,
+					y * tileSize,
+					tileSize,
+					tileSize
+				)
+		this.backgroundFiller = await renderer.addTexture(
+			await canvasToBlobURI(ctx.canvas)
+		)
 	}
 	/**
 	 * Updates the positions of the rendred sprites
