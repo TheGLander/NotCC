@@ -12,7 +12,7 @@ import { Playable } from "./playables"
 import { GameState } from "../level"
 
 export class Ice extends Actor {
-	art: ActorArt = { actorName: "ice", animation: "normal" }
+	art: ActorArt = { actorName: "ice", animation: "default" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}

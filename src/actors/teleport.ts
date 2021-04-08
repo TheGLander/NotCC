@@ -1,6 +1,7 @@
 import { Actor, SlidingState, genericAnimatedArt } from "../actor"
 import { Layers } from "../tile"
-import { actorDB } from "../const"
+import { actorDB, Decision } from "../const"
+import { Playable } from "./playables"
 
 function findNextTeleport<T extends Actor>(
 	this: T,
@@ -58,7 +59,7 @@ export class BlueTeleport extends Actor {
 		other.tile = findNextTeleport.call(this, other).tile
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.STRONG
-		other._internalStep(other.direction)
+		other.pendingDecision = other.direction + 1
 	}
 	onMemberSlideBonked(other: Actor): void {
 		other.slidingState = SlidingState.NONE
@@ -76,9 +77,8 @@ export class RedTeleport extends Actor {
 		other.oldTile = other.tile
 		other.tile = findNextTeleport.call(this, other, false).tile
 		other._internalUpdateTileStates()
-		other.slidingState = other.lastStepSlideMode = SlidingState.WEAK
-		other._internalDecide(false)
-		other._internalMove()
+		other.slidingState = SlidingState.WEAK
+		if (other instanceof Playable) other.hasOverride = true
 	}
 	onMemberSlideBonked(other: Actor): void {
 		other.slidingState = SlidingState.NONE

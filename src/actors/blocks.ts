@@ -9,7 +9,6 @@ import { Water, Dirt, Ice } from "./terrain"
 export class DirtBlock extends Actor {
 	art: ActorArt = {
 		actorName: "dirtBlock",
-		animation: "normal",
 	}
 	pushable = true
 	tags = ["block", "cc1block"]
@@ -40,7 +39,6 @@ actorDB["dirtBlock"] = DirtBlock
 export class IceBlock extends Actor {
 	art: ActorArt = {
 		actorName: "iceBlock",
-		animation: "normal",
 	}
 	pushable = true
 	pushTags = ["!cc1block"]

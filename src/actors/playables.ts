@@ -11,6 +11,7 @@ export class Playable extends Actor {
 	collisionTags = ["playable"]
 	pushTags = ["block"]
 	lastInputs?: KeyInputs
+	hasOverride = false
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		level.playables.push(this)
@@ -52,15 +53,17 @@ export class Playable extends Actor {
 		const canMove =
 			!forcedOnly &&
 			(!this.slidingState ||
-				(this.slidingState === SlidingState.WEAK &&
-					this.lastStepSlideMode === SlidingState.WEAK))
+				(this.slidingState === SlidingState.WEAK && this.hasOverride))
 
 		// TODO Inventory stuff
 		const [vert, horiz] = this.getMovementDirections()
-		if (this.slidingState && !canMove) {
-			// We are forced to move
+		if (
+			this.slidingState &&
+			(!canMove || (vert === undefined && horiz === undefined))
+		) {
+			// We are forced to move, or we *wanted* to be forced-moved
 			this.moveDecision = this.direction + 1
-			this.lastStepSlideMode = this.slidingState
+			if (this.slidingState === SlidingState.WEAK) this.hasOverride = true
 		} else if (!canMove || (vert === undefined && horiz === undefined)) {
 			// We don't wanna move or we can't
 		} else {
@@ -86,10 +89,7 @@ export class Playable extends Actor {
 					else this.moveDecision = horiz + 1
 				}
 			}
-			// We were bonked instantly, so we are actually still moving due to the weak slide
-			if (bonked) this.lastStepSlideMode = this.slidingState
-			// We were not bonked and did something, so we were not sliding then
-			else this.lastStepSlideMode = SlidingState.NONE
+			this.hasOverride = bonked
 		}
 	}
 	moveSpeed = 4

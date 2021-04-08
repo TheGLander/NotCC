@@ -54,7 +54,6 @@ export abstract class Actor {
 	cooldown = 0
 	pendingDecision = Decision.NONE
 	slidingState = SlidingState.NONE
-	lastStepSlideMode = SlidingState.NONE
 	abstract layer: Layers
 	// @ts-expect-error Why
 	static abstract id: string
@@ -107,14 +106,10 @@ export abstract class Actor {
 		this.moveDecision = Decision.NONE
 		this.onEachDecision?.(forcedOnly)
 		if (this.cooldown) return
-		this.currentMoveSpeed = this.oldTile = null
+		// If we have a pending decision, don't do anything, doing decisions may cause a state change, otherwise
+		if (this.pendingDecision) return
 		// This is where the decision *actually* begins
-		// If the thing has a decision queued up, do it forcefully
-		// (Currently only used for blocks pushed while sliding)
-		if (this.pendingDecision) {
-			this.moveDecision = this.pendingDecision
-			return
-		}
+		this.currentMoveSpeed = this.oldTile = null
 		// Since this is a generic actor, we cannot override weak sliding
 		// TODO Ghost ice shenanigans
 		if (this.slidingState) {
@@ -161,10 +156,16 @@ export abstract class Actor {
 		return true
 	}
 	_internalMove(): void {
+		// If the thing has a decision queued up, do it forcefully
+		// (Currently only used for blocks pushed while sliding)
+		if (this.pendingDecision) {
+			this.moveDecision = this.pendingDecision
+			this.pendingDecision = Decision.NONE
+		}
+
 		if (this.cooldown > 0 || !this.moveDecision) return
 		const ogDirection = this.moveDecision - 1
 		const bonked = !this._internalStep(ogDirection)
-		this.pendingDecision = Decision.NONE
 		if (bonked && this.slidingState) {
 			for (const bonkListener of this.tile.allActors)
 				bonkListener.onMemberSlideBonked?.(this)

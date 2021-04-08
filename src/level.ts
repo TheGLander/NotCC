@@ -122,7 +122,7 @@ export class LevelState {
 		}
 		for (const pushable of toPush) {
 			if (pushable.slidingState) {
-				pushable.pendingDecision = pushable.moveDecision = direction + 1
+				pushable.pendingDecision = direction + 1
 				// We did not move, shame, but we did queue this block push
 				return false
 			}

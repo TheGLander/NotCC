@@ -52,16 +52,16 @@ const cc2ImageFormat: CC2ImageFormat = {
 			yellow: [2, 1],
 			green: [3, 1],
 		},
-		dirtBlock: { normal: [8, 1], seeThrough: [9, 1] },
+		dirtBlock: { default: [8, 1], seeThrough: [9, 1] },
 		ice: {
-			normal: [10, 1],
+			default: [10, 1],
 			dr: [11, 1],
 			dl: [12, 1],
 			ur: [13, 1],
 			ul: [14, 1],
 		},
 		cloneMachine: [15, 1],
-		floor: { normal: [0, 2], framed: [2, 2] },
+		floor: { default: [0, 2], framed: [2, 2] },
 		wall: [1, 2],
 		thief: { tool: [3, 2], key: [15, 21] },
 		echipGate: [4, 2],
@@ -70,7 +70,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[6, 2],
 			[9, 2],
 		],
-		iceBlock: { normal: [10, 2], seeThrough: [11, 2] },
+		iceBlock: { default: [10, 2], seeThrough: [11, 2] },
 		// TODO Everything else
 		boom: [
 			[0, 5],

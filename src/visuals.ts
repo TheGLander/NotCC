@@ -151,8 +151,8 @@ export default class Renderer {
 			for (let y = oldHeight; y < this.level.cameraType.height + 1; y++)
 				ctx.drawImage(
 					this.renderTexture.image,
-					data.actorMapping.floor.normal[0][0] * tileSize,
-					data.actorMapping.floor.normal[0][1] * tileSize,
+					data.actorMapping.floor.default[0][0] * tileSize,
+					data.actorMapping.floor.default[0][1] * tileSize,
 					tileSize,
 					tileSize,
 					x * tileSize,
@@ -256,7 +256,7 @@ export default class Renderer {
 			const frame =
 				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
 					art.frame ?? 0
-				] ?? data.actorMapping.floor.normal[0]
+				] ?? data.actorMapping.floor.default[0]
 			renderer.drawImage(
 				this.renderTexture.texture,
 				this.renderTexture.width,
