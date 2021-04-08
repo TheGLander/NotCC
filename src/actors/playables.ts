@@ -11,7 +11,6 @@ export class Playable extends Actor {
 	collisionTags = ["playable"]
 	pushTags = ["block"]
 	lastInputs?: KeyInputs
-	lastStepSlideMode: SlidingState = SlidingState.NONE
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		level.playables.push(this)

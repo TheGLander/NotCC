@@ -54,6 +54,7 @@ export abstract class Actor {
 	cooldown = 0
 	pendingDecision = Decision.NONE
 	slidingState = SlidingState.NONE
+	lastStepSlideMode = SlidingState.NONE
 	abstract layer: Layers
 	// @ts-expect-error Why
 	static abstract id: string
