@@ -2,6 +2,7 @@ import { CC2ImageFormat } from "./visuals"
 
 const cc2ImageFormat: CC2ImageFormat = {
 	actorMapping: {
+		placeholder: [0, 0],
 		chip: {
 			up: [
 				[0, 22],

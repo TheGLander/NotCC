@@ -11,7 +11,7 @@ export class DirtBlock extends Actor {
 	art: ActorArt = {
 		actorName: "dirtBlock",
 	}
-	tags = ["block", "cc1block"]
+	tags = ["block", "cc1block", "movable"]
 	get layer(): Layers {
 		return Layers.MOVABLE
 	}
@@ -41,7 +41,7 @@ export class IceBlock extends Actor {
 		actorName: "iceBlock",
 	}
 	pushTags = ["!cc1block"]
-	tags = ["block"]
+	tags = ["block", "movable"]
 	get layer(): Layers {
 		return Layers.MOVABLE
 	}

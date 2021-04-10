@@ -76,7 +76,12 @@ export abstract class Actor {
 	/**
 	 * Tags which this actor blocks
 	 */
-	collisionTags: string[] = []
+	blockTags: string[] = []
+	/**
+	 * Tags which this actor is blocked by
+	 */
+	blockedByTags: string[] = []
+
 	/**
 	 * Tags which this actor refuses to be blocked by
 	 */
@@ -254,7 +259,11 @@ export abstract class Actor {
 				other.blockedBy?.(this) ||
 				matchTags(
 					other.getCompleteTags("tags"),
-					this.getCompleteTags("collisionTags")
+					this.getCompleteTags("blockTags")
+				) ||
+				matchTags(
+					this.getCompleteTags("tags"),
+					other.getCompleteTags("blockedByTags")
 				))
 		)
 	}

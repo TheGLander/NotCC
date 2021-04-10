@@ -61,7 +61,7 @@ export class RecessedWall extends Actor {
 		return Layers.STATIONARY
 	}
 	// Funny how recessed walls have the exact same collision as monsters
-	collisionTags = ["!playable"]
+	blockTags = ["!playable"]
 	actorLeft(): void {
 		this.destroy(this, null)
 		new Wall(this.level, this.tile.position)
@@ -104,7 +104,7 @@ export class Dirt extends Actor {
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
-	collisionTags = ["cc1block", "normal-monster", "melinda"]
+	blockTags = ["cc1block", "normal-monster", "melinda"]
 	actorCompletelyJoined(): void {
 		this.destroy(this, null)
 	}
@@ -119,7 +119,7 @@ export class Gravel extends Actor {
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
-	collisionTags = ["normal-monster", "melinda"]
+	blockTags = ["normal-monster", "melinda"]
 }
 
 actorDB["gravel"] = Gravel
@@ -130,7 +130,7 @@ export class Exit extends Actor {
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
-	collisionTags = ["monster", "cc1block"]
+	blockTags = ["monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
 			other.destroy(this, null)

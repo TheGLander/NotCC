@@ -4,7 +4,7 @@ import { actorDB } from "../const"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16
-	collisionTags = ["playable"]
+	blockTags = ["playable"]
 	get layer(): Layers {
 		return Layers.ANIMATION
 	}

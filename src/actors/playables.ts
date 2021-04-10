@@ -11,7 +11,7 @@ export class Playable extends Actor {
 	id = "chip"
 	art = genericDirectionableArt("chip", 8)
 	tags = ["playable"]
-	collisionTags = ["playable"]
+	blockTags = ["playable"]
 	pushTags = ["block"]
 	lastInputs?: KeyInputs
 	hasOverride = false

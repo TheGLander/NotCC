@@ -135,3 +135,12 @@ export class GoronBraslet extends Item {
 }
 
 actorDB["goronBraslet"] = GoronBraslet
+
+export class Helmet extends Item {
+	id = "helmet"
+	destination = ItemDestination.ITEM
+	carrierTags = { blockTags: ["movable"], blockedByTags: ["movable"] }
+	art: ActorArt = { actorName: "placeholder" }
+}
+
+actorDB["helmet"] = Helmet

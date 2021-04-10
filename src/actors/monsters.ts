@@ -10,8 +10,8 @@ import { Playable } from "./playables"
 import { actorDB } from "../const"
 
 export abstract class Monster extends Actor {
-	collisionTags = ["!playable"]
-	tags = ["monster", "normal-monster"]
+	blockTags = ["!playable"]
+	tags = ["monster", "normal-monster", "movable"]
 	get layer(): Layers {
 		return Layers.MOVABLE
 	}
@@ -19,14 +19,12 @@ export abstract class Monster extends Actor {
 		const playable = this.tile[Layers.MOVABLE].find(
 			val => val instanceof Playable
 		)
-		if (playable) this.actorJoined(playable)
-	}
-	actorJoined(other: Actor): void {
-		if (other instanceof Playable) other.destroy(this)
+		if (playable) playable.destroy(this)
 	}
 	bumped(other: Actor): void {
-		// Monsters kill players which bump into them, for some reason (This only applies to slapping)
-		if (other instanceof Playable) other.destroy(this)
+		// Monsters kill players which bump into them if they can move into them
+		if (other instanceof Playable && !other._internalBlocks(this))
+			other.destroy(this)
 	}
 }
 
