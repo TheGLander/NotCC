@@ -63,7 +63,10 @@ class Tile extends Array<Array<Actor>> {
 	}
 	getSpeedMod(other: Actor): number {
 		return this.allActors.reduce(
-			(acc, val) => (val.speedMod ? val.speedMod(other) * acc : acc),
+			(acc, val) =>
+				val.speedMod && !other._internalIgnores(val)
+					? val.speedMod(other) * acc
+					: acc,
 			1
 		)
 	}

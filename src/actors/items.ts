@@ -12,6 +12,10 @@ export const enum ItemDestination {
 export abstract class Item extends Actor {
 	tags = ["item"]
 	destination = ItemDestination.ITEM
+	/**
+	 * Tags to add to the carrier of the item
+	 */
+	carrierTags: Record<string, string[]> = {}
 	blocks?(other: Actor): boolean {
 		return !matchTags(other.tags, [
 			"can-pickup-items",
@@ -58,7 +62,7 @@ export class EChipPlus extends Item {
 
 actorDB["echipPlus"] = EChipPlus
 
-export class EChip extends Item {
+export class EChip extends EChipPlus {
 	id = "echip"
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
@@ -80,6 +84,7 @@ actorDB["keyBlue"] = KeyBlue
 
 export class BootWater extends Item {
 	id = "bootWater"
+	carrierTags = { ignoreTags: ["water"] }
 	destination = ItemDestination.ITEM
 	art: ActorArt = { actorName: "boot", animation: "water" }
 }
@@ -88,6 +93,7 @@ actorDB["bootWater"] = BootWater
 
 export class BootFire extends Item {
 	id = "bootFire"
+	carrierTags = { ignoreTags: ["fire"] }
 	destination = ItemDestination.ITEM
 	art: ActorArt = { actorName: "boot", animation: "fire" }
 }
@@ -96,6 +102,7 @@ actorDB["bootFire"] = BootFire
 
 export class BootIce extends Item {
 	id = "bootIce"
+	carrierTags = { ignoreTags: ["ice"] }
 	destination = ItemDestination.ITEM
 	art: ActorArt = { actorName: "boot", animation: "ice" }
 }
@@ -104,6 +111,7 @@ actorDB["bootIce"] = BootIce
 
 export class BootForceFloor extends Item {
 	id = "bootForceFloor"
+	carrierTags = { ignoreTags: ["force-floor"] }
 	destination = ItemDestination.ITEM
 	art: ActorArt = { actorName: "boot", animation: "forceFloor" }
 }

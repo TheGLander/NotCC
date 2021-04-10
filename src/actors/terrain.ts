@@ -13,6 +13,7 @@ import { GameState } from "../level"
 
 export class Ice extends Actor {
 	id = "ice"
+	tags = ["ice"]
 	art: ActorArt = { actorName: "ice" }
 	get layer(): Layers {
 		return Layers.STATIONARY
@@ -33,6 +34,7 @@ actorDB["ice"] = Ice
 
 export class ForceFloor extends Actor {
 	id = "forceFloor"
+	tags = ["force-floor"]
 	art = genericDirectionableArt("forceFloor", 2)
 	get layer(): Layers {
 		return Layers.STATIONARY

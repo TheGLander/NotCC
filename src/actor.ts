@@ -81,11 +81,33 @@ export abstract class Actor {
 	 * Tags which this actor will not conduct any interactions with.
 	 */
 	ignoreTags: string[] = []
+	getCompleteTags<T extends keyof this>(id: T): string[] {
+		// @ts-expect-error Typescript dumb
+		return this[id] instanceof Array
+			? [
+					...((this[id] as unknown) as string[]),
+					...this.inventory.items.reduce(
+						(acc, val) => [
+							...acc, // @ts-expect-error Typescript dumb
+							...(val.carrierTags[id] ? val.carrierTags[id] : []),
+						],
+						new Array<string>()
+					),
+			  ]
+			: null
+	}
+
 	_internalIgnores(other: Actor): boolean {
 		// TODO Item additional tags/code(?)
 		return (
-			matchTags(this.tags, other.ignoreTags) ||
-			matchTags(other.tags, this.ignoreTags)
+			matchTags(
+				this.getCompleteTags("tags"),
+				other.getCompleteTags("ignoreTags")
+			) ||
+			matchTags(
+				other.getCompleteTags("tags"),
+				this.getCompleteTags("ignoreTags")
+			)
 		)
 	}
 	/**
@@ -223,7 +245,10 @@ export abstract class Actor {
 			!this._internalIgnores(other) &&
 			(this.blocks?.(other) ||
 				other.blockedBy?.(this) ||
-				matchTags(other.tags, this.collisionTags))
+				matchTags(
+					other.getCompleteTags("tags"),
+					this.getCompleteTags("collisionTags")
+				))
 		)
 	}
 	_internalDoCooldown(): void {
@@ -275,7 +300,10 @@ export abstract class Actor {
 	_internalCanPush(other: Actor): boolean {
 		return (
 			!this._internalIgnores(other) &&
-			matchTags(other.tags, this.pushTags) &&
+			matchTags(
+				other.getCompleteTags("tags"),
+				this.getCompleteTags("pushTags")
+			) &&
 			other.pushable
 		)
 	}
