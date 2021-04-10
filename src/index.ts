@@ -32,15 +32,22 @@ const pulseManager = new PulseManager(level, renderSpace, itemSpace)
 
 pulseManager.eventsRegistered.stateChange.push(() => {
 	if (level.levelData)
-		pulseManager.setNewLevel(createLevelFromData(level.levelData))
+		pulseManager.setNewLevel(
+			(exportObject.level = level = createLevelFromData(level.levelData))
+		)
 })
 
-export { level, Direction, actorDB, pulseManager }
+// We export it like this so the global values are always updated
+// TODO Have the level code be unrelated to the game instance
+const exportObject = { level, Direction, actorDB, pulseManager }
+
+export default exportObject
 
 async function startNewLevel(buffer: ArrayBuffer): Promise<void> {
 	await pulseManager.ready
 	const levelData = parseC2M(buffer)
 	level = createLevelFromData(levelData)
+	exportObject.level = level
 	pulseManager.setNewLevel(level)
 }
 

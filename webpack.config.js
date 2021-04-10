@@ -17,9 +17,12 @@ module.exports = {
 	entry: "./src/index.ts",
 	output: {
 		filename: "main.js",
-		library: "NotCC",
-		libraryTarget: "umd",
 		path: path.resolve(__dirname, "dist"),
+		library: {
+			name: "NotCC",
+			export: "default",
+			type: "umd",
+		},
 	},
 	mode: prod ? "production" : "development",
 	plugins: plugins,
@@ -40,9 +43,10 @@ module.exports = {
 	watch: !prod,
 	resolve: { extensions: [".ts", ".js", ".json", ".jsonc"] },
 	devtool: "source-map",
-	optimization: {
+	/*optimization: {
 		splitChunks: {
 			cacheGroups: {
+				default: false,
 				vendor: {
 					chunks: "all",
 					name: "vendor",
@@ -51,4 +55,5 @@ module.exports = {
 			},
 		},
 	},
+*/
 }
