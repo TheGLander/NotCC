@@ -38,7 +38,7 @@ class Tile extends Array<Array<Actor>> {
 		actors = actors instanceof Array ? actors : [actors]
 		for (const actor of actors) {
 			this.allActors.splice(this.allActors.indexOf(actor), 1)
-			this[actor.layer].splice(this[actor.layer].indexOf(actor))
+			this[actor.layer].splice(this[actor.layer].indexOf(actor), 1)
 		}
 	}
 	getNeighbor(direction: Direction): Tile | null {
