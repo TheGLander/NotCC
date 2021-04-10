@@ -74,9 +74,13 @@ export abstract class Actor {
 	 */
 	tags: string[] = []
 	/**
-	 * Tags which this actor blocks.
+	 * Tags which this actor blocks
 	 */
 	collisionTags: string[] = []
+	/**
+	 * Tags which this actor refuses to be blocked by
+	 */
+	collisionIgnoreTags: string[] = []
 	/**
 	 * Tags which this actor will not conduct any interactions with.
 	 */
@@ -113,9 +117,8 @@ export abstract class Actor {
 	/**
 	 * Amount of ticks it takes for the actor to move
 	 */
-	moveSpeed = 0
+	moveSpeed = 4
 	tile: Tile
-	pushable = false
 	direction = Direction.UP
 	inventory: Inventory = {
 		items: [],
@@ -242,6 +245,10 @@ export abstract class Actor {
 
 	_internalBlocks(other: Actor): boolean {
 		return (
+			!matchTags(
+				other.getCompleteTags("tags"),
+				this.getCompleteTags("collisionIgnoreTags")
+			) &&
 			!this._internalIgnores(other) &&
 			(this.blocks?.(other) ||
 				other.blockedBy?.(this) ||
@@ -300,11 +307,7 @@ export abstract class Actor {
 	_internalCanPush(other: Actor): boolean {
 		return (
 			!this._internalIgnores(other) &&
-			matchTags(
-				other.getCompleteTags("tags"),
-				this.getCompleteTags("pushTags")
-			) &&
-			other.pushable
+			matchTags(other.getCompleteTags("tags"), this.getCompleteTags("pushTags"))
 		)
 	}
 	/**

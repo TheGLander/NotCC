@@ -11,7 +11,6 @@ export class DirtBlock extends Actor {
 	art: ActorArt = {
 		actorName: "dirtBlock",
 	}
-	pushable = true
 	tags = ["block", "cc1block"]
 	get layer(): Layers {
 		return Layers.MOVABLE
@@ -19,7 +18,6 @@ export class DirtBlock extends Actor {
 	blocks(): boolean {
 		return true
 	}
-	moveSpeed = 4
 	newTileJoined(): void {
 		const playable = this.tile[Layers.MOVABLE].find(
 			val => val instanceof Playable
@@ -42,7 +40,6 @@ export class IceBlock extends Actor {
 	art: ActorArt = {
 		actorName: "iceBlock",
 	}
-	pushable = true
 	pushTags = ["!cc1block"]
 	tags = ["block"]
 	get layer(): Layers {
@@ -51,7 +48,7 @@ export class IceBlock extends Actor {
 	blocks(): boolean {
 		return true
 	}
-	moveSpeed = 4
+
 	newTileJoined(): void {
 		const playable = this.tile[Layers.MOVABLE].find(
 			val => val instanceof Playable

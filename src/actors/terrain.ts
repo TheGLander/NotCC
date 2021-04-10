@@ -99,6 +99,7 @@ actorDB["water"] = Water
 
 export class Dirt extends Actor {
 	id = "dirt"
+	tags = ["filth"]
 	art = { actorName: "dirt" }
 	get layer(): Layers {
 		return Layers.STATIONARY
@@ -113,6 +114,7 @@ actorDB["dirt"] = Dirt
 
 export class Gravel extends Actor {
 	id = "gravel"
+	tags = ["filth"]
 	art: ActorArt = { actorName: "gravel" }
 	get layer(): Layers {
 		return Layers.STATIONARY

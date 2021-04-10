@@ -10,7 +10,6 @@ import { Playable } from "./playables"
 import { actorDB } from "../const"
 
 export abstract class Monster extends Actor {
-	moveSpeed = 4
 	collisionTags = ["!playable"]
 	tags = ["monster", "normal-monster"]
 	get layer(): Layers {

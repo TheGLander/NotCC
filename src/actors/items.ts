@@ -120,8 +120,18 @@ actorDB["bootForceFloor"] = BootForceFloor
 
 export class BootDirt extends Item {
 	id = "bootDirt"
+	carrierTags = { collisionIgnoreTags: ["filth"] }
 	destination = ItemDestination.ITEM
 	art: ActorArt = { actorName: "boot", animation: "dirt" }
 }
 
 actorDB["bootDirt"] = BootDirt
+
+export class GoronBraslet extends Item {
+	id = "goronBraslet"
+	carrierTags = { pushTags: ["wall"] }
+	destination = ItemDestination.ITEM
+	art: ActorArt = { actorName: "chip", animation: "bumpRight" }
+}
+
+actorDB["goronBraslet"] = GoronBraslet

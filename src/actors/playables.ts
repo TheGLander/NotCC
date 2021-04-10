@@ -95,7 +95,6 @@ export class Playable extends Actor {
 			this.hasOverride = bonked
 		}
 	}
-	moveSpeed = 4
 	destroy(other?: Actor | null, anim?: string | null): void {
 		// TODO Helmet stuff
 		this.level.gameState = GameState.LOST
