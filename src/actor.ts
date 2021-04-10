@@ -246,8 +246,8 @@ export abstract class Actor {
 	_internalBlocks(other: Actor): boolean {
 		return (
 			!matchTags(
-				other.getCompleteTags("tags"),
-				this.getCompleteTags("collisionIgnoreTags")
+				this.getCompleteTags("tags"),
+				other.getCompleteTags("collisionIgnoreTags")
 			) &&
 			!this._internalIgnores(other) &&
 			(this.blocks?.(other) ||
