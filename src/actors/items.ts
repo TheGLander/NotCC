@@ -36,9 +36,9 @@ export abstract class Item extends Actor {
 				other.inventory.keys[this.id].amount++
 				break
 			case ItemDestination.ITEM:
-				if (other.inventory.items.length === other.inventory.itemMax)
-					other.dropItem()
 				other.inventory.items.unshift(this)
+				if (other.inventory.items.length > other.inventory.itemMax)
+					other.dropItem()
 				break
 		}
 		this.onPickup?.(other)
