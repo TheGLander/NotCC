@@ -9,7 +9,7 @@ import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
 import { actorDB } from "../const"
 
-export class Monster extends Actor {
+export abstract class Monster extends Actor {
 	moveSpeed = 4
 	collisionTags = ["!playable"]
 	tags = ["monster", "normal-monster"]
@@ -32,6 +32,7 @@ export class Monster extends Actor {
 }
 
 export class Centipede extends Monster {
+	id = "centipede"
 	art = genericDirectionableArt("centipede", 3)
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
@@ -42,6 +43,7 @@ export class Centipede extends Monster {
 actorDB["centipede"] = Centipede
 
 export class Ant extends Monster {
+	id = "ant"
 	art = genericDirectionableArt("ant", 4)
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
@@ -52,6 +54,7 @@ export class Ant extends Monster {
 actorDB["ant"] = Ant
 
 export class Glider extends Monster {
+	id = "glider"
 	ignoreTags = ["water"]
 	art = genericDirectionableArt("glider", 2)
 	decideMovement(): Direction[] {
@@ -63,6 +66,7 @@ export class Glider extends Monster {
 actorDB["glider"] = Glider
 
 export class Fireball extends Monster {
+	id = "fireball"
 	ignoreTags = ["fire"]
 	tags = ["monster", "normal-monster", "melting"]
 	// TODO Rotation
@@ -76,6 +80,7 @@ export class Fireball extends Monster {
 actorDB["fireball"] = Fireball
 
 export class Ball extends Monster {
+	id = "ball"
 	art: ActorArt = { actorName: "ball" }
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)

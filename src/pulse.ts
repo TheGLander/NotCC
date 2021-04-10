@@ -110,7 +110,7 @@ export class PulseManager {
 			rotateInv: false,
 			switchPlayable: false,
 		}
-		await this.renderer.updateCameraData()
+		await this.renderer.updateFillerData()
 	}
 	tickLevel(): void {
 		this.level.giveInput(this.keysPressed)

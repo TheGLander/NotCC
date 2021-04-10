@@ -1,9 +1,8 @@
 import { Actor, ActorArt } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
-import { Playable } from "./playables"
 
-export class Animation extends Actor {
+export abstract class Animation extends Actor {
 	animationCooldown = 16
 	collisionTags = ["playable"]
 	get layer(): Layers {
@@ -20,6 +19,7 @@ export class Animation extends Actor {
 }
 
 export class Explosion extends Animation {
+	id = "explosionAnim"
 	art = (): ActorArt => {
 		return {
 			actorName: "boom",
@@ -32,6 +32,7 @@ export class Explosion extends Animation {
 actorDB["explosionAnim"] = Explosion
 
 export class Splash extends Animation {
+	id = "splashAnim"
 	art = (): ActorArt => {
 		return {
 			actorName: "splash",

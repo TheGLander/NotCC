@@ -11,6 +11,7 @@ import "./actors/blocks"
 import "./actors/terrain"
 import "./actors/animation"
 import "./actors/teleport"
+import "./actors/items"
 import { actorDB } from "./const"
 // Enable crash handling
 window.addEventListener("error", ev =>

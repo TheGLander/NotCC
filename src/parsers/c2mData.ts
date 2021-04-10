@@ -61,7 +61,7 @@ const cc2Tiles = [
 	[["buttonRed", 0, ""]],
 	[["buttonBrown", 0, ""]],
 	[["bootIce", 0, ""], null],
-	[["bootForcefloor", 0, ""], null],
+	[["bootForceFloor", 0, ""], null],
 	[["bootFire", 0, ""], null],
 	[["bootWater", 0, ""], null],
 	[["thiefKey", 0, ""]],

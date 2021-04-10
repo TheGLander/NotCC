@@ -16,6 +16,9 @@ export interface InflatedCC2ImageFormat {
 }
 
 const renderer = new WebGLRenderer()
+const itemCtx = document
+	.createElement("canvas")
+	.getContext("2d") as CanvasRenderingContext2D
 
 function canvasToBlobURI(canvas: HTMLCanvasElement) {
 	return new Promise<string>(res =>
@@ -124,25 +127,29 @@ export default class Renderer {
 			this.renderTexture = await fetchTiles
 			this.backgroundFillerCanvas = document.createElement("canvas")
 			this.backgroundFillerCanvas.width = this.backgroundFillerCanvas.height = 0
-			await this.updateCameraData()
+			await this.updateFillerData()
 			renderSpace?.appendChild(renderer.canvas)
+			itemSpace?.appendChild(itemCtx.canvas)
 			this.readyBool = true
 		})()
 	}
 	/**
-	 * Updates all camera-related camera, so a renderer can be reused
+	 * Updates all filler texture-related camera, so a renderer can be reused
 	 */
-	async updateCameraData(): Promise<void> {
+	async updateFillerData(): Promise<void> {
 		const ctx = this.backgroundFillerCanvas?.getContext("2d")
 		if (!ctx) return
 		const oldWidth = ctx.canvas.width,
 			oldHeight = ctx.canvas.height
 		ctx.canvas.width = Math.max(
-			(this.level.cameraType.width + 1) * tileSize,
+			Math.max(
+				this.level.cameraType.width + 1,
+				this.level.selectedPlayable?.inventory.itemMax ?? 4
+			) * tileSize,
 			oldWidth
 		)
 		ctx.canvas.height = Math.max(
-			(this.level.cameraType.height + 1) * tileSize,
+			Math.max(this.level.cameraType.height + 1, 2) * tileSize,
 			oldHeight
 		)
 		// If the thing is already up-to-date, no need to regenerate it
@@ -163,6 +170,54 @@ export default class Renderer {
 		this.backgroundFiller = await renderer.addTexture(
 			await canvasToBlobURI(ctx.canvas)
 		)
+	}
+	updateItems(): void {
+		const player = this.level.selectedPlayable
+		itemCtx.canvas.width = (player?.inventory.itemMax ?? 4) * tileSize
+		itemCtx.canvas.height = 2 * tileSize
+		itemCtx.drawImage(this.backgroundFiller.image, 0, 0)
+		if (!player) return
+		for (const [i, item] of player.inventory.items.entries()) {
+			const art = typeof item.art === "function" ? item.art() : item.art
+			if (!art) continue
+			const frame =
+				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
+					art.frame ?? 0
+				]
+			if (!frame) continue
+			itemCtx.drawImage(
+				this.renderTexture.image,
+				frame[0] * tileSize,
+				frame[1] * tileSize,
+				tileSize,
+				tileSize,
+				i * tileSize,
+				0,
+				tileSize,
+				tileSize
+			)
+		}
+		for (const [i, key] of Object.values(player.inventory.keys).entries()) {
+			const art =
+				typeof key.type.art === "function" ? key.type.art() : key.type.art
+			if (!art) continue
+			const frame =
+				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
+					art.frame ?? 0
+				]
+			if (!frame) continue
+			itemCtx.drawImage(
+				this.renderTexture.image,
+				frame[0] * tileSize,
+				frame[1] * tileSize,
+				tileSize,
+				tileSize,
+				i * tileSize,
+				tileSize,
+				tileSize,
+				tileSize
+			)
+		}
 	}
 	/**
 	 * Updates the positions of the rendred sprites
@@ -226,9 +281,7 @@ export default class Renderer {
 			this.backgroundFiller.width,
 			this.backgroundFiller.height
 		)
-		const sortedActors = this.level.activeActors.sort(
-			(a, b) => a.layer - b.layer
-		)
+		const sortedActors = this.level.actors.sort((a, b) => a.layer - b.layer)
 		for (const actor of sortedActors) {
 			if (
 				actor.tile.x < Math.floor(cameraPos[0] - 1) ||
@@ -270,10 +323,11 @@ export default class Renderer {
 				tileSize,
 				tileSize
 			)
-			// [movedPos[0] * tileSize, movedPos[1] * tileSize]
 		}
+		this.updateItems()
 	}
 	destroy(): void {
 		this.renderSpace?.removeChild(renderer.canvas)
+		this.itemSpace?.removeChild(itemCtx.canvas)
 	}
 }

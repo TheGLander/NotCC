@@ -1,6 +1,6 @@
 import { Actor, SlidingState, genericAnimatedArt } from "../actor"
 import { Layers } from "../tile"
-import { actorDB, Decision } from "../const"
+import { actorDB } from "../const"
 import { Playable } from "./playables"
 
 function findNextTeleport<T extends Actor>(
@@ -50,6 +50,7 @@ function findNextTeleport<T extends Actor>(
 }
 
 export class BlueTeleport extends Actor {
+	id = "teleportBlue"
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
@@ -69,6 +70,7 @@ export class BlueTeleport extends Actor {
 actorDB["teleportBlue"] = BlueTeleport
 
 export class RedTeleport extends Actor {
+	id = "teleportRed"
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}

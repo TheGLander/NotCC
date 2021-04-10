@@ -7,6 +7,7 @@ import { Water, Dirt, Ice } from "./terrain"
 // TODO Secret eye interaction thing
 
 export class DirtBlock extends Actor {
+	id = "dirtBlock"
 	art: ActorArt = {
 		actorName: "dirtBlock",
 	}
@@ -37,6 +38,7 @@ export class DirtBlock extends Actor {
 actorDB["dirtBlock"] = DirtBlock
 
 export class IceBlock extends Actor {
+	id = "iceBlock"
 	art: ActorArt = {
 		actorName: "iceBlock",
 	}

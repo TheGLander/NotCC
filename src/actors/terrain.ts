@@ -12,7 +12,8 @@ import { Playable } from "./playables"
 import { GameState } from "../level"
 
 export class Ice extends Actor {
-	art: ActorArt = { actorName: "ice", animation: "default" }
+	id = "ice"
+	art: ActorArt = { actorName: "ice" }
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
@@ -31,6 +32,7 @@ export class Ice extends Actor {
 actorDB["ice"] = Ice
 
 export class ForceFloor extends Actor {
+	id = "forceFloor"
 	art = genericDirectionableArt("forceFloor", 2)
 	get layer(): Layers {
 		return Layers.STATIONARY
@@ -51,6 +53,7 @@ export class ForceFloor extends Actor {
 actorDB["forceFloor"] = ForceFloor
 
 export class RecessedWall extends Actor {
+	id = "popupWall"
 	art = { actorName: "popupWall" }
 	get layer(): Layers {
 		return Layers.STATIONARY
@@ -66,6 +69,7 @@ export class RecessedWall extends Actor {
 actorDB["popupWall"] = RecessedWall
 
 export class Void extends Actor {
+	id = "void"
 	art = { actorName: "exit" }
 	get layer(): Layers {
 		return Layers.STATIONARY
@@ -78,6 +82,7 @@ export class Void extends Actor {
 actorDB["void"] = Void
 
 export class Water extends Actor {
+	id = "water"
 	tags = ["water"]
 	art = genericAnimatedArt("water", 4)
 	get layer(): Layers {
@@ -91,6 +96,7 @@ export class Water extends Actor {
 actorDB["water"] = Water
 
 export class Dirt extends Actor {
+	id = "dirt"
 	art = { actorName: "dirt" }
 	get layer(): Layers {
 		return Layers.STATIONARY
@@ -104,6 +110,7 @@ export class Dirt extends Actor {
 actorDB["dirt"] = Dirt
 
 export class Gravel extends Actor {
+	id = "gravel"
 	art: ActorArt = { actorName: "gravel" }
 	get layer(): Layers {
 		return Layers.STATIONARY
@@ -114,6 +121,7 @@ export class Gravel extends Actor {
 actorDB["gravel"] = Gravel
 
 export class Exit extends Actor {
+	id = "exit"
 	art = genericAnimatedArt("exit", 4)
 	get layer(): Layers {
 		return Layers.STATIONARY

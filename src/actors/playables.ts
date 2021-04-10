@@ -5,7 +5,10 @@ import { KeyInputs } from "../pulse"
 import { GameState, LevelState } from "../level"
 import { Decision, actorDB } from "../const"
 
+// TODO Move chip-specific behavior outta here
+
 export class Playable extends Actor {
+	id = "chip"
 	art = genericDirectionableArt("chip", 8)
 	tags = ["playable"]
 	collisionTags = ["playable"]

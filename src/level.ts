@@ -22,17 +22,20 @@ export class LevelState {
 	selectedPlayable?: Playable
 	gameState = GameState.PLAYING
 	field: Field<Tile> = []
-	activeActors: Actor[] = []
+	actors: Actor[] = []
 	subtick: 0 | 1 | 2 = 0
 	currentTick = 0
 	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
 	destroyedThisTick: Actor[] = []
 	levelData?: LevelData
+	chipsLeft = 0
+	chipsTotal = 0
+	chipsRequired = 0
 	protected decisionTick(forcedOnly = false): void {
-		for (const actor of this.activeActors) actor._internalDecide(forcedOnly)
+		for (const actor of this.actors) actor._internalDecide(forcedOnly)
 	}
 	protected moveTick(): void {
-		for (const actor of this.activeActors) {
+		for (const actor of this.actors) {
 			actor._internalMove()
 			actor._internalDoCooldown()
 		}

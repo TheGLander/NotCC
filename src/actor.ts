@@ -4,6 +4,7 @@ import { Direction } from "./helpers"
 import { Layers } from "./tile"
 import Tile from "./tile"
 import { Animation } from "./actors/animation"
+import { Item } from "./actors/items"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -47,6 +48,13 @@ export function matchTags(actorTags: string[], ruleTags: string[]): boolean {
 	)
 }
 
+export interface Inventory {
+	keys: Record<string, { amount: number; type: Item }>
+	items: Item[]
+	// The max amount of items the actor can carry
+	itemMax: number
+}
+
 export abstract class Actor {
 	moveDecision = Decision.NONE
 	currentMoveSpeed: number | null = null
@@ -55,9 +63,7 @@ export abstract class Actor {
 	pendingDecision = Decision.NONE
 	slidingState = SlidingState.NONE
 	abstract layer: Layers
-	// @ts-expect-error Why
-	static abstract id: string
-	id: string
+	abstract id: string
 	art?: ActorArt | (() => ActorArt)
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
@@ -89,9 +95,22 @@ export abstract class Actor {
 	tile: Tile
 	pushable = false
 	direction = Direction.UP
+	inventory: Inventory = {
+		items: [],
+		keys: {},
+		itemMax: 4,
+	}
+	dropItem(): void {
+		const itemToDrop = this.inventory.items.pop()
+		if (!itemToDrop) return
+		itemToDrop.oldTile = null
+		itemToDrop.tile = this.tile
+		this.level.actors.push(itemToDrop)
+		itemToDrop._internalUpdateTileStates()
+		itemToDrop.onDrop?.(this)
+	}
 	constructor(public level: LevelState, position: [number, number]) {
-		this.id = Object.getPrototypeOf(this).id
-		level.activeActors.push(this)
+		level.actors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
 	}
@@ -210,8 +229,9 @@ export abstract class Actor {
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
 			this.cooldown--
-			for (const actor of this.tile.allActors)
-				if (!this._internalIgnores(actor)) actor.actorCompletelyJoined?.(this)
+			for (const actor of [...this.tile.allActors])
+				if (actor !== this && !this._internalIgnores(actor))
+					actor.actorCompletelyJoined?.(this)
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
 	}
@@ -227,13 +247,14 @@ export abstract class Actor {
 				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
 		this.slidingState = SlidingState.NONE
 		for (const actor of [...this.tile.allActors])
-			if (!this._internalIgnores(actor)) actor.actorJoined?.(this)
+			if (actor !== this && !this._internalIgnores(actor))
+				actor.actorJoined?.(this)
 		this.newTileJoined?.()
 	}
 	destroy(killer?: Actor | null, animType: string | null = "explosion"): void {
 		if (killer && this._internalIgnores(killer)) return
 		this.tile.removeActors(this)
-		this.level.activeActors.splice(this.level.activeActors.indexOf(this), 1)
+		this.level.actors.splice(this.level.actors.indexOf(this), 1)
 		this.level.destroyedThisTick.push(this)
 		if (animType && actorDB[`${animType}Anim`]) {
 			// @ts-expect-error Obviously, this is not an abstract class

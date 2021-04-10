@@ -71,6 +71,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[9, 2],
 		],
 		iceBlock: { default: [10, 2], seeThrough: [11, 2] },
+		echip: [11, 3],
 		// TODO Everything else
 		boom: [
 			[0, 5],
@@ -171,6 +172,13 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[4, 20],
 			[7, 20],
 		],
+		boot: {
+			water: [0, 6],
+			fire: [1, 6],
+			ice: [2, 6],
+			forceFloor: [3, 6],
+			dirt: [4, 6],
+		},
 	},
 }
 
