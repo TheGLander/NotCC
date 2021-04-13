@@ -32,7 +32,7 @@ export abstract class Item extends Actor {
 		switch (this.destination) {
 			case ItemDestination.KEY:
 				if (!other.inventory.keys[this.id])
-					other.inventory.keys[this.id] = { amount: 0, type: this }
+					other.inventory.keys[this.id] = { amount: 0, type: this as Key }
 				other.inventory.keys[this.id].amount++
 				break
 			case ItemDestination.ITEM:
@@ -73,14 +73,55 @@ export class EChip extends EChipPlus {
 
 actorDB["echip"] = EChip
 
-export class KeyBlue extends Item {
+export abstract class Key extends Item {
+	destination = ItemDestination.KEY as const
+	/**
+	 * Determines if the specific actor can re-use this key
+	 */
+	canBeReused?(other: Actor): boolean
+}
+
+// TODO Turn this into a factory too
+export class KeyBlue extends Key {
 	id = "keyBlue"
 	art: ActorArt = { actorName: "key", animation: "blue" }
-	destination = ItemDestination.KEY
 	blocks = undefined
+	canBeReused(other: Actor): boolean {
+		return other.getCompleteTags("tags").includes("can-reuse-key-blue")
+	}
 }
 
 actorDB["keyBlue"] = KeyBlue
+
+export class KeyRed extends Key {
+	id = "keyRed"
+	art: ActorArt = { actorName: "key", animation: "red" }
+	canBeReused(other: Actor): boolean {
+		return other.getCompleteTags("tags").includes("can-reuse-key-red")
+	}
+}
+
+actorDB["keyRed"] = KeyRed
+
+export class KeyGreen extends Key {
+	id = "keyGreen"
+	art: ActorArt = { actorName: "key", animation: "green" }
+	canBeReused(other: Actor): boolean {
+		return other.getCompleteTags("tags").includes("can-reuse-key-green")
+	}
+}
+
+actorDB["keyGreen"] = KeyGreen
+
+export class KeyYellow extends Key {
+	id = "keyYellow"
+	art: ActorArt = { actorName: "key", animation: "yellow" }
+	canBeReused(other: Actor): boolean {
+		return other.getCompleteTags("tags").includes("can-reuse-key-yellow")
+	}
+}
+
+actorDB["keyYellow"] = KeyYellow
 
 export class BootWater extends Item {
 	id = "bootWater"

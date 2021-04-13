@@ -4,7 +4,7 @@ import { Direction } from "./helpers"
 import { Layers } from "./tile"
 import Tile from "./tile"
 import { Animation } from "./actors/animation"
-import { Item } from "./actors/items"
+import { Item, Key } from "./actors/items"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -49,7 +49,7 @@ export function matchTags(actorTags: string[], ruleTags: string[]): boolean {
 }
 
 export interface Inventory {
-	keys: Record<string, { amount: number; type: Item }>
+	keys: Record<string, { amount: number; type: Key }>
 	items: Item[]
 	// The max amount of items the actor can carry
 	itemMax: number

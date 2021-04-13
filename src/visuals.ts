@@ -198,6 +198,7 @@ export default class Renderer {
 			)
 		}
 		for (const [i, key] of Object.values(player.inventory.keys).entries()) {
+			if (key.amount <= 0) continue
 			const art =
 				typeof key.type.art === "function" ? key.type.art() : key.type.art
 			if (!art) continue

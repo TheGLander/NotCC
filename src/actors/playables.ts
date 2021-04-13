@@ -7,9 +7,7 @@ import { Decision, actorDB } from "../const"
 
 // TODO Move chip-specific behavior outta here
 
-export class Playable extends Actor {
-	id = "chip"
-	art = genericDirectionableArt("chip", 8)
+export abstract class Playable extends Actor {
 	tags = ["playable"]
 	blockTags = ["playable"]
 	pushTags = ["block"]
@@ -96,7 +94,6 @@ export class Playable extends Actor {
 		}
 	}
 	destroy(other?: Actor | null, anim?: string | null): void {
-		// TODO Helmet stuff
 		this.level.gameState = GameState.LOST
 		super.destroy(other, anim)
 		this.level.playables.splice(this.level.playables.indexOf(this), 1)
@@ -107,4 +104,10 @@ export class Playable extends Actor {
 	}
 }
 
-actorDB["chip"] = Playable
+export class Chip extends Playable {
+	tags = ["playable", "chip", "can-reuse-key-green"]
+	id = "chip"
+	art = genericDirectionableArt("chip", 8)
+}
+
+actorDB["chip"] = Chip

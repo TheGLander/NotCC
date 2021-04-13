@@ -65,7 +65,7 @@ actorDB["glider"] = Glider
 export class Fireball extends Monster {
 	id = "fireball"
 	ignoreTags = ["fire"]
-	tags = ["monster", "normal-monster", "melting"]
+	tags = ["monster", "normal-monster", "movable", "melting"]
 	// TODO Rotation
 	art = genericAnimatedArt("fireball", 4)
 	decideMovement(): Direction[] {
