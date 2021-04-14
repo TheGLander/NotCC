@@ -70,16 +70,28 @@ export class PulseManager {
 		if (!checkIfRelevant(key)) return
 		this.keysPressed[keymap[key]] = false
 	}
+	updateFrame(): void {
+		requestAnimationFrame(this.updateFrame)
+		this.renderer.frame()
+		this.trackFps()
+	}
+	logicIntervalId: number
 	constructor(
 		public level: LevelState,
 		public renderSpace?: HTMLElement | null,
 		public itemSpace?: HTMLElement | null
 	) {
 		this.renderer = new Renderer(level, renderSpace, itemSpace)
+		this.updateFrame = this.updateFrame.bind(this)
 		this.ready = this.renderer.ready
 		window.addEventListener("keydown", this.keyDownFunc.bind(this))
 		window.addEventListener("keyup", this.keyUpFunc.bind(this))
-		setInterval(this.renderFrame.bind(this), 1000 / 60)
+		// This is not node.js
+		this.logicIntervalId = (setInterval(
+			this.tickLevel.bind(this),
+			1000 / 60
+		) as unknown) as number
+		this.updateFrame()
 	}
 	lastPulse = Date.now()
 	trackFps(): void {
@@ -89,15 +101,6 @@ export class PulseManager {
 				this.countFps((1 / (thisPulse - this.lastPulse)) * 1000)
 			)}`
 		this.lastPulse = thisPulse
-	}
-	renderFrame(): void {
-		this.trackFps()
-		this.tickLevel()
-		if (delayCounter)
-			delayCounter.innerText = `Calculation delay: ${
-				Math.round(this.countDelay(Date.now() - this.lastPulse) * 1000) / 1000
-			}ms`
-		if (this.renderer.readyBool) this.renderer.frame()
 	}
 	async setNewLevel(level: LevelState): Promise<void> {
 		this.renderer.level = this.level = level
@@ -113,6 +116,7 @@ export class PulseManager {
 		await this.renderer.updateFillerData()
 	}
 	tickLevel(): void {
+		const oldTime = Date.now()
 		this.level.giveInput(this.keysPressed)
 		this.level.tick()
 		switch (this.level.gameState) {
@@ -132,5 +136,9 @@ export class PulseManager {
 				break
 		}
 		this.lastLevelGameState = this.level.gameState
+		if (delayCounter)
+			delayCounter.innerText = `Calculation delay: ${
+				Math.round(this.countDelay(Date.now() - oldTime) * 1000) / 1000
+			}ms`
 	}
 }
