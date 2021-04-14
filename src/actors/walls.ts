@@ -21,6 +21,7 @@ function doorFactory(color: string) {
 	return class extends Actor {
 		id = `door${sentenceCaseName}`
 		tags = ["door"]
+		blockTags = ["normal-monster", "cc1-block"]
 		art: ActorArt = { actorName: "door", animation: color }
 		get layer(): Layers {
 			return Layers.STATIONARY
@@ -30,12 +31,8 @@ function doorFactory(color: string) {
 		}
 		actorCompletelyJoined(other: Actor): void {
 			if (!other.inventory.keys[`key${sentenceCaseName}`]?.amount) return
-			if (
-				!other.inventory.keys[`key${sentenceCaseName}`].type.canBeReused?.(
-					other
-				)
-			)
-				other.inventory.keys[`key${sentenceCaseName}`].amount--
+			other.inventory.keys[`key${sentenceCaseName}`].amount--
+			other.inventory.keys[`key${sentenceCaseName}`].type.keyUsed?.(other)
 			this.destroy(other, null)
 		}
 	}

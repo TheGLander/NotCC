@@ -6,6 +6,11 @@ import { Actor } from "./actor"
 export const actorDB: Record<string, typeof Actor> = {}
 
 /**
+ * The position of keys to show in the inventory preview
+ */
+export const keyNameList: string[] = []
+
+/**
  * A decision an actor can take
  */
 export enum Decision {

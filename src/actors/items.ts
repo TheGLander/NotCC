@@ -1,6 +1,6 @@
 import { Layers } from "../tile"
 import { Actor, ActorArt, matchTags } from "../actor"
-import { actorDB } from "../const"
+import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
 
 export const enum ItemDestination {
@@ -78,50 +78,62 @@ export abstract class Key extends Item {
 	/**
 	 * Determines if the specific actor can re-use this key
 	 */
-	canBeReused?(other: Actor): boolean
+	keyUsed?(other: Actor): void
 }
 
 // TODO Turn this into a factory too
-export class KeyBlue extends Key {
-	id = "keyBlue"
-	art: ActorArt = { actorName: "key", animation: "blue" }
-	blocks = undefined
-	canBeReused(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("can-reuse-key-blue")
-	}
-}
-
-actorDB["keyBlue"] = KeyBlue
 
 export class KeyRed extends Key {
 	id = "keyRed"
 	art: ActorArt = { actorName: "key", animation: "red" }
-	canBeReused(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("can-reuse-key-red")
+	keyUsed(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("can-reuse-key-red"))
+			other.inventory.keys[this.id].amount++
 	}
 }
 
 actorDB["keyRed"] = KeyRed
 
-export class KeyGreen extends Key {
-	id = "keyGreen"
-	art: ActorArt = { actorName: "key", animation: "green" }
-	canBeReused(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("can-reuse-key-green")
+keyNameList.push("keyRed")
+
+export class KeyBlue extends Key {
+	id = "keyBlue"
+	art: ActorArt = { actorName: "key", animation: "blue" }
+	blocks = undefined
+	keyUsed(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("can-reuse-key-blue"))
+			other.inventory.keys[this.id].amount++
 	}
 }
 
-actorDB["keyGreen"] = KeyGreen
+actorDB["keyBlue"] = KeyBlue
+
+keyNameList.push("keyBlue")
 
 export class KeyYellow extends Key {
 	id = "keyYellow"
 	art: ActorArt = { actorName: "key", animation: "yellow" }
-	canBeReused(other: Actor): boolean {
+	keyUsed(other: Actor): boolean {
 		return other.getCompleteTags("tags").includes("can-reuse-key-yellow")
 	}
 }
 
 actorDB["keyYellow"] = KeyYellow
+
+keyNameList.push("keyYellow")
+
+export class KeyGreen extends Key {
+	id = "keyGreen"
+	art: ActorArt = { actorName: "key", animation: "green" }
+	keyUsed(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("can-reuse-key-green"))
+			other.inventory.keys[this.id].amount++
+	}
+}
+
+actorDB["keyGreen"] = KeyGreen
+
+keyNameList.push("keyGreen")
 
 export class BootWater extends Item {
 	id = "bootWater"

@@ -2,6 +2,7 @@ import { Direction } from "./helpers"
 import { LevelState } from "./level"
 import ogData from "./cc2ImageFormat"
 import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
+import { keyNameList } from "./const"
 
 type CC2Animation = [number, number] | [[number, number], [number, number]]
 
@@ -197,7 +198,8 @@ export default class Renderer {
 				tileSize
 			)
 		}
-		for (const [i, key] of Object.values(player.inventory.keys).entries()) {
+		let nonRegisteredOffset = keyNameList.length
+		for (const key of Object.values(player.inventory.keys)) {
 			if (key.amount <= 0) continue
 			const art =
 				typeof key.type.art === "function" ? key.type.art() : key.type.art
@@ -207,13 +209,15 @@ export default class Renderer {
 					art.frame ?? 0
 				]
 			if (!frame) continue
+			let index = keyNameList.indexOf(key.type.id)
+			if (index === -1) index = nonRegisteredOffset++
 			itemCtx.drawImage(
 				this.renderTexture.image,
 				frame[0] * tileSize,
 				frame[1] * tileSize,
 				tileSize,
 				tileSize,
-				i * tileSize,
+				index * tileSize,
 				tileSize,
 				tileSize,
 				tileSize

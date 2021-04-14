@@ -12,7 +12,7 @@ import "./actors/terrain"
 import "./actors/animation"
 import "./actors/teleport"
 import "./actors/items"
-import { actorDB } from "./const"
+import { actorDB, keyNameList } from "./const"
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -39,7 +39,7 @@ pulseManager.eventsRegistered.stateChange.push(() => {
 
 // We export it like this so the global values are always updated
 // TODO Have the level code be unrelated to the game instance
-const exportObject = { level, Direction, actorDB, pulseManager }
+const exportObject = { level, Direction, actorDB, pulseManager, keyNameList }
 
 export default exportObject
 
