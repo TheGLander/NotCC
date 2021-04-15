@@ -298,8 +298,7 @@ export abstract class Actor {
 		this.level.actors.splice(this.level.actors.indexOf(this), 1)
 		this.level.destroyedThisTick.push(this)
 		if (animType && actorDB[`${animType}Anim`]) {
-			// @ts-expect-error Obviously, this is not an abstract class
-			const anim: Animation = new actorDB[`${animType}Anim`](
+			const anim = new actorDB[`${animType}Anim`](
 				this.level,
 				this.tile.position
 			)

@@ -9,7 +9,7 @@ import { actorDB } from "../const"
 import { Wall } from "./walls"
 import { genericAnimatedArt } from "../actor"
 import { Playable } from "./playables"
-import { GameState } from "../level"
+import { GameState, LevelState } from "../level"
 
 export class Ice extends Actor {
 	id = "ice"
@@ -141,3 +141,44 @@ export class Exit extends Actor {
 }
 
 actorDB["exit"] = Exit
+
+export class EChipGate extends Actor {
+	id = "echipGate"
+	art = { actorName: "echipGate" }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	blockTags = ["normal-monster", "block"] // TODO Directional blocks
+	actorCompletelyJoined(other: Actor): void {
+		if (this.level.chipsLeft === 0) this.destroy(other, null)
+	}
+	blocks(): boolean {
+		return this.level.chipsLeft !== 0
+	}
+}
+
+actorDB["echipGate"] = EChipGate
+
+export class Hint extends Actor {
+	id = "hint"
+	art = { actorName: "hint" }
+	hint: string | null = null
+	constructor(level: LevelState, position: [number, number]) {
+		super(level, position)
+		const hint =
+			level.hintsLeft.length === 1
+				? level.hintsLeft[0]
+				: level.hintsLeft.shift()
+		if (hint) this.hint = hint
+	}
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		// Sorry
+		if (other instanceof Playable && this.hint) alert(this.hint)
+	}
+	blockTags = ["normal-monster", "cc1block"]
+}
+
+actorDB["hint"] = Hint

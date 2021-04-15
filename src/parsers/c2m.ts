@@ -240,6 +240,8 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		timeLimit: 0,
 		blobMode: 1,
 		name: "[unnamed]",
+		note: "",
+		hints: [],
 	}
 
 	let solutionHash: string
@@ -295,11 +297,10 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		let solutionData: ArrayBuffer
 		switch (sectionName) {
 			case "CC2M":
-				if (view.getStringUntilNull() !== "7")
-					throw new Error("Outdated file! (CC2M version is not 7)")
+				if (parseInt(view.getStringUntilNull()) > 7)
+					throw new Error("Invalid file! (CC2M version is >7)")
 				break
 			case "TITL":
-				// Discard (temp)
 				data.name = view.getStringUntilNull()
 				break
 			case "AUTH":
@@ -307,13 +308,40 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				view.getStringUntilNull()
 				break
 			case "CLUE":
-				// Discard (temp)
-				view.getStringUntilNull()
+				// TODO Find out if it's before or after the other hints or it depends on whatever
+				data.hints.unshift(view.getStringUntilNull())
 				break
-			case "NOTE":
-				// Discard (temp)
-				view.getStringUntilNull()
+			case "NOTE": {
+				let note = view.getStringUntilNull()
+				let noteSectionMode: "NOTE" | "CLUE" | "COM" | "JETLIFE" = "NOTE"
+				while (note.length > 0) {
+					const nextSection = /\[(JETLIFE|CLUE|COM)\]/.exec(note)
+					let noteSectionData: string
+					if (nextSection) noteSectionData = note.substr(0, nextSection.index)
+					else noteSectionData = note
+					switch (noteSectionMode) {
+						case "NOTE":
+							data.note = noteSectionData
+							break
+						case "CLUE":
+							data.hints.push(noteSectionData)
+							break
+						case "COM": // TODO C2M Inline code
+							throw new Error("[COM] not supported (yet)!")
+						case "JETLIFE": // TODO [JETLIFE]
+							throw new Error("[JETLIFE] not supported (yet)!")
+					}
+					note = note.substr(
+						noteSectionData.length + (nextSection?.[0].length ?? 0)
+					)
+					noteSectionMode = (nextSection?.[1] ?? "NOTE") as
+						| "NOTE"
+						| "CLUE"
+						| "COM"
+						| "JETLIFE"
+				}
 				break
+			}
 			case "OPTN":
 				for (let i = 0; view.offset < oldOffset + length; i++) OPTNFuncs[i]()
 				break

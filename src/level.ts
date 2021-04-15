@@ -31,6 +31,7 @@ export class LevelState {
 	chipsLeft = 0
 	chipsTotal = 0
 	chipsRequired = 0
+	hintsLeft: string[] = []
 	protected decisionTick(forcedOnly = false): void {
 		for (const actor of this.actors) actor._internalDecide(forcedOnly)
 	}
@@ -139,6 +140,7 @@ export class LevelState {
 export function createLevelFromData(data: LevelData): LevelState {
 	const level = new LevelState(data.width, data.height)
 	level.levelData = data
+	level.hintsLeft = [...data.hints]
 	// TODO Misc data setting, like blob patterns and stuff
 	level.cameraType = data.camera
 	for (let y = level.height - 1; y >= 0; y--)
@@ -146,10 +148,12 @@ export function createLevelFromData(data: LevelData): LevelState {
 			for (const actor of data.field[x][y]) {
 				if (!actorDB[actor[0]])
 					throw new Error(`Cannot find actor with id "${actor[0]}"!`)
-				// @ts-expect-error Obviously, things in the DB thing are not unextended Actor classes
-				const actorInstance: Actor = new actorDB[actor[0]](level, [x, y])
+				const actorInstance: Actor = new actorDB[actor[0]](
+					level,
+					[x, y],
+					actor[2]
+				)
 				actorInstance.direction = actor[1]
-				// TODO 3th argument of actor classes: custom data
 			}
 	return level
 }

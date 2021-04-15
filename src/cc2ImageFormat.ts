@@ -73,7 +73,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 		],
 		iceBlock: { default: [10, 2], seeThrough: [11, 2] },
 		echip: [11, 3],
-		// TODO Everything else
+		// TODO Add all art left
 		boom: [
 			[0, 5],
 			[3, 5],

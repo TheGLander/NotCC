@@ -16,6 +16,8 @@ export interface LevelData {
 	timeLimit: number
 	blobMode: number | "true"
 	name: string
+	hints: string[]
+	note: string
 }
 
 export type PartialLevelData = Omit<LevelData, "field" | "width" | "height"> &
