@@ -41,6 +41,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 			bumpDown: [10, 24],
 			bumpLeft: [11, 24],
 		},
+		fire: [
+			[12, 29],
+			[16, 29],
+		],
 		key: {
 			red: [4, 1],
 			blue: [5, 1],

@@ -122,6 +122,7 @@ export class PulseManager {
 		switch (this.level.gameState) {
 			case GameState.LOST:
 				if (this.lastLevelGameState === GameState.PLAYING) {
+					this.renderer.frame()
 					alert("Bummer")
 					this.eventsRegistered.lose.forEach(val => val())
 					this.eventsRegistered.stateChange.forEach(val => val())

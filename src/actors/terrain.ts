@@ -166,9 +166,7 @@ export class Hint extends Actor {
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		const hint =
-			level.hintsLeft.length === 1
-				? level.hintsLeft[0]
-				: level.hintsLeft.shift()
+			level.hintsLeft.length === 1 ? level.hintsLeft[0] : level.hintsLeft.pop()
 		if (hint) this.hint = hint
 	}
 	get layer(): Layers {
@@ -182,3 +180,18 @@ export class Hint extends Actor {
 }
 
 actorDB["hint"] = Hint
+
+export class Fire extends Actor {
+	id = "fire"
+	art = genericAnimatedArt("fire", 4)
+	tags = ["fire"]
+	blockTags = ["monster"]
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		other.destroy(this)
+	}
+}
+
+actorDB["fire"] = Fire
