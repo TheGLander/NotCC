@@ -221,8 +221,8 @@ export abstract class Actor {
 			if (ogDirection !== this.direction) this._internalStep(this.direction)
 		}
 	}
-	blocks?(other: Actor): boolean
-	blockedBy?(other: Actor): boolean
+	blocks?(other: Actor, otherMoveDirection: Direction): boolean
+	blockedBy?(other: Actor, thisMoveDirection: Direction): boolean
 	/**
 	 * Called when another actor on the tile was bonked while sliding
 	 */
@@ -248,15 +248,15 @@ export abstract class Actor {
 	 */
 	newTileCompletelyJoined?(): void
 
-	_internalBlocks(other: Actor): boolean {
+	_internalBlocks(other: Actor, moveDirection: Direction): boolean {
 		return (
 			!matchTags(
 				this.getCompleteTags("tags"),
 				other.getCompleteTags("collisionIgnoreTags")
 			) &&
 			!this._internalIgnores(other) &&
-			(this.blocks?.(other) ||
-				other.blockedBy?.(this) ||
+			(this.blocks?.(other, moveDirection) ||
+				other.blockedBy?.(this, moveDirection) ||
 				matchTags(
 					other.getCompleteTags("tags"),
 					this.getCompleteTags("blockTags")

@@ -118,7 +118,7 @@ export class LevelState {
 		]) {
 			for (const blockActor of newTile[layer]) {
 				blockActor.bumped?.(actor)
-				if (!blockActor._internalBlocks(actor)) continue
+				if (!blockActor._internalBlocks(actor, direction)) continue
 				if (pushBlocks && actor._internalCanPush(blockActor))
 					toPush.push(blockActor)
 				else return false

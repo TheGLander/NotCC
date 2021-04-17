@@ -23,7 +23,10 @@ export abstract class Monster extends Actor {
 	}
 	bumped(other: Actor): void {
 		// Monsters kill players which bump into them if they can move into them
-		if (other instanceof Playable && !other._internalBlocks(this))
+		if (
+			other instanceof Playable &&
+			!other._internalBlocks(this, (other.direction + 2) % 4)
+		)
 			other.destroy(this)
 	}
 }

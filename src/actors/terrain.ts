@@ -10,6 +10,7 @@ import { Wall } from "./walls"
 import { genericAnimatedArt } from "../actor"
 import { Playable } from "./playables"
 import { GameState, LevelState } from "../level"
+import { Direction } from "../helpers"
 
 export class Ice extends Actor {
 	id = "ice"
@@ -32,6 +33,39 @@ export class Ice extends Actor {
 }
 actorDB["ice"] = Ice
 
+export class IceCorner extends Actor {
+	id = "iceCorner"
+	tags = ["ice"]
+	art = (): ActorArt => ({
+		actorName: "ice",
+		animation: ["ur", "dr", "dl", "ul"][this.direction],
+	})
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorJoined(other: Actor): void {
+		other.slidingState = SlidingState.STRONG
+	}
+	actorCompletelyJoined(other: Actor): void {
+		other.direction += (this.direction - other.direction) * 2 + 3
+		other.direction %= 4
+	}
+	onMemberSlideBonked(other: Actor): void {
+		other.direction += 2
+		other.direction %= 4
+	}
+	speedMod(): 2 {
+		return 2
+	}
+	blocks(_other: Actor, otherMoveDirection: Direction): boolean {
+		return !(
+			otherMoveDirection === this.direction ||
+			otherMoveDirection === (this.direction + 1) % 4
+		)
+	}
+}
+actorDB["iceCorner"] = IceCorner
+
 export class ForceFloor extends Actor {
 	id = "forceFloor"
 	tags = ["force-floor"]
@@ -45,6 +79,7 @@ export class ForceFloor extends Actor {
 	}
 	onMemberSlideBonked(other: Actor): void {
 		// Give them a single subtick of cooldown
+		// FIXME First bump doesn't yield a cooldown in CC2
 		other.cooldown++
 	}
 	speedMod(): 2 {
