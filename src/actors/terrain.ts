@@ -63,6 +63,7 @@ export class IceCorner extends Actor {
 			otherMoveDirection === (this.direction + 1) % 4
 		)
 	}
+	// TODO Block exit from ice corners with cleats
 }
 actorDB["iceCorner"] = IceCorner
 
@@ -230,3 +231,35 @@ export class Fire extends Actor {
 }
 
 actorDB["fire"] = Fire
+
+export class ThiefTool extends Actor {
+	id = "thiefTool"
+	art: ActorArt = { actorName: "thief", animation: "tool" }
+	blockTags = ["normal-monster", "cc1block"]
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		if (!(other instanceof Playable)) return
+		// TODO Bribes
+		other.inventory.items = []
+	}
+}
+
+actorDB["thiefTool"] = ThiefTool
+
+export class ThiefKey extends Actor {
+	id = "thiefKey"
+	art: ActorArt = { actorName: "thief", animation: "key" }
+	blockTags = ["normal-monster", "cc1block"]
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		if (!(other instanceof Playable)) return
+		// TODO Bribes
+		other.inventory.keys = {}
+	}
+}
+
+actorDB["thiefKey"] = ThiefKey
