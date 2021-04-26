@@ -184,6 +184,20 @@ const cc2ImageFormat: CC2ImageFormat = {
 			forceFloor: [3, 6],
 			dirt: [4, 6],
 		},
+		teethRed: {
+			vertical: [
+				[0, 11],
+				[2, 11],
+			],
+			right: [
+				[3, 11],
+				[5, 11],
+			],
+			left: [
+				[6, 11],
+				[8, 11],
+			],
+		},
 	},
 }
 

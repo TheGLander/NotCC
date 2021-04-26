@@ -51,7 +51,7 @@ export class IceCorner extends Actor {
 		other.direction %= 4
 	}
 	onMemberSlideBonked(other: Actor): void {
-		other.direction += 2
+		other.direction -= (this.direction - other.direction) * 2 + 3
 		other.direction %= 4
 	}
 	speedMod(): 2 {

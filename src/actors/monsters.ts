@@ -89,3 +89,31 @@ export class Ball extends Monster {
 }
 
 actorDB["ball"] = Ball
+
+export class TeethRed extends Monster {
+	id = "teethRed"
+	art = (() => {
+		let currentFrame = 0
+		return (): ActorArt => ({
+			actorName: "teethRed",
+			animation:
+				this.direction % 2 === 0
+					? "vertical"
+					: ["right", "left"][(this.direction - 1) / 2],
+			frame: this.cooldown ? Math.floor((currentFrame++ % 9) / 3) : 0,
+		})
+	})()
+	decideMovement(): Direction[] {
+		if (!this.level.selectedPlayable || (this.level.currentTick + 1) % 8 >= 4)
+			return []
+		const dx = this.tile.x - this.level.selectedPlayable.tile.x,
+			dy = this.tile.y - this.level.selectedPlayable.tile.y
+		const directions: Direction[] = []
+		if (dx) directions.push(Math.sign(dx) + 2)
+		if (dy) directions.push(-Math.sign(dy) + 1)
+		if (Math.abs(dy) >= Math.abs(dx)) directions.reverse()
+		return directions
+	}
+}
+
+actorDB["teethRed"] = TeethRed

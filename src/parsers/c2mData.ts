@@ -56,7 +56,7 @@ const cc2Tiles = [
 	[["centipede", null, ""], null],
 	[["ball", null, ""], null],
 	[["blob", null, ""], null],
-	[["teeth", null, ""], null],
+	[["teethRed", null, ""], null],
 	[["fireball", null, ""], null],
 	[["buttonRed", 0, ""]],
 	[["buttonBrown", 0, ""]],
