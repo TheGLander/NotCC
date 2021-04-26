@@ -3,7 +3,6 @@ import { Decision, actorDB } from "./const"
 import { Direction } from "./helpers"
 import { Layers } from "./tile"
 import Tile from "./tile"
-import { Animation } from "./actors/animation"
 import { Item, Key } from "./actors/items"
 
 /**
@@ -18,12 +17,24 @@ export enum SlidingState {
 }
 
 export interface ActorArt {
-	actorName: string
+	actorName: string | null
 	/**
-	 * Name of the art piece to display, "default" by default
+	 * Name of the art piece to display, "default" by default, if null, doesn't draw anything
 	 */
-	animation?: string
+	animation?: string | null
 	frame?: number
+	/**
+	 * Offsets the art by a certain amount, 0 is up/left, 1 is bottom/right, [0, 0] by default
+	 */
+	imageOffset?: [number, number]
+	/**
+	 * Crops the art by a certain amount `1` is one tile worth of art, [1, 1] by default
+	 */
+	cropSize?: [number, number]
+	/**
+	 * Additional art to draw
+	 */
+	compositePieces?: ActorArt[]
 }
 
 /**
@@ -107,7 +118,6 @@ export abstract class Actor {
 	}
 
 	_internalIgnores(other: Actor): boolean {
-		// TODO Item additional tags/code(?)
 		return (
 			matchTags(
 				this.getCompleteTags("tags"),
@@ -119,6 +129,7 @@ export abstract class Actor {
 			)
 		)
 	}
+
 	/**
 	 * Amount of ticks it takes for the actor to move
 	 */
@@ -322,6 +333,20 @@ export abstract class Actor {
 	 * Called when a new actor enters the tile, must return the number to divide the speed by
 	 */
 	speedMod?(other: Actor): number
+	/**
+	 * Called when another actor tries to exit the tile this actor is on
+	 * @param other The actor which tried to exit
+	 * @param exitDirection The direction the actor is trying to exit in
+	 */
+	exitBlocks?(other: Actor, exitDirection: Direction): boolean
+	_internalExitBlocks(other: Actor, exitDirection: Direction): boolean {
+		// TODO Block exit via tags(?) Not sure if that can be useful
+		return (
+			(!this._internalIgnores(other) &&
+				this.exitBlocks?.(other, exitDirection)) ??
+			false
+		)
+	}
 }
 /**
  * Creates an art function for a generic directionable actor

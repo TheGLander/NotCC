@@ -99,17 +99,18 @@ export class LevelState {
 		pushBlocks = false
 	): boolean {
 		// Do stuff on the leaving tile
-		let blocker: Actor | undefined
-		// TODO Stuff which blocks existing (traps and such)
-		if (blocker) {
-			if (pushBlocks) actor.onBlocked?.(blocker)
-			return false
-		}
+
+		for (const exitActor of actor.tile.allActors)
+			if (exitActor._internalExitBlocks(actor, direction)) {
+				actor.onBlocked?.(exitActor)
+				return false
+			}
 
 		const toPush: Actor[] = []
 
 		// Do stuff on the entering tile
 		for (const layer of [
+			Layers.SPECIAL,
 			Layers.STATIONARY,
 			Layers.MOVABLE,
 			Layers.ITEM,

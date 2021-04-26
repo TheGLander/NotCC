@@ -180,7 +180,7 @@ export default class Renderer {
 		if (!player) return
 		for (const [i, item] of player.inventory.items.entries()) {
 			const art = typeof item.art === "function" ? item.art() : item.art
-			if (!art) continue
+			if (!art || !art.actorName) continue
 			const frame =
 				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
 					art.frame ?? 0
@@ -203,7 +203,7 @@ export default class Renderer {
 			if (key.amount <= 0) continue
 			const art =
 				typeof key.type.art === "function" ? key.type.art() : key.type.art
-			if (!art) continue
+			if (!art || !art.actorName) continue
 			const frame =
 				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
 					art.frame ?? 0
@@ -306,28 +306,32 @@ export default class Renderer {
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
-
-			const art =
+			const mainArt =
 				typeof actor.art === "function"
 					? actor.art()
 					: actor.art ?? { actorName: "unknown" }
-			const frame =
-				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
-					art.frame ?? 0
-				] ?? data.actorMapping.floor.default[0]
-			renderer.drawImage(
-				this.renderTexture.texture,
-				this.renderTexture.width,
-				this.renderTexture.height,
-				frame[0] * tileSize,
-				frame[1] * tileSize,
-				tileSize,
-				tileSize,
-				movedPos[0] * tileSize,
-				movedPos[1] * tileSize,
-				tileSize,
-				tileSize
-			)
+
+			for (const art of [mainArt, ...(mainArt.compositePieces ?? [])]) {
+				if (art.actorName === null || art.animation === null) continue
+				const frame =
+					data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
+						art.frame ?? 0
+					] ?? data.actorMapping.floor.default[0]
+				const croppedSize = art.cropSize ?? [1, 1]
+				renderer.drawImage(
+					this.renderTexture.texture,
+					this.renderTexture.width,
+					this.renderTexture.height,
+					frame[0] * tileSize,
+					frame[1] * tileSize,
+					croppedSize[0] * tileSize,
+					croppedSize[1] * tileSize,
+					(movedPos[0] + (art.imageOffset?.[0] ?? 0)) * tileSize,
+					(movedPos[1] + (art.imageOffset?.[1] ?? 0)) * tileSize,
+					croppedSize[0] * tileSize,
+					croppedSize[1] * tileSize
+				)
+			}
 		}
 		this.updateItems()
 	}

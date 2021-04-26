@@ -1,6 +1,7 @@
 import { Actor, ActorArt } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
+import { Direction } from "../helpers"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall"]
@@ -45,3 +46,31 @@ actorDB["doorRed"] = doorFactory("red")
 actorDB["doorGreen"] = doorFactory("green")
 
 actorDB["doorYellow"] = doorFactory("yellow")
+
+export class ThinWall extends Actor {
+	id = "thinWall"
+	tags = ["thinWall"]
+	art: () => ActorArt = () => ({
+		actorName: "thinWall",
+		animation: ["up", "right", "down", "left"][this.direction],
+		cropSize: [
+			(((this.direction + 1) % 2) + 1) / 2,
+			((this.direction % 2) + 1) / 2,
+		],
+		imageOffset: [
+			this.direction === Direction.RIGHT ? 0.5 : 0,
+			this.direction === Direction.DOWN ? 0.5 : 0,
+		],
+	})
+	get layer(): Layers {
+		return Layers.SPECIAL
+	}
+	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
+		return otherMoveDirection === (this.direction + 2) % 4
+	}
+	exitBlocks(_actor: Actor, otherMoveDirection: Direction): boolean {
+		return otherMoveDirection === this.direction
+	}
+}
+
+actorDB["thinWall"] = ThinWall

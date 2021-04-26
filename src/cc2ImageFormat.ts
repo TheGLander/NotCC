@@ -169,6 +169,12 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[12, 24],
 			[15, 24],
 		],
+		thinWall: {
+			up: [1, 10],
+			down: [1, 10.5],
+			left: [2, 10],
+			right: [2.5, 10],
+		},
 		teleportBlue: [
 			[4, 10],
 			[7, 10],

@@ -3,11 +3,12 @@ import { LevelState } from "./level"
 import { Direction } from "./helpers"
 
 export enum Layers {
-	STATIONARY,
+	STATIONARY, // Terrain, etc.
 	ITEM,
-	ITEM_SUFFIX,
-	MOVABLE,
+	ITEM_SUFFIX, // No sign, etc.
+	MOVABLE, // Blocks, Players, Monsters
 	ANIMATION,
+	SPECIAL, // Thin walls, canopies, swivels, etc.
 }
 
 class Tile extends Array<Array<Actor>> {
@@ -20,7 +21,7 @@ class Tile extends Array<Array<Actor>> {
 		actors: Actor[]
 	) {
 		super()
-		for (let i = 0; i <= 4; i++) this[i] = []
+		for (let i = 0; i <= 5; i++) this[i] = []
 		;[this.x, this.y] = position
 		this.addActors(actors)
 	}
