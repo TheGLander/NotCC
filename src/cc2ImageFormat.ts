@@ -51,6 +51,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			yellow: [6, 1],
 			green: [7, 1],
 		},
+		blueWall: [0, 10],
 		door: {
 			red: [0, 1],
 			blue: [1, 1],
@@ -164,6 +165,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			],
 		},
 		dirt: [4, 31],
+		popupWall: [8, 10],
 		gravel: [9, 10],
 		water: [
 			[12, 24],

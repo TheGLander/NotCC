@@ -150,7 +150,11 @@ export abstract class Actor {
 		itemToDrop._internalUpdateTileStates()
 		itemToDrop.onDrop?.(this)
 	}
-	constructor(public level: LevelState, position: [number, number]) {
+	constructor(
+		public level: LevelState,
+		position: [number, number],
+		public customData = ""
+	) {
 		level.actors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
@@ -322,7 +326,7 @@ export abstract class Actor {
 	 * Called when another actor bumps into this actor
 	 * @param other The actor which bumped into this actor
 	 */
-	bumped?(other: Actor): void
+	bumped?(other: Actor, bumpDirection: Direction): void
 	_internalCanPush(other: Actor): boolean {
 		return (
 			!this._internalIgnores(other) &&

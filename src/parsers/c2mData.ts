@@ -47,7 +47,7 @@ const cc2Tiles = [
 	[["echipPlus", 0, ""], null],
 	[["echipGate", 0, ""]],
 	[["popupWall", 0, ""]],
-	[["appearingFair", 0, ""]],
+	[["appearingWall", 0, ""]],
 	[["invisibleWall", 0, ""]],
 	[["blueWall", 0, "real"]],
 	[["blueWall", 0, "fake"]],

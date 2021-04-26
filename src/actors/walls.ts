@@ -1,7 +1,8 @@
-import { Actor, ActorArt } from "../actor"
+import { Actor, ActorArt, matchTags } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
 import { Direction } from "../helpers"
+import { Playable } from "./playables"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall"]
@@ -74,3 +75,70 @@ export class ThinWall extends Actor {
 }
 
 actorDB["thinWall"] = ThinWall
+
+// TODO Secret eye interaction thing
+
+export class InvisibleWall extends Actor {
+	id = "invisibleWall"
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	animationLeft = 0
+	art = (): ActorArt => ({ actorName: this.animationLeft ? "wall" : null })
+	blocks(): true {
+		return true
+	}
+	bumped(other: Actor): void {
+		// TODO Dupes and rovers also mark this as visible
+		if (other instanceof Playable) this.animationLeft = 36
+	}
+	onEachDecision(): void {
+		if (this.animationLeft) this.animationLeft--
+	}
+}
+
+actorDB["invisibleWall"] = InvisibleWall
+
+export class AppearingWall extends Actor {
+	id = "appearingWall"
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	blocks(): true {
+		return true
+	}
+	bumped(other: Actor): void {
+		// TODO Dupes and rovers also mark this as visible
+		if (other instanceof Playable) {
+			this.destroy(other, null)
+			new Wall(this.level, this.tile.position)
+		}
+	}
+}
+
+actorDB["appearingWall"] = AppearingWall
+
+export class BlueWall extends Actor {
+	id = "wall"
+	tags = ["wall"]
+	art: ActorArt = { actorName: "blueWall" }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	blocks(other: Actor): boolean {
+		return (
+			this.customData === "real" &&
+			!matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+		)
+	}
+	bumped(other: Actor): void {
+		if (
+			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+		)
+			return
+		this.destroy(other, null)
+		if (this.customData === "real") new Wall(this.level, this.tile.position)
+	}
+}
+
+actorDB["blueWall"] = BlueWall
