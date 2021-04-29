@@ -192,6 +192,18 @@ const cc2ImageFormat: CC2ImageFormat = {
 			forceFloor: [3, 6],
 			dirt: [4, 6],
 		},
+		outline: {
+			green: [
+				[0, 9],
+				[3, 9],
+			],
+			purple: [
+				[4, 9],
+				[7, 9],
+			],
+		},
+		outlineWall: [8, 9],
+		button: { blue: [8, 6], green: [9, 6] },
 		teethRed: {
 			vertical: [
 				[0, 11],
@@ -204,6 +216,24 @@ const cc2ImageFormat: CC2ImageFormat = {
 			left: [
 				[6, 11],
 				[8, 11],
+			],
+		},
+		tankBlue: {
+			up: [
+				[0, 8],
+				[1, 8],
+			],
+			right: [
+				[2, 8],
+				[3, 8],
+			],
+			down: [
+				[4, 8],
+				[5, 8],
+			],
+			left: [
+				[6, 8],
+				[7, 8],
 			],
 		},
 	},

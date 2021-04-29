@@ -142,3 +142,25 @@ export class BlueWall extends Actor {
 }
 
 actorDB["blueWall"] = BlueWall
+
+export class ToggleWall extends Actor {
+	id = "toggleWall"
+	art: () => ActorArt = () => ({
+		actorName: "outline",
+		animation: "green",
+		compositePieces:
+			this.customData === "on" ? [{ actorName: "outlineWall" }] : [],
+	})
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	blocks(): boolean {
+		return this.customData === "on"
+	}
+	buttonPressed(color: string): void {
+		if (color === "green")
+			this.customData = this.customData === "on" ? "off" : "on"
+	}
+}
+
+actorDB["toggleWall"] = ToggleWall

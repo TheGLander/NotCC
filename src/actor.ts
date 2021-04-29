@@ -351,6 +351,11 @@ export abstract class Actor {
 			false
 		)
 	}
+	/**
+	 * Called when a button is pressed, called only when the button applies to the actor
+	 * @param type The string color name of the button
+	 */
+	buttonPressed?(type: string): void
 }
 /**
  * Creates an art function for a generic directionable actor

@@ -117,3 +117,21 @@ export class TeethRed extends Monster {
 }
 
 actorDB["teethRed"] = TeethRed
+
+export class TankBlue extends Monster {
+	id = "tankBlue"
+	art = genericDirectionableArt("tankBlue", 2)
+	turnPending = false
+	decideMovement(): Direction[] {
+		if (this.turnPending) {
+			this.turnPending = false
+			return [(this.direction + 2) % 4]
+		}
+		return [this.direction]
+	}
+	buttonPressed(color: string): void {
+		if (color === "blue") this.turnPending = true
+	}
+}
+
+actorDB["tankBlue"] = TankBlue
