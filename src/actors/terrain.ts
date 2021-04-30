@@ -343,3 +343,31 @@ export class CloneMachine extends Actor {
 }
 
 actorDB["cloneMachine"] = CloneMachine
+
+export class Bomb extends Actor {
+	id = "bomb"
+	tags = ["bomb"]
+	art: () => ActorArt = (() => {
+		let frame = 0
+		return (): ActorArt => ({
+			actorName: "bomb",
+			compositePieces: [
+				{
+					actorName: "bombFuse",
+					cropSize: [0.5, 0.5],
+					animation: (frame++ % 4).toString(),
+					imageOffset: [0.5, 0],
+				},
+			],
+		})
+	})()
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		other.destroy(this)
+		this.destroy(other)
+	}
+}
+
+actorDB["bomb"] = Bomb

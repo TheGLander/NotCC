@@ -72,6 +72,9 @@ const cc2ImageFormat: CC2ImageFormat = {
 		thief: { tool: [3, 2], key: [15, 21] },
 		echipGate: [4, 2],
 		hint: [5, 2],
+		bomb: [5, 4],
+		bombGreen: [6, 4],
+		bombFuse: { 0: [7, 4], 1: [7.5, 4], 2: [7, 4.5], 3: [7.5, 4.5] },
 		exit: [
 			[6, 2],
 			[9, 2],
