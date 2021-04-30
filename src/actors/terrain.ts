@@ -263,3 +263,83 @@ export class ThiefKey extends Actor {
 }
 
 actorDB["thiefKey"] = ThiefKey
+
+export class Trap extends Actor {
+	id = "trap"
+	// The amount of buttons current pressed and linked to this trap
+	openRequests = 0
+	art: () => ActorArt = () => ({
+		actorName: "trap",
+		animation: this.openRequests > 0 ? "open" : "closed",
+	})
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	exitBlocks(): boolean {
+		return this.openRequests === 0
+	}
+	canTileMemberDecide(): boolean {
+		return this.openRequests > 0
+	}
+	buttonPressed(color: string): boolean {
+		if (color !== "brown") return false
+		this.openRequests++
+		// If we just opened the trap, force the actor outta the tile
+		if (this.openRequests === 1)
+			for (const trapped of this.tile[Layers.MOVABLE])
+				trapped._internalStep(trapped.direction)
+
+		return true
+	}
+	buttonUnpressed(color: string): boolean {
+		if (color !== "brown") return false
+		this.openRequests--
+		return true
+	}
+}
+
+actorDB["trap"] = Trap
+
+// TODO CC1 clone machines, direction arrows on clone machine
+export class CloneMachine extends Actor {
+	id = "cloneMachine"
+	art = {
+		actorName: "cloneMachine",
+	}
+	isCloning = false
+	// Always block boomer actors
+	blockTags = ["cc1block", "normal-monster"]
+	// Block actors when this already has a source
+	blocks(): boolean {
+		return this.tile[Layers.MOVABLE].length > 0
+	}
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	// Allow actors to exit while cloning, so they can properly move out of the tile
+	exitBlocks(): boolean {
+		return !this.isCloning
+	}
+	canTileMemberDecide(): boolean {
+		return this.isCloning
+	}
+	buttonPressed(color: string): boolean {
+		if (color !== "red") return false
+		this.isCloning = true
+		for (const clonee of [...this.tile[Layers.MOVABLE]]) {
+			const direction = clonee.direction
+
+			if (!this.level.checkCollision(clonee, direction, true)) continue
+			clonee._internalStep(direction)
+			new actorDB[clonee.id](
+				this.level,
+				this.tile.position,
+				clonee.customData
+			).direction = direction
+		}
+		this.isCloning = false
+		return true
+	}
+}
+
+actorDB["cloneMachine"] = CloneMachine
