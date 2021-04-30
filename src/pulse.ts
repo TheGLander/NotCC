@@ -79,7 +79,8 @@ export class PulseManager {
 	constructor(
 		public level: LevelState,
 		public renderSpace?: HTMLElement | null,
-		public itemSpace?: HTMLElement | null
+		public itemSpace?: HTMLElement | null,
+		public textStats?: HTMLElement | null
 	) {
 		this.renderer = new Renderer(level, renderSpace, itemSpace)
 		this.updateFrame = this.updateFrame.bind(this)
@@ -115,10 +116,16 @@ export class PulseManager {
 		}
 		await this.renderer.updateFillerData()
 	}
+	updateTextStats(): void {
+		if (!this.textStats) return
+		this.textStats.innerText = `Time left: -
+Chips left: ${this.level.chipsLeft}`
+	}
 	tickLevel(): void {
 		const oldTime = Date.now()
 		this.level.giveInput(this.keysPressed)
 		this.level.tick()
+		this.updateTextStats()
 		switch (this.level.gameState) {
 			case GameState.LOST:
 				if (this.lastLevelGameState === GameState.PLAYING) {

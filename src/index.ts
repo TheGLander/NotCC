@@ -28,8 +28,9 @@ let level = new LevelState(0, 0)
 
 const renderSpace = document.querySelector<HTMLElement>("#renderSpace")
 const itemSpace = document.querySelector<HTMLElement>("#renderSpace")
+const textStats = document.querySelector<HTMLElement>("#textStats")
 
-const pulseManager = new PulseManager(level, renderSpace, itemSpace)
+const pulseManager = new PulseManager(level, renderSpace, itemSpace, textStats)
 
 pulseManager.eventsRegistered.stateChange.push(() => {
 	if (level.levelData)
