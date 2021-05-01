@@ -166,6 +166,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[2, 20],
 				[3, 20],
 			],
+			random: [
+				[0, 21],
+				[7, 21],
+			],
 		},
 		dirt: [4, 31],
 		popupWall: [8, 10],

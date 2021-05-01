@@ -9,7 +9,12 @@ import { actorDB } from "../const"
 import { Wall } from "./walls"
 import { genericAnimatedArt } from "../actor"
 import { Playable } from "./playables"
-import { GameState, LevelState } from "../level"
+import {
+	GameState,
+	LevelState,
+	CrossLevelDataInterface,
+	crossLevelData,
+} from "../level"
 import { Direction } from "../helpers"
 
 export class Ice extends Actor {
@@ -70,13 +75,26 @@ actorDB["iceCorner"] = IceCorner
 export class ForceFloor extends Actor {
 	id = "forceFloor"
 	tags = ["force-floor"]
-	art = genericDirectionableArt("forceFloor", 2)
+	art = (): ActorArt => ({
+		actorName: "forceFloor",
+		animation: ["up", "right", "down", "left"][this.direction],
+		sourceOffset:
+			this.direction % 2 === 0
+				? [0, ((1 - this.direction) * (this.level.currentTick / 16)) % 1]
+				: [((this.direction - 2) * (this.level.currentTick / 16)) % 1, 0],
+		frame: 1.5 - Math.abs(this.direction - 1.5),
+	})
 	get layer(): Layers {
 		return Layers.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
+	}
+	levelStarted(): void {
+		// Pretend like everyone stepped on this on level start
+		for (const actor of this.tile[Layers.MOVABLE])
+			this.actorCompletelyJoined(actor)
 	}
 	onMemberSlideBonked(other: Actor): void {
 		// Give them a single subtick of cooldown
@@ -89,6 +107,45 @@ export class ForceFloor extends Actor {
 }
 
 actorDB["forceFloor"] = ForceFloor
+
+export class ForceFloorRandom extends Actor {
+	id = "forceFloorRandom"
+	tags = ["force-floor"]
+	art = genericAnimatedArt("forceFloor", 8, "random")
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		other.slidingState = SlidingState.WEAK
+		crossLevelData.RFFDirection ??= 0
+		other.direction = crossLevelData.RFFDirection++
+		crossLevelData.RFFDirection %= 4
+	}
+	levelStarted(): void {
+		// Pretend like everyone stepped on this on level start
+		for (const actor of this.tile[Layers.MOVABLE])
+			this.actorCompletelyJoined(actor)
+	}
+	onMemberSlideBonked(other: Actor): void {
+		// Give them a single subtick of cooldown
+		// FIXME First bump doesn't yield a cooldown in CC2
+		other.cooldown++
+	}
+	speedMod(): 2 {
+		return 2
+	}
+}
+declare module "../level" {
+	export interface CrossLevelDataInterface {
+		RFFDirection?: Direction
+	}
+}
+
+crossLevelData.RFFDirection = Direction.UP
+
+actorDB["forceFloorRandom"] = ForceFloorRandom
+
+// random
 
 export class RecessedWall extends Actor {
 	id = "popupWall"

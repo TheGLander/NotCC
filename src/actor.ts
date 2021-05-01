@@ -35,6 +35,11 @@ export interface ActorArt {
 	 * Additional art to draw
 	 */
 	compositePieces?: ActorArt[]
+	/**
+	 * Offsets the source image frame by a certain amount.
+	 * [0, 0] by default
+	 */
+	sourceOffset?: [number, number]
 }
 
 /**
@@ -233,6 +238,9 @@ export abstract class Actor {
 		if (bonked && this.slidingState) {
 			for (const bonkListener of this.tile.allActors)
 				bonkListener.onMemberSlideBonked?.(this)
+			for (const actor of this.tile.allActors)
+				actor.actorCompletelyJoined?.(this)
+
 			if (ogDirection !== this.direction) this._internalStep(this.direction)
 		}
 	}
@@ -373,6 +381,10 @@ export abstract class Actor {
 				return false
 		return true
 	}
+	/**
+	 * Called when the level starts
+	 */
+	levelStarted?(): void
 }
 /**
  * Creates an art function for a generic directionable actor
@@ -390,11 +402,16 @@ export const genericDirectionableArt = (name: string, animLength: number) => {
 	}
 }
 
-export const genericAnimatedArt = (name: string, animLength: number) => {
+export const genericAnimatedArt = (
+	name: string,
+	animLength: number,
+	animationName?: string
+) => {
 	let currentFrame = 0
 	return function (this: Actor): ActorArt {
 		return {
 			actorName: name,
+			animation: animationName,
 			frame: Math.floor((currentFrame++ % (animLength * 3)) / 3),
 		}
 	}

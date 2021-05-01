@@ -13,6 +13,12 @@ export enum GameState {
 	WON,
 }
 
+// TODO Despawning & respawning AKA waterbirth, blue teleport gate madness
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface CrossLevelDataInterface {}
+
+export const crossLevelData: CrossLevelDataInterface = {}
+
 /**
  * The state of a level, used as a hub of realtime level properties, the most important one being `field`
  */
@@ -156,5 +162,6 @@ export function createLevelFromData(data: LevelData): LevelState {
 				)
 				actorInstance.direction = actor[1]
 			}
+	for (const actor of level.actors) actor.levelStarted?.()
 	return level
 }

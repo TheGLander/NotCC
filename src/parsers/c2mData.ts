@@ -71,7 +71,7 @@ const cc2Tiles = [
 	[["cloneMachine", 0, "cc1"]],
 	[["cloneMachine", 0, ""]],
 	[["hint", 0, ""]],
-	[["forceFloor", 0, "random"]],
+	[["forceFloorRandom", 0, ""]],
 	[["buttonGray", 0, ""]],
 	[["swivel", 2, ""]],
 	[["swivel", 3, ""]],
