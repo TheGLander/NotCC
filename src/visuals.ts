@@ -4,7 +4,10 @@ import ogData from "./cc2ImageFormat"
 import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
 import { keyNameList } from "./const"
 
-type CC2Animation = [number, number] | [[number, number], [number, number]]
+type CC2Animation =
+	| [number, number]
+	| [[number, number], [number, number]]
+	| [number, number][]
 
 type CC2AnimationCollection = Record<string, CC2Animation>
 
@@ -65,11 +68,17 @@ for (const actorAnimsName in ogData.actorMapping) {
 	for (const actorAnimName in actorAnims) {
 		const actorAnim = actorAnims[actorAnimName]
 		if (actorAnim[0] instanceof Array) {
-			data.actorMapping[actorAnimsName][actorAnimName] = []
-			const animRanges = actorAnim as [[number, number], [number, number]]
-			for (let x = animRanges[0][0]; x <= animRanges[1][0]; x++)
-				for (let y = animRanges[0][1]; y <= animRanges[1][1]; y++)
-					data.actorMapping[actorAnimsName][actorAnimName].push([x, y])
+			if (actorAnim.length === 2) {
+				data.actorMapping[actorAnimsName][actorAnimName] = []
+				const animRanges = actorAnim as [[number, number], [number, number]]
+				for (let x = animRanges[0][0]; x <= animRanges[1][0]; x++)
+					for (let y = animRanges[0][1]; y <= animRanges[1][1]; y++)
+						data.actorMapping[actorAnimsName][actorAnimName].push([x, y])
+			} else
+				data.actorMapping[actorAnimsName][actorAnimName] = actorAnim as [
+					number,
+					number
+				][]
 		} else
 			data.actorMapping[actorAnimsName][actorAnimName] = [
 				actorAnim as [number, number],

@@ -142,6 +142,28 @@ export class LevelState {
 		// TODO Decision time hooking
 		return true
 	}
+	prngValue1 = 0
+	prngValue2 = 0
+	random(): number {
+		let n = (this.prngValue1 >> 2) - this.prngValue1
+		if (!(this.prngValue1 & 0x02)) n--
+		this.prngValue1 = (this.prngValue1 >> 1) | (this.prngValue2 & 0x80)
+		this.prngValue2 = (this.prngValue2 << 1) | (n & 0x01)
+		return (this.prngValue1 ^ this.prngValue2) & 0xff
+	}
+	blobPrngValue = 0x55
+	blob4PatternsMode = false
+	blobMod(): number {
+		if (this.blob4PatternsMode) {
+			this.blobPrngValue++
+			this.blobPrngValue %= 4
+		} else {
+			this.blobPrngValue *= 2
+			if (this.blobPrngValue < 255) this.blobPrngValue ^= 0x1d
+			this.blobPrngValue &= 255
+		}
+		return this.blobPrngValue
+	}
 }
 
 export function createLevelFromData(data: LevelData): LevelState {

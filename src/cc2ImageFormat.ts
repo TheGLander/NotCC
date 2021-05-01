@@ -149,7 +149,6 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[15, 9],
 		],
 		forceFloor: {
-			// TODO Force-floor animation
 			up: [
 				[0, 19],
 				[0, 20],
@@ -242,6 +241,38 @@ const cc2ImageFormat: CC2ImageFormat = {
 			left: [
 				[6, 8],
 				[7, 8],
+			],
+		},
+		walker: {
+			idle: [0, 13],
+			vertical: [
+				[1, 13],
+				[7, 13],
+			],
+			horizontal: [
+				[8, 13],
+				[10, 13],
+				[12, 13],
+				[14, 13],
+				[8, 14],
+				[10, 14],
+				[12, 14],
+			],
+		},
+		blob: {
+			idle: [0, 15],
+			vertical: [
+				[1, 15],
+				[7, 15],
+			],
+			horizontal: [
+				[8, 15],
+				[10, 15],
+				[12, 15],
+				[14, 15],
+				[8, 16],
+				[10, 16],
+				[12, 16],
 			],
 		},
 	},

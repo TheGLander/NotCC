@@ -8,6 +8,7 @@ import { Layers } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
 import { actorDB } from "../const"
+import { genericStretchyArt } from "../actor"
 
 export abstract class Monster extends Actor {
 	blockTags = ["!playable"]
@@ -135,3 +136,26 @@ export class TankBlue extends Monster {
 }
 
 actorDB["tankBlue"] = TankBlue
+
+export class BlobMonster extends Monster {
+	id = "blob"
+	moveSpeed = 8
+	art = genericStretchyArt("blob", 8)
+	decideMovement(): [Direction] {
+		return [(this.level.random() + this.level.blobMod()) % 4]
+	}
+}
+
+actorDB["blob"] = BlobMonster
+
+export class Walker extends Monster {
+	id = "walker"
+	art = genericStretchyArt("walker", 8)
+	decideMovement(): [Direction] {
+		if (!this.level.checkCollision(this, this.direction))
+			return [(this.level.random() + this.direction) % 4]
+		return [this.direction]
+	}
+}
+
+actorDB["walker"] = Walker

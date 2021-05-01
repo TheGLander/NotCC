@@ -168,7 +168,7 @@ export abstract class Actor {
 	 * Decides the movements the actor will attempt to do
 	 * Must return an array of absolute directions
 	 */
-	decideMovement?(): (Direction | (() => Direction))[]
+	decideMovement?(): Direction[]
 	onBlocked?(blocker?: Actor): void
 	onEachDecision?(forcedOnly: boolean): void
 	_internalDecide(forcedOnly = false): void {
@@ -191,20 +191,18 @@ export abstract class Actor {
 
 		if (!directions) return
 
-		// eslint-disable-next-line prefer-const
-		for (let [i, direction] of directions.entries()) {
-			direction = typeof direction === "function" ? direction() : direction
-			// TODO Force redirection of movement (train tracks)
+		// TODO Force redirection of movement (train tracks)
 
+		for (const direction of directions)
 			if (this.level.checkCollision(this, direction)) {
 				// Yeah, we can go here
 				this.moveDecision = direction + 1
 				return
 			}
 
-			// Force last decision if all other fail
-			if (i === directions.length - 1) this.moveDecision = direction + 1
-		}
+		// Force last decision if all other fail
+		if (directions.length > 0)
+			this.moveDecision = directions[directions.length - 1] + 1
 	}
 	// This is defined separately only because of Instabonking:tm:
 	_internalStep(direction: Direction): boolean {
@@ -414,5 +412,32 @@ export const genericAnimatedArt = (
 			animation: animationName,
 			frame: Math.floor((currentFrame++ % (animLength * 3)) / 3),
 		}
+	}
+}
+
+export const genericStretchyArt = (name: string, animLength: number) => {
+	return function (this: Actor): ActorArt {
+		const offset = 1 - this.cooldown / (this.currentMoveSpeed ?? 1)
+		return !this.cooldown
+			? { actorName: name, animation: "idle" }
+			: this.direction % 2 === 0
+			? {
+					actorName: name,
+					animation: "vertical",
+					frame: Math.floor(
+						(this.direction >= 2 ? offset : 1 - offset) * (animLength - 1)
+					),
+					cropSize: [1, 2],
+					imageOffset: [0, this.direction >= 2 ? -offset : offset - 1],
+			  }
+			: {
+					actorName: name,
+					animation: "horizontal",
+					frame: Math.floor(
+						(this.direction < 2 ? offset : 1 - offset) * (animLength - 1)
+					),
+					cropSize: [2, 1],
+					imageOffset: [this.direction < 2 ? -offset : offset - 1, 0],
+			  }
 	}
 }
