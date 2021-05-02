@@ -127,8 +127,8 @@ export class BlueWall extends Actor {
 	}
 	blocks(other: Actor): boolean {
 		return (
-			this.customData === "real" &&
-			!matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+			this.customData === "real" ||
+			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
 		)
 	}
 	bumped(other: Actor): void {
