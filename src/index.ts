@@ -14,6 +14,7 @@ import "./actors/teleport"
 import "./actors/items"
 import "./actors/buttons"
 import { actorDB, keyNameList } from "./const"
+import { parseDAT } from "./parsers/dat"
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -45,9 +46,14 @@ const exportObject = { level, Direction, actorDB, pulseManager, keyNameList }
 
 export default exportObject
 
-async function startNewLevel(buffer: ArrayBuffer): Promise<void> {
+async function startNewLevel(
+	buffer: ArrayBuffer,
+	filename: string
+): Promise<void> {
 	await pulseManager.ready
-	const levelData = parseC2M(buffer)
+	const levelData = filename.endsWith(".c2m")
+		? parseC2M(buffer)
+		: parseDAT(buffer, filename).levels[1]
 	level = createLevelFromData(levelData)
 	exportObject.level = level
 	pulseManager.setNewLevel(level)
@@ -58,7 +64,7 @@ async function startNewLevel(buffer: ArrayBuffer): Promise<void> {
 		await (await fetch("./data/NotCC.c2m")).body?.getReader()?.read()
 	)?.value?.buffer
 	if (!levelData) console.log("Couldn't fetch default level")
-	else startNewLevel(levelData)
+	else startNewLevel(levelData, "NotCC.c2m")
 })()
 
 document.addEventListener("dragover", e => {
@@ -71,10 +77,12 @@ document.addEventListener("dragover", e => {
 document.addEventListener("drop", async e => {
 	e.stopPropagation()
 	e.preventDefault()
-	const file = e.dataTransfer?.items[0]
 	if (!e.dataTransfer) return console.log("Did not get a dataTransfer option")
+	const transferable = e.dataTransfer?.items[0]
+	if (!transferable) return console.log("Did not get a transferable")
+	const file = transferable.getAsFile()
 	if (!file) return console.log("Did not get a file")
-	const buffer = await file?.getAsFile()?.arrayBuffer()
+	const buffer = await file.arrayBuffer()
 	if (!buffer) return console.log("Did not get file contents")
-	startNewLevel(buffer)
+	startNewLevel(buffer, file.name)
 })

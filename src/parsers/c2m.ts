@@ -26,9 +26,9 @@ function getBit(number: number, bitPosition: number): boolean {
 function convertBitField(
 	bitField: ArrayBuffer,
 	size: [number, number]
-): Field<[string, Direction, string?][]> {
+): Field<[string, Direction?, string?][]> {
 	const view = new AutoReadDataView(bitField)
-	const field: Field<[string, Direction, string?][]> = []
+	const field: Field<[string, Direction?, string?][]> = []
 	function parseTile(): cc2Tile[] {
 		const tileId = view.getUint8()
 		const tiles = clone(data[tileId])
@@ -236,13 +236,11 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 			width: 10,
 			screens: 1,
 		},
-		extUsed: ["cc", "cc2"],
 		timeLimit: 0,
 		blobMode: 1,
-		name: "[unnamed]",
-		note: "",
-		hints: [],
 	}
+
+	// TODO Save solutions from c2m
 
 	let solutionHash: string
 
@@ -284,7 +282,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		() => view.skipBytes(1),
 		() => view.skipBytes(1),
 		() => {
-			data.blobMode = [1, 4, 256][view.getUint8()]
+			data.blobMode = ([1, 4, 256] as const)[view.getUint8()]
 		},
 	]
 
@@ -308,6 +306,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				view.getStringUntilNull()
 				break
 			case "CLUE":
+				data.hints ??= []
 				// TODO Find out if it's before or after the other hints or it depends on whatever
 				data.hints.unshift(view.getStringUntilNull())
 				break
@@ -324,6 +323,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 							data.note = noteSectionData
 							break
 						case "CLUE":
+							data.hints ??= []
 							data.hints.push(noteSectionData)
 							break
 						case "COM": // TODO C2M Inline code

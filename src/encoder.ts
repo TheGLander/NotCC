@@ -1,5 +1,4 @@
 import { Field, Direction } from "./helpers"
-//import Actor from "./actor"
 
 export interface CameraType {
 	width: number
@@ -8,16 +7,37 @@ export interface CameraType {
 }
 
 export interface LevelData {
-	field: Field<[string, Direction, string?][]>
+	/**
+	 * The field which contains all actors
+	 */
+	field: Field<[string, Direction?, string?][]>
 	width: number
 	height: number
+	/**
+	 * The viewport width/height
+	 */
 	camera: CameraType
-	extUsed: string[]
 	timeLimit: number
-	blobMode: number | "true"
-	name: string
-	hints: string[]
-	note: string
+	/**
+	 * The blob pattern setting in CC2, 1 by default
+	 */
+	blobMode?: 1 | 4 | 256
+	name?: string
+	hints?: string[]
+	note?: string
+	/**
+	 * The amount of chips to add to the required count beyond the default chip amount.
+	 * Is designed to mostly troll people into thinking there are more chips than there really are
+	 */
+	extraChipsRequired?: number
+	/**
+	 * The clone machine/trap custom connections. Not supported in vanilla CC2
+	 */
+	connections?: [[number, number], [number, number]][]
+	/**
+	 * The password used to access the level, not supported in vanilla CC2
+	 */
+	password?: string
 }
 
 export type PartialLevelData = Omit<LevelData, "field" | "width" | "height"> &
@@ -29,79 +49,13 @@ export function isPartialDataFull(
 	return !!partial.field && !!partial.height && !!partial.width
 }
 
-const manifestVer = 0
-/*
-export function encode(level: LevelData): string {
-	//Get all appearances to find out what to archive
-	const appearances: Map<string, number> = new Map()
-	for (const x in level.field)
-		for (const y in level.field[x])
-			for (const i in level.field[x][y]) {
-				if (!appearances.get(level.field[x][y][i].fullname))
-					appearances.set(level.field[x][y][i].fullname, 0)
-				appearances.set(
-					level.field[x][y][i].fullname,
-					appearances.get(level.field[x][y][i].fullname) + 1
-				)
-			}
-	//Write them into a handy lookup object
-	const archived: Record<string, number> = {}
-	appearances.forEach((val, key) => {
-		if (val > 1) archived[key] = Object.keys(archived).length + 1
-	})
-
-	//Initialize the storage
-	const storage: (string[] | string[][])[] = []
-	//Write metadata
-	const metadata: number[] = [
-		manifestVer,
-		level.width,
-		level.height,
-		level.timeLimit,
-		level.camera.width,
-		level.camera.height,
-		level.camera.screens,
-	]
-	storage.push(metadata.map(val => val.toString()))
-	//Write archive data
-	const archiveStorage = []
-	for (const key in archived) {
-		archiveStorage.push(key)
-	}
-	storage.push(archiveStorage)
-	//Write normal tile data
-	for (const x in level.field)
-		for (const y in level.field[x]) {
-			let tileStorage: string[][] = []
-			for (const i in level.field[x][y]) {
-				const actor = level.field[x][y][i]
-				tileStorage.push([
-					archived[actor.fullname]?.toString() || actor.fullname,
-					actor.direction.toString(),
-				])
-			}
-			storage.push(tileStorage)
-		}
-
-	return JSON.stringify(storage)
+// TODO C2G Scripting
+export interface LevelSetData {
+	name: string
+	// Note that this isn't in array, this can have holes and such
+	levels: Record<number, LevelData>
 }
 
-export function decode(srcData: string): LevelData {
-	let level: LevelData
-	const data: (string[] | string[][])[] = JSON.parse(srcData)
-	level = {
-		field: [],
-		width: parseInt(data[0][1] as string),
-		height: parseInt(data[0][2] as string),
-		camera: {
-			width: parseInt(data[0][4] as string),
-			height: parseInt(data[0][5] as string),
-			screens: parseInt(data[0][6] as string),
-		},
-		extUsed: [],
-		timeLimit: parseInt(data[0][3] as string),
-	}
-	const archived = data[1] as string[]
-	
+export function levelAsSet(level: LevelData): LevelSetData {
+	return { name: level.name ?? "UNNAMED", levels: { 1: level } }
 }
-*/

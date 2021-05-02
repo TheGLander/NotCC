@@ -169,9 +169,15 @@ export class LevelState {
 export function createLevelFromData(data: LevelData): LevelState {
 	const level = new LevelState(data.width, data.height)
 	level.levelData = data
-	level.hintsLeft = [...data.hints]
-	// TODO Misc data setting, like blob patterns and stuff
+	if (data.hints) level.hintsLeft = [...data.hints]
+	// TODO Misc data setting, like CC1 boots and stuff
+	if (data.blobMode) {
+		if (data.blobMode > 1)
+			level.blobPrngValue = Math.floor(Math.random() * 0x100)
+		level.blob4PatternsMode = data.blobMode === 4
+	}
 	level.cameraType = data.camera
+	if (data.extraChipsRequired) level.chipsRequired = data.extraChipsRequired
 	for (let y = level.height - 1; y >= 0; y--)
 		for (let x = level.width - 1; x >= 0; x--)
 			for (const actor of data.field[x][y]) {
@@ -182,7 +188,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 					[x, y],
 					actor[2]
 				)
-				actorInstance.direction = actor[1]
+				if (actor[1]) actorInstance.direction = actor[1]
 			}
 	for (const actor of level.actors) actor.levelStarted?.()
 	return level
