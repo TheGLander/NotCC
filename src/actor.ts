@@ -1,4 +1,4 @@
-import { LevelState } from "./level"
+import { LevelState, crossLevelData } from "./level"
 import { Decision, actorDB } from "./const"
 import { Direction } from "./helpers"
 import { Layers } from "./tile"
@@ -81,9 +81,13 @@ export abstract class Actor {
 	abstract layer: Layers
 	abstract id: string
 	despawned = false
-	despawn(): void {
+	/**
+	 * Kinda like destroying, but bugged and shouldn't be used
+	 */
+	despawn(intended = false): void {
 		this.despawned = true
 		this.tile.removeActors(this)
+		if (!intended) crossLevelData.despawnedActors?.push(this)
 	}
 	art?: ActorArt | (() => ActorArt)
 	/**
@@ -305,7 +309,15 @@ export abstract class Actor {
 	 * Updates tile states and calls hooks
 	 */
 	_internalUpdateTileStates(): void {
-		this.despawned = false
+		if (this.despawned) {
+			// We moved! That means this is no longer despawned and we are no longer omni-present
+			this.despawned = false
+			if (crossLevelData.despawnedActors?.includes(this))
+				crossLevelData.despawnedActors.splice(
+					crossLevelData.despawnedActors.indexOf(this),
+					1
+				)
+		}
 		this.oldTile?.removeActors(this)
 		this.tile.addActors(this)
 		// Spread from and to to not have actors which create new actors instantly be interacted with
@@ -322,7 +334,7 @@ export abstract class Actor {
 		if (killer && this._internalIgnores(killer)) return
 		if (this.level.actors.includes(this))
 			this.level.actors.splice(this.level.actors.indexOf(this), 1)
-		this.despawn()
+		this.despawn(true)
 		if (animType && actorDB[`${animType}Anim`]) {
 			const anim = new actorDB[`${animType}Anim`](
 				this.level,

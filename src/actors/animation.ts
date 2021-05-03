@@ -38,12 +38,16 @@ export interface QueuedAnimationDespawn {
 
 onLevelDecisionTick.push(level => {
 	if (!crossLevelData.queuedDespawns) return
-	for (const despawn of crossLevelData.queuedDespawns) {
+	for (const despawn of [...crossLevelData.queuedDespawns]) {
 		despawn.ticksLeft--
-		if (!despawn.ticksLeft) {
+		if (despawn.ticksLeft <= 0) {
 			level.field[despawn.position[0]]?.[despawn.position[1]]?.[
 				Layers.MOVABLE
 			][0]?.despawn()
+			crossLevelData.queuedDespawns.splice(
+				crossLevelData.queuedDespawns.indexOf(despawn),
+				1
+			)
 		}
 	}
 })

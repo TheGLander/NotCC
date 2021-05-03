@@ -14,11 +14,39 @@ export enum GameState {
 }
 
 // TODO Blue teleport gate madness
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface CrossLevelDataInterface {}
+export interface CrossLevelDataInterface {
+	despawnedActors?: Actor[]
+}
 
-export const crossLevelData: CrossLevelDataInterface = {}
+export const crossLevelData: CrossLevelDataInterface = { despawnedActors: [] }
 
+export const onLevelStart: ((level: LevelState) => void)[] = [
+	level => {
+		if (!crossLevelData.despawnedActors) return
+		let undefinedBehaviorWarningGiven = false
+		for (const actor of crossLevelData.despawnedActors) {
+			if (
+				(actor.tile.position[0] >= level.width ||
+					actor.tile.position[1] >= level.height) &&
+				!undefinedBehaviorWarningGiven
+			) {
+				// TODO Have some custom modals, alerts are disgusting
+				alert(
+					"!!WARNING!!\nNormally, the game would crash at this point, so this is really undefined behavior."
+				)
+				undefinedBehaviorWarningGiven = true
+			}
+			actor.level = level
+			level.actors.push(actor)
+			actor.tile.removeActors(actor)
+			actor.oldTile = null
+			actor.tile = level.field[actor.tile.position[0]][actor.tile.position[1]]
+			if (actor instanceof Playable) level.playables.push(actor)
+			// Note that we don't add the actor to the tile: That's the whole point of despawning
+			//actor.tile.addActors(actor)
+		}
+	},
+]
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
 
 /**
@@ -77,6 +105,7 @@ export class LevelState {
 			for (let y = 0; y < height; y++)
 				this.field[x].push(new Tile(this, [x, y], []))
 		}
+		onLevelStart.forEach(val => val(this))
 	}
 	/**
 	 * Checks if a specific actor can move in a certain direction
