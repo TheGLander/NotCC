@@ -33,6 +33,7 @@ const textStats = document.querySelector<HTMLElement>("#textStats")
 const levelInputButton = document.querySelector<HTMLElement>(
 	"#levelInputButton"
 )
+const levelList = document.querySelector<HTMLSelectElement>("#levelList")
 const levelInput = document.createElement("input")
 levelInput.type = "file"
 levelInput.accept = ".c2m,.dat,.ccl"
@@ -50,6 +51,11 @@ const setPlayer = new SetPlayer(
 	new PulseManager(new LevelState(0, 0), renderSpace, itemSpace, textStats),
 	{ name: "LOADING", levels: {} }
 )
+
+levelList?.addEventListener("change", () => {
+	setPlayer.currentLevelIndex = parseInt(levelList.value)
+	setPlayer.restartLevel()
+})
 
 // We export it like this so the global values are always updated
 // TODO Have the level code be unrelated to the game instance
@@ -74,6 +80,16 @@ async function startNewLevelSet(
 		? levelAsSet(parseC2M(buffer))
 		: parseDAT(buffer, filename)
 	setPlayer.setNewLevelSet(levelData)
+	if (levelList) {
+		levelList.innerText = ""
+		for (const levelId in setPlayer.sortedLevels) {
+			const level = setPlayer.sortedLevels[levelId]
+			const option = document.createElement("option")
+			option.value = levelId
+			option.innerText = `${level[0]}: ${level[1].name ?? "UNNAMED"}`
+			levelList.appendChild(option)
+		}
+	}
 }
 
 ;(async () => {
