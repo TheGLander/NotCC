@@ -7,7 +7,6 @@ export enum Layers {
 	ITEM,
 	ITEM_SUFFIX, // No sign, etc.
 	MOVABLE, // Blocks, Players, Monsters
-	ANIMATION,
 	SPECIAL, // Thin walls, canopies, swivels, etc.
 }
 
@@ -38,8 +37,10 @@ class Tile extends Array<Array<Actor>> {
 	removeActors(actors: Actor | Actor[]): void {
 		actors = actors instanceof Array ? actors : [actors]
 		for (const actor of actors) {
-			this.allActors.splice(this.allActors.indexOf(actor), 1)
-			this[actor.layer].splice(this[actor.layer].indexOf(actor), 1)
+			if (this.allActors.includes(actor))
+				this.allActors.splice(this.allActors.indexOf(actor), 1)
+			if (this[actor.layer].includes(actor))
+				this[actor.layer].splice(this[actor.layer].indexOf(actor), 1)
 		}
 	}
 	getNeighbor(direction: Direction): Tile | null {

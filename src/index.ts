@@ -1,4 +1,9 @@
-import { LevelState, createLevelFromData } from "./level"
+import {
+	LevelState,
+	createLevelFromData,
+	onLevelDecisionTick,
+	crossLevelData,
+} from "./level"
 import { Direction } from "./helpers"
 import "./base.css"
 import { PulseManager } from "./pulse"
@@ -67,6 +72,8 @@ const exportObject = {
 	actorDB,
 	setPlayer,
 	keyNameList,
+	onLevelDecisionTick,
+	crossLevelData,
 }
 
 export default exportObject

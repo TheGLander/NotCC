@@ -303,7 +303,8 @@ export default class Renderer {
 					Math.ceil(cameraPos[0] + this.level.cameraType.width + 1) ||
 				actor.tile.y < Math.floor(cameraPos[1] - 1) ||
 				actor.tile.y >
-					Math.ceil(cameraPos[1] + this.level.cameraType.height + 1)
+					Math.ceil(cameraPos[1] + this.level.cameraType.height + 1) ||
+				actor.despawned
 			)
 				continue
 			const movedPos = [actor.tile.x, actor.tile.y]

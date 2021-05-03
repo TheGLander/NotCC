@@ -13,11 +13,13 @@ export enum GameState {
 	WON,
 }
 
-// TODO Despawning & respawning AKA waterbirth, blue teleport gate madness
+// TODO Blue teleport gate madness
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CrossLevelDataInterface {}
 
 export const crossLevelData: CrossLevelDataInterface = {}
+
+export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
 
 /**
  * The state of a level, used as a hub of realtime level properties, the most important one being `field`
@@ -29,11 +31,9 @@ export class LevelState {
 	gameState = GameState.PLAYING
 	field: Field<Tile> = []
 	actors: Actor[] = []
-	decidingActors: Actor[] = []
 	subtick: 0 | 1 | 2 = 0
 	currentTick = 0
 	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
-	destroyedThisTick: Actor[] = []
 	levelData?: LevelData
 	chipsLeft = 0
 	chipsTotal = 0
@@ -44,7 +44,8 @@ export class LevelState {
 	 */
 	connections: [[number, number], [number, number]][] = []
 	protected decisionTick(forcedOnly = false): void {
-		for (const actor of this.decidingActors) actor._internalDecide(forcedOnly)
+		onLevelDecisionTick.forEach(val => val(this))
+		for (const actor of this.actors) actor._internalDecide(forcedOnly)
 	}
 	protected moveTick(): void {
 		for (const actor of this.actors) {
@@ -57,7 +58,6 @@ export class LevelState {
 	 * (Since there are 3 subticks in a tick, and 20 ticks in a second, this should be run 60 times a second)
 	 */
 	tick(): void {
-		this.destroyedThisTick = []
 		this.decisionTick(this.subtick !== 2)
 		this.moveTick()
 		//	if (this.playables.length === 0) this.lost = true
@@ -126,7 +126,6 @@ export class LevelState {
 			Layers.MOVABLE,
 			Layers.ITEM,
 			Layers.ITEM_SUFFIX,
-			Layers.ANIMATION,
 		]) {
 			for (const blockActor of newTile[layer]) {
 				blockActor.bumped?.(actor, direction)
@@ -142,7 +141,8 @@ export class LevelState {
 				// We did not move, shame, but we did queue this block push
 				return false
 			}
-			if (!pushable._internalStep(direction)) return false
+			if (!this.checkCollision(pushable, direction, true)) return false
+			pushable.pendingDecision = direction + 1
 		}
 		// TODO Decision time hooking
 		return true

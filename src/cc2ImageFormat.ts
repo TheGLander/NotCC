@@ -126,6 +126,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[11, 12],
 			],
 		},
+		turtle: [
+			[13, 12],
+			[15, 12],
+		],
 		glider: {
 			up: [
 				[8, 8],

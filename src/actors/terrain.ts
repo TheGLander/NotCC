@@ -428,3 +428,28 @@ export class Bomb extends Actor {
 }
 
 actorDB["bomb"] = Bomb
+
+export class Turtle extends Actor {
+	id = "turtle"
+	tags = ["blocks-ghost"]
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	art = (): ActorArt => ({
+		actorName: "water",
+		frame: this.level.currentTick % 4,
+		compositePieces: [
+			{
+				actorName: "turtle",
+				frame: Math.floor(this.level.currentTick / 3) % 3,
+			},
+		],
+	})
+	blockTags = ["melting"]
+	actorLeft(): void {
+		this.destroy(null, "splash")
+		new Water(this.level, this.tile.position)
+	}
+}
+
+actorDB["turtle"] = Turtle

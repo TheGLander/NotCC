@@ -80,6 +80,11 @@ export abstract class Actor {
 	slidingState = SlidingState.NONE
 	abstract layer: Layers
 	abstract id: string
+	despawned = false
+	despawn(): void {
+		this.despawned = true
+		this.tile.removeActors(this)
+	}
 	art?: ActorArt | (() => ActorArt)
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
@@ -161,8 +166,6 @@ export abstract class Actor {
 		public customData = ""
 	) {
 		level.actors.push(this)
-		if (this.decideMovement || this.onEachDecision)
-			level.decidingActors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
 	}
@@ -187,8 +190,7 @@ export abstract class Actor {
 			this.moveDecision = this.direction + 1
 			return
 		}
-		if (forcedOnly) return
-		if (!this._internalCanDecide()) return
+		if (forcedOnly || !this._internalCanDecide()) return
 		const directions = this.decideMovement?.()
 
 		if (!directions) return
@@ -303,6 +305,7 @@ export abstract class Actor {
 	 * Updates tile states and calls hooks
 	 */
 	_internalUpdateTileStates(): void {
+		this.despawned = false
 		this.oldTile?.removeActors(this)
 		this.tile.addActors(this)
 		// Spread from and to to not have actors which create new actors instantly be interacted with
@@ -317,9 +320,9 @@ export abstract class Actor {
 	}
 	destroy(killer?: Actor | null, animType: string | null = "explosion"): void {
 		if (killer && this._internalIgnores(killer)) return
-		this.tile.removeActors(this)
-		this.level.actors.splice(this.level.actors.indexOf(this), 1)
-		this.level.destroyedThisTick.push(this)
+		if (this.level.actors.includes(this))
+			this.level.actors.splice(this.level.actors.indexOf(this), 1)
+		this.despawn()
 		if (animType && actorDB[`${animType}Anim`]) {
 			const anim = new actorDB[`${animType}Anim`](
 				this.level,
@@ -389,33 +392,27 @@ export abstract class Actor {
 /**
  * Creates an art function for a generic directionable actor
  */
-export const genericDirectionableArt = (name: string, animLength: number) => {
-	let currentFrame = 0
-	return function (this: Actor): ActorArt {
+export const genericDirectionableArt = (name: string, animLength: number) =>
+	function (this: Actor): ActorArt {
 		return {
 			actorName: name,
 			animation: ["up", "right", "down", "left"][this.direction],
-			frame: this.cooldown
-				? Math.floor((currentFrame++ % (animLength * 3)) / 3)
-				: 0,
+			frame: this.cooldown ? this.level.currentTick % animLength : 0,
 		}
 	}
-}
 
 export const genericAnimatedArt = (
 	name: string,
 	animLength: number,
 	animationName?: string
-) => {
-	let currentFrame = 0
-	return function (this: Actor): ActorArt {
+) =>
+	function (this: Actor): ActorArt {
 		return {
 			actorName: name,
 			animation: animationName,
-			frame: Math.floor((currentFrame++ % (animLength * 3)) / 3),
+			frame: this.level.currentTick % animLength,
 		}
 	}
-}
 
 export const genericStretchyArt = (name: string, animLength: number) => {
 	return function (this: Actor): ActorArt {
