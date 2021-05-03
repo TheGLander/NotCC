@@ -38,6 +38,10 @@ export class LevelState {
 	chipsTotal = 0
 	chipsRequired = 0
 	hintsLeft: string[] = []
+	/**
+	 * Connections of 2 tiles, used for CC1-style clone machine and trap connections
+	 */
+	connections: [[number, number], [number, number]][] = []
 	protected decisionTick(forcedOnly = false): void {
 		for (const actor of this.actors) actor._internalDecide(forcedOnly)
 	}
@@ -178,6 +182,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 	}
 	level.cameraType = data.camera
 	if (data.extraChipsRequired) level.chipsRequired = data.extraChipsRequired
+	if (data.connections) level.connections = data.connections
 	for (let y = level.height - 1; y >= 0; y--)
 		for (let x = level.width - 1; x >= 0; x--)
 			for (const actor of data.field[x][y]) {
