@@ -5,16 +5,6 @@ import data, { cc2Tile } from "./c2mData"
 import clone from "deepclone"
 
 /**
- * Checks if the value is an iterable, if not, creates an array out of it
- * @param val
- */
-function forceIterable<T>(val: T | Iterable<T>): Iterable<T> {
-	// @ts-expect-error Ts doesn't understand iterables
-	if (!val[Symbol.iterator]) return [val as T]
-	else return val as Iterable<T>
-}
-
-/**
  * Gets a bit from a number
  * @param number The number to use
  * @param bitPosition The position of the bit to use, starts from right
@@ -205,7 +195,7 @@ function unpackageCompressedField(buff: ArrayBuffer): ArrayBuffer {
 		const length = view.getUint8()
 		if (length < 0x80) {
 			// Data block
-			newView.pushUint8(...forceIterable(view.getUint8(length)))
+			newView.pushUint8(...view.getUint8(length))
 		} else {
 			// Back-reference block
 			const amount = length - 0x80
@@ -220,7 +210,7 @@ function unpackageCompressedField(buff: ArrayBuffer): ArrayBuffer {
 				const bytes = newView.getUint8(copyAmount)
 				// Return
 				newView.skipBytes(offset - copyAmount + copied)
-				newView.pushUint8(...forceIterable(bytes))
+				newView.pushUint8(...bytes)
 				copied += copyAmount
 			}
 		}

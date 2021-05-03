@@ -85,6 +85,7 @@ export abstract class Key extends Item {
 
 export class KeyRed extends Key {
 	id = "keyRed"
+	ignoreTags = ["!playable"]
 	art: ActorArt = { actorName: "key", animation: "red" }
 	keyUsed(other: Actor): void {
 		if (other.getCompleteTags("tags").includes("can-reuse-key-red"))

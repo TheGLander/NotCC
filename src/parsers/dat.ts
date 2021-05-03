@@ -87,9 +87,10 @@ export function parseDAT(buff: ArrayBuffer, fileName: string): LevelSetData {
 				case 4:
 				case 5: // Button/machine connections
 					while (view.offset < fieldTargetOffset) {
+						const connectionData = view.getUint16(4)
 						levelData.connections.push([
-							[view.getUint16(), view.getUint16()],
-							[view.getUint16(), view.getUint16()],
+							[connectionData[0], connectionData[1]],
+							[connectionData[2], connectionData[3]],
 						])
 						if (fieldType === 4) view.getUint16() // This is never used
 					}

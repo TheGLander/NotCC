@@ -277,7 +277,7 @@ actorDB["hint"] = Hint
 export class Fire extends Actor {
 	id = "fire"
 	art = genericAnimatedArt("fire", 4)
-	tags = ["fire"]
+	tags = ["fire", "melting"]
 	blockTags = ["monster"]
 	get layer(): Layers {
 		return Layers.STATIONARY

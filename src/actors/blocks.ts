@@ -12,6 +12,7 @@ export class DirtBlock extends Actor {
 		actorName: "dirtBlock",
 	}
 	tags = ["block", "cc1block", "movable"]
+	ignoreTags = ["fire"]
 	get layer(): Layers {
 		return Layers.MOVABLE
 	}
@@ -56,17 +57,22 @@ export class IceBlock extends Actor {
 		playable?.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile[Layers.STATIONARY].find(val => val instanceof Water)
+		const water = this.tile[Layers.STATIONARY].find(val =>
+			val.tags.includes("water")
+		)
 		if (water) {
 			water.destroy(this, null)
 			new Ice(this.level, this.tile.position)
 		}
+		for (const actor of this.tile[Layers.STATIONARY]) this.melt(actor)
 	}
 	bumped = this.melt
 	melt(other: Actor): void {
 		if (other.tags.includes("melting")) {
 			this.destroy(this, null)
-			new Water(this.level, this.tile.position)
+			if (other.layer === Layers.STATIONARY) other.destroy(this, null)
+			if (this.tile[Layers.STATIONARY].length === 0)
+				new Water(this.level, this.tile.position)
 		}
 	}
 }

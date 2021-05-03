@@ -51,10 +51,10 @@ export function ROConnectedButtonFactory(color: string) {
 			if (!this.connectedActor) {
 				const thisIndex = this.level.actors.indexOf(this)
 				const foundActor = [
-					...(this.explicitlyConnectedTile?.allActors ?? []), // Try the explicitly connected one first
 					// This relies that actor order is in RRO, maybe this should do it more like teleports?
 					...this.level.actors.slice(thisIndex),
 					...this.level.actors.slice(0, thisIndex),
+					...(this.explicitlyConnectedTile?.allActors ?? []), // Try the explicitly connected one first
 				]
 					.reverse()
 					.find(actor => actor.buttonPressed?.(color))
