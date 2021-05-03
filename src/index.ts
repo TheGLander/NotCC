@@ -15,6 +15,8 @@ import "./actors/items"
 import "./actors/buttons"
 import { actorDB, keyNameList } from "./const"
 import { parseDAT } from "./parsers/dat"
+import { levelAsSet } from "./encoder"
+import { SetPlayer } from "./setPlayer"
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -25,38 +27,53 @@ in ${ev.filename}
 `)
 )
 
-let level = new LevelState(0, 0)
-
 const renderSpace = document.querySelector<HTMLElement>("#renderSpace")
 const itemSpace = document.querySelector<HTMLElement>("#renderSpace")
 const textStats = document.querySelector<HTMLElement>("#textStats")
-
-const pulseManager = new PulseManager(level, renderSpace, itemSpace, textStats)
-
-pulseManager.eventsRegistered.stateChange.push(() => {
-	if (level.levelData)
-		pulseManager.setNewLevel(
-			(exportObject.level = level = createLevelFromData(level.levelData))
-		)
+const levelInputButton = document.querySelector<HTMLElement>(
+	"#levelInputButton"
+)
+const levelInput = document.createElement("input")
+levelInput.type = "file"
+levelInput.accept = ".c2m,.dat,.ccl"
+levelInput.addEventListener("input", async () => {
+	const files = levelInput.files
+	if (!files) return console.log("Didn't find file list")
+	const file = files.item(0)
+	if (!file) return console.log("Didn't find file")
+	startNewLevelSet(await file.arrayBuffer(), file.name)
 })
+
+levelInputButton?.addEventListener("click", () => levelInput.click())
+
+const setPlayer = new SetPlayer(
+	new PulseManager(new LevelState(0, 0), renderSpace, itemSpace, textStats),
+	{ name: "LOADING", levels: {} }
+)
 
 // We export it like this so the global values are always updated
 // TODO Have the level code be unrelated to the game instance
-const exportObject = { level, Direction, actorDB, pulseManager, keyNameList }
+const exportObject = {
+	get level(): LevelState {
+		return setPlayer.pulseManager.level
+	},
+	Direction,
+	actorDB,
+	setPlayer,
+	keyNameList,
+}
 
 export default exportObject
 
-async function startNewLevel(
+async function startNewLevelSet(
 	buffer: ArrayBuffer,
 	filename: string
 ): Promise<void> {
-	await pulseManager.ready
+	await setPlayer.ready
 	const levelData = filename.endsWith(".c2m")
-		? parseC2M(buffer)
-		: parseDAT(buffer, filename).levels[1]
-	level = createLevelFromData(levelData)
-	exportObject.level = level
-	pulseManager.setNewLevel(level)
+		? levelAsSet(parseC2M(buffer))
+		: parseDAT(buffer, filename)
+	setPlayer.setNewLevelSet(levelData)
 }
 
 ;(async () => {
@@ -64,7 +81,7 @@ async function startNewLevel(
 		await (await fetch("./data/NotCC.c2m")).body?.getReader()?.read()
 	)?.value?.buffer
 	if (!levelData) console.log("Couldn't fetch default level")
-	else startNewLevel(levelData, "NotCC.c2m")
+	else startNewLevelSet(levelData, "NotCC.c2m")
 })()
 
 document.addEventListener("dragover", e => {
@@ -84,5 +101,5 @@ document.addEventListener("drop", async e => {
 	if (!file) return console.log("Did not get a file")
 	const buffer = await file.arrayBuffer()
 	if (!buffer) return console.log("Did not get file contents")
-	startNewLevel(buffer, file.name)
+	startNewLevelSet(buffer, file.name)
 })

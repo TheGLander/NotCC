@@ -9,6 +9,15 @@ td {
 	overflow-wrap: break-word;
 }
 
+brList>*:after {
+	content: "\A";
+	white-space: pre;
+}
+
+#levelInput {
+	opacity: 0;
+}
+
 /* Renderer things */
 
 .renderer {
@@ -18,3 +27,4 @@ td {
   image-rendering: crisp-edges;
 	image-rendering: optimizeSpeed;
 }
+
