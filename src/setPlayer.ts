@@ -18,9 +18,11 @@ export class SetPlayer {
 		this.setNewLevelSet(levelSet)
 	}
 	restartLevel(): Promise<void> {
-		return this.pulseManager.setNewLevel(
-			createLevelFromData(this.sortedLevels[this.currentLevelIndex][1])
-		)
+		if (this.sortedLevels[this.currentLevelIndex])
+			return this.pulseManager.setNewLevel(
+				createLevelFromData(this.sortedLevels[this.currentLevelIndex][1])
+			)
+		else return Promise.resolve()
 	}
 	setNewLevelSet(levelSet: LevelSetData): Promise<void> {
 		this.levelSet = levelSet
