@@ -161,6 +161,8 @@ export abstract class Actor {
 		public customData = ""
 	) {
 		level.actors.push(this)
+		if (this.decideMovement || this.onEachDecision)
+			level.decidingActors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
 	}
