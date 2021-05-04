@@ -422,8 +422,12 @@ export class Bomb extends Actor {
 		return Layers.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		other.destroy(this)
+		other.destroy(this, null)
 		this.destroy(other)
+	}
+	levelStarted(): void {
+		if (this.tile[Layers.MOVABLE].length > 0)
+			this.actorCompletelyJoined(this.tile[Layers.MOVABLE][0])
 	}
 }
 

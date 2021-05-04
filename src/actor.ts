@@ -250,11 +250,10 @@ export abstract class Actor {
 		const ogDirection = this.moveDecision - 1
 		const bonked = !this._internalStep(ogDirection)
 		if (bonked && this.slidingState) {
-			for (const bonkListener of this.tile.allActors)
-				bonkListener.onMemberSlideBonked?.(this)
 			for (const actor of this.tile.allActors)
 				actor.actorCompletelyJoined?.(this)
-
+			for (const bonkListener of this.tile.allActors)
+				bonkListener.onMemberSlideBonked?.(this)
 			if (ogDirection !== this.direction) this._internalStep(this.direction)
 		}
 	}
@@ -341,11 +340,13 @@ export abstract class Actor {
 		if (this.oldTile)
 			for (const actor of [...this.oldTile.allActors])
 				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
-		this.tile.addActors(this)
 		// Despawn all actors which are already there, you should've blocked this, if you cared to exist!
-		for (const actor of this.tile[this.layer])
-			if (actor !== this) actor.despawn(false)
+		for (const actor of this.tile[this.layer]) {
+			actor.despawn(false)
+			if (!actor.id.endsWith("Anim")) console.warn("A despawn has happended")
+		}
 
+		this.tile.addActors(this)
 		this.slidingState = SlidingState.NONE
 		for (const actor of [...this.tile.allActors])
 			if (actor !== this && !this._internalIgnores(actor))

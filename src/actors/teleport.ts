@@ -34,6 +34,7 @@ function findNextTeleport<T extends Actor>(
 			if (
 				newTeleport &&
 				teleportNeighbor &&
+				newTeleport.tile[Layers.MOVABLE].length === 0 &&
 				(!checkCollision ||
 					this.level.checkCollisionToTile(
 						other,
@@ -55,6 +56,10 @@ export class BlueTeleport extends Actor {
 		return Layers.STATIONARY
 	}
 	art = genericAnimatedArt("teleportBlue", 4)
+	actorJoined(other: Actor): void {
+		other.slidingState = SlidingState.STRONG
+	}
+
 	actorCompletelyJoined(other: Actor): void {
 		other.oldTile = other.tile
 		other.tile = findNextTeleport.call(this, other).tile

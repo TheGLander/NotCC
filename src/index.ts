@@ -87,6 +87,7 @@ async function startNewLevelSet(
 		? levelAsSet(parseC2M(buffer))
 		: parseDAT(buffer, filename)
 	setPlayer.setNewLevelSet(levelData)
+	setPlayer.restartLevel()
 	if (levelList) {
 		levelList.innerText = ""
 		for (const levelId in setPlayer.sortedLevels) {

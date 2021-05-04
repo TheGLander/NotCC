@@ -89,7 +89,7 @@ export class PulseManager {
 		window.addEventListener("keyup", this.keyUpFunc.bind(this))
 		// This is not node.js
 		this.logicIntervalId = (setInterval(
-			this.tickLevel.bind(this),
+			() => this.tickLevel(),
 			1000 / 60
 		) as unknown) as number
 		this.updateFrame()
@@ -128,7 +128,10 @@ Chips left: ${this.level.chipsLeft}`
 		this.updateTextStats()
 		switch (this.level.gameState) {
 			case GameState.LOST:
-				if (this.lastLevelGameState === GameState.PLAYING) {
+				if (
+					this.lastLevelGameState === GameState.PLAYING ||
+					this.level.currentTick === 0
+				) {
 					this.renderer.frame()
 					alert("Bummer")
 					this.eventsRegistered.lose.forEach(val => val())
