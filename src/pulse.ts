@@ -118,7 +118,9 @@ export class PulseManager {
 	}
 	updateTextStats(): void {
 		if (!this.textStats) return
-		this.textStats.innerText = `Time left: -
+		this.textStats.innerText = `Time left: ${Math.ceil(
+			this.level.timeLeft / 20
+		)}s
 Chips left: ${this.level.chipsLeft}`
 	}
 	tickLevel(): void {

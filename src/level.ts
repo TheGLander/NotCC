@@ -66,6 +66,7 @@ export class LevelState {
 	chipsLeft = 0
 	chipsTotal = 0
 	chipsRequired = 0
+	timeLeft = 0
 	hintsLeft: string[] = []
 	/**
 	 * Connections of 2 tiles, used for CC1-style clone machine and trap connections
@@ -92,6 +93,10 @@ export class LevelState {
 		if (this.subtick === 2) {
 			this.currentTick++
 			this.subtick = 0
+			if (this.timeLeft !== 0) {
+				this.timeLeft--
+				if (this.timeLeft <= 0) this.gameState = GameState.LOST
+			}
 		} else this.subtick++
 	}
 	giveInput(input: KeyInputs): void {
@@ -212,6 +217,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 		level.blob4PatternsMode = data.blobMode === 4
 	}
 	level.cameraType = data.camera
+	level.timeLeft = data.timeLimit * 20
 	if (data.extraChipsRequired) level.chipsRequired = data.extraChipsRequired
 	if (data.connections) level.connections = data.connections
 	for (let y = level.height - 1; y >= 0; y--)
