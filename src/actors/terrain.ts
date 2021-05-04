@@ -227,6 +227,7 @@ export class Exit extends Actor {
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
 			other.destroy(this, null)
+			this.level.gameState = GameState.PLAYING
 			if (this.level.playables.length === 0)
 				this.level.gameState = GameState.WON
 		}
