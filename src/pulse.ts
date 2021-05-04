@@ -2,16 +2,6 @@ import { GameState, LevelState } from "./level"
 import keycode from "keycode"
 import Renderer from "./visuals"
 
-const keymap = {
-	up: "up",
-	down: "down",
-	left: "left",
-	right: "right",
-	z: "drop",
-	x: "rotateInv",
-	c: "switchPlayable",
-} as const
-
 export interface KeyInputs {
 	up: boolean
 	down: boolean
@@ -22,6 +12,12 @@ export interface KeyInputs {
 	switchPlayable: boolean
 }
 
+type InputType = keyof KeyInputs
+
+const isSmartTV = /smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
+	navigator.userAgent.toLowerCase()
+)
+
 function stabilizeFactory(bufferLength = 60): (val: number) => number {
 	const buffer: number[] = []
 	return num => {
@@ -30,6 +26,26 @@ function stabilizeFactory(bufferLength = 60): (val: number) => number {
 		return buffer.reduce((acc, val) => acc + val) / buffer.length
 	}
 }
+
+const keymap: Record<string, InputType> = isSmartTV
+	? {
+			2: "up",
+			4: "left",
+			6: "right",
+			8: "down",
+			1: "drop",
+			3: "rotateInv",
+			5: "switchPlayable",
+	  }
+	: {
+			up: "up",
+			down: "down",
+			left: "left",
+			right: "right",
+			z: "drop",
+			x: "rotateInv",
+			c: "switchPlayable",
+	  }
 
 const checkIfRelevant = (key: string): key is keyof typeof keymap =>
 	key in keymap
