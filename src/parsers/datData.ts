@@ -33,7 +33,7 @@ const data: [string, Direction?, string?][][] = [
 	[["blueWall", 0, "real"]],
 	[["blueWall", 0, "fake"]],
 	[["wall"]],
-	[["thiefKey"]],
+	[["thiefTool"]],
 	[["echipGate"]],
 	[["buttonGreen"]],
 	[["buttonRed"]],
