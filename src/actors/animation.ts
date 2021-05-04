@@ -13,7 +13,7 @@ export abstract class Animation extends Actor {
 		super(level, position)
 		// If there is any movable on the tile, despawn self and queue despawn of anything on the tile
 		if (this.tile[Layers.MOVABLE].length > 1) {
-			this.destroy(null, null)
+			this.despawn()
 			crossLevelData.queuedDespawns?.push({
 				ticksLeft: this.animationCooldown,
 				position: this.tile.position,
@@ -22,12 +22,13 @@ export abstract class Animation extends Actor {
 	}
 	onEachDecision(): void {
 		this.animationCooldown--
-		if (this.animationCooldown === 0 && !this.despawned)
-			this.destroy(null, null) // Haha imagine if explosions recursively created more explosions
+		if (this.animationCooldown === 0) this.despawn() // Haha imagine if explosions recursively created more explosions
 	}
-	actorJoined(): void {
-		// Welp, something stepped on us, byebye
-		this.destroy(null, null)
+	// Despawning means destroying, for animations
+	despawn(): void {
+		if (this.level.actors.includes(this))
+			this.level.actors.splice(this.level.actors.indexOf(this), 1)
+		super.despawn(true)
 	}
 }
 

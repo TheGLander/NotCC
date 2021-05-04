@@ -193,7 +193,7 @@ actorDB["goronBraslet"] = GoronBraslet
 export class Helmet extends Item {
 	id = "helmet"
 	destination = ItemDestination.ITEM
-	carrierTags = { blockTags: ["movable"], blockedByTags: ["movable"] }
+	carrierTags = { immuneTags: ["movable"] }
 	art: ActorArt = { actorName: "placeholder" }
 }
 

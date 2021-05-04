@@ -115,6 +115,10 @@ export abstract class Actor {
 	 * Tags which this actor will not conduct any interactions with.
 	 */
 	ignoreTags: string[] = []
+	/**
+	 * Tags which this actor should not be destroyed by
+	 */
+	immuneTags: string[] = []
 	getCompleteTags<T extends keyof this>(id: T): string[] {
 		// @ts-expect-error Typescript dumb
 		return this[id] instanceof Array
@@ -158,6 +162,10 @@ export abstract class Actor {
 	dropItem(): void {
 		const itemToDrop = this.inventory.items.pop()
 		if (!itemToDrop) return
+		if (this.despawned)
+			alert(
+				"At this state, the game really should crash, so this is really undefined behavior"
+			)
 		itemToDrop.oldTile = null
 		itemToDrop.tile = this.tile
 		this.level.actors.push(itemToDrop)
@@ -277,6 +285,16 @@ export abstract class Actor {
 	 */
 	newTileCompletelyJoined?(): void
 
+	_internalShouldDestroy(other: Actor): boolean {
+		return !(
+			this._internalIgnores(other) ||
+			matchTags(
+				other.getCompleteTags("tags"),
+				this.getCompleteTags("immuneTags")
+			)
+		)
+	}
+
 	_internalBlocks(other: Actor, moveDirection: Direction): boolean {
 		return (
 			!matchTags(
@@ -319,19 +337,26 @@ export abstract class Actor {
 				)
 		}
 		this.oldTile?.removeActors(this)
-		this.tile.addActors(this)
 		// Spread from and to to not have actors which create new actors instantly be interacted with
 		if (this.oldTile)
 			for (const actor of [...this.oldTile.allActors])
 				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
+		this.tile.addActors(this)
+		// Despawn all actors which are already there, you should've blocked this, if you cared to exist!
+		for (const actor of this.tile[this.layer])
+			if (actor !== this) actor.despawn(false)
+
 		this.slidingState = SlidingState.NONE
 		for (const actor of [...this.tile.allActors])
 			if (actor !== this && !this._internalIgnores(actor))
 				actor.actorJoined?.(this)
 		this.newTileJoined?.()
 	}
-	destroy(killer?: Actor | null, animType: string | null = "explosion"): void {
-		if (killer && this._internalIgnores(killer)) return
+	destroy(
+		killer?: Actor | null,
+		animType: string | null = "explosion"
+	): boolean {
+		if (killer && !this._internalShouldDestroy(killer)) return false
 		if (this.level.actors.includes(this))
 			this.level.actors.splice(this.level.actors.indexOf(this), 1)
 		this.despawn(true)
@@ -344,12 +369,18 @@ export abstract class Actor {
 			anim.currentMoveSpeed = this.currentMoveSpeed
 			anim.cooldown = this.cooldown
 		}
+		return true
 	}
 	/**
 	 * Called when another actor bumps into this actor
 	 * @param other The actor which bumped into this actor
 	 */
 	bumped?(other: Actor, bumpDirection: Direction): void
+	/**
+	 * Called when this actor bumps into another actor
+	 * @param other The actor which this actor bumped into
+	 */
+	bumpedActor?(other: Actor, bumpDirection: Direction): void
 	_internalCanPush(other: Actor): boolean {
 		return (
 			!this._internalIgnores(other) &&

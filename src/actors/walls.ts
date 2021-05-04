@@ -164,3 +164,27 @@ export class ToggleWall extends Actor {
 }
 
 actorDB["toggleWall"] = ToggleWall
+
+export class Swivel extends Actor {
+	id = "swivel"
+	art = (): ActorArt => ({
+		actorName: "swivel",
+		animation: ["ur", "dr", "dl", "ul"][this.direction],
+	})
+	get layer(): Layers {
+		return Layers.SPECIAL
+	}
+	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
+		return (
+			otherMoveDirection === (this.direction + 2) % 4 ||
+			otherMoveDirection === (this.direction + 3) % 4
+		)
+	}
+	actorLeft(actor: Actor): void {
+		if (actor.direction === this.direction) this.direction++
+		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
+		this.direction %= 4
+	}
+}
+
+actorDB["swivel"] = Swivel

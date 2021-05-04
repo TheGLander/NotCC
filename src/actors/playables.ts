@@ -9,7 +9,10 @@ import { Decision, actorDB } from "../const"
 
 export abstract class Playable extends Actor {
 	tags = ["playable"]
-	blockTags = ["playable"]
+	// Players actually block everything, they just die if non-players bump into them
+	blocks(): true {
+		return true
+	}
 	pushTags = ["block"]
 	lastInputs?: KeyInputs
 	hasOverride = false
@@ -93,14 +96,10 @@ export abstract class Playable extends Actor {
 			this.hasOverride = bonked
 		}
 	}
-	destroy(other?: Actor | null, anim?: string | null): void {
+	destroy(other?: Actor | null, anim?: string | null): boolean {
+		if (!super.destroy(other, anim)) return false
 		this.level.gameState = GameState.LOST
-		super.destroy(other, anim)
-		this.level.playables.splice(this.level.playables.indexOf(this), 1)
-		if (this === this.level.selectedPlayable) {
-			if (this.level.playables[0])
-				this.level.selectedPlayable = this.level.playables[0]
-		}
+		return true
 	}
 }
 

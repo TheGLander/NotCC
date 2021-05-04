@@ -19,11 +19,8 @@ export class DirtBlock extends Actor {
 	blocks(): boolean {
 		return true
 	}
-	newTileJoined(): void {
-		const playable = this.tile[Layers.MOVABLE].find(
-			val => val instanceof Playable
-		) as Playable | undefined
-		playable?.destroy(this)
+	bumpedActor(other: Actor): void {
+		if (other instanceof Playable) other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
 		const water = this.tile[Layers.STATIONARY].find(val => val instanceof Water)
@@ -49,12 +46,8 @@ export class IceBlock extends Actor {
 	blocks(): boolean {
 		return true
 	}
-
-	newTileJoined(): void {
-		const playable = this.tile[Layers.MOVABLE].find(
-			val => val instanceof Playable
-		) as Playable | undefined
-		playable?.destroy(this)
+	bumpedActor(other: Actor): void {
+		if (other instanceof Playable) other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
 		const water = this.tile[Layers.STATIONARY].find(val =>

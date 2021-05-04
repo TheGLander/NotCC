@@ -229,6 +229,12 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[8, 11],
 			],
 		},
+		swivel: {
+			dl: [9, 11],
+			ul: [10, 11],
+			ur: [11, 11],
+			dr: [12, 11],
+		},
 		tankBlue: {
 			up: [
 				[0, 8],

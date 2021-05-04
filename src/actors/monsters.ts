@@ -11,25 +11,19 @@ import { actorDB } from "../const"
 import { genericStretchyArt } from "../actor"
 
 export abstract class Monster extends Actor {
-	blockTags = ["!playable"]
+	blocks(): true {
+		return true
+	}
 	tags = ["monster", "normal-monster", "movable"]
 	get layer(): Layers {
 		return Layers.MOVABLE
 	}
-	newTileJoined(): void {
-		const playable = this.tile[Layers.MOVABLE].find(
-			val => val instanceof Playable
-		)
-		if (playable) playable.destroy(this)
-	}
 	bumped(other: Actor): void {
 		// Monsters kill players which bump into them if they can move into them
-		if (
-			other instanceof Playable &&
-			!other._internalBlocks(this, (other.direction + 2) % 4)
-		)
-			other.destroy(this)
+		if (other instanceof Playable) other.destroy(this)
 	}
+	// Monsters kill players which they bump into
+	bumpedActor = this.bumped
 }
 
 export class Centipede extends Monster {
