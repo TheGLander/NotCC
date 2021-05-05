@@ -202,6 +202,7 @@ actorDB["helmet"] = Helmet
 
 export class Bonus extends Item {
 	id = "bonus"
+	art = { actorName: "bonusFlag", animation: this.customData }
 	destination = ItemDestination.NONE
 	onPickup(carrier: Actor): void {
 		if (carrier instanceof Playable)

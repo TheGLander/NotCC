@@ -80,6 +80,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[9, 2],
 		],
 		iceBlock: { default: [10, 2], seeThrough: [11, 2] },
+		bonusFlag: { 1000: [12, 2], 100: [13, 2], 10: [14, 2], "*2": [15, 2] },
 		echip: [11, 3],
 		// TODO Add all art left
 		boom: [

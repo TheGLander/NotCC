@@ -301,6 +301,7 @@ export class ThiefTool extends Actor {
 		if (!(other instanceof Playable)) return
 		// TODO Bribes
 		other.inventory.items = []
+		this.level.bonusPoints = Math.floor(this.level.bonusPoints / 2)
 	}
 }
 
@@ -317,6 +318,7 @@ export class ThiefKey extends Actor {
 		if (!(other instanceof Playable)) return
 		// TODO Bribes
 		other.inventory.keys = {}
+		this.level.bonusPoints = Math.floor(this.level.bonusPoints / 2)
 	}
 }
 

@@ -26,7 +26,8 @@ export class WebGLRenderer {
 			alpha: true,
 			antialias: true,
 		})
-		//this.gl.setInt
+		this.gl.enable(this.gl.BLEND)
+		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA)
 		this.programInfo = twgl.createProgramInfo(this.gl, [
 			`// we will always pass a 0 to 1 unit quad
 // and then use matrices to manipulate it
@@ -50,7 +51,6 @@ uniform sampler2D texture;
 
 void main() {
 	gl_FragColor = texture2D(texture, texcoord);
-	if(gl_FragColor.a < 0.5) discard;
 }`,
 		])
 		this.bufferInfo = twgl.primitives.createXYQuadBufferInfo(
