@@ -17,6 +17,27 @@ import {
 } from "../level"
 import { Direction } from "../helpers"
 
+export class LetterTile extends Actor {
+	id = "letterTile"
+	art: ActorArt = {
+		actorName: "floor",
+		animation: "framed",
+		compositePieces: [
+			{
+				actorName: "letter",
+				animation: this.customData,
+				cropSize: [0.5, 0.5],
+				imageOffset: [0.25, 0.25],
+			},
+		],
+	}
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+}
+
+actorDB["letterTile"] = LetterTile
+
 export class Ice extends Actor {
 	id = "ice"
 	tags = ["ice"]
