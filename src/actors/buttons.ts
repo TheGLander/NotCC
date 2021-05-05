@@ -26,7 +26,10 @@ actorDB["buttonBlue"] = globalButtonFactory("blue")
 
 // TODO How do these work when the connected thing is blown up?
 
-export function ROConnectedButtonFactory(color: string) {
+export function ROConnectedButtonFactory(
+	color: string,
+	shouldActivateOnLevelStart?: boolean
+) {
 	return class extends Actor {
 		art = { actorName: "button", animation: color }
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
@@ -46,6 +49,10 @@ export function ROConnectedButtonFactory(color: string) {
 					this.explicitlyConnectedTile = this.level.field[connection[1][0]]?.[
 						connection[1][1]
 					]
+		}
+		levelStarted(): void {
+			if (shouldActivateOnLevelStart)
+				if (this.tile.allActors.length > 1) this.actorCompletelyJoined()
 		}
 		actorCompletelyJoined(): void {
 			if (!this.connectedActor) {
@@ -79,4 +86,4 @@ export function ROConnectedButtonFactory(color: string) {
 
 actorDB["buttonRed"] = ROConnectedButtonFactory("red")
 
-actorDB["buttonBrown"] = ROConnectedButtonFactory("brown")
+actorDB["buttonBrown"] = ROConnectedButtonFactory("brown", true)

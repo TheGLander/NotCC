@@ -37,10 +37,12 @@ export function parseDAT(buff: ArrayBuffer, fileName: string): LevelSetData {
 					if (tileIndex < 32) levelData.field.push([])
 					levelData.field[tileIndex & 31].push([])
 				}
-				if (actorByte !== 0x02 || chipsLeft > 0)
+				if (actorByte !== 0x02 || chipsLeft > 0) {
+					if (actorByte === 0x02) chipsLeft--
 					levelData.field[tileIndex & 31][(tileIndex & ~31) / 32].push(
 						...cc1Data[actorByte]
 					)
+				}
 				// If we have fufilled the chip goal, use echipPlus instead
 				else
 					levelData.field[tileIndex & 31][(tileIndex & ~31) / 32].push([
