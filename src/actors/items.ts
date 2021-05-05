@@ -27,6 +27,9 @@ export abstract class Item extends Actor {
 	get layer(): Layers {
 		return Layers.ITEM
 	}
+	ignores(): boolean {
+		return this.tile[Layers.ITEM_SUFFIX].length > 0
+	}
 	actorCompletelyJoined(other: Actor): void {
 		if (other.tags.includes("can-stand-on-items")) return
 		this.destroy(other, null)

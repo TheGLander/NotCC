@@ -134,17 +134,20 @@ export abstract class Actor {
 			  ]
 			: null
 	}
-
+	ignores?(other: Actor): boolean
 	_internalIgnores(other: Actor): boolean {
 		return (
-			matchTags(
+			(matchTags(
 				this.getCompleteTags("tags"),
 				other.getCompleteTags("ignoreTags")
 			) ||
-			matchTags(
-				other.getCompleteTags("tags"),
-				this.getCompleteTags("ignoreTags")
-			)
+				matchTags(
+					other.getCompleteTags("tags"),
+					this.getCompleteTags("ignoreTags")
+				) ||
+				this.ignores?.(other) ||
+				other.ignores?.(this)) ??
+			false
 		)
 	}
 
@@ -251,9 +254,10 @@ export abstract class Actor {
 		const bonked = !this._internalStep(ogDirection)
 		if (bonked && this.slidingState) {
 			for (const actor of this.tile.allActors)
-				actor.actorCompletelyJoined?.(this)
+				if (!this._internalIgnores(actor)) actor.actorCompletelyJoined?.(this)
 			for (const bonkListener of this.tile.allActors)
-				bonkListener.onMemberSlideBonked?.(this)
+				if (!this._internalIgnores(bonkListener))
+					bonkListener.onMemberSlideBonked?.(this)
 			if (ogDirection !== this.direction) this._internalStep(this.direction)
 		}
 	}

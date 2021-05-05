@@ -156,20 +156,27 @@ export class LevelState {
 
 		// Do stuff on the entering tile
 		for (const layer of [
+			Layers.ITEM_SUFFIX,
 			Layers.SPECIAL,
 			Layers.STATIONARY,
 			Layers.MOVABLE,
 			Layers.ITEM,
-			Layers.ITEM_SUFFIX,
-		]) {
+		])
 			for (const blockActor of newTile[layer]) {
 				blockActor.bumped?.(actor, direction)
 				actor.bumpedActor?.(blockActor, direction)
-				if (!blockActor._internalBlocks(actor, direction)) continue
+				if (!blockActor._internalBlocks(actor, direction))
+					if (
+						layer !== Layers.ITEM_SUFFIX ||
+						newTile[layer].indexOf(blockActor) !== newTile[layer].length - 1
+					)
+						// Item suffixes are dumb
+						continue
+					else break
 				if (actor._internalCanPush(blockActor)) toPush.push(blockActor)
 				else return false
 			}
-		}
+
 		for (const pushable of toPush) {
 			if (pushable.slidingState) {
 				pushable.pendingDecision = direction + 1

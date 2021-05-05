@@ -286,6 +286,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[12, 16],
 			],
 		},
+		noSign: [14, 5],
 	},
 }
 
