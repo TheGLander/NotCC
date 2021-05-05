@@ -135,9 +135,14 @@ export class PulseManager {
 	updateTextStats(): void {
 		if (!this.textStats) return
 		this.textStats.innerText = `Time left: ${Math.ceil(
-			this.level.timeLeft / 20
+			this.level.timeLeft / 60
 		)}s
-Chips left: ${this.level.chipsLeft}`
+Chips left: ${this.level.chipsLeft}${
+			this.level.bonusPoints > 0
+				? `
+Bonus: ${this.level.bonusPoints}pts`
+				: ""
+		}`
 	}
 	tickLevel(): void {
 		const oldTime = Date.now()

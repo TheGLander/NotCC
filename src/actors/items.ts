@@ -2,6 +2,7 @@ import { Layers } from "../tile"
 import { Actor, ActorArt, matchTags } from "../actor"
 import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
+import { Playable } from "./playables"
 
 export const enum ItemDestination {
 	NONE,
@@ -198,3 +199,16 @@ export class Helmet extends Item {
 }
 
 actorDB["helmet"] = Helmet
+
+export class Bonus extends Item {
+	id = "bonus"
+	destination = ItemDestination.NONE
+	onPickup(carrier: Actor): void {
+		if (carrier instanceof Playable)
+			if (this.customData.startsWith("*"))
+				this.level.bonusPoints *= parseInt(this.customData.substr(1))
+			else this.level.bonusPoints += parseInt(this.customData)
+	}
+}
+
+actorDB["bonus"] = Bonus
