@@ -166,8 +166,7 @@ export class LevelState {
 				blockActor.bumped?.(actor, direction)
 				actor.bumpedActor?.(blockActor, direction)
 				if (!blockActor._internalBlocks(actor, direction)) continue
-				if (pushBlocks && actor._internalCanPush(blockActor))
-					toPush.push(blockActor)
+				if (actor._internalCanPush(blockActor)) toPush.push(blockActor)
 				else return false
 			}
 		}
@@ -177,8 +176,8 @@ export class LevelState {
 				// We did not move, shame, but we did queue this block push
 				return false
 			}
-			if (!this.checkCollision(pushable, direction, true)) return false
-			pushable.pendingDecision = direction + 1
+			if (!this.checkCollision(pushable, direction, pushBlocks)) return false
+			if (pushBlocks) pushable._internalStep(direction)
 		}
 		// TODO Decision time hooking
 		return true

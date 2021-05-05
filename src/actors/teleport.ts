@@ -39,8 +39,7 @@ function findNextTeleport<T extends Actor>(
 					this.level.checkCollisionToTile(
 						other,
 						teleportNeighbor,
-						other.direction,
-						true
+						other.direction
 					))
 			) {
 				otherTeleport = newTeleport

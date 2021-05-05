@@ -11,18 +11,13 @@ export abstract class Animation extends Actor {
 	}
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
-		// If there is any movable on the tile, despawn self and queue despawn of anything on the tile
-		if (this.tile[Layers.MOVABLE].length > 1) {
-			this.despawn()
-			crossLevelData.queuedDespawns?.push({
-				ticksLeft: this.animationCooldown,
-				position: this.tile.position,
-			})
-		}
+		crossLevelData.queuedDespawns?.push({
+			ticksLeft: this.animationCooldown,
+			position: this.tile.position,
+		})
 	}
 	onEachDecision(): void {
 		this.animationCooldown--
-		if (this.animationCooldown === 0) this.despawn() // Haha imagine if explosions recursively created more explosions
 	}
 	// Despawning means destroying, for animations
 	despawn(): void {
@@ -35,16 +30,27 @@ export abstract class Animation extends Actor {
 export interface QueuedAnimationDespawn {
 	ticksLeft: number
 	position: [number, number]
+	animationOnly?: boolean
 }
 
 onLevelDecisionTick.push(level => {
 	if (!crossLevelData.queuedDespawns) return
 	for (const despawn of [...crossLevelData.queuedDespawns]) {
+		if (despawn.animationOnly === undefined) {
+			// If the tile has an animation, this is for animations ONLY
+			despawn.animationOnly = !!level.field[despawn.position[0]]?.[
+				despawn.position[1]
+			]?.[Layers.MOVABLE]?.find(actor => actor instanceof Animation)
+		}
 		despawn.ticksLeft--
 		if (despawn.ticksLeft <= 0) {
-			level.field[despawn.position[0]]?.[despawn.position[1]]?.[
-				Layers.MOVABLE
-			][0]?.despawn()
+			const actors =
+				level.field[despawn.position[0]]?.[despawn.position[1]]?.[
+					Layers.MOVABLE
+				]
+			if (despawn.animationOnly)
+				actors.find(val => val instanceof Animation)?.despawn()
+			else actors[0]?.despawn()
 			crossLevelData.queuedDespawns.splice(
 				crossLevelData.queuedDespawns.indexOf(despawn),
 				1
