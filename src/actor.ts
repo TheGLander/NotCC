@@ -200,7 +200,7 @@ export abstract class Actor {
 		// If we have a pending decision, don't do anything, doing decisions may cause a state change, otherwise
 		if (this.pendingDecision) return
 		// This is where the decision *actually* begins
-		this.currentMoveSpeed = this.oldTile = null
+		this.currentMoveSpeed = null
 		// Since this is a generic actor, we cannot override weak sliding
 		// TODO Ghost ice shenanigans
 		if (this.slidingState) {
@@ -390,6 +390,7 @@ export abstract class Actor {
 	bumpedActor?(other: Actor, bumpDirection: Direction): void
 	_internalCanPush(other: Actor): boolean {
 		return (
+			!other.cooldown &&
 			!this._internalIgnores(other) &&
 			matchTags(other.getCompleteTags("tags"), this.getCompleteTags("pushTags"))
 		)
