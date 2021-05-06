@@ -432,22 +432,19 @@ actorDB["cloneMachine"] = CloneMachine
 export class Bomb extends Actor {
 	id = "bomb"
 	tags = ["bomb"]
-	art: () => ActorArt = (() => {
-		let frame = 0
-		return (): ActorArt => ({
-			actorName: "bomb",
-			compositePieces: [
-				{
-					actorName: "bombFuse",
-					cropSize: [0.5, 0.5],
-					animation: (frame++ % 4).toString(),
-					imageOffset: [0.5, 0],
-				},
-			],
-		})
-	})()
+	art = (): ActorArt => ({
+		actorName: "bomb",
+		compositePieces: [
+			{
+				actorName: "bombFuse",
+				cropSize: [0.5, 0.5],
+				animation: (this.level.currentTick % 4).toString(),
+				imageOffset: [0.5, 0],
+			},
+		],
+	})
 	get layer(): Layers {
-		return Layers.STATIONARY
+		return Layers.ITEM // Yes
 	}
 	actorCompletelyJoined(other: Actor): void {
 		other.destroy(this, null)
@@ -485,3 +482,48 @@ export class Turtle extends Actor {
 }
 
 actorDB["turtle"] = Turtle
+
+export class GreenBomb extends Actor {
+	id = "bomb"
+	tags = ["bomb"]
+	art = (): ActorArt =>
+		this.customData === "bomb"
+			? {
+					actorName: "bombGreen",
+					compositePieces: [
+						{
+							actorName: "bombFuse",
+							cropSize: [0.5, 0.5],
+							animation: (this.level.currentTick % 4).toString(),
+							imageOffset: [0.5, 0],
+						},
+					],
+			  }
+			: { actorName: "echipGreen" }
+	constructor(
+		level: LevelState,
+		position: [number, number],
+		customData?: string
+	) {
+		super(level, position, customData)
+		level.chipsTotal++
+	}
+	get layer(): Layers {
+		return Layers.ITEM // Yes
+	}
+	actorCompletelyJoined(other: Actor): void {
+		if (this.customData === "bomb") {
+			other.destroy(this, null)
+			this.destroy(other)
+		} else if (other instanceof Playable) {
+			this.destroy(null, null)
+			this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
+		}
+	}
+	buttonPressed(color: string): void {
+		if (color !== "green") return
+		this.customData = this.customData === "bomb" ? "echip" : "bomb"
+	}
+}
+
+actorDB["greenBomb"] = GreenBomb
