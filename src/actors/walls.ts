@@ -3,6 +3,7 @@ import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Direction } from "../helpers"
 import { Playable } from "./playables"
+import { LevelState } from "../level"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall"]
@@ -17,9 +18,10 @@ export class Wall extends Actor {
 
 actorDB["wall"] = Wall
 
-// TODO Ghost blockage, TNT resistance
+// TODO Ghost blockage
 export class SteelWall extends Actor {
 	id = "steelWall"
+	immuneTags = ["tnt"]
 	art: ActorArt = { actorName: "steelWall" }
 	get layer(): Layer {
 		return Layer.STATIONARY
@@ -193,8 +195,9 @@ export class ToggleWall extends Actor {
 
 actorDB["toggleWall"] = ToggleWall
 
-export class Swivel extends Actor {
-	id = "swivel"
+export class SwivelRotatingPart extends Actor {
+	id = "swivelRotatingPart"
+	immuneTags = ["tnt"]
 	art = (): ActorArt => ({
 		actorName: "swivel",
 		animation: ["ur", "dr", "dl", "ul"][this.direction],
@@ -212,6 +215,29 @@ export class Swivel extends Actor {
 		if (actor.direction === this.direction) this.direction++
 		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
 		this.direction %= 4
+	}
+}
+
+export class Swivel extends Actor {
+	id = "swivel"
+	art = { actorName: "swivel", animation: "floor" }
+	rotatingPart?: SwivelRotatingPart
+	get layer(): Layer {
+		return Layer.STATIONARY
+	}
+	constructor(level: LevelState, position: [number, number]) {
+		super(level, position)
+	}
+	levelStarted(): void {
+		this.rotatingPart = new SwivelRotatingPart(this.level, this.tile.position)
+		this.rotatingPart.direction = this.direction
+	}
+	destroy(killer?: Actor | null, animType?: string | null): boolean {
+		if (super.destroy(killer, animType)) {
+			this.rotatingPart?.destroy(null, null)
+			return true
+		}
+		return false
 	}
 }
 

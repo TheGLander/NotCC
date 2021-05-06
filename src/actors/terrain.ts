@@ -269,6 +269,7 @@ actorDB["exit"] = Exit
 
 export class EChipGate extends Actor {
 	id = "echipGate"
+	immuneTags = ["tnt"]
 	art = { actorName: "echipGate" }
 	get layer(): Layer {
 		return Layer.STATIONARY

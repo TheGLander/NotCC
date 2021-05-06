@@ -3,6 +3,7 @@ import { Actor, ActorArt, matchTags } from "../actor"
 import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
 import { Playable } from "./playables"
+import { LitTNT } from "./monsters"
 
 export const enum ItemDestination {
 	NONE,
@@ -216,3 +217,21 @@ export class Bonus extends Item {
 }
 
 actorDB["bonus"] = Bonus
+
+export class TNT extends Item {
+	id = "tnt"
+	art = { actorName: "tnt" }
+	destination = ItemDestination.ITEM
+	actorLeft(other: Actor): void {
+		if (other instanceof Playable) {
+			this.destroy(null, null)
+			const lit = new LitTNT(this.level, this.tile.position)
+			lit.inventory.itemMax = other.inventory.itemMax
+			lit.inventory.items = [...other.inventory.items]
+			for (const keyType in other.inventory.keys)
+				lit.inventory.keys[keyType] = { ...other.inventory.keys[keyType] }
+		}
+	}
+}
+
+actorDB["tnt"] = TNT

@@ -4,7 +4,7 @@ import { Direction } from "./helpers"
 
 export enum Layer {
 	STATIONARY, // Terrain, etc.
-	ITEM,
+	ITEM, // All item-eque things: Bombs, echips, boots, keys, etc.
 	ITEM_SUFFIX, // No sign, etc.
 	MOVABLE, // Blocks, Players, Monsters
 	SPECIAL, // Thin walls, canopies, swivels, etc.
@@ -71,6 +71,24 @@ class Tile extends Array<Array<Actor>> {
 					: acc,
 			1
 		)
+	}
+	*getDiamondSearch(level: number): IterableIterator<Tile> {
+		if (level === 1) {
+			for (let i = 0; i < 4; i++) {
+				const tile = this.getNeighbor(i)
+				if (tile) yield tile
+			}
+			return
+		}
+		for (let yOff = -level; yOff <= level; yOff++) {
+			const xOff = level - Math.abs(yOff)
+			const tile1 = this.level.field[this.x - xOff]?.[this.y + yOff]
+			if (tile1) yield tile1
+			if (xOff !== 0) {
+				const tile2 = this.level.field[this.x + xOff]?.[this.y + yOff]
+				if (tile2) yield tile2
+			}
+		}
 	}
 }
 

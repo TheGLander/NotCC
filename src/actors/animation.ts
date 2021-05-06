@@ -11,6 +11,7 @@ import {
 export abstract class Animation extends Actor {
 	animationCooldown = 16
 	blockTags = ["playable"]
+	ignoreTags = ["!playable"]
 	get layer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -23,6 +24,7 @@ export abstract class Animation extends Actor {
 	}
 	onEachDecision(): void {
 		this.animationCooldown--
+		if (this.cooldown) this.cooldown++
 	}
 	// Despawning means destroying, for animations
 	despawn(): void {

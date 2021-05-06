@@ -134,6 +134,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 		},
 		echip: [11, 3],
 		// TODO Add all art left
+		tnt: [
+			[0, 4],
+			[4, 4],
+		],
 		boom: [
 			[0, 5],
 			[3, 5],
@@ -204,6 +208,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[12, 9],
 			[15, 9],
 		],
+		steelWall: [15, 10],
 		forceFloor: {
 			up: [
 				[0, 19],
@@ -287,6 +292,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			ul: [10, 11],
 			ur: [11, 11],
 			dr: [12, 11],
+			floor: [13, 11],
 		},
 		tankBlue: {
 			up: [

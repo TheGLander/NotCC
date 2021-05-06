@@ -61,7 +61,7 @@ export class IceBlock extends Actor {
 	}
 	bumped = this.melt
 	melt(other: Actor): void {
-		if (other.tags.includes("melting")) {
+		if (other.getCompleteTags("tags").includes("melting")) {
 			this.destroy(this, null)
 			if (other.layer === Layer.STATIONARY) other.destroy(this, null)
 			if (this.tile[Layer.STATIONARY].length === 0)

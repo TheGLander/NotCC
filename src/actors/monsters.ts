@@ -9,6 +9,8 @@ import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
 import { actorDB } from "../const"
 import { genericStretchyArt } from "../actor"
+import { Fire } from "./terrain"
+import Tile from "../tile"
 
 export abstract class Monster extends Actor {
 	blocks(): true {
@@ -152,3 +154,50 @@ export class Walker extends Monster {
 }
 
 actorDB["walker"] = Walker
+
+export class LitTNT extends Monster {
+	art = (): ActorArt => ({
+		actorName: "tnt",
+		frame: Math.floor(this.lifeLeft / 60),
+	})
+	lifeLeft = 250
+	tags = ["monster", "normal-monster", "movable", "cc1block", "tnt"]
+	explosionStage: 0 | 1 | 2 | 3 = 0
+	id = "tntLit"
+	nukeTile(tile: Tile): void {
+		let protectedLayer: Layer = Layer.STATIONARY
+		const tileHadMovable = tile[Layer.MOVABLE].length > 0
+		let movableDied = false
+		// TODO Canopies
+		if (tileHadMovable) protectedLayer = Layer.STATIONARY + 1 // Protect stationary only
+		for (const actor of tile.allActors)
+			if (actor.layer >= protectedLayer) {
+				actor.bumped?.(
+					this,
+					Math.abs(tile.x - this.tile.x) > Math.abs(tile.y - this.tile.y)
+						? 2 + Math.sign(tile.x - this.tile.x)
+						: 1 + Math.sign(tile.y - this.tile.y)
+				)
+				if (actor.destroy(this) && actor.layer === Layer.MOVABLE)
+					movableDied = true
+			}
+		// Create a memorial fire if a movable got blown up (if we can)
+		if (tileHadMovable && movableDied && tile[Layer.STATIONARY].length === 0)
+			new Fire(this.level, tile.position)
+	}
+	onEachDecision(): void {
+		if (this.lifeLeft > 0) this.lifeLeft--
+		else this.explosionStage++
+		if (!this.explosionStage) return
+		this.tags.push("melting") // For ice blocks
+		for (const tile of this.tile.getDiamondSearch(this.explosionStage))
+			if (
+				Math.abs(tile.x - this.tile.x) < 3 &&
+				Math.abs(tile.y - this.tile.y) < 3
+			)
+				this.nukeTile(tile)
+		if (this.explosionStage === 3) this.nukeTile(this.tile)
+		this.tags.pop()
+	}
+}
+actorDB["tntLit"] = LitTNT

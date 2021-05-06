@@ -195,7 +195,6 @@ export abstract class Actor {
 	onEachDecision?(forcedOnly: boolean): void
 	_internalDecide(forcedOnly = false): void {
 		this.moveDecision = Decision.NONE
-		this.onEachDecision?.(forcedOnly)
 		if (this.cooldown) return
 		// If we have a pending decision, don't do anything, doing decisions may cause a state change, otherwise
 		if (this.pendingDecision) return
@@ -207,6 +206,7 @@ export abstract class Actor {
 			this.moveDecision = this.direction + 1
 			return
 		}
+		this.onEachDecision?.(forcedOnly)
 		if (forcedOnly || !this._internalCanDecide()) return
 		const directions = this.decideMovement?.()
 
