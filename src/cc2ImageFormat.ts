@@ -41,6 +41,44 @@ const cc2ImageFormat: CC2ImageFormat = {
 			bumpDown: [10, 24],
 			bumpLeft: [11, 24],
 		},
+		melinda: {
+			up: [
+				[0, 27],
+				[7, 27],
+			],
+			right: [
+				[8, 27],
+				[15, 27],
+			],
+			down: [
+				[0, 28],
+				[7, 28],
+			],
+			left: [
+				[8, 28],
+				[15, 28],
+			],
+			waterUp: [
+				[0, 29],
+				[1, 29],
+			],
+			waterRight: [
+				[2, 29],
+				[3, 29],
+			],
+			waterDown: [
+				[4, 29],
+				[5, 29],
+			],
+			waterLeft: [
+				[6, 29],
+				[7, 29],
+			],
+			bumpUp: [8, 29],
+			bumpRight: [9, 29],
+			bumpDown: [10, 29],
+			bumpLeft: [11, 29],
+		},
 		fire: [
 			[12, 29],
 			[16, 29],

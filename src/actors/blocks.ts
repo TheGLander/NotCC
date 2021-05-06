@@ -39,7 +39,7 @@ export class IceBlock extends Actor {
 		actorName: "iceBlock",
 	}
 	pushTags = ["cc2block"]
-	tags = ["block", "cc2block", "movable"]
+	tags = ["block", "cc2block", "movable", "can-stand-on-items"]
 	get layer(): Layer {
 		return Layer.MOVABLE
 	}
