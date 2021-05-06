@@ -128,12 +128,7 @@ export default class Renderer {
 		public renderSpace?: HTMLElement | null,
 		public itemSpace?: HTMLElement | null
 	) {
-		renderer.scaling = 2
-		;[renderer.canvas.width, renderer.canvas.height] = [
-			level.cameraType.width * tileSize,
-			level.cameraType.height * tileSize,
-		]
-		renderer.updateSize()
+		this.updateCameraSizes()
 		this.ready = (async () => {
 			this.renderTexture = await fetchTiles
 			this.backgroundFillerCanvas = document.createElement("canvas")
@@ -143,6 +138,14 @@ export default class Renderer {
 			itemSpace?.appendChild(itemCtx.canvas)
 			this.readyBool = true
 		})()
+	}
+	updateCameraSizes(): void {
+		renderer.scaling = 2
+		;[renderer.canvas.width, renderer.canvas.height] = [
+			this.level.cameraType.width * tileSize,
+			this.level.cameraType.height * tileSize,
+		]
+		renderer.updateSize()
 	}
 	/**
 	 * Updates all filler texture-related camera, so a renderer can be reused

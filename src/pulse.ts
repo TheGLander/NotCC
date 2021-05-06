@@ -131,6 +131,7 @@ export class PulseManager {
 			rotateInv: false,
 			switchPlayable: false,
 		}
+		this.renderer.updateCameraSizes()
 		await this.renderer.updateFillerData()
 	}
 	updateTextStats(): void {
