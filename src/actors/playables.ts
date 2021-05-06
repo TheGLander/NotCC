@@ -140,3 +140,22 @@ export class Chip extends Playable {
 }
 
 actorDB["chip"] = Chip
+
+export class Melinda extends Playable {
+	tags = ["playable", "melinda", "can-reuse-key-yellow"]
+	id = "chip"
+	ignoreTags = ["ice"]
+	art = (): (ActorArt | false)[] => [
+		this.level.playablesLeft > 1 &&
+			this.level.selectedPlayable === this && { actorName: "playerAura" },
+		{
+			actorName: "melinda",
+			animation: ["up", "right", "down", "left"][this.direction],
+			frame: this.cooldown
+				? Math.floor((1 - this.cooldown / (this.currentMoveSpeed ?? 1)) * 8)
+				: 0,
+		},
+	]
+}
+
+actorDB["melinda"] = Melinda
