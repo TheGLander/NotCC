@@ -2,7 +2,7 @@ import { Actor } from "./actor"
 import { LevelState } from "./level"
 import { Direction } from "./helpers"
 
-export enum Layers {
+export enum Layer {
 	STATIONARY, // Terrain, etc.
 	ITEM,
 	ITEM_SUFFIX, // No sign, etc.

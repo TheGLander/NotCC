@@ -1,5 +1,5 @@
 import { Actor, SlidingState, genericAnimatedArt } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
 
@@ -40,7 +40,7 @@ function findNextTeleport<T extends Actor>(
 			if (newTeleport === this) return this
 			if (
 				newTeleport &&
-				newTeleport.tile[Layers.MOVABLE].length === 0 &&
+				newTeleport.tile[Layer.MOVABLE].length === 0 &&
 				validateDestination.call(this, other, newTeleport)
 			)
 				return newTeleport
@@ -49,8 +49,8 @@ function findNextTeleport<T extends Actor>(
 
 export class BlueTeleport extends Actor {
 	id = "teleportBlue"
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	art = genericAnimatedArt("teleportBlue", 4)
 	actorJoined(other: Actor): void {
@@ -73,8 +73,8 @@ actorDB["teleportBlue"] = BlueTeleport
 
 export class RedTeleport extends Actor {
 	id = "teleportRed"
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	art = genericAnimatedArt("teleportRed", 4)
 	actorCompletelyJoined(other: Actor): void {

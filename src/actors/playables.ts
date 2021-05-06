@@ -1,5 +1,5 @@
 import { Actor, genericDirectionableArt, SlidingState } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { KeyInputs } from "../pulse"
 import { GameState, LevelState } from "../level"
@@ -25,8 +25,8 @@ export abstract class Playable extends Actor {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.RIGHT, dir.FORWARD, dir.LEFT, dir.BACKWARD]
 	}
-	get layer(): Layers {
-		return Layers.MOVABLE
+	get layer(): Layer {
+		return Layer.MOVABLE
 	}
 	/**
 	 * Used internally for input management

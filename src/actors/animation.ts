@@ -1,5 +1,5 @@
 import { Actor, ActorArt } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { actorDB } from "../const"
 import {
 	LevelState,
@@ -11,8 +11,8 @@ import {
 export abstract class Animation extends Actor {
 	animationCooldown = 16
 	blockTags = ["playable"]
-	get layer(): Layers {
-		return Layers.MOVABLE
+	get layer(): Layer {
+		return Layer.MOVABLE
 	}
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
@@ -44,9 +44,7 @@ onLevelDecisionTick.push(level => {
 		despawn.ticksLeft--
 		if (despawn.ticksLeft <= 0) {
 			const actors =
-				level.field[despawn.position[0]]?.[despawn.position[1]]?.[
-					Layers.MOVABLE
-				]
+				level.field[despawn.position[0]]?.[despawn.position[1]]?.[Layer.MOVABLE]
 			if (despawn.animationOnly)
 				actors.find(val => val instanceof Animation)?.despawn()
 			else actors[0]?.despawn()
@@ -65,7 +63,7 @@ onLevelAfterTick.push(level => {
 				// If the tile has an animation, this is for animations ONLY
 				despawn.animationOnly = level.field[despawn.position[0]]?.[
 					despawn.position[1]
-				]?.[Layers.MOVABLE]?.some(actor => actor instanceof Animation)
+				]?.[Layer.MOVABLE]?.some(actor => actor instanceof Animation)
 })
 
 declare module "../level" {

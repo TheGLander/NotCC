@@ -1,5 +1,5 @@
 import { Actor } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { LevelState } from "../level"
 import Tile from "../tile"
@@ -8,8 +8,8 @@ export function globalButtonFactory(color: string) {
 	return class extends Actor {
 		art = { actorName: "button", animation: color }
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-		get layer(): Layers {
-			return Layers.STATIONARY
+		get layer(): Layer {
+			return Layer.STATIONARY
 		}
 		actorCompletelyJoined(): void {
 			for (const actor of this.level.actors) actor.buttonPressed?.(color)
@@ -35,8 +35,8 @@ export function ROConnectedButtonFactory(
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
-		get layer(): Layers {
-			return Layers.STATIONARY
+		get layer(): Layer {
+			return Layer.STATIONARY
 		}
 		constructor(level: LevelState, position: [number, number]) {
 			super(level, position)

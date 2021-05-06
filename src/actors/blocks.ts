@@ -1,5 +1,5 @@
 import { Actor, ActorArt } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
 import { Water, Dirt, Ice } from "./terrain"
@@ -13,8 +13,8 @@ export class DirtBlock extends Actor {
 	}
 	tags = ["block", "cc1block", "movable"]
 	ignoreTags = ["fire"]
-	get layer(): Layers {
-		return Layers.MOVABLE
+	get layer(): Layer {
+		return Layer.MOVABLE
 	}
 	blocks(): boolean {
 		return true
@@ -23,7 +23,7 @@ export class DirtBlock extends Actor {
 		if (other instanceof Playable) other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile[Layers.STATIONARY].find(val => val instanceof Water)
+		const water = this.tile[Layer.STATIONARY].find(val => val instanceof Water)
 		if (water) {
 			water.destroy(this, null)
 			new Dirt(this.level, this.tile.position)
@@ -40,8 +40,8 @@ export class IceBlock extends Actor {
 	}
 	pushTags = ["cc2block"]
 	tags = ["block", "cc2block", "movable"]
-	get layer(): Layers {
-		return Layers.MOVABLE
+	get layer(): Layer {
+		return Layer.MOVABLE
 	}
 	blocks(): boolean {
 		return true
@@ -50,21 +50,21 @@ export class IceBlock extends Actor {
 		if (other instanceof Playable) other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile[Layers.STATIONARY].find(val =>
+		const water = this.tile[Layer.STATIONARY].find(val =>
 			val.tags.includes("water")
 		)
 		if (water) {
 			water.destroy(this, null)
 			new Ice(this.level, this.tile.position)
 		}
-		for (const actor of this.tile[Layers.STATIONARY]) this.melt(actor)
+		for (const actor of this.tile[Layer.STATIONARY]) this.melt(actor)
 	}
 	bumped = this.melt
 	melt(other: Actor): void {
 		if (other.tags.includes("melting")) {
 			this.destroy(this, null)
-			if (other.layer === Layers.STATIONARY) other.destroy(this, null)
-			if (this.tile[Layers.STATIONARY].length === 0)
+			if (other.layer === Layer.STATIONARY) other.destroy(this, null)
+			if (this.tile[Layer.STATIONARY].length === 0)
 				new Water(this.level, this.tile.position)
 		}
 	}

@@ -1,5 +1,5 @@
 import { Actor } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { Direction } from "../helpers"
 import { Key } from "./items"
 import { actorDB } from "../const"
@@ -7,11 +7,11 @@ import { actorDB } from "../const"
 export class NoSign extends Actor {
 	id = "noSign"
 	art = { actorName: "noSign" }
-	get layer(): Layers {
-		return Layers.ITEM_SUFFIX
+	get layer(): Layer {
+		return Layer.ITEM_SUFFIX
 	}
 	blocks(other: Actor, moveDirection: Direction): boolean {
-		for (const item of this.tile[Layers.ITEM]) {
+		for (const item of this.tile[Layer.ITEM]) {
 			if (item instanceof Key) {
 				if (other.inventory.keys[item.id]?.amount > 0) return true
 			} else if (
@@ -20,8 +20,8 @@ export class NoSign extends Actor {
 				return true
 		}
 		return [
-			...this.tile[Layers.SPECIAL],
-			...this.tile[Layers.STATIONARY],
+			...this.tile[Layer.SPECIAL],
+			...this.tile[Layer.STATIONARY],
 		].some(val => val._internalBlocks(this, moveDirection))
 	}
 }

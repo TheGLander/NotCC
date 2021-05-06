@@ -1,7 +1,7 @@
 import { LevelState, crossLevelData } from "./level"
 import { Decision, actorDB } from "./const"
 import { Direction } from "./helpers"
-import { Layers } from "./tile"
+import { Layer } from "./tile"
 import Tile from "./tile"
 import { Item, Key } from "./actors/items"
 
@@ -78,7 +78,7 @@ export abstract class Actor {
 	cooldown = 0
 	pendingDecision = Decision.NONE
 	slidingState = SlidingState.NONE
-	abstract layer: Layers
+	abstract layer: Layer
 	abstract id: string
 	despawned = false
 	/**

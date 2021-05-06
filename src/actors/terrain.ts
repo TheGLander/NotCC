@@ -4,7 +4,7 @@ import {
 	ActorArt,
 	genericDirectionableArt,
 } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Wall } from "./walls"
 import { genericAnimatedArt } from "../actor"
@@ -31,8 +31,8 @@ export class LetterTile extends Actor {
 			},
 		],
 	}
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 }
 
@@ -41,8 +41,8 @@ actorDB["letterTile"] = LetterTile
 export class CustomFloor extends Actor {
 	id = "customFloor"
 	art: ActorArt = { actorName: "customFloor", animation: this.customData }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 }
 
@@ -52,8 +52,8 @@ export class Ice extends Actor {
 	id = "ice"
 	tags = ["ice"]
 	art: ActorArt = { actorName: "ice" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
@@ -76,8 +76,8 @@ export class IceCorner extends Actor {
 		actorName: "ice",
 		animation: ["ur", "dr", "dl", "ul"][this.direction],
 	})
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
@@ -115,8 +115,8 @@ export class ForceFloor extends Actor {
 				: [((this.direction - 2) * (this.level.currentTick / 16)) % 1, 0],
 		frame: 1.5 - Math.abs(this.direction - 1.5),
 	})
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
@@ -124,7 +124,7 @@ export class ForceFloor extends Actor {
 	}
 	levelStarted(): void {
 		// Pretend like everyone stepped on this on level start
-		for (const actor of this.tile[Layers.MOVABLE])
+		for (const actor of this.tile[Layer.MOVABLE])
 			this.actorCompletelyJoined(actor)
 	}
 	onMemberSlideBonked(other: Actor): void {
@@ -143,8 +143,8 @@ export class ForceFloorRandom extends Actor {
 	id = "forceFloorRandom"
 	tags = ["force-floor"]
 	art = genericAnimatedArt("forceFloor", 8, "random")
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
@@ -154,7 +154,7 @@ export class ForceFloorRandom extends Actor {
 	}
 	levelStarted(): void {
 		// Pretend like everyone stepped on this on level start
-		for (const actor of this.tile[Layers.MOVABLE])
+		for (const actor of this.tile[Layer.MOVABLE])
 			this.actorCompletelyJoined(actor)
 	}
 	onMemberSlideBonked(other: Actor): void {
@@ -181,8 +181,8 @@ actorDB["forceFloorRandom"] = ForceFloorRandom
 export class RecessedWall extends Actor {
 	id = "popupWall"
 	art = { actorName: "popupWall" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	// Funny how recessed walls have the exact same collision as monsters
 	blockTags = ["!playable"]
@@ -197,8 +197,8 @@ actorDB["popupWall"] = RecessedWall
 export class Void extends Actor {
 	id = "void"
 	art = { actorName: "exit" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		other.destroy(this, null)
@@ -211,8 +211,8 @@ export class Water extends Actor {
 	id = "water"
 	tags = ["water"]
 	art = genericAnimatedArt("water", 4)
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		other.destroy(this, "splash")
@@ -225,8 +225,8 @@ export class Dirt extends Actor {
 	id = "dirt"
 	tags = ["filth"]
 	art = { actorName: "dirt" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blockTags = ["cc1block", "normal-monster", "melinda"]
 	actorCompletelyJoined(): void {
@@ -240,8 +240,8 @@ export class Gravel extends Actor {
 	id = "gravel"
 	tags = ["filth"]
 	art: ActorArt = { actorName: "gravel" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blockTags = ["normal-monster", "melinda"]
 }
@@ -251,8 +251,8 @@ actorDB["gravel"] = Gravel
 export class Exit extends Actor {
 	id = "exit"
 	art = genericAnimatedArt("exit", 4)
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blockTags = ["monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
@@ -270,8 +270,8 @@ actorDB["exit"] = Exit
 export class EChipGate extends Actor {
 	id = "echipGate"
 	art = { actorName: "echipGate" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blockTags = ["normal-monster", "block"] // TODO Directional blocks
 	actorCompletelyJoined(other: Actor): void {
@@ -298,8 +298,8 @@ export class Hint extends Actor {
 			this.hint = this.level.defaultHint
 		else this.hint = this.level.hintsLeft[this.level.hintsLeftInLevel]
 	}
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		// Sorry
@@ -315,8 +315,8 @@ export class Fire extends Actor {
 	art = genericAnimatedArt("fire", 4)
 	tags = ["fire", "melting"]
 	blockTags = ["monster"]
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		other.destroy(this)
@@ -329,8 +329,8 @@ export class ThiefTool extends Actor {
 	id = "thiefTool"
 	art: ActorArt = { actorName: "thief", animation: "tool" }
 	blockTags = ["normal-monster", "cc1block"]
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		if (!(other instanceof Playable)) return
@@ -346,8 +346,8 @@ export class ThiefKey extends Actor {
 	id = "thiefKey"
 	art: ActorArt = { actorName: "thief", animation: "key" }
 	blockTags = ["normal-monster", "cc1block"]
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
 		if (!(other instanceof Playable)) return
@@ -367,8 +367,8 @@ export class Trap extends Actor {
 		actorName: "trap",
 		animation: this.openRequests > 0 ? "open" : "closed",
 	})
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	exitBlocks(): boolean {
 		return this.openRequests === 0
@@ -381,7 +381,7 @@ export class Trap extends Actor {
 		this.openRequests++
 		// If we just opened the trap, force the actor outta the tile
 		if (this.openRequests === 1)
-			for (const trapped of this.tile[Layers.MOVABLE])
+			for (const trapped of this.tile[Layer.MOVABLE])
 				trapped._internalStep(trapped.direction)
 
 		return true
@@ -406,10 +406,10 @@ export class CloneMachine extends Actor {
 	blockTags = ["cc1block", "normal-monster"]
 	// Block actors when this already has a source
 	blocks(): boolean {
-		return this.tile[Layers.MOVABLE].length > 0
+		return this.tile[Layer.MOVABLE].length > 0
 	}
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	// Allow actors to exit while cloning, so they can properly move out of the tile
 	exitBlocks(): boolean {
@@ -421,7 +421,7 @@ export class CloneMachine extends Actor {
 	buttonPressed(color: string): boolean {
 		if (color !== "red") return false
 		this.isCloning = true
-		for (const clonee of [...this.tile[Layers.MOVABLE]]) {
+		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
 			const direction = clonee.direction
 
 			if (!this.level.checkCollision(clonee, direction, true)) continue
@@ -453,16 +453,16 @@ export class Bomb extends Actor {
 			},
 		],
 	})
-	get layer(): Layers {
-		return Layers.ITEM // Yes
+	get layer(): Layer {
+		return Layer.ITEM // Yes
 	}
 	actorCompletelyJoined(other: Actor): void {
 		other.destroy(this, null)
 		this.destroy(other)
 	}
 	levelStarted(): void {
-		if (this.tile[Layers.MOVABLE].length > 0)
-			this.actorCompletelyJoined(this.tile[Layers.MOVABLE][0])
+		if (this.tile[Layer.MOVABLE].length > 0)
+			this.actorCompletelyJoined(this.tile[Layer.MOVABLE][0])
 	}
 }
 
@@ -471,8 +471,8 @@ actorDB["bomb"] = Bomb
 export class Turtle extends Actor {
 	id = "turtle"
 	tags = ["blocks-ghost"]
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	art = (): ActorArt => ({
 		actorName: "water",
@@ -520,8 +520,8 @@ export class GreenBomb extends Actor {
 		level.chipsLeft++
 		level.chipsRequired++
 	}
-	get layer(): Layers {
-		return Layers.ITEM // Yes
+	get layer(): Layer {
+		return Layer.ITEM // Yes
 	}
 	actorCompletelyJoined(other: Actor): void {
 		if (this.customData === "bomb") {

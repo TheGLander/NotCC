@@ -4,7 +4,7 @@ import {
 	ActorArt,
 	genericAnimatedArt,
 } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
 import { actorDB } from "../const"
@@ -15,8 +15,8 @@ export abstract class Monster extends Actor {
 		return true
 	}
 	tags = ["monster", "normal-monster", "movable"]
-	get layer(): Layers {
-		return Layers.MOVABLE
+	get layer(): Layer {
+		return Layer.MOVABLE
 	}
 	bumped(other: Actor): void {
 		// Monsters kill players which bump into them if they can move into them

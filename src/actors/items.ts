@@ -1,4 +1,4 @@
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { Actor, ActorArt, matchTags } from "../actor"
 import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
@@ -24,11 +24,11 @@ export abstract class Item extends Actor {
 			"playable",
 		])
 	}
-	get layer(): Layers {
-		return Layers.ITEM
+	get layer(): Layer {
+		return Layer.ITEM
 	}
 	ignores(): boolean {
-		return this.tile[Layers.ITEM_SUFFIX].length > 0
+		return this.tile[Layer.ITEM_SUFFIX].length > 0
 	}
 	actorCompletelyJoined(other: Actor): void {
 		if (other.tags.includes("can-stand-on-items")) return

@@ -1,5 +1,5 @@
 import { Actor, ActorArt, matchTags } from "../actor"
-import { Layers } from "../tile"
+import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Direction } from "../helpers"
 import { Playable } from "./playables"
@@ -7,8 +7,8 @@ export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall"]
 	art: ActorArt = { actorName: "wall" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blocks(): boolean {
 		return true
@@ -21,8 +21,8 @@ actorDB["wall"] = Wall
 export class SteelWall extends Actor {
 	id = "steelWall"
 	art: ActorArt = { actorName: "steelWall" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blocks(): boolean {
 		return true
@@ -34,8 +34,8 @@ actorDB["steelWall"] = SteelWall
 export class CustomWall extends Actor {
 	id = "customWall"
 	art: ActorArt = { actorName: "customWall", animation: this.customData }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blocks(): boolean {
 		return true
@@ -52,8 +52,8 @@ function doorFactory(color: string) {
 		tags = ["door"]
 		blockTags = ["normal-monster", "cc1-block"]
 		art: ActorArt = { actorName: "door", animation: color }
-		get layer(): Layers {
-			return Layers.STATIONARY
+		get layer(): Layer {
+			return Layer.STATIONARY
 		}
 		blocks(other: Actor): boolean {
 			return !(other.inventory.keys[`key${sentenceCaseName}`]?.amount > 0)
@@ -90,8 +90,8 @@ export class ThinWall extends Actor {
 			this.direction === Direction.DOWN ? 0.5 : 0,
 		],
 	})
-	get layer(): Layers {
-		return Layers.SPECIAL
+	get layer(): Layer {
+		return Layer.SPECIAL
 	}
 	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
 		return otherMoveDirection === (this.direction + 2) % 4
@@ -107,8 +107,8 @@ actorDB["thinWall"] = ThinWall
 
 export class InvisibleWall extends Actor {
 	id = "invisibleWall"
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	animationLeft = 0
 	art = (): ActorArt => ({ actorName: this.animationLeft ? "wall" : null })
@@ -128,8 +128,8 @@ actorDB["invisibleWall"] = InvisibleWall
 
 export class AppearingWall extends Actor {
 	id = "appearingWall"
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blocks(): true {
 		return true
@@ -149,8 +149,8 @@ export class BlueWall extends Actor {
 	id = "wall"
 	tags = ["wall"]
 	art: ActorArt = { actorName: "blueWall" }
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blocks(other: Actor): boolean {
 		return (
@@ -178,8 +178,8 @@ export class ToggleWall extends Actor {
 		compositePieces:
 			this.customData === "on" ? [{ actorName: "outlineWall" }] : [],
 	})
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blocks(): boolean {
 		return this.customData === "on"
@@ -198,8 +198,8 @@ export class Swivel extends Actor {
 		actorName: "swivel",
 		animation: ["ur", "dr", "dl", "ul"][this.direction],
 	})
-	get layer(): Layers {
-		return Layers.SPECIAL
+	get layer(): Layer {
+		return Layer.SPECIAL
 	}
 	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
 		return (
@@ -222,12 +222,12 @@ export class GreenWall extends Actor {
 	art = (): ActorArt => ({
 		actorName: "greenWall",
 		animation:
-			this.customData === "real" || this.tile[Layers.MOVABLE].length === 0
+			this.customData === "real" || this.tile[Layer.MOVABLE].length === 0
 				? "real"
 				: "fake",
 	})
-	get layer(): Layers {
-		return Layers.STATIONARY
+	get layer(): Layer {
+		return Layer.STATIONARY
 	}
 	blocks(other: Actor): boolean {
 		return (

@@ -3,7 +3,7 @@ import { Field, Direction } from "./helpers"
 import { KeyInputs } from "./pulse"
 import { Playable } from "./actors/playables"
 import Tile from "./tile"
-import { Layers } from "./tile"
+import { Layer } from "./tile"
 import { LevelData, CameraType } from "./encoder"
 import { actorDB } from "./const"
 
@@ -160,18 +160,18 @@ export class LevelState {
 
 		// Do stuff on the entering tile
 		for (const layer of [
-			Layers.ITEM_SUFFIX,
-			Layers.SPECIAL,
-			Layers.STATIONARY,
-			Layers.MOVABLE,
-			Layers.ITEM,
+			Layer.ITEM_SUFFIX,
+			Layer.SPECIAL,
+			Layer.STATIONARY,
+			Layer.MOVABLE,
+			Layer.ITEM,
 		])
 			for (const blockActor of newTile[layer]) {
 				blockActor.bumped?.(actor, direction)
 				actor.bumpedActor?.(blockActor, direction)
 				if (!blockActor._internalBlocks(actor, direction))
 					if (
-						layer !== Layers.ITEM_SUFFIX ||
+						layer !== Layer.ITEM_SUFFIX ||
 						newTile[layer].indexOf(blockActor) !== newTile[layer].length - 1
 					)
 						// Item suffixes are dumb
