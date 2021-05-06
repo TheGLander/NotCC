@@ -1,9 +1,15 @@
-import { Actor, genericDirectionableArt, SlidingState } from "../actor"
+import {
+	Actor,
+	genericDirectionableArt,
+	SlidingState,
+	ActorArt,
+} from "../actor"
 import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { KeyInputs } from "../pulse"
-import { GameState, LevelState } from "../level"
+import { GameState, LevelState, onLevelAfterTick } from "../level"
 import { Decision, actorDB } from "../const"
+import { Item } from "./items"
 
 // TODO Move chip-specific behavior outta here
 
@@ -14,12 +20,12 @@ export abstract class Playable extends Actor {
 		return true
 	}
 	pushTags = ["block"]
-	lastInputs?: KeyInputs
 	hasOverride = false
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		level.playables.push(this)
-		if (!level.selectedPlayable) level.selectedPlayable = this
+		level.selectedPlayable = this
+		level.playablesLeft++
 	}
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
@@ -32,10 +38,9 @@ export abstract class Playable extends Actor {
 	 * Used internally for input management
 	 */
 	getMovementDirections(): [Direction?, Direction?] {
-		if (!this.lastInputs) return []
 		const directions: [Direction?, Direction?] = []
 		for (const directionName of ["up", "right", "down", "left"] as const) {
-			if (!this.lastInputs[directionName]) continue
+			if (!this.level.gameInput[directionName]) continue
 			const direction =
 				Direction[
 					directionName.toUpperCase() as "UP" | "RIGHT" | "DOWN" | "LEFT"
@@ -52,14 +57,25 @@ export abstract class Playable extends Actor {
 	}
 	_internalDecide(forcedOnly: boolean): void {
 		this.moveDecision = Decision.NONE
-		if (this.cooldown) return
+		if (this.cooldown || this.level.selectedPlayable !== this) return
 
 		const canMove =
 			!forcedOnly &&
 			(!this.slidingState ||
 				(this.slidingState === SlidingState.WEAK && this.hasOverride))
+		if (
+			this.level.gameInput.rotateInv &&
+			this.level.debouncedInputs.rotateInv <= 0
+		) {
+			if (this.inventory.items.length > 0)
+				this.inventory.items.unshift(this.inventory.items.pop() as Item)
+			this.level.debounceInput("rotateInv")
+		}
+		if (this.level.gameInput.drop && this.level.debouncedInputs.drop <= 0) {
+			this.dropItem()
+			this.level.debounceInput("drop")
+		}
 
-		// TODO Inventory stuff
 		const [vert, horiz] = this.getMovementDirections()
 		if (
 			this.slidingState &&
@@ -110,7 +126,17 @@ export abstract class Playable extends Actor {
 export class Chip extends Playable {
 	tags = ["playable", "chip", "can-reuse-key-green"]
 	id = "chip"
-	art = genericDirectionableArt("chip", 8)
+	art = (): (ActorArt | false)[] => [
+		this.level.playablesLeft > 1 &&
+			this.level.selectedPlayable === this && { actorName: "playerAura" },
+		{
+			actorName: "chip",
+			animation: ["up", "right", "down", "left"][this.direction],
+			frame: this.cooldown
+				? Math.floor((1 - this.cooldown / (this.currentMoveSpeed ?? 1)) * 8)
+				: 0,
+		},
+	]
 }
 
 actorDB["chip"] = Chip

@@ -64,7 +64,6 @@ export class Fireball extends Monster {
 	id = "fireball"
 	ignoreTags = ["fire"]
 	tags = ["monster", "normal-monster", "movable", "melting"]
-	// TODO Rotation
 	art = genericAnimatedArt("fireball", 4)
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)

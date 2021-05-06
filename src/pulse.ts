@@ -12,7 +12,7 @@ export interface KeyInputs {
 	switchPlayable: boolean
 }
 
-type InputType = keyof KeyInputs
+export type InputType = keyof KeyInputs
 
 const isSmartTV = /smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
 	navigator.userAgent.toLowerCase()
@@ -65,6 +65,7 @@ export class PulseManager {
 		rotateInv: false,
 		switchPlayable: false,
 	}
+
 	renderer: Renderer
 	ready: Promise<void>
 	lastLevelGameState = GameState.PLAYING
@@ -146,7 +147,7 @@ Bonus: ${this.level.bonusPoints}pts`
 	}
 	tickLevel(): void {
 		const oldTime = Date.now()
-		this.level.giveInput(this.keysPressed)
+		this.level.gameInput = this.keysPressed
 		this.level.tick()
 		this.updateTextStats()
 		switch (this.level.gameState) {

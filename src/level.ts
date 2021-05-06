@@ -48,7 +48,25 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 	},
 ]
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
-export const onLevelAfterTick: ((level: LevelState) => void)[] = []
+export const onLevelAfterTick: ((level: LevelState) => void)[] = [
+	level => {
+		if (
+			level.gameInput.switchPlayable &&
+			level.debouncedInputs.switchPlayable % debouncePeriod <= 0 &&
+			level.selectedPlayable
+		) {
+			level.selectedPlayable =
+				level.playables[
+					(level.playables.indexOf(level.selectedPlayable) + 1) %
+						level.playables.length
+				]
+			level.debounceInput("switchPlayable")
+		}
+	},
+]
+
+export const debouncedInputs = ["drop", "rotateInv", "switchPlayable"] as const
+export const debouncePeriod = 50 // Debounce period in subticks
 
 /**
  * The state of a level, used as a hub of realtime level properties, the most important one being `field`
@@ -72,6 +90,24 @@ export class LevelState {
 	hintsLeft: string[] = []
 	defaultHint?: string
 	hintsLeftInLevel = 0
+	playablesLeft = 0
+	gameInput: KeyInputs = {
+		up: false,
+		down: false,
+		left: false,
+		right: false,
+		drop: false,
+		rotateInv: false,
+		switchPlayable: false,
+	}
+	/**
+	 * Inputs which should not be counted
+	 */
+	debouncedInputs: Record<typeof debouncedInputs[number], number> = {
+		drop: 0,
+		rotateInv: 0,
+		switchPlayable: 0,
+	}
 	/**
 	 * Connections of 2 tiles, used for CC1-style clone machine and trap connections
 	 */
@@ -102,10 +138,20 @@ export class LevelState {
 			this.timeLeft--
 			if (this.timeLeft <= 0) this.gameState = GameState.LOST
 		}
+		for (const debouncedKey of debouncedInputs)
+			if (!this.gameInput[debouncedKey]) this.debouncedInputs[debouncedKey] = 0
+			else if (this.debouncedInputs[debouncedKey] === 0)
+				this.debouncedInputs[debouncedKey] = debouncePeriod
+			else if (this.debouncedInputs[debouncedKey] !== -1) {
+				if (this.debouncedInputs[debouncedKey] === 1)
+					this.debouncedInputs[debouncedKey]--
+				this.debouncedInputs[debouncedKey]--
+			}
 		onLevelAfterTick.forEach(val => val(this))
 	}
-	giveInput(input: KeyInputs): void {
-		for (const i in this.playables) this.playables[i].lastInputs = input
+	debounceInput(inputType: typeof debouncedInputs[number]): void {
+		if (this.debouncedInputs[inputType] !== -1)
+			this.debouncedInputs[inputType] = debouncePeriod
 	}
 	constructor(public width: number, public height: number) {
 		//Init field

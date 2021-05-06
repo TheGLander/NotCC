@@ -32,10 +32,6 @@ export interface ActorArt {
 	 */
 	cropSize?: [number, number]
 	/**
-	 * Additional art to draw
-	 */
-	compositePieces?: ActorArt[]
-	/**
 	 * Offsets the source image frame by a certain amount.
 	 * [0, 0] by default
 	 */
@@ -71,6 +67,8 @@ export interface Inventory {
 	itemMax: number
 }
 
+type Falsy = false | undefined | 0 | null | ""
+
 export abstract class Actor {
 	moveDecision = Decision.NONE
 	currentMoveSpeed: number | null = null
@@ -89,7 +87,10 @@ export abstract class Actor {
 		this.tile.removeActors(this)
 		if (!intended) crossLevelData.despawnedActors?.push(this)
 	}
-	art?: ActorArt | (() => ActorArt)
+	art?:
+		| ActorArt
+		| (ActorArt | Falsy)[]
+		| (() => ActorArt | (ActorArt | Falsy)[])
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
 	 */
@@ -163,6 +164,7 @@ export abstract class Actor {
 		itemMax: 4,
 	}
 	dropItem(): void {
+		if (this.tile[Layer.ITEM].length > 0) return
 		const itemToDrop = this.inventory.items.pop()
 		if (!itemToDrop) return
 		if (this.despawned)

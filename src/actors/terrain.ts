@@ -19,18 +19,18 @@ import { Direction } from "../helpers"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
-	art: ActorArt = {
-		actorName: "floor",
-		animation: "framed",
-		compositePieces: [
-			{
-				actorName: "letter",
-				animation: this.customData,
-				cropSize: [0.5, 0.5],
-				imageOffset: [0.25, 0.25],
-			},
-		],
-	}
+	art: ActorArt[] = [
+		{
+			actorName: "floor",
+			animation: "framed",
+		},
+		{
+			actorName: "letter",
+			animation: this.customData,
+			cropSize: [0.5, 0.5],
+			imageOffset: [0.25, 0.25],
+		},
+	]
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -259,8 +259,8 @@ export class Exit extends Actor {
 		if (other instanceof Playable) {
 			other.destroy(this, null)
 			this.level.gameState = GameState.PLAYING
-			if (this.level.playables.length === 0)
-				this.level.gameState = GameState.WON
+			this.level.playablesLeft--
+			if (this.level.playablesLeft === 0) this.level.gameState = GameState.WON
 		}
 	}
 }
@@ -442,17 +442,17 @@ actorDB["cloneMachine"] = CloneMachine
 export class Bomb extends Actor {
 	id = "bomb"
 	tags = ["bomb"]
-	art = (): ActorArt => ({
-		actorName: "bomb",
-		compositePieces: [
-			{
-				actorName: "bombFuse",
-				cropSize: [0.5, 0.5],
-				animation: (this.level.currentTick % 4).toString(),
-				imageOffset: [0.5, 0],
-			},
-		],
-	})
+	art = (): ActorArt[] => [
+		{
+			actorName: "bomb",
+		},
+		{
+			actorName: "bombFuse",
+			cropSize: [0.5, 0.5],
+			animation: (this.level.currentTick % 4).toString(),
+			imageOffset: [0.5, 0],
+		},
+	]
 	get layer(): Layer {
 		return Layer.ITEM // Yes
 	}
@@ -474,16 +474,16 @@ export class Turtle extends Actor {
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
-	art = (): ActorArt => ({
-		actorName: "water",
-		frame: this.level.currentTick % 4,
-		compositePieces: [
-			{
-				actorName: "turtle",
-				frame: Math.floor(this.level.currentTick / 3) % 3,
-			},
-		],
-	})
+	art = (): ActorArt[] => [
+		{
+			actorName: "water",
+			frame: this.level.currentTick % 4,
+		},
+		{
+			actorName: "turtle",
+			frame: Math.floor(this.level.currentTick / 3) % 3,
+		},
+	]
 	blockTags = ["melting"]
 	actorLeft(): void {
 		this.destroy(null, "splash")
@@ -496,19 +496,19 @@ actorDB["turtle"] = Turtle
 export class GreenBomb extends Actor {
 	id = "bomb"
 	tags = ["bomb"]
-	art = (): ActorArt =>
+	art = (): ActorArt | ActorArt[] =>
 		this.customData === "bomb"
-			? {
-					actorName: "bombGreen",
-					compositePieces: [
-						{
-							actorName: "bombFuse",
-							cropSize: [0.5, 0.5],
-							animation: (this.level.currentTick % 4).toString(),
-							imageOffset: [0.5, 0],
-						},
-					],
-			  }
+			? [
+					{
+						actorName: "bombGreen",
+					},
+					{
+						actorName: "bombFuse",
+						cropSize: [0.5, 0.5],
+						animation: (this.level.currentTick % 4).toString(),
+						imageOffset: [0.5, 0],
+					},
+			  ]
 			: { actorName: "echipGreen" }
 	constructor(
 		level: LevelState,

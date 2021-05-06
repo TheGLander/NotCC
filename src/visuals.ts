@@ -3,6 +3,7 @@ import { LevelState } from "./level"
 import ogData from "./cc2ImageFormat"
 import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
 import { keyNameList } from "./const"
+import { Actor, ActorArt } from "./actor"
 
 type CC2Animation =
 	| [number, number]
@@ -188,12 +189,15 @@ export default class Renderer {
 		itemCtx.drawImage(this.backgroundFiller.image, 0, 0)
 		if (!player) return
 		for (const [i, item] of player.inventory.items.entries()) {
-			const art = typeof item.art === "function" ? item.art() : item.art
-			if (!art || !art.actorName) continue
+			let art = typeof item.art === "function" ? item.art() : item.art
+			if (!(art instanceof Array)) art = [art]
+
+			const artPiece = art[0]
+			if (!artPiece || !artPiece.actorName) return
 			const frame =
-				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
-					art.frame ?? 0
-				]
+				data.actorMapping[artPiece.actorName]?.[
+					artPiece.animation ?? "default"
+				]?.[artPiece.frame ?? 0]
 			if (!frame) continue
 			itemCtx.drawImage(
 				this.renderTexture.image,
@@ -210,13 +214,18 @@ export default class Renderer {
 		let nonRegisteredOffset = keyNameList.length
 		for (const key of Object.values(player.inventory.keys)) {
 			if (key.amount <= 0) continue
-			const art =
+			let art =
 				typeof key.type.art === "function" ? key.type.art() : key.type.art
-			if (!art || !art.actorName) continue
+			if (!(art instanceof Array)) art = [art]
+
+			const artPiece = art[0]
+			if (!artPiece || !artPiece.actorName) return
+
 			const frame =
-				data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
-					art.frame ?? 0
-				]
+				data.actorMapping[artPiece.actorName]?.[
+					artPiece.animation ?? "default"
+				]?.[artPiece.frame ?? 0]
+
 			if (!frame) continue
 			let index = keyNameList.indexOf(key.type.id)
 			if (index === -1) index = nonRegisteredOffset++
@@ -316,12 +325,13 @@ export default class Renderer {
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
-			const mainArt =
+			let mainArt =
 				typeof actor.art === "function"
 					? actor.art()
 					: actor.art ?? { actorName: "unknown" }
-
-			for (const art of [mainArt, ...(mainArt.compositePieces ?? [])]) {
+			if (!(mainArt instanceof Array)) mainArt = [mainArt]
+			for (const art of mainArt) {
+				if (!art) continue
 				if (art.actorName === null || art.animation === null) continue
 				const frame =
 					data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
