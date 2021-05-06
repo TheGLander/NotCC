@@ -172,12 +172,13 @@ actorDB["blueWall"] = BlueWall
 
 export class ToggleWall extends Actor {
 	id = "toggleWall"
-	art: () => ActorArt = () => ({
-		actorName: "outline",
-		animation: "green",
-		compositePieces:
-			this.customData === "on" ? [{ actorName: "outlineWall" }] : [],
-	})
+	art = () => [
+		{
+			actorName: "outline",
+			animation: "green",
+		},
+		this.customData === "on" && { actorName: "outlineWall" },
+	]
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
