@@ -38,6 +38,16 @@ export class LetterTile extends Actor {
 
 actorDB["letterTile"] = LetterTile
 
+export class CustomFloor extends Actor {
+	id = "customFloor"
+	art: ActorArt = { actorName: "customFloor", animation: this.customData }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+}
+
+actorDB["customFloor"] = CustomFloor
+
 export class Ice extends Actor {
 	id = "ice"
 	tags = ["ice"]
@@ -507,6 +517,8 @@ export class GreenBomb extends Actor {
 	) {
 		super(level, position, customData)
 		level.chipsTotal++
+		level.chipsLeft++
+		level.chipsRequired++
 	}
 	get layer(): Layers {
 		return Layers.ITEM // Yes

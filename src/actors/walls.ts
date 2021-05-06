@@ -17,6 +17,33 @@ export class Wall extends Actor {
 
 actorDB["wall"] = Wall
 
+// TODO Ghost blockage, TNT resistance
+export class SteelWall extends Actor {
+	id = "steelWall"
+	art: ActorArt = { actorName: "steelWall" }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	blocks(): boolean {
+		return true
+	}
+}
+
+actorDB["steelWall"] = SteelWall
+
+export class CustomWall extends Actor {
+	id = "customWall"
+	art: ActorArt = { actorName: "customWall", animation: this.customData }
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	blocks(): boolean {
+		return true
+	}
+}
+
+actorDB["customWall"] = CustomWall
+
 function doorFactory(color: string) {
 	const sentenceCaseName =
 		color[0].toUpperCase() + color.substr(1).toLowerCase()
