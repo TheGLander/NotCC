@@ -215,3 +215,26 @@ export class Swivel extends Actor {
 }
 
 actorDB["swivel"] = Swivel
+
+export class GreenWall extends Actor {
+	id = "greenWall"
+	tags = ["wall"]
+	art = (): ActorArt => ({
+		actorName: "greenWall",
+		animation:
+			this.customData === "real" || this.tile[Layers.MOVABLE].length === 0
+				? "real"
+				: "fake",
+	})
+	get layer(): Layers {
+		return Layers.STATIONARY
+	}
+	blocks(other: Actor): boolean {
+		return (
+			this.customData === "real" ||
+			matchTags(other.getCompleteTags("tags"), ["block"])
+		)
+	}
+}
+
+actorDB["greenWall"] = GreenWall

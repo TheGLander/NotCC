@@ -299,6 +299,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[12, 16],
 			],
 		},
+		greenWall: { real: [12, 5], fake: [13, 5] },
 		noSign: [14, 5],
 		letter: {
 			"0": [8, 0],
