@@ -296,9 +296,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				view.getStringUntilNull()
 				break
 			case "CLUE":
-				data.hints ??= []
-				// TODO Find out if it's before or after the other hints or it depends on whatever
-				data.hints.unshift(view.getStringUntilNull())
+				data.defaultHint = view.getStringUntilNull()
 				break
 			case "NOTE": {
 				let note = view.getStringUntilNull()

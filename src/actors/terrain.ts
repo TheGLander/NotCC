@@ -277,12 +277,16 @@ actorDB["echipGate"] = EChipGate
 export class Hint extends Actor {
 	id = "hint"
 	art = { actorName: "hint" }
-	hint: string | null = null
+	hint?: string
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
-		const hint =
-			level.hintsLeft.length === 1 ? level.hintsLeft[0] : level.hintsLeft.pop()
-		if (hint) this.hint = hint
+		this.level.hintsLeftInLevel++
+	}
+	levelStarted() {
+		this.level.hintsLeftInLevel--
+		if (this.level.hintsLeftInLevel > this.level.hintsLeft.length)
+			this.hint = this.level.defaultHint
+		else this.hint = this.level.hintsLeft[this.level.hintsLeftInLevel]
 	}
 	get layer(): Layers {
 		return Layers.STATIONARY

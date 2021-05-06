@@ -1,7 +1,12 @@
 import { Actor, ActorArt } from "../actor"
 import { Layers } from "../tile"
 import { actorDB } from "../const"
-import { LevelState, onLevelDecisionTick, crossLevelData } from "../level"
+import {
+	LevelState,
+	onLevelDecisionTick,
+	crossLevelData,
+	onLevelAfterTick,
+} from "../level"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16
@@ -36,12 +41,6 @@ export interface QueuedAnimationDespawn {
 onLevelDecisionTick.push(level => {
 	if (!crossLevelData.queuedDespawns) return
 	for (const despawn of [...crossLevelData.queuedDespawns]) {
-		if (despawn.animationOnly === undefined) {
-			// If the tile has an animation, this is for animations ONLY
-			despawn.animationOnly = !!level.field[despawn.position[0]]?.[
-				despawn.position[1]
-			]?.[Layers.MOVABLE]?.find(actor => actor instanceof Animation)
-		}
 		despawn.ticksLeft--
 		if (despawn.ticksLeft <= 0) {
 			const actors =
@@ -57,6 +56,16 @@ onLevelDecisionTick.push(level => {
 			)
 		}
 	}
+})
+
+onLevelAfterTick.push(level => {
+	if (crossLevelData.queuedDespawns)
+		for (const despawn of [...crossLevelData.queuedDespawns])
+			if (despawn.animationOnly === undefined)
+				// If the tile has an animation, this is for animations ONLY
+				despawn.animationOnly = level.field[despawn.position[0]]?.[
+					despawn.position[1]
+				]?.[Layers.MOVABLE]?.some(actor => actor instanceof Animation)
 })
 
 declare module "../level" {

@@ -24,6 +24,10 @@ export interface LevelData {
 	blobMode?: 1 | 4 | 256
 	name?: string
 	hints?: string[]
+	/**
+	 * If the hint tile didn't get a custom hint, it gets this
+	 */
+	defaultHint?: string
 	note?: string
 	/**
 	 * The amount of chips to add to the required count beyond the default chip amount.

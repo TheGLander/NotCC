@@ -48,6 +48,7 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 	},
 ]
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
+export const onLevelAfterTick: ((level: LevelState) => void)[] = []
 
 /**
  * The state of a level, used as a hub of realtime level properties, the most important one being `field`
@@ -69,6 +70,8 @@ export class LevelState {
 	timeLeft = 0
 	bonusPoints = 0
 	hintsLeft: string[] = []
+	defaultHint?: string
+	hintsLeftInLevel = 0
 	/**
 	 * Connections of 2 tiles, used for CC1-style clone machine and trap connections
 	 */
@@ -99,6 +102,7 @@ export class LevelState {
 			this.timeLeft--
 			if (this.timeLeft <= 0) this.gameState = GameState.LOST
 		}
+		onLevelAfterTick.forEach(val => val(this))
 	}
 	giveInput(input: KeyInputs): void {
 		for (const i in this.playables) this.playables[i].lastInputs = input
@@ -217,6 +221,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 	const level = new LevelState(data.width, data.height)
 	level.levelData = data
 	if (data.hints) level.hintsLeft = [...data.hints]
+	if (data.defaultHint) level.defaultHint = data.defaultHint
 	// TODO Misc data setting, like CC1 boots and stuff
 	if (data.blobMode) {
 		if (data.blobMode > 1)

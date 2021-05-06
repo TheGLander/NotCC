@@ -103,7 +103,7 @@ export function parseDAT(buff: ArrayBuffer, fileName: string): LevelSetData {
 						.join("")
 					break
 				case 7: // Level hint
-					levelData.hints = [view.getStringUntilNull()]
+					levelData.defaultHint = view.getStringUntilNull()
 					break
 				default:
 					// Ignore this field
