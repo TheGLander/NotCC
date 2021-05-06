@@ -7,13 +7,21 @@ function findNextTeleport<T extends Actor>(
 	this: T,
 	other: Actor,
 	goInRRO = true,
-	checkCollision = true
+	validateDestination: (this: T, other: Actor, newTeleport: T) => boolean = (
+		other,
+		newTeleport
+	) => {
+		const neighbor = newTeleport.tile.getNeighbor(other.direction)
+		return (
+			(neighbor &&
+				this.level.checkCollisionToTile(other, neighbor, other.direction)) ??
+			false
+		)
+	}
 ): T {
-	// eslint-disable-next-line @typescript-eslint/no-this-alias
-	let otherTeleport = this
 	const thisConstructor = Object.getPrototypeOf(this).constructor
 	let x = this.tile.x + (goInRRO ? -1 : 1)
-	loop: for (
+	for (
 		let y = this.tile.y;
 		// If we reached this tile, stop
 		// eslint-disable-next-line no-constant-condition
@@ -29,24 +37,14 @@ function findNextTeleport<T extends Actor>(
 			const newTeleport = this.level.field[x][y].allActors.find(
 				val => val instanceof thisConstructor
 			) as T | undefined
-			if (newTeleport === this) break loop
-			const teleportNeighbor = newTeleport?.tile.getNeighbor(other.direction)
+			if (newTeleport === this) return this
 			if (
 				newTeleport &&
-				teleportNeighbor &&
 				newTeleport.tile[Layers.MOVABLE].length === 0 &&
-				(!checkCollision ||
-					this.level.checkCollisionToTile(
-						other,
-						teleportNeighbor,
-						other.direction
-					))
-			) {
-				otherTeleport = newTeleport
-				break loop
-			}
+				validateDestination.call(this, other, newTeleport)
+			)
+				return newTeleport
 		}
-	return otherTeleport
 }
 
 export class BlueTeleport extends Actor {
@@ -81,7 +79,28 @@ export class RedTeleport extends Actor {
 	art = genericAnimatedArt("teleportRed", 4)
 	actorCompletelyJoined(other: Actor): void {
 		other.oldTile = other.tile
-		other.tile = findNextTeleport.call(this, other, false).tile
+		other.tile = findNextTeleport.call(
+			this,
+			other,
+			false,
+			(other, teleport) => {
+				const rotateUntil = other.direction + 4
+				for (; rotateUntil !== other.direction; other.direction++) {
+					const neighbor = teleport.tile.getNeighbor(other.direction % 4)
+					if (
+						neighbor &&
+						this.level.checkCollisionToTile(
+							other,
+							neighbor,
+							other.direction % 4
+						)
+					)
+						return true
+				}
+				other.direction %= 4
+				return false
+			}
+		).tile
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.WEAK
 		if (other instanceof Playable) other.hasOverride = true
