@@ -16,7 +16,7 @@ export abstract class Monster extends Actor {
 	blocks(): true {
 		return true
 	}
-	tags = ["monster", "normal-monster", "movable"]
+	tags = ["autonomous-monster", "normal-monster", "movable"]
 	get layer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -65,7 +65,7 @@ actorDB["glider"] = Glider
 export class Fireball extends Monster {
 	id = "fireball"
 	ignoreTags = ["fire"]
-	tags = ["monster", "normal-monster", "movable", "melting"]
+	tags = ["autonomous-monster", "normal-monster", "movable", "melting"]
 	art = genericAnimatedArt("fireball", 4)
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)

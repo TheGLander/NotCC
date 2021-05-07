@@ -316,8 +316,11 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 							break
 						case "COM": // TODO C2M Inline code
 							throw new Error("[COM] not supported (yet)!")
-						case "JETLIFE": // TODO [JETLIFE]
-							throw new Error("[JETLIFE] not supported (yet)!")
+						case "JETLIFE":
+							data.customData ??= {}
+							if (!isNaN(parseInt(noteSectionData, 10)))
+								data.customData.jetlife = noteSectionData
+							break
 					}
 					note = note.substr(
 						noteSectionData.length + (nextSection?.[0].length ?? 0)

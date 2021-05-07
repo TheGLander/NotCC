@@ -185,6 +185,7 @@ export abstract class Actor {
 		level.actors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
+		for (const actor of this.tile.allActors) actor.newActorOnTile?.(this)
 	}
 	/**
 	 * Decides the movements the actor will attempt to do
@@ -289,7 +290,10 @@ export abstract class Actor {
 	 * Called when this actor stops walking to a new tile
 	 */
 	newTileCompletelyJoined?(): void
-
+	/**
+	 * Called when a new actor was born on the same tile as this
+	 */
+	newActorOnTile?(actor: Actor): void
 	_internalShouldDestroy(other: Actor): boolean {
 		return !(
 			this._internalIgnores(other) ||

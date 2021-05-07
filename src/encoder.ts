@@ -42,6 +42,8 @@ export interface LevelData {
 	 * The password used to access the level, not supported in vanilla CC2
 	 */
 	password?: string
+	// Random misc custom data
+	customData?: Record<string, string>
 }
 
 export type PartialLevelData = Omit<LevelData, "field" | "width" | "height"> &

@@ -161,7 +161,6 @@ export class LevelState {
 			for (let y = 0; y < height; y++)
 				this.field[x].push(new Tile(this, [x, y], []))
 		}
-		onLevelStart.forEach(val => val(this))
 	}
 	/**
 	 * Checks if a specific actor can move in a certain direction
@@ -291,5 +290,6 @@ export function createLevelFromData(data: LevelData): LevelState {
 				if (actor[1]) actorInstance.direction = actor[1]
 			}
 	for (const actor of level.actors) actor.levelStarted?.()
+	onLevelStart.forEach(val => val(level))
 	return level
 }

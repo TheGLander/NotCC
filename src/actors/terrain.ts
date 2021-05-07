@@ -14,8 +14,10 @@ import {
 	LevelState,
 	CrossLevelDataInterface,
 	crossLevelData,
+	onLevelDecisionTick,
 } from "../level"
 import { Direction } from "../helpers"
+import { onLevelAfterTick, onLevelStart } from "../level"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
@@ -122,11 +124,7 @@ export class ForceFloor extends Actor {
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
 	}
-	levelStarted(): void {
-		// Pretend like everyone stepped on this on level start
-		for (const actor of this.tile[Layer.MOVABLE])
-			this.actorCompletelyJoined(actor)
-	}
+	newActorOnTile = this.actorCompletelyJoined
 	onMemberSlideBonked(other: Actor): void {
 		// Give them a single subtick of cooldown
 		// FIXME First bump doesn't yield a cooldown in CC2
@@ -152,11 +150,7 @@ export class ForceFloorRandom extends Actor {
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
 	}
-	levelStarted(): void {
-		// Pretend like everyone stepped on this on level start
-		for (const actor of this.tile[Layer.MOVABLE])
-			this.actorCompletelyJoined(actor)
-	}
+	newActorOnTile = this.actorCompletelyJoined
 	onMemberSlideBonked(other: Actor): void {
 		// Give them a single subtick of cooldown
 		// FIXME First bump doesn't yield a cooldown in CC2
@@ -315,7 +309,7 @@ export class Fire extends Actor {
 	id = "fire"
 	art = genericAnimatedArt("fire", 4)
 	tags = ["fire", "melting"]
-	blockTags = ["monster"]
+	blockTags = ["autonomous-monster"]
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -461,10 +455,7 @@ export class Bomb extends Actor {
 		other.destroy(this, null)
 		this.destroy(other)
 	}
-	levelStarted(): void {
-		if (this.tile[Layer.MOVABLE].length > 0)
-			this.actorCompletelyJoined(this.tile[Layer.MOVABLE][0])
-	}
+	newActorOnTile = this.actorCompletelyJoined
 }
 
 actorDB["bomb"] = Bomb
@@ -562,3 +553,54 @@ export class Slime extends Actor {
 }
 
 actorDB["slime"] = Slime
+
+export class FlameJet extends Actor {
+	id = "flameJet"
+	art = (): ActorArt => ({
+		actorName: "flameJet",
+		frame: this.customData === "on" ? (this.level.currentTick % 3) + 1 : 0,
+	})
+	tags = this.customData === "on" ? ["fire"] : []
+	get layer(): Layer {
+		return Layer.STATIONARY
+	}
+	onEachDecision(): void {
+		if (this.customData === "on" && !this.tags.includes("fire"))
+			this.tags.push("fire")
+		else if (this.customData === "off" && this.tags.includes("fire"))
+			this.tags.splice(this.tags.indexOf("fire"))
+		for (const movable of this.tile[Layer.MOVABLE])
+			if (movable.cooldown === 0 && this.customData === "on")
+				movable.destroy(this)
+	}
+}
+
+actorDB["flameJet"] = FlameJet
+
+export const updateJetlife = (level: LevelState): void => {
+	if (!level.levelData?.customData?.jetlife) return
+	if (
+		(level.currentTick * 3 + level.subtick) %
+			parseInt(level.levelData.customData.jetlife) !==
+		0
+	)
+		return
+	const queuedUpdates: [FlameJet, string][] = []
+	for (const actor of level.actors)
+		if (actor instanceof FlameJet) {
+			let neighbors = 0
+			for (let xOff = -1; xOff <= 1; xOff++)
+				for (let yOff = -1; yOff <= 1; yOff++) {
+					const tile = level.field[actor.tile.x + xOff]?.[actor.tile.y + yOff]
+					if (tile && !(xOff === 0 && yOff === 0))
+						for (const actor of tile.allActors)
+							if (actor.getCompleteTags("tags").includes("fire")) neighbors++
+				}
+			if (neighbors === 3) queuedUpdates.push([actor, "on"])
+			else if (neighbors !== 2) queuedUpdates.push([actor, "off"])
+		}
+	for (const update of queuedUpdates) update[0].customData = update[1]
+}
+
+onLevelAfterTick.push(updateJetlife)
+onLevelStart.push(updateJetlife)

@@ -146,6 +146,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[4, 5],
 			[7, 5],
 		],
+		flameJet: [
+			[8, 5],
+			[11, 5],
+		],
 		ant: {
 			up: [
 				[0, 7],
