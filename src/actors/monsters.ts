@@ -134,8 +134,20 @@ actorDB["tankBlue"] = TankBlue
 
 export class BlobMonster extends Monster {
 	id = "blob"
+	immuneTags = ["slime"]
 	moveSpeed = 8
 	art = genericStretchyArt("blob", 8)
+	newTileJoined(): void {
+		const spreadedSlime = this.oldTile?.allActors.find(val =>
+			val.tags.includes("slime")
+		)
+		if (spreadedSlime && this.tile[spreadedSlime.layer].length === 0)
+			new actorDB[spreadedSlime.id](
+				this.level,
+				this.tile.position,
+				spreadedSlime.customData
+			)
+	}
 	decideMovement(): [Direction] {
 		return [(this.level.random() + this.level.blobMod()) % 4]
 	}
@@ -161,7 +173,7 @@ export class LitTNT extends Monster {
 		frame: Math.floor(this.lifeLeft / 60),
 	})
 	lifeLeft = 250
-	tags = ["monster", "normal-monster", "movable", "cc1block", "tnt"]
+	tags = ["normal-monster", "movable", "cc1block", "tnt"]
 	explosionStage: 0 | 1 | 2 | 3 = 0
 	id = "tntLit"
 	nukeTile(tile: Tile): void {

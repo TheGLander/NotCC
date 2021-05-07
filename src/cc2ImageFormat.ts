@@ -252,6 +252,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[4, 20],
 			[7, 20],
 		],
+		slime: [
+			[8, 20],
+			[15, 20],
+		],
 		boot: {
 			water: [0, 6],
 			fire: [1, 6],

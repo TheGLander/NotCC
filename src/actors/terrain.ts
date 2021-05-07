@@ -7,7 +7,7 @@ import {
 import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Wall } from "./walls"
-import { genericAnimatedArt } from "../actor"
+import { genericAnimatedArt, matchTags } from "../actor"
 import { Playable } from "./playables"
 import {
 	GameState,
@@ -254,7 +254,7 @@ export class Exit extends Actor {
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["monster", "cc1block"]
+	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
 			other.destroy(this, null)
@@ -404,7 +404,7 @@ export class CloneMachine extends Actor {
 	}
 	isCloning = false
 	// Always block boomer actors
-	blockTags = ["cc1block", "normal-monster"]
+	blockTags = ["cc1block", "normal-monster", "playable"]
 	// Block actors when this already has a source
 	blocks(): boolean {
 		return this.tile[Layer.MOVABLE].length > 0
@@ -540,3 +540,25 @@ export class GreenBomb extends Actor {
 }
 
 actorDB["greenBomb"] = GreenBomb
+
+// TODO Directional blocks
+
+export class Slime extends Actor {
+	id = "slime"
+	tags = ["slime"]
+	art = genericAnimatedArt("slime", 8)
+	get layer(): Layer {
+		return Layer.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		const otherTags = other.getCompleteTags("tags")
+		if (
+			otherTags.includes("dies-in-slime") ||
+			!matchTags(otherTags, ["block", "clears-slime"])
+		)
+			other.destroy(this, "splash")
+		else this.destroy(null, null)
+	}
+}
+
+actorDB["slime"] = Slime
