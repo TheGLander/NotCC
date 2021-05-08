@@ -91,6 +91,7 @@ export class LevelState {
 	defaultHint?: string
 	hintsLeftInLevel = 0
 	playablesLeft = 0
+	levelStarted = false
 	gameInput: KeyInputs = {
 		up: false,
 		down: false,
@@ -127,6 +128,14 @@ export class LevelState {
 	 * (Since there are 3 subticks in a tick, and 20 ticks in a second, this should be run 60 times a second)
 	 */
 	tick(): void {
+		if (!this.levelStarted) {
+			this.levelStarted = true
+			for (const actor of this.actors)
+				for (const actorNeigh of actor.tile.allActors)
+					if (actorNeigh !== actor) actor.newActorOnTile?.(actor)
+			for (const actor of this.actors) actor.levelStarted?.()
+			onLevelStart.forEach(val => val(this))
+		}
 		this.decisionTick(this.subtick !== 2)
 		this.moveTick()
 		//	if (this.playables.length === 0) this.lost = true
@@ -289,7 +298,5 @@ export function createLevelFromData(data: LevelData): LevelState {
 				)
 				if (actor[1]) actorInstance.direction = actor[1]
 			}
-	for (const actor of level.actors) actor.levelStarted?.()
-	onLevelStart.forEach(val => val(level))
 	return level
 }
