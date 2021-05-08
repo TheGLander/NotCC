@@ -282,6 +282,8 @@ export function createLevelFromData(data: LevelData): LevelState {
 	}
 	level.cameraType = data.camera
 	level.timeLeft = data.timeLimit * 60
+	if (data.playablesRequiredToExit !== "all")
+		level.playablesLeft = data.playablesRequiredToExit
 	if (data.extraChipsRequired) level.chipsRequired = data.extraChipsRequired
 	if (data.connections) level.connections = data.connections
 	for (let y = level.height - 1; y >= 0; y--)

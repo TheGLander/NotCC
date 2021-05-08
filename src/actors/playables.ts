@@ -127,10 +127,6 @@ export abstract class Playable extends Actor {
 	}
 	destroy(other?: Actor | null, anim?: string | null): boolean {
 		if (!super.destroy(other, anim)) return false
-		if (this.level.playables.includes(this))
-			this.level.playables.splice(this.level.playables.indexOf(this), 1)
-		if (this.level.selectedPlayable === this && this.level.playables.length > 0)
-			this.level.selectedPlayable = this.level.playables[0]
 		this.level.gameState = GameState.LOST
 		return true
 	}
