@@ -130,11 +130,11 @@ export class LevelState {
 	tick(): void {
 		if (!this.levelStarted) {
 			this.levelStarted = true
-			for (const actor of this.actors)
-				for (const actorNeigh of actor.tile.allActors)
-					if (actorNeigh !== actor) actor.newActorOnTile?.(actor)
 			for (const actor of this.actors) actor.levelStarted?.()
 			onLevelStart.forEach(val => val(this))
+			for (const actor of this.actors)
+				for (const actorNeigh of actor.tile.allActors)
+					if (actorNeigh !== actor) actor.newActorOnTile?.(actorNeigh)
 		}
 		this.decisionTick(this.subtick !== 2)
 		this.moveTick()

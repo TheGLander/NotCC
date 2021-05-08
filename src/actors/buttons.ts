@@ -52,7 +52,7 @@ export function ROConnectedButtonFactory(
 		}
 		levelStarted(): void {
 			if (shouldActivateOnLevelStart)
-				if (this.tile.allActors.length > 1) this.actorCompletelyJoined()
+				if (this.tile[Layer.MOVABLE].length > 1) this.actorCompletelyJoined()
 		}
 		actorCompletelyJoined(): void {
 			if (!this.connectedActor) {

@@ -73,21 +73,34 @@ class Tile extends Array<Array<Actor>> {
 		)
 	}
 	*getDiamondSearch(level: number): IterableIterator<Tile> {
-		if (level === 1) {
-			for (let i = 0; i < 4; i++) {
-				const tile = this.getNeighbor(i)
-				if (tile) yield tile
-			}
-			return
-		}
-		for (let yOff = -level; yOff <= level; yOff++) {
-			const xOff = level - Math.abs(yOff)
-			const tile1 = this.level.field[this.x - xOff]?.[this.y + yOff]
-			if (tile1) yield tile1
-			if (xOff !== 0) {
-				const tile2 = this.level.field[this.x + xOff]?.[this.y + yOff]
-				if (tile2) yield tile2
-			}
+		const offsets = [
+			[-1, -1],
+			[-1, 1],
+			[1, 1],
+			[1, -1],
+		] as const
+		const targets = [
+			[0, -level],
+			[-level, 0],
+			[0, level],
+			[level, 0],
+		] as const
+		for (
+			let currOffset = [level, 0], currTarget = 0;
+			true;
+			currOffset[0] += offsets[currTarget][0],
+				currOffset[1] += offsets[currTarget][1]
+		) {
+			if (
+				currOffset[0] === targets[currTarget][0] &&
+				currOffset[1] === targets[currTarget][1]
+			)
+				currTarget++
+			if (currTarget === 4) break
+			const tile = this.level.field[this.x + currOffset[0]]?.[
+				this.y + currOffset[1]
+			]
+			if (tile) yield tile
 		}
 	}
 }

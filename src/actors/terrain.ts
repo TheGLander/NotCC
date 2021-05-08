@@ -602,4 +602,5 @@ export const updateJetlife = (level: LevelState): void => {
 	for (const update of queuedUpdates) update[0].customData = update[1]
 }
 
-onLevelDecisionTick.push(updateJetlife)
+onLevelStart.push(updateJetlife)
+onLevelAfterTick.push(updateJetlife)
