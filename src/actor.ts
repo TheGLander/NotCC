@@ -209,7 +209,7 @@ export abstract class Actor {
 			return
 		}
 		this.onEachDecision?.(forcedOnly)
-		if (forcedOnly || !this._internalCanDecide()) return
+		if (forcedOnly) return
 		const directions = this.decideMovement?.()
 
 		if (!directions) return
@@ -430,16 +430,6 @@ export abstract class Actor {
 	 * @returns May return a boolean indicating if the actor cared about the button release
 	 */
 	buttonUnpressed?(type: string): void | boolean
-	/**
-	 * Called when an actor which is on this tile attempts to make a decision, if false is returned, the actor cannot make a decision
-	 */
-	canTileMemberDecide?(other: Actor): boolean
-	_internalCanDecide(): boolean {
-		for (const actor of this.tile.allActors)
-			if (actor.canTileMemberDecide && !actor.canTileMemberDecide(this))
-				return false
-		return true
-	}
 	/**
 	 * Called when the level starts
 	 */

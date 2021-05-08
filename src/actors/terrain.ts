@@ -368,9 +368,10 @@ export class Trap extends Actor {
 	exitBlocks(): boolean {
 		return this.openRequests === 0
 	}
-	canTileMemberDecide(): boolean {
-		return this.openRequests > 0
+	newActorOnTile(actor: Actor): void {
+		if (this.openRequests === 0) actor.slidingState = SlidingState.WEAK
 	}
+	actorCompletelyJoined = this.newActorOnTile
 	buttonPressed(color: string): boolean {
 		if (color !== "brown") return false
 		this.openRequests++
@@ -384,6 +385,9 @@ export class Trap extends Actor {
 	buttonUnpressed(color: string): boolean {
 		if (color !== "brown") return false
 		this.openRequests--
+		if (this.openRequests === 0)
+			for (const movable of this.tile[Layer.MOVABLE])
+				this.newActorOnTile(movable)
 		return true
 	}
 }
@@ -410,9 +414,10 @@ export class CloneMachine extends Actor {
 	exitBlocks(): boolean {
 		return !this.isCloning
 	}
-	canTileMemberDecide(): boolean {
-		return this.isCloning
+	newActorOnTile(actor: Actor): void {
+		actor.slidingState = SlidingState.STRONG
 	}
+	actorCompletelyJoined = this.newActorOnTile
 	buttonPressed(color: string): boolean {
 		if (color !== "red") return false
 		this.isCloning = true

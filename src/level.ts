@@ -50,6 +50,7 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
 export const onLevelAfterTick: ((level: LevelState) => void)[] = [
 	level => {
+		// TODO Players should do requests to switch playables, so sliding/moving players can't switch
 		if (
 			level.gameInput.switchPlayable &&
 			level.debouncedInputs.switchPlayable % debouncePeriod <= 0 &&
