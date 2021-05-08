@@ -63,6 +63,7 @@ export function parseDAT(buff: ArrayBuffer, fileName: string): LevelSetData {
 			blobMode: 1,
 			width: 32,
 			height: 32,
+			playablesRequiredToExit: 1,
 			field: [],
 		}
 		// Do it like this so TS believes it exists

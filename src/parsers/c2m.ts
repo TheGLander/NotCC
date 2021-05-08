@@ -228,6 +228,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		},
 		timeLimit: 0,
 		blobMode: 1,
+		playablesRequiredToExit: "all",
 	}
 
 	// TODO Save solutions from c2m

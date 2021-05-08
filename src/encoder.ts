@@ -11,6 +11,7 @@ export interface LevelData {
 	 * The field which contains all actors
 	 */
 	field: Field<[string, Direction?, string?][]>
+	playablesRequiredToExit: number | "all"
 	width: number
 	height: number
 	/**
@@ -46,13 +47,21 @@ export interface LevelData {
 	customData?: Record<string, string>
 }
 
-export type PartialLevelData = Omit<LevelData, "field" | "width" | "height"> &
+export type PartialLevelData = Omit<
+	LevelData,
+	"field" | "width" | "height" | "playablesRequiredToExit"
+> &
 	Partial<LevelData>
 
 export function isPartialDataFull(
 	partial: PartialLevelData
 ): partial is LevelData {
-	return !!partial.field && !!partial.height && !!partial.width
+	return (
+		!!partial.field &&
+		!!partial.height &&
+		!!partial.width &&
+		!!partial.playablesRequiredToExit
+	)
 }
 
 // TODO C2G Scripting

@@ -24,8 +24,11 @@ export abstract class Playable extends Actor {
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		level.playables.push(this)
-		level.selectedPlayable = this
-		level.playablesLeft++
+	}
+	levelStarted(): void {
+		if (this.level.levelData?.playablesRequiredToExit === "all")
+			this.level.playablesLeft++
+		this.level.selectedPlayable = this
 	}
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
@@ -57,25 +60,35 @@ export abstract class Playable extends Actor {
 	}
 	_internalDecide(forcedOnly: boolean): void {
 		this.moveDecision = Decision.NONE
-		if (this.cooldown || this.level.selectedPlayable !== this) return
+		if (this.cooldown) return
 
-		const canMove =
-			!forcedOnly &&
+		let canMove =
+			this.level.selectedPlayable === this &&
 			(!this.slidingState ||
 				(this.slidingState === SlidingState.WEAK && this.hasOverride))
-		if (
-			this.level.gameInput.rotateInv &&
-			this.level.debouncedInputs.rotateInv <= 0
-		) {
-			if (this.inventory.items.length > 0)
-				this.inventory.items.unshift(this.inventory.items.pop() as Item)
-			this.level.debounceInput("rotateInv")
+		if (canMove) {
+			if (
+				this.level.gameInput.rotateInv &&
+				this.level.debouncedInputs.rotateInv <= 0
+			) {
+				if (this.inventory.items.length > 0)
+					this.inventory.items.unshift(this.inventory.items.pop() as Item)
+				this.level.debounceInput("rotateInv")
+			}
+			if (this.level.gameInput.drop && this.level.debouncedInputs.drop <= 0) {
+				this.dropItem()
+				this.level.debounceInput("drop")
+			}
+			// TODO Split screen
+			if (
+				this.level.gameInput.switchPlayable &&
+				this.level.debouncedInputs.switchPlayable <= 0
+			) {
+				this.level.playablesToSwap = true
+				this.level.debounceInput("switchPlayable")
+			}
 		}
-		if (this.level.gameInput.drop && this.level.debouncedInputs.drop <= 0) {
-			this.dropItem()
-			this.level.debounceInput("drop")
-		}
-
+		canMove &&= !forcedOnly
 		const [vert, horiz] = this.getMovementDirections()
 		if (
 			this.slidingState &&
