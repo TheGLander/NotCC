@@ -280,7 +280,13 @@ const cc2ImageFormat: CC2ImageFormat = {
 		outlineWall: [8, 9],
 		trap: { closed: [9, 9], open: [10, 9] },
 		playerAura: [6, 6],
-		button: { blue: [8, 6], green: [9, 6], red: [10, 6], brown: [11, 6] },
+		button: {
+			blue: [8, 6],
+			green: [9, 6],
+			red: [10, 6],
+			brown: [11, 6],
+			orange: [14, 6],
+		},
 		teethRed: {
 			vertical: [
 				[0, 11],

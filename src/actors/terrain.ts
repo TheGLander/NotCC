@@ -579,6 +579,12 @@ export class FlameJet extends Actor {
 			if (movable.cooldown === 0 && this.customData === "on")
 				movable.destroy(this)
 	}
+	buttonPressed(color: string): boolean {
+		if (color !== "orange") return false
+		this.customData = this.customData === "on" ? "off" : "on"
+		return true
+	}
+	buttonUnpressed = this.buttonPressed
 }
 
 actorDB["flameJet"] = FlameJet

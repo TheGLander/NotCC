@@ -24,7 +24,7 @@ actorDB["buttonGreen"] = globalButtonFactory("green")
 
 actorDB["buttonBlue"] = globalButtonFactory("blue")
 
-// TODO How do these work when the connected thing is blown up?
+// TODO Have the button be linked on level start
 
 export function ROConnectedButtonFactory(
 	color: string,
@@ -87,3 +87,77 @@ export function ROConnectedButtonFactory(
 actorDB["buttonRed"] = ROConnectedButtonFactory("red")
 
 actorDB["buttonBrown"] = ROConnectedButtonFactory("brown", true)
+
+export function diamondConnectedButtonFactory(color: string) {
+	return class extends Actor {
+		art = { actorName: "button", animation: color }
+		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
+		connectedActor: Actor | null = null
+		explicitlyConnectedTile: Tile | null = null
+		get layer(): Layer {
+			return Layer.STATIONARY
+		}
+		constructor(level: LevelState, position: [number, number]) {
+			super(level, position)
+			// Search for an explicit connection
+			for (const connection of this.level.connections)
+				if (
+					connection[0][0] === this.tile.x &&
+					connection[0][1] === this.tile.y
+				)
+					this.explicitlyConnectedTile = this.level.field[connection[1][0]]?.[
+						connection[1][1]
+					]
+		}
+		actorCompletelyJoined(): void {
+			if (!this.connectedActor) {
+				if (this.explicitlyConnectedTile)
+					for (const actor of this.explicitlyConnectedTile.allActors) {
+						if (actor.buttonPressed?.(color)) {
+							this.connectedActor = actor
+							return
+						}
+					}
+				mainLoop: for (
+					let currentLevel = 1, tilesChecked = 0;
+					// eslint-disable-next-line no-constant-condition
+					true;
+					currentLevel++
+				) {
+					for (const tile of this.tile.getDiamondSearch(currentLevel)) {
+						tilesChecked++
+						if (this.level.width * this.level.height - tilesChecked <= 2)
+							break mainLoop
+						for (const actor of tile.allActors)
+							if (actor.buttonPressed?.(color)) {
+								this.connectedActor = actor
+								break mainLoop
+							}
+					}
+				}
+			} else this.connectedActor.buttonPressed?.(color)
+		}
+		actorLeft(): void {
+			if (!this.connectedActor) {
+				if (this.explicitlyConnectedTile)
+					for (const actor of this.explicitlyConnectedTile.allActors) {
+						if (actor.buttonPressed?.(color)) {
+							this.connectedActor = actor
+							return
+						}
+					}
+				// eslint-disable-next-line no-constant-condition
+				for (let currentLevel = 0, tilesChecked = 0; true; currentLevel++) {
+					for (const tile of this.tile.getDiamondSearch(currentLevel)) {
+						for (const actor of tile.allActors)
+							if (actor.buttonPressed?.(color)) break
+						tilesChecked++
+						if (this.level.width * this.level.height - tilesChecked <= 1) break
+					}
+				}
+			} else this.connectedActor.buttonPressed?.(color)
+		}
+	}
+}
+
+actorDB["buttonOrange"] = diamondConnectedButtonFactory("orange")
