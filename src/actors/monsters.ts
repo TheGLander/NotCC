@@ -125,8 +125,9 @@ export class TankBlue extends Monster {
 		}
 		return [this.direction]
 	}
-	buttonPressed(color: string): void {
-		if (color === "blue") this.turnPending = true
+	caresButtonColors = ["blue"]
+	buttonPressed(): void {
+		this.turnPending = true
 	}
 }
 

@@ -187,9 +187,9 @@ export class ToggleWall extends Actor {
 	blocks(): boolean {
 		return this.customData === "on"
 	}
-	buttonPressed(color: string): void {
-		if (color === "green")
-			this.customData = this.customData === "on" ? "off" : "on"
+	caresButtonColors = ["green"]
+	buttonPressed(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
 	}
 }
 

@@ -419,17 +419,19 @@ export abstract class Actor {
 		)
 	}
 	/**
+	 * The colors of buttons this actor cares about
+	 */
+	caresButtonColors: string[] = []
+	/**
 	 * Called when a button is pressed, called only when the button applies to the actor
 	 * @param type The string color name of the button
-	 * @returns May return a boolean indicating if the actor cared about the button press
 	 */
-	buttonPressed?(type: string): void | boolean
+	buttonPressed?(type: string): void
 	/**
 	 * Called when a button is released, called only when the button applies to the actor
 	 * @param type The string color name of the button
-	 * @returns May return a boolean indicating if the actor cared about the button release
 	 */
-	buttonUnpressed?(type: string): void | boolean
+	buttonUnpressed?(type: string): void
 	/**
 	 * Called when the level starts
 	 */

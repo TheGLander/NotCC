@@ -373,23 +373,15 @@ export class Trap extends Actor {
 		if (this.openRequests === 0) actor.slidingState = SlidingState.WEAK
 	}
 	actorCompletelyJoined = this.newActorOnTile
-	buttonPressed(color: string): boolean {
-		if (color !== "brown") return false
+	caresButtonColors = ["brown"]
+	buttonPressed(): void {
 		this.openRequests++
-		// If we just opened the trap, force the actor outta the tile
-		if (this.openRequests === 1)
-			for (const trapped of this.tile[Layer.MOVABLE])
-				trapped._internalStep(trapped.direction)
-
-		return true
 	}
-	buttonUnpressed(color: string): boolean {
-		if (color !== "brown") return false
+	buttonUnpressed(): void {
 		this.openRequests--
 		if (this.openRequests === 0)
 			for (const movable of this.tile[Layer.MOVABLE])
 				this.newActorOnTile(movable)
-		return true
 	}
 }
 
@@ -419,8 +411,8 @@ export class CloneMachine extends Actor {
 		actor.slidingState = SlidingState.STRONG
 	}
 	actorCompletelyJoined = this.newActorOnTile
-	buttonPressed(color: string): boolean {
-		if (color !== "red") return false
+	caresButtonColors = ["red"]
+	buttonPressed(): boolean {
 		this.isCloning = true
 		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
 			const direction = clonee.direction
@@ -530,8 +522,8 @@ export class GreenBomb extends Actor {
 			this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
 		}
 	}
-	buttonPressed(color: string): void {
-		if (color !== "green") return
+	caresButtonColors = ["green"]
+	buttonPressed(): void {
 		this.customData = this.customData === "bomb" ? "echip" : "bomb"
 	}
 }
@@ -579,10 +571,9 @@ export class FlameJet extends Actor {
 			if (movable.cooldown === 0 && this.customData === "on")
 				movable.destroy(this)
 	}
-	buttonPressed(color: string): boolean {
-		if (color !== "orange") return false
+	caresButtonColors = ["orange"]
+	buttonPressed(): void {
 		this.customData = this.customData === "on" ? "off" : "on"
-		return true
 	}
 	buttonUnpressed = this.buttonPressed
 }

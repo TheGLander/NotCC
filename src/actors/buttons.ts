@@ -12,10 +12,14 @@ export function globalButtonFactory(color: string) {
 			return Layer.STATIONARY
 		}
 		actorCompletelyJoined(): void {
-			for (const actor of this.level.actors) actor.buttonPressed?.(color)
+			for (const actor of this.level.actors)
+				if (actor.caresButtonColors.includes(color))
+					actor.buttonPressed?.(color)
 		}
 		actorLeft(): void {
-			for (const actor of this.level.actors) actor.buttonUnpressed?.(color)
+			for (const actor of this.level.actors)
+				if (actor.caresButtonColors.includes(color))
+					actor.buttonUnpressed?.(color)
 		}
 	}
 }
@@ -51,35 +55,25 @@ export function ROConnectedButtonFactory(
 					]
 		}
 		levelStarted(): void {
+			const thisIndex = this.level.actors.indexOf(this)
+			const foundActor = [
+				// TODO This relies that actor order is in RRO, maybe this should do it more like teleports?
+				...this.level.actors.slice(thisIndex),
+				...this.level.actors.slice(0, thisIndex),
+				...(this.explicitlyConnectedTile?.allActors ?? []), // Try the explicitly connected one first
+			]
+				.reverse()
+				.find(actor => actor.caresButtonColors.includes(color))
+			if (foundActor) this.connectedActor = foundActor
+
 			if (shouldActivateOnLevelStart)
 				if (this.tile[Layer.MOVABLE].length > 1) this.actorCompletelyJoined()
 		}
 		actorCompletelyJoined(): void {
-			if (!this.connectedActor) {
-				const thisIndex = this.level.actors.indexOf(this)
-				const foundActor = [
-					// This relies that actor order is in RRO, maybe this should do it more like teleports?
-					...this.level.actors.slice(thisIndex),
-					...this.level.actors.slice(0, thisIndex),
-					...(this.explicitlyConnectedTile?.allActors ?? []), // Try the explicitly connected one first
-				]
-					.reverse()
-					.find(actor => actor.buttonPressed?.(color))
-				if (foundActor) this.connectedActor = foundActor
-			} else this.connectedActor.buttonPressed?.(color)
+			this.connectedActor?.buttonPressed?.(color)
 		}
 		actorLeft(): void {
-			if (!this.connectedActor) {
-				const thisIndex = this.level.actors.indexOf(this)
-				const foundActor = [
-					// This relies that actor order is in RRO, maybe this should do it more like teleports?
-					...this.level.actors.slice(thisIndex),
-					...this.level.actors.slice(0, thisIndex),
-				]
-					.reverse()
-					.find(actor => actor.buttonUnpressed?.(color))
-				if (foundActor) this.connectedActor = foundActor
-			} else this.connectedActor.buttonUnpressed?.(color)
+			this.connectedActor?.buttonUnpressed?.(color)
 		}
 	}
 }
@@ -109,15 +103,12 @@ export function diamondConnectedButtonFactory(color: string) {
 						connection[1][1]
 					]
 		}
-		actorCompletelyJoined(): void {
-			if (!this.connectedActor) {
-				if (this.explicitlyConnectedTile)
-					for (const actor of this.explicitlyConnectedTile.allActors) {
-						if (actor.buttonPressed?.(color)) {
-							this.connectedActor = actor
-							return
-						}
-					}
+		levelStarted(): void {
+			if (this.explicitlyConnectedTile) {
+				for (const actor of this.explicitlyConnectedTile.allActors)
+					if (actor.caresButtonColors.includes(color))
+						this.connectedActor = actor
+			} else
 				mainLoop: for (
 					let currentLevel = 1, tilesChecked = 0;
 					// eslint-disable-next-line no-constant-condition
@@ -129,33 +120,18 @@ export function diamondConnectedButtonFactory(color: string) {
 						if (this.level.width * this.level.height - tilesChecked <= 2)
 							break mainLoop
 						for (const actor of tile.allActors)
-							if (actor.buttonPressed?.(color)) {
+							if (actor.caresButtonColors.includes(color)) {
 								this.connectedActor = actor
 								break mainLoop
 							}
 					}
 				}
-			} else this.connectedActor.buttonPressed?.(color)
+		}
+		actorCompletelyJoined(): void {
+			this.connectedActor?.buttonPressed?.(color)
 		}
 		actorLeft(): void {
-			if (!this.connectedActor) {
-				if (this.explicitlyConnectedTile)
-					for (const actor of this.explicitlyConnectedTile.allActors) {
-						if (actor.buttonPressed?.(color)) {
-							this.connectedActor = actor
-							return
-						}
-					}
-				// eslint-disable-next-line no-constant-condition
-				for (let currentLevel = 0, tilesChecked = 0; true; currentLevel++) {
-					for (const tile of this.tile.getDiamondSearch(currentLevel)) {
-						for (const actor of tile.allActors)
-							if (actor.buttonPressed?.(color)) break
-						tilesChecked++
-						if (this.level.width * this.level.height - tilesChecked <= 1) break
-					}
-				}
-			} else this.connectedActor.buttonPressed?.(color)
+			this.connectedActor?.buttonUnpressed?.(color)
 		}
 	}
 }
