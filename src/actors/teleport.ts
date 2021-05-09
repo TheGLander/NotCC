@@ -9,11 +9,12 @@ function findNextTeleport<T extends Actor>(
 	goInRRO = true,
 	validateDestination: (this: T, other: Actor, newTeleport: T) => boolean = (
 		other,
-		newTeleport
+		teleport
 	) => {
-		const neighbor = newTeleport.tile.getNeighbor(other.direction)
+		const neighbor = teleport.tile.getNeighbor(other.direction)
 		return (
-			(neighbor &&
+			(teleport.tile[Layer.MOVABLE].length === 0 &&
+				neighbor &&
 				this.level.checkCollisionToTile(other, neighbor, other.direction)) ??
 			false
 		)
@@ -38,11 +39,7 @@ function findNextTeleport<T extends Actor>(
 				val => val instanceof thisConstructor
 			) as T | undefined
 			if (newTeleport === this) return this
-			if (
-				newTeleport &&
-				newTeleport.tile[Layer.MOVABLE].length === 0 &&
-				validateDestination.call(this, other, newTeleport)
-			)
+			if (newTeleport && validateDestination.call(this, other, newTeleport))
 				return newTeleport
 		}
 }
@@ -84,6 +81,7 @@ export class RedTeleport extends Actor {
 			other,
 			false,
 			(other, teleport) => {
+				if (teleport.tile[Layer.MOVABLE].length !== 0) return false
 				const rotateUntil = other.direction + 4
 				for (; rotateUntil !== other.direction; other.direction++) {
 					const neighbor = teleport.tile.getNeighbor(other.direction % 4)
@@ -111,3 +109,71 @@ export class RedTeleport extends Actor {
 }
 
 actorDB["teleportRed"] = RedTeleport
+
+export class GreenTeleport extends Actor {
+	id = "teleportGreen"
+	get layer(): Layer {
+		return Layer.STATIONARY
+	}
+	art = genericAnimatedArt("teleportGreen", 4)
+	actorCompletelyJoined(other: Actor): void {
+		// All green TPs
+		const allTeleports: this[] = [this]
+		// TPs which do not have an actor on them
+		let validTeleports: this[] = [this]
+		let targetTeleport: this | undefined
+		for (
+			let teleport = findNextTeleport.call(this, other, false, () => true);
+			teleport !== this;
+			teleport = findNextTeleport.call(teleport, other, false, () => true)
+		) {
+			allTeleports.push(teleport as this)
+			if (teleport.tile[Layer.MOVABLE].length === 0)
+				validTeleports.push(teleport as this)
+		}
+		// We have only 1 teleport in level, do not even try anything
+		if (allTeleports.length === 1) targetTeleport = this
+		else {
+			// This is a wack CC2 bug, I guess, (Props to magical and eevee from CCBBC for figuring it out)
+			const targetIndex =
+				(this.level.random() % (allTeleports.length - 1)) %
+				validTeleports.length
+			validTeleports = [
+				...validTeleports.slice(targetIndex + 1),
+				...validTeleports.slice(0, targetIndex + 1),
+			]
+			other.direction = this.level.random() % 4
+			mainLoop: for (const teleport of validTeleports) {
+				const rotateUntil = other.direction + 4
+				for (; rotateUntil !== other.direction; other.direction++) {
+					const neighbor = teleport.tile.getNeighbor(other.direction % 4)
+					if (
+						neighbor &&
+						this.level.checkCollisionToTile(
+							other,
+							neighbor,
+							other.direction % 4
+						)
+					) {
+						targetTeleport = teleport
+						break mainLoop
+					}
+				}
+			}
+		}
+		other.direction %= 4
+		if (!targetTeleport)
+			throw new Error(
+				"This state should never happen, please report if this happens"
+			)
+		other.oldTile = other.tile
+		other.tile = targetTeleport.tile
+		other._internalUpdateTileStates()
+		other.slidingState = SlidingState.STRONG
+	}
+	onMemberSlideBonked(other: Actor): void {
+		other.slidingState = SlidingState.NONE
+	}
+}
+
+actorDB["teleportGreen"] = GreenTeleport

@@ -252,6 +252,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[4, 10],
 			[7, 10],
 		],
+		teleportGreen: [
+			[4, 19],
+			[7, 19],
+		],
 		teleportRed: [
 			[4, 20],
 			[7, 20],
