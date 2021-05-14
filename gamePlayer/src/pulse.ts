@@ -85,7 +85,7 @@ export class PulseManager {
 		public level: LevelState,
 		public renderSpace?: HTMLElement | null,
 		public itemSpace?: HTMLElement | null,
-		public textStats?: HTMLElement | null
+		public textStats?: HTMLTextAreaElement | null
 	) {
 		this.renderer = new Renderer(level, renderSpace, itemSpace)
 		this.updateFrame = this.updateFrame.bind(this)
@@ -124,9 +124,7 @@ export class PulseManager {
 	}
 	updateTextStats(): void {
 		if (!this.textStats) return
-		this.textStats.innerText = `Time left: ${Math.ceil(
-			this.level.timeLeft / 60
-		)}s
+		this.textStats.value = `Time left: ${Math.ceil(this.level.timeLeft / 60)}s
 Chips left: ${this.level.chipsLeft}${
 			this.level.bonusPoints > 0
 				? `

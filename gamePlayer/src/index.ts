@@ -21,8 +21,8 @@ in ${ev.filename}
 )
 
 const renderSpace = document.querySelector<HTMLElement>("#renderSpace")
-const itemSpace = document.querySelector<HTMLElement>("#renderSpace")
-const textStats = document.querySelector<HTMLElement>("#textStats")
+const itemSpace = document.querySelector<HTMLElement>("#itemSpace")
+const textStats = document.querySelector<HTMLTextAreaElement>("#textStats")
 const levelInputButton = document.querySelector<HTMLElement>(
 	"#levelInputButton"
 )
