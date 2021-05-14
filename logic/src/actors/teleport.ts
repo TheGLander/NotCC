@@ -1,4 +1,4 @@
-import { Actor, SlidingState, genericAnimatedArt } from "../actor"
+import { Actor, SlidingState } from "../actor"
 import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
@@ -7,7 +7,7 @@ function findNextTeleport<T extends Actor>(
 	this: T,
 	other: Actor,
 	goInRRO = true,
-	validateDestination: (this: T, other: Actor, newTeleport: T) => boolean = (
+	validateDestination: (other: Actor, newTeleport: T) => boolean = (
 		other,
 		teleport
 	) => {
@@ -49,7 +49,6 @@ export class BlueTeleport extends Actor {
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
-	art = genericAnimatedArt("teleportBlue", 4)
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 	}
@@ -73,14 +72,13 @@ export class RedTeleport extends Actor {
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
-	art = genericAnimatedArt("teleportRed", 4)
 	actorCompletelyJoined(other: Actor): void {
 		other.oldTile = other.tile
 		other.tile = findNextTeleport.call(
 			this,
 			other,
 			false,
-			(other, teleport) => {
+			(other: Actor, teleport: Actor) => {
 				if (teleport.tile[Layer.MOVABLE].length !== 0) return false
 				const rotateUntil = other.direction + 4
 				for (; rotateUntil !== other.direction; other.direction++) {
@@ -115,7 +113,6 @@ export class GreenTeleport extends Actor {
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
-	art = genericAnimatedArt("teleportGreen", 4)
 	actorCompletelyJoined(other: Actor): void {
 		// All green TPs
 		const allTeleports: this[] = [this]

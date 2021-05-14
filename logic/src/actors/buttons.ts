@@ -6,7 +6,6 @@ import Tile from "../tile"
 
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
-		art = { actorName: "button", animation: color }
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
 		get layer(): Layer {
 			return Layer.STATIONARY
@@ -35,7 +34,6 @@ export function ROConnectedButtonFactory(
 	shouldActivateOnLevelStart?: boolean
 ) {
 	return class extends Actor {
-		art = { actorName: "button", animation: color }
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
@@ -84,7 +82,6 @@ actorDB["buttonBrown"] = ROConnectedButtonFactory("brown", true)
 
 export function diamondConnectedButtonFactory(color: string) {
 	return class extends Actor {
-		art = { actorName: "button", animation: color }
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null

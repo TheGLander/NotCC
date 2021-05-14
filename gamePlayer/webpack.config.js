@@ -41,7 +41,7 @@ module.exports = {
 		],
 	},
 	watch: !prod,
-	resolve: { extensions: [".ts", ".js", ".json", ".jsonc"] },
+	resolve: { extensions: [".ts", ".js", ".json", ".jsonc"], symlinks: false },
 	devtool: "source-map",
 	/*optimization: {
 		splitChunks: {

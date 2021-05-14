@@ -1,9 +1,7 @@
 {
-	"name": "notcc",
+	"name": "notcc-player",
 	"private": true,
-	"version": "0.0.0",
-	"description": "NotCC, standing for Nice Optimal Terrific Cool Challenge, is a tile based game(WIP)",
-	"main": " ",
+	"version": "0.1.0",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "npx webpack",

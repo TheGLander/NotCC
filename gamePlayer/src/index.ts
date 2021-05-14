@@ -1,27 +1,14 @@
-import {
-	LevelState,
-	createLevelFromData,
-	onLevelDecisionTick,
-	crossLevelData,
-} from "./level"
-import { Direction } from "./helpers"
+import { LevelState, onLevelDecisionTick, crossLevelData } from "./logic/level"
+import { Direction } from "./logic/helpers"
 import "./base.css"
 import { PulseManager } from "./pulse"
 import "./visuals"
-import { parseC2M } from "./parsers/c2m"
-import "./actors/monsters"
-import "./actors/walls"
-import "./actors/playables"
-import "./actors/blocks"
-import "./actors/terrain"
-import "./actors/animation"
-import "./actors/teleport"
-import "./actors/items"
-import "./actors/buttons"
-import "./actors/itemMods"
-import { actorDB, keyNameList } from "./const"
-import { parseDAT } from "./parsers/dat"
-import { levelAsSet } from "./encoder"
+import { parseC2M } from "./logic/parsers/c2m"
+import "./logic/actors"
+import "./art"
+import { actorDB, keyNameList } from "./logic/const"
+import { parseDAT } from "./logic/parsers/dat"
+import { levelAsSet } from "./logic/encoder"
 import { SetPlayer } from "./setPlayer"
 // Enable crash handling
 window.addEventListener("error", ev =>

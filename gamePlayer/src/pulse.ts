@@ -1,18 +1,6 @@
-import { GameState, LevelState } from "./level"
+import { GameState, LevelState, InputType, KeyInputs } from "./logic/level"
 import keycode from "keycode"
 import Renderer from "./visuals"
-
-export interface KeyInputs {
-	up: boolean
-	down: boolean
-	left: boolean
-	right: boolean
-	drop: boolean
-	rotateInv: boolean
-	switchPlayable: boolean
-}
-
-export type InputType = keyof KeyInputs
 
 const isSmartTV = /smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
 	navigator.userAgent.toLowerCase()

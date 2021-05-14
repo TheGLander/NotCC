@@ -1,6 +1,5 @@
 import { Actor } from "./actor"
 import { Field, Direction } from "./helpers"
-import { KeyInputs } from "./pulse"
 import { Playable } from "./actors/playables"
 import Tile from "./tile"
 import { Layer } from "./tile"
@@ -12,6 +11,18 @@ export enum GameState {
 	LOST,
 	WON,
 }
+
+export interface KeyInputs {
+	up: boolean
+	down: boolean
+	left: boolean
+	right: boolean
+	drop: boolean
+	rotateInv: boolean
+	switchPlayable: boolean
+}
+
+export type InputType = keyof KeyInputs
 
 // TODO Blue teleport gate madness
 export interface CrossLevelDataInterface {

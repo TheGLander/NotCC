@@ -1,9 +1,41 @@
-import { Direction } from "./helpers"
-import { LevelState } from "./level"
+import { Direction } from "./logic/helpers"
+import { LevelState } from "./logic/level"
 import ogData from "./cc2ImageFormat"
 import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
-import { keyNameList } from "./const"
-import { Actor, ActorArt } from "./actor"
+import { keyNameList } from "./logic/const"
+import { Actor } from "./logic/actor"
+import { artDB } from "./const"
+
+function getArt(actor: Actor): ActorArt[] {
+	let art = artDB[actor.id]
+	if (!art) return [{ actorName: "unknown" }]
+	if (typeof art === "function") art = art(actor)
+	if (art instanceof Array)
+		return art.filter<ActorArt>((art): art is ActorArt => !!art)
+	else return [art]
+}
+
+export interface ActorArt {
+	actorName: string | null
+	/**
+	 * Name of the art piece to display, "default" by default, if null, doesn't draw anything
+	 */
+	animation?: string | null
+	frame?: number
+	/**
+	 * Offsets the art by a certain amount, 0 is up/left, 1 is bottom/right, [0, 0] by default
+	 */
+	imageOffset?: [number, number]
+	/**
+	 * Crops the art by a certain amount `1` is one tile worth of art, [1, 1] by default
+	 */
+	cropSize?: [number, number]
+	/**
+	 * Offsets the source image frame by a certain amount.
+	 * [0, 0] by default
+	 */
+	sourceOffset?: [number, number]
+}
 
 type CC2Animation =
 	| [number, number]
@@ -192,11 +224,8 @@ export default class Renderer {
 		itemCtx.drawImage(this.backgroundFiller.image, 0, 0)
 		if (!player) return
 		for (const [i, item] of player.inventory.items.entries()) {
-			let art = typeof item.art === "function" ? item.art() : item.art
-			if (!(art instanceof Array)) art = [art]
-
-			const artPiece = art[0]
-			if (!artPiece || !artPiece.actorName) return
+			const artPiece = getArt(item)[0]
+			if (!artPiece.actorName) continue
 			const frame =
 				data.actorMapping[artPiece.actorName]?.[
 					artPiece.animation ?? "default"
@@ -217,12 +246,8 @@ export default class Renderer {
 		let nonRegisteredOffset = keyNameList.length
 		for (const key of Object.values(player.inventory.keys)) {
 			if (key.amount <= 0) continue
-			let art =
-				typeof key.type.art === "function" ? key.type.art() : key.type.art
-			if (!(art instanceof Array)) art = [art]
-
-			const artPiece = art[0]
-			if (!artPiece || !artPiece.actorName) return
+			const artPiece = getArt(key.type)[0]
+			if (!artPiece.actorName) continue
 
 			const frame =
 				data.actorMapping[artPiece.actorName]?.[
@@ -328,12 +353,7 @@ export default class Renderer {
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
-			let mainArt =
-				typeof actor.art === "function"
-					? actor.art()
-					: actor.art ?? { actorName: "unknown" }
-			if (!(mainArt instanceof Array)) mainArt = [mainArt]
-			for (const art of mainArt) {
+			for (const art of getArt(actor)) {
 				if (!art) continue
 				if (art.actorName === null || art.animation === null) continue
 				const frame =
@@ -362,4 +382,52 @@ export default class Renderer {
 		this.renderSpace?.removeChild(renderer.canvas)
 		this.itemSpace?.removeChild(itemCtx.canvas)
 	}
+}
+
+/**
+ * Creates an art function for a generic directionable actor
+ */
+export const genericDirectionableArt = (name: string, animLength: number) => (
+	actor: Actor
+): ActorArt => ({
+	actorName: name,
+	animation: ["up", "right", "down", "left"][actor.direction],
+	frame: actor.cooldown ? actor.level.currentTick % animLength : 0,
+})
+
+export const genericAnimatedArt = (
+	name: string,
+	animLength: number,
+	animationName?: string
+) => (actor: Actor): ActorArt => ({
+	actorName: name,
+	animation: animationName,
+	frame: actor.level.currentTick % animLength,
+})
+
+export const genericStretchyArt = (name: string, animLength: number) => (
+	actor: Actor
+): ActorArt => {
+	const offset = 1 - actor.cooldown / (actor.currentMoveSpeed ?? 1)
+	return !actor.cooldown
+		? { actorName: name, animation: "idle" }
+		: actor.direction % 2 === 0
+		? {
+				actorName: name,
+				animation: "vertical",
+				frame: Math.floor(
+					(actor.direction >= 2 ? offset : 1 - offset) * (animLength - 1)
+				),
+				cropSize: [1, 2],
+				imageOffset: [0, actor.direction >= 2 ? -offset : offset - 1],
+		  }
+		: {
+				actorName: name,
+				animation: "horizontal",
+				frame: Math.floor(
+					(actor.direction < 2 ? offset : 1 - offset) * (animLength - 1)
+				),
+				cropSize: [2, 1],
+				imageOffset: [actor.direction < 2 ? -offset : offset - 1, 0],
+		  }
 }

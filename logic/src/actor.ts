@@ -16,28 +16,6 @@ export enum SlidingState {
 	STRONG,
 }
 
-export interface ActorArt {
-	actorName: string | null
-	/**
-	 * Name of the art piece to display, "default" by default, if null, doesn't draw anything
-	 */
-	animation?: string | null
-	frame?: number
-	/**
-	 * Offsets the art by a certain amount, 0 is up/left, 1 is bottom/right, [0, 0] by default
-	 */
-	imageOffset?: [number, number]
-	/**
-	 * Crops the art by a certain amount `1` is one tile worth of art, [1, 1] by default
-	 */
-	cropSize?: [number, number]
-	/**
-	 * Offsets the source image frame by a certain amount.
-	 * [0, 0] by default
-	 */
-	sourceOffset?: [number, number]
-}
-
 /**
  * Checks if a tag collections matches a tag rule of another tag collection.
  * @param actorTags The tag collection the actor has, they are being tested against the rules, cannot have tags which start with "!"
@@ -67,8 +45,6 @@ export interface Inventory {
 	itemMax: number
 }
 
-type Falsy = false | undefined | 0 | null | ""
-
 export abstract class Actor {
 	moveDecision = Decision.NONE
 	currentMoveSpeed: number | null = null
@@ -87,10 +63,6 @@ export abstract class Actor {
 		this.tile.removeActors(this)
 		if (!intended) crossLevelData.despawnedActors?.push(this)
 	}
-	art?:
-		| ActorArt
-		| (ActorArt | Falsy)[]
-		| (() => ActorArt | (ActorArt | Falsy)[])
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
 	 */
@@ -436,55 +408,4 @@ export abstract class Actor {
 	 * Called when the level starts
 	 */
 	levelStarted?(): void
-}
-/**
- * Creates an art function for a generic directionable actor
- */
-export const genericDirectionableArt = (name: string, animLength: number) =>
-	function (this: Actor): ActorArt {
-		return {
-			actorName: name,
-			animation: ["up", "right", "down", "left"][this.direction],
-			frame: this.cooldown ? this.level.currentTick % animLength : 0,
-		}
-	}
-
-export const genericAnimatedArt = (
-	name: string,
-	animLength: number,
-	animationName?: string
-) =>
-	function (this: Actor): ActorArt {
-		return {
-			actorName: name,
-			animation: animationName,
-			frame: this.level.currentTick % animLength,
-		}
-	}
-
-export const genericStretchyArt = (name: string, animLength: number) => {
-	return function (this: Actor): ActorArt {
-		const offset = 1 - this.cooldown / (this.currentMoveSpeed ?? 1)
-		return !this.cooldown
-			? { actorName: name, animation: "idle" }
-			: this.direction % 2 === 0
-			? {
-					actorName: name,
-					animation: "vertical",
-					frame: Math.floor(
-						(this.direction >= 2 ? offset : 1 - offset) * (animLength - 1)
-					),
-					cropSize: [1, 2],
-					imageOffset: [0, this.direction >= 2 ? -offset : offset - 1],
-			  }
-			: {
-					actorName: name,
-					animation: "horizontal",
-					frame: Math.floor(
-						(this.direction < 2 ? offset : 1 - offset) * (animLength - 1)
-					),
-					cropSize: [2, 1],
-					imageOffset: [this.direction < 2 ? -offset : offset - 1, 0],
-			  }
-	}
 }

@@ -1,38 +1,15 @@
-import {
-	Actor,
-	SlidingState,
-	ActorArt,
-	genericDirectionableArt,
-} from "../actor"
+import { Actor, SlidingState } from "../actor"
 import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Wall } from "./walls"
-import { genericAnimatedArt, matchTags } from "../actor"
+import { matchTags } from "../actor"
 import { Playable } from "./playables"
-import {
-	GameState,
-	LevelState,
-	CrossLevelDataInterface,
-	crossLevelData,
-	onLevelDecisionTick,
-} from "../level"
+import { GameState, LevelState, crossLevelData } from "../level"
 import { Direction } from "../helpers"
 import { onLevelAfterTick, onLevelStart } from "../level"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
-	art: ActorArt[] = [
-		{
-			actorName: "floor",
-			animation: "framed",
-		},
-		{
-			actorName: "letter",
-			animation: this.customData,
-			cropSize: [0.5, 0.5],
-			imageOffset: [0.25, 0.25],
-		},
-	]
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -42,7 +19,6 @@ actorDB["letterTile"] = LetterTile
 
 export class CustomFloor extends Actor {
 	id = "customFloor"
-	art: ActorArt = { actorName: "customFloor", animation: this.customData }
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -53,7 +29,6 @@ actorDB["customFloor"] = CustomFloor
 export class Ice extends Actor {
 	id = "ice"
 	tags = ["ice"]
-	art: ActorArt = { actorName: "ice" }
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -74,10 +49,6 @@ actorDB["ice"] = Ice
 export class IceCorner extends Actor {
 	id = "iceCorner"
 	tags = ["ice"]
-	art = (): ActorArt => ({
-		actorName: "ice",
-		animation: ["ur", "dr", "dl", "ul"][this.direction],
-	})
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -108,15 +79,6 @@ actorDB["iceCorner"] = IceCorner
 export class ForceFloor extends Actor {
 	id = "forceFloor"
 	tags = ["force-floor"]
-	art = (): ActorArt => ({
-		actorName: "forceFloor",
-		animation: ["up", "right", "down", "left"][this.direction],
-		sourceOffset:
-			this.direction % 2 === 0
-				? [0, ((1 - this.direction) * (this.level.currentTick / 16)) % 1]
-				: [((this.direction - 2) * (this.level.currentTick / 16)) % 1, 0],
-		frame: 1.5 - Math.abs(this.direction - 1.5),
-	})
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -140,7 +102,6 @@ actorDB["forceFloor"] = ForceFloor
 export class ForceFloorRandom extends Actor {
 	id = "forceFloorRandom"
 	tags = ["force-floor"]
-	art = genericAnimatedArt("forceFloor", 8, "random")
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -174,7 +135,6 @@ actorDB["forceFloorRandom"] = ForceFloorRandom
 
 export class RecessedWall extends Actor {
 	id = "popupWall"
-	art = { actorName: "popupWall" }
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -190,7 +150,6 @@ actorDB["popupWall"] = RecessedWall
 
 export class Void extends Actor {
 	id = "void"
-	art = { actorName: "exit" }
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -204,7 +163,6 @@ actorDB["void"] = Void
 export class Water extends Actor {
 	id = "water"
 	tags = ["water"]
-	art = genericAnimatedArt("water", 4)
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -218,7 +176,6 @@ actorDB["water"] = Water
 export class Dirt extends Actor {
 	id = "dirt"
 	tags = ["filth"]
-	art = { actorName: "dirt" }
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -233,7 +190,6 @@ actorDB["dirt"] = Dirt
 export class Gravel extends Actor {
 	id = "gravel"
 	tags = ["filth"]
-	art: ActorArt = { actorName: "gravel" }
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -244,7 +200,6 @@ actorDB["gravel"] = Gravel
 
 export class Exit extends Actor {
 	id = "exit"
-	art = genericAnimatedArt("exit", 4)
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -265,11 +220,10 @@ actorDB["exit"] = Exit
 export class EChipGate extends Actor {
 	id = "echipGate"
 	immuneTags = ["tnt"]
-	art = { actorName: "echipGate" }
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["normal-monster", "block"] // TODO Directional blocks
+	blockTags = ["normal-monster", "block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (this.level.chipsLeft === 0) this.destroy(other, null)
 	}
@@ -282,13 +236,12 @@ actorDB["echipGate"] = EChipGate
 
 export class Hint extends Actor {
 	id = "hint"
-	art = { actorName: "hint" }
 	hint?: string
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		this.level.hintsLeftInLevel++
 	}
-	levelStarted() {
+	levelStarted(): void {
 		this.level.hintsLeftInLevel--
 		if (this.level.hintsLeftInLevel > this.level.hintsLeft.length)
 			this.hint = this.level.defaultHint
@@ -308,7 +261,6 @@ actorDB["hint"] = Hint
 
 export class Fire extends Actor {
 	id = "fire"
-	art = genericAnimatedArt("fire", 4)
 	tags = ["fire", "melting"]
 	blockTags = ["autonomous-monster"]
 	get layer(): Layer {
@@ -323,7 +275,6 @@ actorDB["fire"] = Fire
 
 export class ThiefTool extends Actor {
 	id = "thiefTool"
-	art: ActorArt = { actorName: "thief", animation: "tool" }
 	blockTags = ["normal-monster", "cc1block"]
 	get layer(): Layer {
 		return Layer.STATIONARY
@@ -340,7 +291,6 @@ actorDB["thiefTool"] = ThiefTool
 
 export class ThiefKey extends Actor {
 	id = "thiefKey"
-	art: ActorArt = { actorName: "thief", animation: "key" }
 	blockTags = ["normal-monster", "cc1block"]
 	get layer(): Layer {
 		return Layer.STATIONARY
@@ -359,10 +309,6 @@ export class Trap extends Actor {
 	id = "trap"
 	// The amount of buttons current pressed and linked to this trap
 	openRequests = 0
-	art: () => ActorArt = () => ({
-		actorName: "trap",
-		animation: this.openRequests > 0 ? "open" : "closed",
-	})
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -390,9 +336,6 @@ actorDB["trap"] = Trap
 // TODO CC1 clone machines, direction arrows on clone machine
 export class CloneMachine extends Actor {
 	id = "cloneMachine"
-	art = {
-		actorName: "cloneMachine",
-	}
 	isCloning = false
 	// Always block boomer actors
 	blockTags = ["cc1block", "normal-monster", "playable"]
@@ -435,17 +378,6 @@ actorDB["cloneMachine"] = CloneMachine
 export class Bomb extends Actor {
 	id = "bomb"
 	tags = ["bomb"]
-	art = (): ActorArt[] => [
-		{
-			actorName: "bomb",
-		},
-		{
-			actorName: "bombFuse",
-			cropSize: [0.5, 0.5],
-			animation: (this.level.currentTick % 4).toString(),
-			imageOffset: [0.5, 0],
-		},
-	]
 	get layer(): Layer {
 		return Layer.ITEM // Yes
 	}
@@ -464,16 +396,6 @@ export class Turtle extends Actor {
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
-	art = (): ActorArt[] => [
-		{
-			actorName: "water",
-			frame: this.level.currentTick % 4,
-		},
-		{
-			actorName: "turtle",
-			frame: Math.floor(this.level.currentTick / 3) % 3,
-		},
-	]
 	blockTags = ["melting"]
 	actorLeft(): void {
 		this.destroy(null, "splash")
@@ -484,22 +406,8 @@ export class Turtle extends Actor {
 actorDB["turtle"] = Turtle
 
 export class GreenBomb extends Actor {
-	id = "bomb"
+	id = "greenBomb"
 	tags = ["bomb"]
-	art = (): ActorArt | ActorArt[] =>
-		this.customData === "bomb"
-			? [
-					{
-						actorName: "bombGreen",
-					},
-					{
-						actorName: "bombFuse",
-						cropSize: [0.5, 0.5],
-						animation: (this.level.currentTick % 4).toString(),
-						imageOffset: [0.5, 0],
-					},
-			  ]
-			: { actorName: "echipGreen" }
 	constructor(
 		level: LevelState,
 		position: [number, number],
@@ -530,12 +438,9 @@ export class GreenBomb extends Actor {
 
 actorDB["greenBomb"] = GreenBomb
 
-// TODO Directional blocks
-
 export class Slime extends Actor {
 	id = "slime"
 	tags = ["slime"]
-	art = genericAnimatedArt("slime", 8)
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -554,10 +459,6 @@ actorDB["slime"] = Slime
 
 export class FlameJet extends Actor {
 	id = "flameJet"
-	art = (): ActorArt => ({
-		actorName: "flameJet",
-		frame: this.customData === "on" ? (this.level.currentTick % 3) + 1 : 0,
-	})
 	tags = this.customData === "on" ? ["fire"] : []
 	get layer(): Layer {
 		return Layer.STATIONARY

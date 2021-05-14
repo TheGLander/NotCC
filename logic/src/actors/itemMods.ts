@@ -6,7 +6,6 @@ import { actorDB } from "../const"
 
 export class NoSign extends Actor {
 	id = "noSign"
-	art = { actorName: "noSign" }
 	get layer(): Layer {
 		return Layer.ITEM_SUFFIX
 	}

@@ -1,13 +1,7 @@
-import {
-	Actor,
-	genericDirectionableArt,
-	SlidingState,
-	ActorArt,
-} from "../actor"
+import { Actor, SlidingState } from "../actor"
 import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
-import { KeyInputs } from "../pulse"
-import { GameState, LevelState, onLevelAfterTick } from "../level"
+import { GameState, LevelState } from "../level"
 import { Decision, actorDB } from "../const"
 import { Item } from "./items"
 
@@ -135,17 +129,6 @@ export abstract class Playable extends Actor {
 export class Chip extends Playable {
 	tags = ["playable", "chip", "can-reuse-key-green"]
 	id = "chip"
-	art = (): (ActorArt | false)[] => [
-		this.level.playablesLeft > 1 &&
-			this.level.selectedPlayable === this && { actorName: "playerAura" },
-		{
-			actorName: "chip",
-			animation: ["up", "right", "down", "left"][this.direction],
-			frame: this.cooldown
-				? Math.floor((1 - this.cooldown / (this.currentMoveSpeed ?? 1)) * 8)
-				: 0,
-		},
-	]
 }
 
 actorDB["chip"] = Chip
@@ -154,17 +137,6 @@ export class Melinda extends Playable {
 	tags = ["playable", "melinda", "can-reuse-key-yellow"]
 	id = "chip"
 	ignoreTags = ["ice"]
-	art = (): (ActorArt | false)[] => [
-		this.level.playablesLeft > 1 &&
-			this.level.selectedPlayable === this && { actorName: "playerAura" },
-		{
-			actorName: "melinda",
-			animation: ["up", "right", "down", "left"][this.direction],
-			frame: this.cooldown
-				? Math.floor((1 - this.cooldown / (this.currentMoveSpeed ?? 1)) * 8)
-				: 0,
-		},
-	]
 }
 
 actorDB["melinda"] = Melinda

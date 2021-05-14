@@ -1,4 +1,4 @@
-import { Actor, ActorArt } from "../actor"
+import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { actorDB } from "../const"
 import {
@@ -78,26 +78,12 @@ crossLevelData.queuedDespawns = []
 
 export class Explosion extends Animation {
 	id = "explosionAnim"
-	art = (): ActorArt => {
-		return {
-			actorName: "boom",
-			animation: "default",
-			frame: Math.floor(4 - this.animationCooldown / 4),
-		}
-	}
 }
 
 actorDB["explosionAnim"] = Explosion
 
 export class Splash extends Animation {
 	id = "splashAnim"
-	art = (): ActorArt => {
-		return {
-			actorName: "splash",
-			animation: "default",
-			frame: Math.floor(4 - this.animationCooldown / 4),
-		}
-	}
 }
 
 actorDB["splashAnim"] = Splash

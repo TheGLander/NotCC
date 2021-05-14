@@ -1,16 +1,11 @@
-import { Actor, ActorArt } from "../actor"
+import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
 import { Water, Dirt, Ice } from "./terrain"
 
-// TODO Secret eye interaction thing
-
 export class DirtBlock extends Actor {
 	id = "dirtBlock"
-	art: ActorArt = {
-		actorName: "dirtBlock",
-	}
 	tags = ["block", "cc1block", "movable"]
 	ignoreTags = ["fire"]
 	get layer(): Layer {
@@ -35,9 +30,6 @@ actorDB["dirtBlock"] = DirtBlock
 
 export class IceBlock extends Actor {
 	id = "iceBlock"
-	art: ActorArt = {
-		actorName: "iceBlock",
-	}
 	pushTags = ["cc2block"]
 	tags = ["block", "cc2block", "movable", "can-stand-on-items"]
 	get layer(): Layer {
