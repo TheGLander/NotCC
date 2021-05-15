@@ -1,11 +1,28 @@
 import { Actor, SlidingState } from "../actor"
 import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
-import { GameState, LevelState } from "../level"
+import { GameState, KeyInputs, LevelState } from "../level"
 import { Decision, actorDB } from "../const"
 import { Item } from "./items"
 
-// TODO Move chip-specific behavior outta here
+export function getMovementDirections(
+	input: KeyInputs
+): [Direction?, Direction?] {
+	const directions: [Direction?, Direction?] = []
+	for (const directionName of ["up", "right", "down", "left"] as const) {
+		if (!input[directionName]) continue
+		const direction =
+			Direction[directionName.toUpperCase() as "UP" | "RIGHT" | "DOWN" | "LEFT"]
+		/**
+		 * Type of the direction, 0 is vertical, 1 is horizontal (Not a pseudo-boolean)
+		 */
+		const dirType = direction % 2
+		if (directions[dirType] === undefined) directions[dirType] = direction
+		// If we have a counter-direction, reset the direction type
+		else directions[dirType] = undefined
+	}
+	return directions
+}
 
 export abstract class Playable extends Actor {
 	tags = ["playable"]
@@ -31,27 +48,7 @@ export abstract class Playable extends Actor {
 	get layer(): Layer {
 		return Layer.MOVABLE
 	}
-	/**
-	 * Used internally for input management
-	 */
-	getMovementDirections(): [Direction?, Direction?] {
-		const directions: [Direction?, Direction?] = []
-		for (const directionName of ["up", "right", "down", "left"] as const) {
-			if (!this.level.gameInput[directionName]) continue
-			const direction =
-				Direction[
-					directionName.toUpperCase() as "UP" | "RIGHT" | "DOWN" | "LEFT"
-				]
-			/**
-			 * Type of the direction, 0 is vertical, 1 is horizontal (Not a pseudo-boolean)
-			 */
-			const dirType = direction % 2
-			if (directions[dirType] === undefined) directions[dirType] = direction
-			// If we have a counter-direction, reset the direction type
-			else directions[dirType] = undefined
-		}
-		return directions
-	}
+
 	_internalDecide(forcedOnly: boolean): void {
 		this.moveDecision = Decision.NONE
 		if (this.cooldown) return
@@ -83,7 +80,7 @@ export abstract class Playable extends Actor {
 			}
 		}
 		canMove &&= !forcedOnly
-		const [vert, horiz] = this.getMovementDirections()
+		const [vert, horiz] = getMovementDirections(this.level.gameInput)
 		if (
 			this.slidingState &&
 			(!canMove || (vert === undefined && horiz === undefined))

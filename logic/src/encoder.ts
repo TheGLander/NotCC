@@ -40,9 +40,13 @@ export interface LevelData {
 	 */
 	connections?: [[number, number], [number, number]][]
 	/**
-	 * The password used to access the level, not supported in vanilla CC2
+	 * The password used to access the level. Not supported in vanilla CC2
 	 */
 	password?: string
+	/**
+	 * The solution for this level
+	 */
+	associatedSolution?: SolutionData
 	// Random misc custom data
 	customData?: Record<string, string>
 }
@@ -73,4 +77,18 @@ export interface LevelSetData {
 
 export function levelAsSet(level: LevelData): LevelSetData {
 	return { name: level.name ?? "UNNAMED", levels: { 1: level } }
+}
+
+/**
+ * A single input of the solution, the move number is:
+ * `up + right * 0x2 + down * 0x4 + left * 0x8 + drop * 0x10 + cycle * 0x20 + switch * 0x40`
+ * `waitBeforeInput` is the amount of subticks to wait before doing this step (the last input is sticky, so in the wait the input is not 0!)
+ */
+export type SolutionStep = [moveNumber: number, waitBeforeInput: number]
+
+export interface SolutionData {
+	/**
+	 * The steps needed to reach the exit, for each player
+	 */
+	steps: SolutionStep[][]
 }

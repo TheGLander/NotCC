@@ -1,5 +1,10 @@
 import AutoReadDataView from "./autoReader"
-import { LevelData, PartialLevelData, isPartialDataFull } from "../encoder"
+import {
+	LevelData,
+	PartialLevelData,
+	isPartialDataFull,
+	SolutionData,
+} from "../encoder"
 import { Field, Direction } from "../helpers"
 import data, { cc2Tile } from "./c2mData"
 import clone from "deepclone"
@@ -13,11 +18,11 @@ function getBit(number: number, bitPosition: number): boolean {
 	return (number & (1 << bitPosition)) !== 0
 }
 
-function convertBitField(
-	bitField: ArrayBuffer,
+function createFieldFromArrayBuffer(
+	fieldData: ArrayBuffer,
 	size: [number, number]
 ): Field<[string, Direction?, string?][]> {
-	const view = new AutoReadDataView(bitField)
+	const view = new AutoReadDataView(fieldData)
 	const field: Field<[string, Direction?, string?][]> = []
 	function parseTile(): cc2Tile[] {
 		const tileId = view.getUint8()
@@ -186,7 +191,32 @@ function convertBitField(
 	return field
 }
 
-function unpackageCompressedField(buff: ArrayBuffer): ArrayBuffer {
+function createSolutionFromArrayBuffer(
+	solutionData: ArrayBuffer
+): SolutionData {
+	const solution: SolutionData = { steps: [[], []] }
+	const view = new AutoReadDataView(solutionData)
+	// TODO Actually set blob seed and RFF direction
+	view.skipBytes(3)
+	while (view.offset < view.buffer.byteLength) {
+		const waitBeforeInput = view.getUint8()
+		const newInput = view.getUint8()
+
+		solution.steps[newInput >> 7].push([
+			(newInput & 0x10) / 0x10 + // Up
+				(newInput & 0x8) / 0x4 + // Right
+				(newInput & 0x2) * 0x2 + // Down
+				(newInput & 0x4) * 0x2 + // Left
+				(newInput & 0x1) * 0x10 + // Drop item
+				(newInput & 0x40) / 0x2 + // Cycle items
+				(newInput & 0x20) * 0x2, // Switch playable
+			waitBeforeInput,
+		])
+	}
+	return solution
+}
+
+function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
 	const view = new AutoReadDataView(buff)
 	const totalLength = view.getUint16()
 	const newBuff = new ArrayBuffer(totalLength)
@@ -231,10 +261,6 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		playablesRequiredToExit: "all",
 	}
 
-	// TODO Save solutions from c2m
-
-	let solutionHash: string
-
 	const OPTNFuncs = [
 		() => {
 			data.timeLimit = view.getUint16()
@@ -268,7 +294,8 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		() => view.skipBytes(1),
 		() => view.skipBytes(1),
 		() => {
-			solutionHash = view.getString(16)
+			// TODO Actually verify this hash
+			view.getString(16)
 		},
 		() => view.skipBytes(1),
 		() => view.skipBytes(1),
@@ -282,8 +309,6 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		//debugger
 		const length = view.getUint32()
 		const oldOffset = view.offset
-		let levelData: ArrayBuffer
-		let solutionData: ArrayBuffer
 		switch (sectionName) {
 			case "CC2M":
 				if (parseInt(view.getStringUntilNull()) > 7)
@@ -338,20 +363,34 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				for (let i = 0; view.offset < oldOffset + length; i++) OPTNFuncs[i]()
 				break
 			case "PACK":
-				levelData = unpackageCompressedField(
-					buff.slice(view.offset, view.offset + length)
-				)
-			// eslint-disable-next-line no-fallthrough
 			case "MAP ": {
+				let levelData: ArrayBuffer
 				if (sectionName === "MAP ")
 					levelData = buff.slice(view.offset, view.offset + length)
+				else
+					levelData = unpackagePackedData(
+						buff.slice(view.offset, view.offset + length)
+					)
 				view.skipBytes(length)
-				// @ts-expect-error This case will be either from PACK or MAP, in both cases it will be set
-				// eslint-disable-next-line no-case-declarations, no-self-assign
-				levelData = levelData
 				const [width, height] = new Uint8Array(levelData)
 				;[data.width, data.height] = [width, height]
-				data.field = convertBitField(levelData.slice(2), [height, width])
+				data.field = createFieldFromArrayBuffer(levelData.slice(2), [
+					height,
+					width,
+				])
+				break
+			}
+			case "PRPL":
+			case "REPL": {
+				let solutionData: ArrayBuffer
+				if (sectionName === "REPL")
+					solutionData = buff.slice(view.offset, view.offset + length)
+				else
+					solutionData = unpackagePackedData(
+						buff.slice(view.offset, view.offset + length)
+					)
+				data.associatedSolution = createSolutionFromArrayBuffer(solutionData)
+				view.skipBytes(length)
 				break
 			}
 			case "LOCK":
