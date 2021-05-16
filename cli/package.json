@@ -1,0 +1,24 @@
+{
+	"name": "notcc-cli",
+	"version": "0.1.0",
+	"description": "A CLI for verifying NotCC solutions!",
+	"main": "./lib/index.js",
+	"author": {
+		"name": "G lander"
+	},
+	"license": "MIT",
+	"private": true,
+	"dependencies": {
+		"typescript": "^4.2.4"
+	},
+	"typings": "./lib/index.d.ts",
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc --watch"
+	},
+	"devDependencies": {
+		"@types/node": "^15.3.0",
+		"chalk": "^2.4.2",
+		"ora": "^5.4.0"
+	}
+}
