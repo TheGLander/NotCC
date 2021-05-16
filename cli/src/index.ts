@@ -52,10 +52,10 @@ for (const levelPath of files) {
 		if (!levelData?.associatedSolution)
 			throw new Error("Level has no baked solution!")
 
-		spinner.start(` Verifying ${levelData.name}...`)
+		spinner.start(` ${levelData.name} - Verifying...`)
 
 		let lastDelay = Date.now()
-
+		const startTime = lastDelay
 		level.playbackSolution(levelData.associatedSolution)
 		while (
 			level.gameState === GameState.PLAYING &&
@@ -63,15 +63,25 @@ for (const levelPath of files) {
 		) {
 			level.tick()
 			if (Date.now() - lastDelay > 80) {
+				spinner.text = `${levelData.name} - Verifying... (${Math.round(
+					(level.solutionStep / levelData.associatedSolution.steps[0].length) *
+						100
+				)}%)`
 				spinner.render()
 				lastDelay = Date.now()
 			}
 		}
+		const speedCoef = Math.round(
+			level.currentTick / 60 / ((Date.now() - startTime) / 1000)
+		)
+
 		switch (level.gameState) {
 			case GameState.PLAYING:
 				levelsRanOutOfInput++
 				spinner.fail(
-					chalk` ${levelData.name ?? "UNNAMED"} - {red Input end before win}`
+					chalk` ${
+						levelData.name ?? "UNNAMED"
+					} - {red Input end before win} (${speedCoef.toString()} times faster)`
 				)
 				break
 			case GameState.LOST:
@@ -79,12 +89,14 @@ for (const levelPath of files) {
 				spinner.fail(
 					chalk` ${
 						levelData.name ?? "UNNAMED"
-					} - {red Solution killed the player}`
+					} - {red Solution killed the player} (${speedCoef.toString()} times faster)`
 				)
 				break
 			case GameState.WON:
 				spinner.succeed(
-					chalk` ${levelData.name ?? "UNNAMED"} - {green Success}`
+					chalk` ${
+						levelData.name ?? "UNNAMED"
+					} - {green Success} (${speedCoef.toString()} times faster)`
 				)
 				break
 		}
