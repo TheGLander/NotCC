@@ -164,7 +164,7 @@ export class LevelState {
 				this.solutionStep++
 				step = this.currentSolution.steps[0][this.solutionStep]
 				this.solutionSubticksLeft =
-					this.currentSolution.steps[0][this.solutionStep + 1][1] ?? Infinity
+					this.currentSolution.steps[0][this.solutionStep + 1]?.[1] ?? Infinity
 			}
 			if (step) this.gameInput = decodeSolutionStep(step)
 		}

@@ -303,8 +303,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 			data.blobMode = ([1, 4, 256] as const)[view.getUint8()]
 		},
 	]
-
-	while (view.offset < view.byteLength) {
+	loop: while (view.offset < view.byteLength) {
 		const sectionName = view.getString(4)
 		//debugger
 		const length = view.getUint32()
@@ -401,6 +400,8 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				// Discard
 				view.skipBytes(16)
 				break
+			case "END ":
+				break loop
 			default:
 				view.skipBytes(length)
 		}
