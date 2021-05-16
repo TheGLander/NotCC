@@ -41,4 +41,11 @@ export class SetPlayer {
 		}
 		return this.restartLevel()
 	}
+	async playLevelSolution(): Promise<void> {
+		const targetSolution = this.sortedLevels[this.currentLevelIndex]?.[1]
+			.associatedSolution
+		if (!targetSolution) return
+		await this.restartLevel()
+		this.pulseManager.level.playbackSolution(targetSolution)
+	}
 }

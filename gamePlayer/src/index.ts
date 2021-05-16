@@ -10,6 +10,7 @@ import { actorDB, keyNameList } from "./logic/const"
 import { parseDAT } from "./logic/parsers/dat"
 import { levelAsSet } from "./logic/encoder"
 import { SetPlayer } from "./setPlayer"
+import { artDB } from "./const"
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -27,6 +28,9 @@ const levelInputButton = document.querySelector<HTMLElement>(
 	"#levelInputButton"
 )
 const levelList = document.querySelector<HTMLSelectElement>("#levelList")
+const levelReplayButton = document.querySelector<HTMLButtonElement>(
+	"#levelSolutionButton"
+)
 const levelInput = document.createElement("input")
 levelInput.type = "file"
 levelInput.accept = ".c2m,.dat,.ccl"
@@ -62,6 +66,7 @@ const exportObject = {
 	keyNameList,
 	onLevelDecisionTick,
 	crossLevelData,
+	artDB,
 }
 
 export default exportObject
@@ -88,6 +93,18 @@ async function startNewLevelSet(
 	}
 }
 
+setPlayer.pulseManager.eventsRegistered.newLevel.push(() => {
+	if (levelReplayButton)
+		levelReplayButton.style.display = setPlayer.sortedLevels[
+			setPlayer.currentLevelIndex
+		]?.[1].associatedSolution
+			? "unset"
+			: "none"
+})
+
+levelReplayButton?.addEventListener("click", () => {
+	setPlayer.playLevelSolution()
+})
 ;(async () => {
 	const levelData = (
 		await (await fetch("./data/NotCC.c2m")).body?.getReader()?.read()

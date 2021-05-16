@@ -200,6 +200,7 @@ function createSolutionFromArrayBuffer(
 	view.skipBytes(3)
 	while (view.offset < view.buffer.byteLength) {
 		const waitBeforeInput = view.getUint8()
+		if (waitBeforeInput === 0xff) break
 		const newInput = view.getUint8()
 
 		solution.steps[newInput >> 7].push([

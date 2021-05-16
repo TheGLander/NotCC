@@ -41,7 +41,7 @@ const checkIfRelevant = (key: string): key is keyof typeof keymap =>
 const fpsCounter = document.querySelector<HTMLElement>("#fpsCounter")
 const delayCounter = document.querySelector<HTMLElement>("#delayCounter")
 
-type EventNames = "stateChange" | "win" | "lose"
+type EventNames = "stateChange" | "win" | "lose" | "newLevel"
 
 export class PulseManager {
 	keysPressed: KeyInputs = {
@@ -61,6 +61,7 @@ export class PulseManager {
 		lose: [],
 		win: [],
 		stateChange: [],
+		newLevel: [],
 	}
 
 	protected countFps = stabilizeFactory()
@@ -121,6 +122,7 @@ export class PulseManager {
 		}
 		this.renderer.updateCameraSizes()
 		await this.renderer.updateFillerData()
+		this.eventsRegistered.newLevel.forEach(val => val())
 	}
 	updateTextStats(): void {
 		if (!this.textStats) return
