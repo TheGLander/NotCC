@@ -252,7 +252,8 @@ export class Hint extends Actor {
 	}
 	actorCompletelyJoined(other: Actor): void {
 		// Sorry
-		if (other instanceof Playable && this.hint) alert(this.hint)
+		if (other instanceof Playable && this.hint)
+			(alert ?? console.log)(this.hint)
 	}
 	blockTags = ["normal-monster", "cc1block"]
 }

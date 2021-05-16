@@ -3,7 +3,7 @@ import { Field, Direction } from "./helpers"
 import { Playable } from "./actors/playables"
 import Tile from "./tile"
 import { Layer } from "./tile"
-import { LevelData, CameraType } from "./encoder"
+import { LevelData, CameraType, SolutionData, SolutionStep } from "./encoder"
 import { actorDB } from "./const"
 
 export enum GameState {
@@ -76,6 +76,18 @@ export const onLevelAfterTick: ((level: LevelState) => void)[] = [
 export const debouncedInputs = ["drop", "rotateInv", "switchPlayable"] as const
 export const debouncePeriod = 50 // Debounce period in subticks
 
+function decodeSolutionStep(step: SolutionStep): KeyInputs {
+	return {
+		up: (step[0] & 0x1) > 0,
+		right: (step[0] & 0x2) > 0,
+		down: (step[0] & 0x4) > 0,
+		left: (step[0] & 0x8) > 0,
+		drop: (step[0] & 0x10) > 0,
+		rotateInv: (step[0] & 0x20) > 0,
+		switchPlayable: (step[0] & 0x40) > 0,
+	}
+}
+
 /**
  * The state of a level, used as a hub of realtime level properties, the most important one being `field`
  */
@@ -144,6 +156,17 @@ export class LevelState {
 			for (const actor of this.actors)
 				for (const actorNeigh of actor.tile.allActors)
 					if (actorNeigh !== actor) actor.newActorOnTile?.(actorNeigh)
+		}
+		if (this.solutionSubticksLeft >= 0 && this.currentSolution) {
+			let step = this.currentSolution.steps[0][this.solutionStep]
+			this.solutionSubticksLeft--
+			if (this.solutionSubticksLeft <= 0) {
+				this.solutionStep++
+				step = this.currentSolution.steps[0][this.solutionStep]
+				this.solutionSubticksLeft =
+					this.currentSolution.steps[0][this.solutionStep + 1][1] ?? Infinity
+			}
+			if (step) this.gameInput = decodeSolutionStep(step)
 		}
 		this.decisionTick(this.subtick !== 2)
 		this.moveTick()
@@ -277,6 +300,16 @@ export class LevelState {
 			this.blobPrngValue &= 255
 		}
 		return this.blobPrngValue
+	}
+	currentSolution?: SolutionData
+	solutionStep = 0
+	solutionSubticksLeft = 0
+	playbackSolution(solution: SolutionData): void {
+		this.currentSolution = solution
+		// TODO Multiplayer
+		this.solutionStep = -1
+		if (solution.steps[0][0])
+			this.solutionSubticksLeft = solution.steps[0][0][1] + 1
 	}
 }
 

@@ -2,8 +2,8 @@
 	"name": "notcc",
 	"version": "0.1.0",
 	"description": "NotCC, standing for Nice Optimal Terrific Cool Challenge, is a tile based game(WIP)",
-	"main": "./dist/bundle.js",
-	"module": "./dist/mjs/index.js",
+	"main": "./dist/index.js",
+	"module": "./dist/mjs/index2.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "npx rollup -c",
