@@ -10,7 +10,7 @@ artDB["centipede"] = genericDirectionableArt("centipede", 3)
 artDB["ant"] = genericDirectionableArt("ant", 4)
 artDB["glider"] = genericDirectionableArt("glider", 2)
 artDB["fireball"] = genericAnimatedArt("fireball", 4)
-artDB["ball"] = genericDirectionableArt("ball", 4)
+artDB["ball"] = genericAnimatedArt("ball", 4)
 artDB["teethRed"] = actor => ({
 	actorName: "teethRed",
 	animation:

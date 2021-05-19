@@ -76,7 +76,7 @@ async function startNewLevelSet(
 	filename: string
 ): Promise<void> {
 	await setPlayer.ready
-	const levelData = filename.endsWith(".c2m")
+	const levelData = filename.toLowerCase().endsWith(".c2m")
 		? levelAsSet(parseC2M(buffer))
 		: parseDAT(buffer, filename)
 	setPlayer.setNewLevelSet(levelData)

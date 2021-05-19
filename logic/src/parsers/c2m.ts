@@ -222,7 +222,7 @@ function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
 	const totalLength = view.getUint16()
 	const newBuff = new ArrayBuffer(totalLength)
 	const newView = new AutoReadDataView(newBuff)
-	while (newView.offset < totalLength) {
+	while (newView.offset < totalLength && view.offset + 1 < buff.byteLength) {
 		const length = view.getUint8()
 		if (length < 0x80) {
 			// Data block
@@ -246,6 +246,10 @@ function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
 			}
 		}
 	}
+	if (newView.offset < totalLength)
+		console.warn(
+			"Ran out of data while unpackaging data, returning the data gotten from the existing data"
+		)
 	return newBuff
 }
 
@@ -364,13 +368,8 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				break
 			case "PACK":
 			case "MAP ": {
-				let levelData: ArrayBuffer
-				if (sectionName === "MAP ")
-					levelData = buff.slice(view.offset, view.offset + length)
-				else
-					levelData = unpackagePackedData(
-						buff.slice(view.offset, view.offset + length)
-					)
+				let levelData = buff.slice(view.offset, view.offset + length)
+				if (sectionName === "PACK") levelData = unpackagePackedData(levelData)
 				view.skipBytes(length)
 				const [width, height] = new Uint8Array(levelData)
 				;[data.width, data.height] = [width, height]
@@ -382,13 +381,9 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 			}
 			case "PRPL":
 			case "REPL": {
-				let solutionData: ArrayBuffer
-				if (sectionName === "REPL")
-					solutionData = buff.slice(view.offset, view.offset + length)
-				else
-					solutionData = unpackagePackedData(
-						buff.slice(view.offset, view.offset + length)
-					)
+				let solutionData = buff.slice(view.offset, view.offset + length)
+				if (sectionName === "PRPL")
+					solutionData = unpackagePackedData(solutionData)
 				data.associatedSolution = createSolutionFromArrayBuffer(solutionData)
 				view.skipBytes(length)
 				break
@@ -403,6 +398,13 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				break
 			case "END ":
 				break loop
+			case "BMP ":
+			case "CBMP": {
+				let bmpData = buff.slice(view.offset, view.offset + length)
+				if (sectionName === "CBMP") bmpData = unpackagePackedData(bmpData)
+				view.skipBytes(length)
+				break
+			}
 			default:
 				view.skipBytes(length)
 		}

@@ -238,6 +238,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 		dirt: [4, 31],
 		popupWall: [8, 10],
 		gravel: [9, 10],
+		ball: [
+			[10, 10],
+			[14, 10],
+		],
 		water: [
 			[12, 24],
 			[15, 24],

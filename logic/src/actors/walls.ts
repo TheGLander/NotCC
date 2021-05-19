@@ -129,7 +129,7 @@ export class AppearingWall extends Actor {
 actorDB["appearingWall"] = AppearingWall
 
 export class BlueWall extends Actor {
-	id = "wall"
+	id = "blueWall"
 	tags = ["wall"]
 	get layer(): Layer {
 		return Layer.STATIONARY

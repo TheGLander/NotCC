@@ -132,7 +132,7 @@ actorDB["chip"] = Chip
 
 export class Melinda extends Playable {
 	tags = ["playable", "melinda", "can-reuse-key-yellow"]
-	id = "chip"
+	id = "melinda"
 	ignoreTags = ["ice"]
 }
 

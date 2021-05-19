@@ -88,7 +88,7 @@ artDB["turtle"] = actor => [
 	},
 ]
 
-artDB["bombGreen"] = actor =>
+artDB["greenBomb"] = actor =>
 	actor.customData === "bomb"
 		? [
 				{

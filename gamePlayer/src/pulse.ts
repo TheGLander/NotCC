@@ -44,6 +44,7 @@ const delayCounter = document.querySelector<HTMLElement>("#delayCounter")
 type EventNames = "stateChange" | "win" | "lose" | "newLevel"
 
 export class PulseManager {
+	ticksPerSecond = 60
 	keysPressed: KeyInputs = {
 		up: false,
 		down: false,
@@ -81,7 +82,6 @@ export class PulseManager {
 		this.renderer.frame()
 		this.trackFps()
 	}
-	logicIntervalId: number
 	constructor(
 		public level: LevelState,
 		public renderSpace?: HTMLElement | null,
@@ -93,12 +93,9 @@ export class PulseManager {
 		this.ready = this.renderer.ready
 		window.addEventListener("keydown", this.keyDownFunc.bind(this))
 		window.addEventListener("keyup", this.keyUpFunc.bind(this))
-		// This is not node.js
-		this.logicIntervalId = (setInterval(
-			() => this.tickLevel(),
-			1000 / 60
-		) as unknown) as number
 		this.updateFrame()
+		this.tickLevel = this.tickLevel.bind(this)
+		this.tickLevel()
 	}
 	lastPulse = Date.now()
 	trackFps(): void {
@@ -164,5 +161,9 @@ Bonus: ${this.level.bonusPoints}pts`
 			delayCounter.innerText = `Calculation delay: ${
 				Math.round(this.countDelay(Date.now() - oldTime) * 1000) / 1000
 			}ms`
+		setTimeout(
+			this.tickLevel,
+			1000 / this.ticksPerSecond - (Date.now() - oldTime)
+		)
 	}
 }

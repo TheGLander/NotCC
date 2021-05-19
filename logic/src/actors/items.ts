@@ -192,8 +192,8 @@ export class Helmet extends Item {
 
 actorDB["helmet"] = Helmet
 
-export class Bonus extends Item {
-	id = "bonus"
+export class BonusFlag extends Item {
+	id = "bonusFlag"
 	destination = ItemDestination.NONE
 	onPickup(carrier: Actor): void {
 		if (carrier instanceof Playable)
@@ -203,7 +203,7 @@ export class Bonus extends Item {
 	}
 }
 
-actorDB["bonus"] = Bonus
+actorDB["bonusFlag"] = BonusFlag
 
 export class TNT extends Item {
 	id = "tnt"
