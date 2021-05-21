@@ -325,7 +325,7 @@ export class Trap extends Actor {
 		this.openRequests++
 	}
 	buttonUnpressed(): void {
-		this.openRequests--
+		this.openRequests = Math.max(0, this.openRequests - 1)
 		if (this.openRequests === 0)
 			for (const movable of this.tile[Layer.MOVABLE])
 				this.newActorOnTile(movable)

@@ -196,9 +196,17 @@ function createSolutionFromArrayBuffer(
 ): SolutionData {
 	const solution: SolutionData = { steps: [[], []] }
 	const view = new AutoReadDataView(solutionData)
-	// TODO Actually set blob seed and RFF direction
-	view.skipBytes(4)
 
+	view.skipBytes(1)
+
+	solution.rffDirection = view.getUint8() % 4
+	solution.blobModSeed = view.getUint8()
+
+	// The delay before the first input
+	// I think this is actually never used, but it's not a bad idea
+	// This also exists because NotCC has a little different solution structure
+	// Than CC2
+	view.skipBytes(1)
 	while (view.offset < view.buffer.byteLength) {
 		const newInput = view.getUint8()
 

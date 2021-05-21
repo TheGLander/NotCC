@@ -91,4 +91,6 @@ export interface SolutionData {
 	 * The steps needed to reach the exit, for each player
 	 */
 	steps: SolutionStep[][]
+	blobModSeed?: number
+	rffDirection?: Direction
 }

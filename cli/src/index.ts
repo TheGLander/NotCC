@@ -1,129 +1,46 @@
 #! /usr/bin/env node
-import {
-	createLevelFromData,
-	crossLevelData,
-	GameState,
-	parseC2M,
-} from "../../logic"
-import fs from "fs"
-import path from "path"
-import ora from "ora"
-import { exit } from "process"
-import chalk from "chalk"
+import { verifyLevelFiles } from "./verifyLevels"
+import { errorAndExit } from "./helpers"
 
-function getFilesRecursive(dir: string): string[] {
-	const files: string[] = []
-	fs.readdirSync(dir).forEach(file => {
-		const absolute = path.join(dir, file)
-		if (fs.statSync(absolute).isDirectory())
-			files.push(...getFilesRecursive(absolute))
-		else files.push(absolute)
-	})
-	return files
+export interface CLIArguments {
+	unpos: string[]
+	pos: string[]
+	options: Record<string, true>
 }
 
-const inputPath = path.resolve(__dirname, process.argv[2])
-let files: string[] = []
+const cliArguments: CLIArguments = { pos: [], unpos: [], options: {} }
 
-if (fs.statSync(inputPath).isDirectory()) files = getFilesRecursive(inputPath)
-else files = [inputPath]
-
-let levelsKilledBySolution = 0,
-	levelsRanOutOfInput = 0,
-	levelsThrewError = 0
-
-// TODO Refactor hint tile to not use alerts
-globalThis.alert = () => {}
-
-for (const levelPath of files) {
-	const spinner = ora()
-	try {
-		const levelBuffer = fs.readFileSync(
-			path.resolve(inputPath, levelPath),
-			null
-		)
-
-		// TODO This shouldn't happen in any solutions anyways
-		crossLevelData.despawnedActors = crossLevelData.queuedDespawns = []
-
-		const levelData = parseC2M(new Uint8Array(levelBuffer).buffer)
-		const level = createLevelFromData(levelData)
-
-		if (!levelData?.associatedSolution)
-			throw new Error("Level has no baked solution!")
-
-		spinner.start(` ${levelData.name} - Verifying...`)
-
-		let lastDelay = Date.now()
-		const startTime = lastDelay
-		level.playbackSolution(levelData.associatedSolution)
-		while (
-			level.gameState === GameState.PLAYING &&
-			level.solutionSubticksLeft !== Infinity
-		) {
-			level.tick()
-			if (Date.now() - lastDelay > 80) {
-				spinner.text = `${levelData.name} - Verifying... (${Math.round(
-					(level.solutionStep / levelData.associatedSolution.steps[0].length) *
-						100
-				)}%)`
-				spinner.render()
-				lastDelay = Date.now()
-			}
-		}
-		const speedCoef = Math.round(
-			level.currentTick / 60 / ((Date.now() - startTime) / 1000)
-		)
-
-		switch (level.gameState) {
-			case GameState.PLAYING:
-				levelsRanOutOfInput++
-				spinner.fail(
-					chalk` ${
-						levelData.name ?? "UNNAMED"
-					} - {red Input end before win} (${speedCoef.toString()} times faster)`
-				)
-				break
-			case GameState.LOST:
-				levelsKilledBySolution++
-				spinner.fail(
-					chalk` ${
-						levelData.name ?? "UNNAMED"
-					} - {red Solution killed the player} (${speedCoef.toString()} times faster)`
-				)
-				break
-			case GameState.WON:
-				spinner.succeed(
-					chalk` ${
-						levelData.name ?? "UNNAMED"
-					} - {green Success} (${speedCoef.toString()} times faster)`
-				)
-				break
-		}
-	} catch (err) {
-		levelsThrewError++
-		spinner.fail(
-			` ${path.basename(levelPath)} - Failed to run (${err.message})`
-		)
-	}
+for (const arg of process.argv.slice(2)) {
+	if (arg.startsWith("-")) {
+		cliArguments.unpos.push(arg)
+		cliArguments.options[arg.substr(2)] = true
+	} else cliArguments.pos.push(arg)
 }
 
-const totalWins =
-	files.length - levelsKilledBySolution - levelsRanOutOfInput - levelsThrewError
+if (cliArguments.options.help)
+	errorAndExit(
+		`notcc: An emulator of the game "Chip's Challenge"
+Usage: notcc <command>
+	notcc verify <levelPath>
+Commands:
+	verify - Verifies a level set by the in-baked solutions
+Options:
+	--help - Shows this
+	--onlyError - Shows only success lines`,
+		0
+	)
 
-console.log(
-	`Success rate: ${(totalWins / files.length) * 100}% (${totalWins}/${
-		files.length
-	})
-Levels which failed to run: ${levelsThrewError} (${
-		(levelsThrewError / files.length) * 100
-	}%)
-Levels whose solutions killed a player: ${levelsKilledBySolution} (${
-		(levelsKilledBySolution / files.length) * 100
-	}%)
-Levels whose solutions did not lead to an exit: ${levelsRanOutOfInput} (${
-		(levelsRanOutOfInput / files.length) * 100
-	}%)`
-)
+switch (cliArguments.pos[0]) {
+	case "verify":
+		verifyLevelFiles(cliArguments)
+		break
 
-exit(files.length - totalWins)
+	// Hehehe
+	case "csb":
+		errorAndExit("Stop the bobs")
+		break
+	default:
+		errorAndExit(`Unrecognized command: ${cliArguments.pos[0]}
+Use notcc --help for a list of recognized commands`)
+		break
+}
