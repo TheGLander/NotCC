@@ -275,7 +275,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 			screens: 1,
 		},
 		timeLimit: 0,
-		blobMode: 1,
+		blobMode: 4,
 		playablesRequiredToExit: "all",
 	}
 

@@ -307,8 +307,10 @@ export class LevelState {
 		this.currentSolution = solution
 		// TODO Multiplayer
 		this.solutionStep = 0
-		if (solution.steps[0][0])
-			this.solutionSubticksLeft = solution.steps[0][0][1] + 1
+		this.solutionSubticksLeft = solution.steps[0][0][1] + 1
+		if (solution.blobModSeed) this.blobPrngValue = solution.blobModSeed
+		if (solution.rffDirection)
+			crossLevelData.RFFDirection = solution.rffDirection
 	}
 }
 
@@ -322,12 +324,6 @@ export function createLevelFromData(data: LevelData): LevelState {
 		if (data.blobMode > 1)
 			level.blobPrngValue = Math.floor(Math.random() * 0x100)
 		level.blob4PatternsMode = data.blobMode === 4
-	}
-	if (data.associatedSolution) {
-		if (data.associatedSolution.blobModSeed)
-			level.blobPrngValue = data.associatedSolution.blobModSeed
-		if (data.associatedSolution.rffDirection)
-			crossLevelData.RFFDirection = data.associatedSolution.rffDirection
 	}
 	level.cameraType = data.camera
 	level.timeLeft = data.timeLimit * 60
