@@ -134,7 +134,9 @@ Bonus: ${this.level.bonusPoints}pts`
 	tickLevel(): void {
 		const oldTime = Date.now()
 		this.level.gameInput = this.keysPressed
-		this.level.tick()
+		let ticksProcessed = 0
+		for (; ticksProcessed < this.ticksPerSecond / 60; ticksProcessed++)
+			this.level.tick()
 		this.updateTextStats()
 		switch (this.level.gameState) {
 			case GameState.LOST:
@@ -163,7 +165,7 @@ Bonus: ${this.level.bonusPoints}pts`
 			}ms`
 		setTimeout(
 			this.tickLevel,
-			1000 / this.ticksPerSecond - (Date.now() - oldTime)
+			1000 / (this.ticksPerSecond / ticksProcessed) - (Date.now() - oldTime)
 		)
 	}
 }

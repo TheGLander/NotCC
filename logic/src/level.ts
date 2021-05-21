@@ -163,8 +163,7 @@ export class LevelState {
 			if (this.solutionSubticksLeft <= 0) {
 				this.solutionStep++
 				step = this.currentSolution.steps[0][this.solutionStep]
-				this.solutionSubticksLeft =
-					this.currentSolution.steps[0][this.solutionStep + 1]?.[1] ?? Infinity
+				this.solutionSubticksLeft = step?.[1] ?? Infinity
 			}
 			if (step) this.gameInput = decodeSolutionStep(step)
 		}
@@ -307,7 +306,7 @@ export class LevelState {
 	playbackSolution(solution: SolutionData): void {
 		this.currentSolution = solution
 		// TODO Multiplayer
-		this.solutionStep = -1
+		this.solutionStep = 0
 		if (solution.steps[0][0])
 			this.solutionSubticksLeft = solution.steps[0][0][1] + 1
 	}

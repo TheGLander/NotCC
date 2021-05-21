@@ -197,22 +197,27 @@ function createSolutionFromArrayBuffer(
 	const solution: SolutionData = { steps: [[], []] }
 	const view = new AutoReadDataView(solutionData)
 	// TODO Actually set blob seed and RFF direction
-	view.skipBytes(3)
+	view.skipBytes(4)
+
 	while (view.offset < view.buffer.byteLength) {
-		const waitBeforeInput = view.getUint8()
-		if (waitBeforeInput === 0xff) break
 		const newInput = view.getUint8()
 
-		solution.steps[newInput >> 7].push([
+		const holdTime =
+			solutionData.byteLength - view.offset === 0 ? Infinity : view.getUint8()
+		if (holdTime === 0xff) break
+		if (holdTime === 0x00) continue
+
+		const resolvedInput =
 			(newInput & 0x10) / 0x10 + // Up
-				(newInput & 0x8) / 0x4 + // Right
-				(newInput & 0x2) * 0x2 + // Down
-				(newInput & 0x4) * 0x2 + // Left
-				(newInput & 0x1) * 0x10 + // Drop item
-				(newInput & 0x40) / 0x2 + // Cycle items
-				(newInput & 0x20) * 0x2, // Switch playable
-			waitBeforeInput,
-		])
+			(newInput & 0x8) / 0x4 + // Right
+			(newInput & 0x2) * 0x2 + // Down
+			(newInput & 0x4) * 0x2 + // Left
+			(newInput & 0x1) * 0x10 + // Drop item
+			(newInput & 0x40) / 0x2 + // Cycle items
+			(newInput & 0x20) * 0x2 // Switch playable
+
+		solution.steps[newInput >> 7].push([resolvedInput, holdTime])
+		if (newInput >> 7) solution.steps[0].push([resolvedInput, holdTime])
 	}
 	return solution
 }
