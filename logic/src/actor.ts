@@ -306,7 +306,7 @@ export abstract class Actor {
 					actor.actorCompletelyJoined?.(this)
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
-		else {
+		if (!this.cooldown) {
 			for (const actor of [...this.tile.allActors])
 				if (actor !== this && !this._internalIgnores(actor))
 					actor.continuousActorCompletelyJoined?.(this)
