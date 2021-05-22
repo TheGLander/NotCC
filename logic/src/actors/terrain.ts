@@ -479,7 +479,8 @@ export class FlameJet extends Actor {
 			this.tags.splice(this.tags.indexOf("fire"))
 	}
 	continuousActorCompletelyJoined(other: Actor): void {
-		if (this.customData === "on") other.destroy(this)
+		if (this.customData === "on" && other.layer === Layer.MOVABLE)
+			other.destroy(this)
 	}
 	caresButtonColors = ["orange"]
 	buttonPressed(): void {
