@@ -83,6 +83,7 @@ export class ForceFloor extends Actor {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
+		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
 	}
@@ -106,6 +107,7 @@ export class ForceFloorRandom extends Actor {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
+		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		crossLevelData.RFFDirection ??= 0
 		other.direction = crossLevelData.RFFDirection++
@@ -383,6 +385,7 @@ export class Bomb extends Actor {
 		return Layer.ITEM // Yes
 	}
 	actorCompletelyJoined(other: Actor): void {
+		if (other.layer !== Layer.MOVABLE) return
 		other.destroy(this, null)
 		this.destroy(other)
 	}

@@ -158,7 +158,9 @@ export abstract class Actor {
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])
 		if (level.levelStarted)
-			for (const actor of this.tile.allActors) actor.newActorOnTile?.(this)
+			for (const actor of this.tile.allActors)
+				if (actor.newActorOnTile && !actor._internalIgnores(this))
+					actor.newActorOnTile(this)
 	}
 	/**
 	 * Decides the movements the actor will attempt to do
