@@ -306,6 +306,11 @@ export abstract class Actor {
 					actor.actorCompletelyJoined?.(this)
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
+		else {
+			for (const actor of [...this.tile.allActors])
+				if (actor !== this && !this._internalIgnores(actor))
+					actor.continuousActorCompletelyJoined?.(this)
+		}
 	}
 	/**
 	 * Updates tile states and calls hooks
@@ -410,4 +415,8 @@ export abstract class Actor {
 	 * Called when the level starts
 	 */
 	levelStarted?(): void
+	/**
+	 * Called each subtick if anything is on this (called at cooldown time (move time))
+	 */
+	continuousActorCompletelyJoined?(other: Actor): void
 }

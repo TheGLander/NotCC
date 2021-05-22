@@ -4,7 +4,12 @@ import { actorDB } from "../const"
 import { Wall } from "./walls"
 import { matchTags } from "../actor"
 import { Playable } from "./playables"
-import { GameState, LevelState, crossLevelData } from "../level"
+import {
+	GameState,
+	LevelState,
+	crossLevelData,
+	onLevelDecisionTick,
+} from "../level"
 import { Direction } from "../helpers"
 import { onLevelAfterTick, onLevelStart } from "../level"
 
@@ -467,18 +472,19 @@ export class FlameJet extends Actor {
 	get layer(): Layer {
 		return Layer.STATIONARY
 	}
-	onEachDecision(): void {
+	updateTags(): void {
 		if (this.customData === "on" && !this.tags.includes("fire"))
 			this.tags.push("fire")
 		else if (this.customData === "off" && this.tags.includes("fire"))
 			this.tags.splice(this.tags.indexOf("fire"))
-		for (const movable of this.tile[Layer.MOVABLE])
-			if (movable.cooldown === 0 && this.customData === "on")
-				movable.destroy(this)
+	}
+	continuousActorCompletelyJoined(other: Actor): void {
+		if (this.customData === "on") other.destroy(this)
 	}
 	caresButtonColors = ["orange"]
 	buttonPressed(): void {
 		this.customData = this.customData === "on" ? "off" : "on"
+		this.updateTags()
 	}
 	buttonUnpressed = this.buttonPressed
 }
@@ -507,8 +513,10 @@ export const updateJetlife = (level: LevelState): void => {
 			if (neighbors === 3) queuedUpdates.push([actor, "on"])
 			else if (neighbors !== 2) queuedUpdates.push([actor, "off"])
 		}
-	for (const update of queuedUpdates) update[0].customData = update[1]
+	for (const update of queuedUpdates) {
+		update[0].customData = update[1]
+		update[0].updateTags()
+	}
 }
 
-onLevelStart.push(updateJetlife)
-onLevelAfterTick.push(updateJetlife)
+onLevelDecisionTick.push(updateJetlife)
