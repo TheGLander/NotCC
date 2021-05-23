@@ -246,7 +246,7 @@ export class LevelState {
 		const toPush: Actor[] = []
 
 		// Do stuff on the entering tile
-		for (const layer of [
+		loop: for (const layer of [
 			Layer.ITEM_SUFFIX,
 			Layer.SPECIAL,
 			Layer.STATIONARY,
@@ -258,12 +258,12 @@ export class LevelState {
 				actor.bumpedActor?.(blockActor, direction)
 				if (!blockActor._internalBlocks(actor, direction))
 					if (
-						layer !== Layer.ITEM_SUFFIX ||
+						(layer !== Layer.ITEM_SUFFIX && layer !== Layer.MOVABLE) ||
 						newTile[layer].indexOf(blockActor) !== newTile[layer].length - 1
 					)
 						// Item suffixes are dumb
 						continue
-					else break
+					else break loop
 				if (actor._internalCanPush(blockActor)) toPush.push(blockActor)
 				else return false
 			}
