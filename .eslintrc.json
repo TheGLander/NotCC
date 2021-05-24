@@ -8,7 +8,7 @@
 		"eslint:recommended",
 		"plugin:@typescript-eslint/eslint-recommended",
 		"plugin:@typescript-eslint/recommended",
-		"plugin:prettier/recommended"
+		"prettier"
 	],
 	"globals": {
 		"Atomics": "readonly",
@@ -26,7 +26,6 @@
 		"indent": [0], //Prettier automatically handles this too
 		"linebreak-style": ["error", "unix"],
 		"quotes": [0], //Prettier automatically handles them
-		"prettier/prettier": "error",
 		"@typescript-eslint/ban-types": ["error", { "types": { "object": false } }]
 	}
 }
