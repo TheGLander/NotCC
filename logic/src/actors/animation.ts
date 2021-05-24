@@ -30,6 +30,11 @@ export abstract class Animation extends Actor {
 	despawn(): void {
 		if (this.level.actors.includes(this))
 			this.level.actors.splice(this.level.actors.indexOf(this), 1)
+		if (this.level.decidingActors.includes(this))
+			this.level.decidingActors.splice(
+				this.level.decidingActors.indexOf(this),
+				1
+			)
 		super.despawn(true)
 	}
 }

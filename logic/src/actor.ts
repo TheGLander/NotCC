@@ -63,7 +63,10 @@ export abstract class Actor {
 	despawn(intended = false): void {
 		this.despawned = true
 		this.tile.removeActors(this)
-		if (!intended) crossLevelData.despawnedActors?.push(this)
+		if (!intended) {
+			crossLevelData.despawnedActors?.push(this)
+			console.warn("A despawn has happended")
+		}
 	}
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
@@ -334,14 +337,13 @@ export abstract class Actor {
 		}
 		this.oldTile?.removeActors(this)
 		// Spread from and to to not have actors which create new actors instantly be interacted with
-		if (this.oldTile)
+		if (this.oldTile) {
+			for (const actor of this.oldTile[this.layer]) actor.despawn(false)
 			for (const actor of [...this.oldTile.allActors])
 				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
-		// Despawn all actors which are already there, you should've blocked this, if you cared to exist!
-		for (const actor of this.tile[this.layer]) {
-			actor.despawn(false)
-			if (!actor.id.endsWith("Anim")) console.warn("A despawn has happended")
 		}
+		// Despawn all actors which are already there, you should've blocked this, if you cared to exist!
+		for (const actor of this.tile[this.layer]) actor.despawn(false)
 
 		this.tile.addActors(this)
 		this.slidingState = SlidingState.NONE

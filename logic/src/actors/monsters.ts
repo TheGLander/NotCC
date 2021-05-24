@@ -75,13 +75,25 @@ export class Ball extends Monster {
 
 actorDB["ball"] = Ball
 
+export function getVisualCoordinates(actor: Actor): [number, number] {
+	if (!actor.cooldown || !actor.currentMoveSpeed || !actor.oldTile)
+		return actor.tile.position
+	const progress = 1 - actor.cooldown / actor.currentMoveSpeed
+	return [
+		actor.oldTile.x * (1 - progress) + actor.tile.x * progress,
+		actor.oldTile.y * (1 - progress) + actor.tile.y * progress,
+	]
+}
+
 export class TeethRed extends Monster {
 	id = "teethRed"
 	decideMovement(): Direction[] {
-		if (!this.level.selectedPlayable || (this.level.currentTick + 1) % 8 >= 4)
+		if (!this.level.selectedPlayable || (this.level.currentTick + 5) % 8 >= 4)
 			return []
-		const dx = this.tile.x - this.level.selectedPlayable.tile.x,
-			dy = this.tile.y - this.level.selectedPlayable.tile.y
+		// This uses the visual position of the player
+		const playerPos = getVisualCoordinates(this.level.selectedPlayable)
+		const dx = this.tile.x - playerPos[0],
+			dy = this.tile.y - playerPos[1]
 		const directions: Direction[] = []
 		if (dx) directions.push(Math.sign(dx) + 2)
 		if (dy) directions.push(-Math.sign(dy) + 1)

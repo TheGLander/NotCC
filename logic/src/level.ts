@@ -49,6 +49,7 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 			}
 			actor.level = level
 			level.actors.push(actor)
+			if (actor.isDeciding) level.decidingActors.push(actor)
 			actor.tile.removeActors(actor)
 			actor.oldTile = null
 			actor.tile = level.field[actor.tile.position[0]][actor.tile.position[1]]
@@ -61,7 +62,6 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
 export const onLevelAfterTick: ((level: LevelState) => void)[] = [
 	level => {
-		// TODO Players should do requests to switch playables, so sliding/moving players can't switch
 		if (level.playablesToSwap && level.selectedPlayable) {
 			level.selectedPlayable =
 				level.playables[
