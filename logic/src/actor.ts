@@ -56,6 +56,7 @@ export abstract class Actor {
 	layer: Layer
 	abstract id: string
 	despawned = false
+	isDeciding = false
 	/**
 	 * Kinda like destroying, but bugged and shouldn't be used
 	 */
@@ -97,7 +98,7 @@ export abstract class Actor {
 		// @ts-expect-error Typescript dumb
 		return this[id] instanceof Array
 			? [
-					...((this[id] as unknown) as string[]),
+					...(this[id] as unknown as string[]),
 					...this.inventory.items.reduce(
 						(acc, val) => [
 							...acc, // @ts-expect-error Typescript dumb
@@ -163,6 +164,8 @@ export abstract class Actor {
 			for (const actor of this.tile.allActors)
 				if (actor.newActorOnTile && !actor._internalIgnores(this))
 					actor.newActorOnTile(this)
+		this.isDeciding = !!(this.layer === Layer.MOVABLE || this.onEachDecision)
+		if (this.isDeciding) level.decidingActors.push(this)
 	}
 	/**
 	 * Decides the movements the actor will attempt to do
@@ -203,7 +206,7 @@ export abstract class Actor {
 		if (directions.length > 0)
 			this.moveDecision = directions[directions.length - 1] + 1
 	}
-	// This is defined separately only because of Instabonking:tm:
+
 	_internalStep(direction: Direction): boolean {
 		if (this.cooldown) return false
 		// TODO Force redirection of movement (train tracks)
@@ -213,6 +216,8 @@ export abstract class Actor {
 		if (!canMove || !this.moveSpeed) return false
 		const newTile = this.tile.getNeighbor(direction)
 		if (!newTile) return false
+		if (!this.isDeciding) this.level.decidingActors.push(this)
+		this.isDeciding = true
 		const moveLength = (this.moveSpeed * 3) / newTile.getSpeedMod(this)
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
@@ -352,6 +357,11 @@ export abstract class Actor {
 		if (killer && !this._internalShouldDestroy(killer)) return false
 		if (this.level.actors.includes(this))
 			this.level.actors.splice(this.level.actors.indexOf(this), 1)
+		if (this.level.decidingActors.includes(this))
+			this.level.decidingActors.splice(
+				this.level.decidingActors.indexOf(this),
+				1
+			)
 		this.despawn(true)
 		if (animType && actorDB[`${animType}Anim`]) {
 			const anim = new actorDB[`${animType}Anim`](

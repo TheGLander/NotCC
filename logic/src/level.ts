@@ -98,6 +98,7 @@ export class LevelState {
 	gameState = GameState.PLAYING
 	field: Field<Tile> = []
 	actors: Actor[] = []
+	decidingActors: Actor[] = []
 	subtick: 0 | 1 | 2 = 0
 	currentTick = 0
 	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
@@ -136,10 +137,10 @@ export class LevelState {
 	connections: [[number, number], [number, number]][] = []
 	protected decisionTick(forcedOnly = false): void {
 		onLevelDecisionTick.forEach(val => val(this))
-		for (const actor of this.actors) actor._internalDecide(forcedOnly)
+		for (const actor of this.decidingActors) actor._internalDecide(forcedOnly)
 	}
 	protected moveTick(): void {
-		for (const actor of this.actors) {
+		for (const actor of this.decidingActors) {
 			actor._internalMove()
 			actor._internalDoCooldown()
 		}
