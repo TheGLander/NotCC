@@ -241,8 +241,6 @@ export abstract class Actor {
 		const ogDirection = this.moveDecision - 1
 		const bonked = !this._internalStep(ogDirection)
 		if (bonked && this.slidingState) {
-			for (const actor of this.tile.allActors)
-				if (!this._internalIgnores(actor)) actor.actorCompletelyJoined?.(this)
 			for (const bonkListener of this.tile.allActors)
 				if (!this._internalIgnores(bonkListener))
 					bonkListener.onMemberSlideBonked?.(this)

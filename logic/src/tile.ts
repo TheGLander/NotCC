@@ -11,7 +11,15 @@ export enum Layer {
 }
 
 class Tile extends Array<Array<Actor>> {
-	allActors: Actor[] = []
+	get allActors(): Actor[] {
+		return [
+			...this[Layer.ITEM],
+			...this[Layer.MOVABLE],
+			...this[Layer.STATIONARY],
+			...this[Layer.ITEM_SUFFIX],
+			...this[Layer.SPECIAL],
+		]
+	}
 	x: number
 	y: number
 	constructor(
@@ -29,16 +37,11 @@ class Tile extends Array<Array<Actor>> {
 	 */
 	addActors(actors: Actor | Actor[]): void {
 		actors = actors instanceof Array ? actors : [actors]
-		this.allActors.push(...actors)
-		for (const actor of actors) {
-			this[actor.layer].push(actor)
-		}
+		for (const actor of actors) this[actor.layer].push(actor)
 	}
 	removeActors(actors: Actor | Actor[]): void {
 		actors = actors instanceof Array ? actors : [actors]
 		for (const actor of actors) {
-			if (this.allActors.includes(actor))
-				this.allActors.splice(this.allActors.indexOf(actor), 1)
 			if (this[actor.layer].includes(actor))
 				this[actor.layer].splice(this[actor.layer].indexOf(actor), 1)
 		}
@@ -97,9 +100,8 @@ class Tile extends Array<Array<Actor>> {
 			)
 				currTarget++
 			if (currTarget === 4) break
-			const tile = this.level.field[this.x + currOffset[0]]?.[
-				this.y + currOffset[1]
-			]
+			const tile =
+				this.level.field[this.x + currOffset[0]]?.[this.y + currOffset[1]]
 			if (tile) yield tile
 		}
 	}
