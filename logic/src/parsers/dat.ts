@@ -65,6 +65,7 @@ export function parseDAT(buff: ArrayBuffer, fileName: string): LevelSetData {
 			height: 32,
 			playablesRequiredToExit: 1,
 			field: [],
+			hints: [],
 		}
 		// Do it like this so TS believes it exists
 		levelData.connections = []

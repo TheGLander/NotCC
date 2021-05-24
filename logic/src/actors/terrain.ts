@@ -250,7 +250,7 @@ export class Hint extends Actor {
 	}
 	levelStarted(): void {
 		this.level.hintsLeftInLevel--
-		if (this.level.hintsLeftInLevel > this.level.hintsLeft.length)
+		if (this.level.hintsLeftInLevel >= this.level.hintsLeft.length - 1)
 			this.hint = this.level.defaultHint
 		else this.hint = this.level.hintsLeft[this.level.hintsLeftInLevel]
 	}
