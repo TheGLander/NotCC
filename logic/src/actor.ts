@@ -52,7 +52,8 @@ export abstract class Actor {
 	cooldown = 0
 	pendingDecision = Decision.NONE
 	slidingState = SlidingState.NONE
-	abstract layer: Layer
+	abstract getLayer(): Layer
+	layer: Layer
 	abstract id: string
 	despawned = false
 	/**
@@ -154,6 +155,7 @@ export abstract class Actor {
 		position: [number, number],
 		public customData = ""
 	) {
+		this.layer = this.getLayer()
 		level.actors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors([this])

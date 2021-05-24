@@ -12,7 +12,7 @@ export abstract class Animation extends Actor {
 	animationCooldown = 16
 	blockTags = ["playable"]
 	ignoreTags = ["!playable"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
 	constructor(level: LevelState, position: [number, number]) {

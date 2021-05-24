@@ -45,7 +45,7 @@ export abstract class Playable extends Actor {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.RIGHT, dir.FORWARD, dir.LEFT, dir.BACKWARD]
 	}
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
 

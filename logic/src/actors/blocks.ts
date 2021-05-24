@@ -8,7 +8,7 @@ export class DirtBlock extends Actor {
 	id = "dirtBlock"
 	tags = ["block", "cc1block", "movable"]
 	ignoreTags = ["fire"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
 	blocks(): boolean {
@@ -32,7 +32,7 @@ export class IceBlock extends Actor {
 	id = "iceBlock"
 	pushTags = ["cc2block"]
 	tags = ["block", "cc2block", "movable", "can-stand-on-items"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
 	blocks(): boolean {

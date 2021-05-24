@@ -25,7 +25,7 @@ export abstract class Item extends Actor {
 			"playable",
 		])
 	}
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.ITEM
 	}
 	ignores(): boolean {

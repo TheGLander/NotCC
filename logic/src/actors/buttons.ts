@@ -7,7 +7,7 @@ import Tile from "../tile"
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-		get layer(): Layer {
+		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
 		actorCompletelyJoined(): void {
@@ -37,7 +37,7 @@ export function ROConnectedButtonFactory(
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
-		get layer(): Layer {
+		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
 		constructor(level: LevelState, position: [number, number]) {
@@ -48,9 +48,8 @@ export function ROConnectedButtonFactory(
 					connection[0][0] === this.tile.x &&
 					connection[0][1] === this.tile.y
 				)
-					this.explicitlyConnectedTile = this.level.field[connection[1][0]]?.[
-						connection[1][1]
-					]
+					this.explicitlyConnectedTile =
+						this.level.field[connection[1][0]]?.[connection[1][1]]
 		}
 		levelStarted(): void {
 			const thisIndex = this.level.actors.indexOf(this)
@@ -85,7 +84,7 @@ export function diamondConnectedButtonFactory(color: string) {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
-		get layer(): Layer {
+		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
 		constructor(level: LevelState, position: [number, number]) {
@@ -96,9 +95,8 @@ export function diamondConnectedButtonFactory(color: string) {
 					connection[0][0] === this.tile.x &&
 					connection[0][1] === this.tile.y
 				)
-					this.explicitlyConnectedTile = this.level.field[connection[1][0]]?.[
-						connection[1][1]
-					]
+					this.explicitlyConnectedTile =
+						this.level.field[connection[1][0]]?.[connection[1][1]]
 		}
 		levelStarted(): void {
 			if (this.explicitlyConnectedTile) {

@@ -7,7 +7,7 @@ import { LevelState } from "../level"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(): boolean {
@@ -21,7 +21,7 @@ actorDB["wall"] = Wall
 export class SteelWall extends Actor {
 	id = "steelWall"
 	immuneTags = ["tnt"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(): boolean {
@@ -33,7 +33,7 @@ actorDB["steelWall"] = SteelWall
 
 export class CustomWall extends Actor {
 	id = "customWall"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(): boolean {
@@ -50,7 +50,7 @@ function doorFactory(color: string) {
 		id = `door${sentenceCaseName}`
 		tags = ["door"]
 		blockTags = ["normal-monster", "cc1-block"]
-		get layer(): Layer {
+		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
 		blocks(other: Actor): boolean {
@@ -76,7 +76,7 @@ actorDB["doorYellow"] = doorFactory("yellow")
 export class ThinWall extends Actor {
 	id = "thinWall"
 	tags = ["thinWall"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.SPECIAL
 	}
 	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
@@ -91,7 +91,7 @@ actorDB["thinWall"] = ThinWall
 
 export class InvisibleWall extends Actor {
 	id = "invisibleWall"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	animationLeft = 0
@@ -111,7 +111,7 @@ actorDB["invisibleWall"] = InvisibleWall
 
 export class AppearingWall extends Actor {
 	id = "appearingWall"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(): true {
@@ -131,7 +131,7 @@ actorDB["appearingWall"] = AppearingWall
 export class BlueWall extends Actor {
 	id = "blueWall"
 	tags = ["wall"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(other: Actor): boolean {
@@ -154,7 +154,7 @@ actorDB["blueWall"] = BlueWall
 
 export class ToggleWall extends Actor {
 	id = "toggleWall"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(): boolean {
@@ -171,7 +171,7 @@ actorDB["toggleWall"] = ToggleWall
 export class SwivelRotatingPart extends Actor {
 	id = "swivelRotatingPart"
 	immuneTags = ["tnt"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.SPECIAL
 	}
 	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
@@ -190,7 +190,7 @@ export class SwivelRotatingPart extends Actor {
 export class Swivel extends Actor {
 	id = "swivel"
 	rotatingPart?: SwivelRotatingPart
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	constructor(level: LevelState, position: [number, number]) {
@@ -214,7 +214,7 @@ actorDB["swivel"] = Swivel
 export class GreenWall extends Actor {
 	id = "greenWall"
 	tags = ["wall"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(other: Actor): boolean {

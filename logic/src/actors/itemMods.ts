@@ -6,7 +6,7 @@ import { actorDB } from "../const"
 
 export class NoSign extends Actor {
 	id = "noSign"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.ITEM_SUFFIX
 	}
 	blocks(other: Actor, moveDirection: Direction): boolean {
@@ -18,10 +18,9 @@ export class NoSign extends Actor {
 			)
 				return true
 		}
-		return [
-			...this.tile[Layer.SPECIAL],
-			...this.tile[Layer.STATIONARY],
-		].some(val => val._internalBlocks(this, moveDirection))
+		return [...this.tile[Layer.SPECIAL], ...this.tile[Layer.STATIONARY]].some(
+			val => val._internalBlocks(this, moveDirection)
+		)
 	}
 }
 

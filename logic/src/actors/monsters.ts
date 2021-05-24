@@ -11,7 +11,7 @@ export abstract class Monster extends Actor {
 		return true
 	}
 	tags = ["autonomous-monster", "normal-monster", "movable"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
 	bumped(other: Actor): void {

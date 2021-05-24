@@ -15,7 +15,7 @@ import { onLevelAfterTick, onLevelStart } from "../level"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 }
@@ -24,7 +24,7 @@ actorDB["letterTile"] = LetterTile
 
 export class CustomFloor extends Actor {
 	id = "customFloor"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 }
@@ -34,7 +34,7 @@ actorDB["customFloor"] = CustomFloor
 export class Ice extends Actor {
 	id = "ice"
 	tags = ["ice"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
@@ -54,7 +54,7 @@ actorDB["ice"] = Ice
 export class IceCorner extends Actor {
 	id = "iceCorner"
 	tags = ["ice"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
@@ -84,7 +84,7 @@ actorDB["iceCorner"] = IceCorner
 export class ForceFloor extends Actor {
 	id = "forceFloor"
 	tags = ["force-floor"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -108,7 +108,7 @@ actorDB["forceFloor"] = ForceFloor
 export class ForceFloorRandom extends Actor {
 	id = "forceFloorRandom"
 	tags = ["force-floor"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -142,7 +142,7 @@ actorDB["forceFloorRandom"] = ForceFloorRandom
 
 export class RecessedWall extends Actor {
 	id = "popupWall"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	// Funny how recessed walls have the exact same collision as monsters
@@ -157,7 +157,7 @@ actorDB["popupWall"] = RecessedWall
 
 export class Void extends Actor {
 	id = "void"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -170,7 +170,7 @@ actorDB["void"] = Void
 export class Water extends Actor {
 	id = "water"
 	tags = ["water"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -183,7 +183,7 @@ actorDB["water"] = Water
 export class Dirt extends Actor {
 	id = "dirt"
 	tags = ["filth"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blockTags = ["cc1block", "normal-monster", "melinda"]
@@ -197,7 +197,7 @@ actorDB["dirt"] = Dirt
 export class Gravel extends Actor {
 	id = "gravel"
 	tags = ["filth"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blockTags = ["normal-monster", "melinda"]
@@ -207,7 +207,7 @@ actorDB["gravel"] = Gravel
 
 export class Exit extends Actor {
 	id = "exit"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blockTags = ["normal-monster", "cc1block"]
@@ -227,7 +227,7 @@ actorDB["exit"] = Exit
 export class EChipGate extends Actor {
 	id = "echipGate"
 	immuneTags = ["tnt"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blockTags = ["normal-monster", "block"]
@@ -254,7 +254,7 @@ export class Hint extends Actor {
 			this.hint = this.level.defaultHint
 		else this.hint = this.level.hintsLeft[this.level.hintsLeftInLevel]
 	}
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -271,7 +271,7 @@ export class Fire extends Actor {
 	id = "fire"
 	tags = ["fire", "melting"]
 	blockTags = ["autonomous-monster"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -284,7 +284,7 @@ actorDB["fire"] = Fire
 export class ThiefTool extends Actor {
 	id = "thiefTool"
 	blockTags = ["normal-monster", "cc1block"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -300,7 +300,7 @@ actorDB["thiefTool"] = ThiefTool
 export class ThiefKey extends Actor {
 	id = "thiefKey"
 	blockTags = ["normal-monster", "cc1block"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -317,7 +317,7 @@ export class Trap extends Actor {
 	id = "trap"
 	// The amount of buttons current pressed and linked to this trap
 	openRequests = 0
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	exitBlocks(): boolean {
@@ -351,7 +351,7 @@ export class CloneMachine extends Actor {
 	blocks(): boolean {
 		return this.tile[Layer.MOVABLE].length > 0
 	}
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	// Allow actors to exit while cloning, so they can properly move out of the tile
@@ -386,7 +386,7 @@ actorDB["cloneMachine"] = CloneMachine
 export class Bomb extends Actor {
 	id = "bomb"
 	tags = ["bomb"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.ITEM // Yes
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -402,7 +402,7 @@ actorDB["bomb"] = Bomb
 export class Turtle extends Actor {
 	id = "turtle"
 	tags = ["blocks-ghost"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blockTags = ["melting"]
@@ -427,7 +427,7 @@ export class GreenBomb extends Actor {
 		level.chipsLeft++
 		level.chipsRequired++
 	}
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.ITEM // Yes
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -450,7 +450,7 @@ actorDB["greenBomb"] = GreenBomb
 export class Slime extends Actor {
 	id = "slime"
 	tags = ["slime"]
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -469,7 +469,7 @@ actorDB["slime"] = Slime
 export class FlameJet extends Actor {
 	id = "flameJet"
 	tags = this.customData === "on" ? ["fire"] : []
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	updateTags(): void {

@@ -46,7 +46,7 @@ function findNextTeleport<T extends Actor>(
 
 export class BlueTeleport extends Actor {
 	id = "teleportBlue"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
@@ -69,7 +69,7 @@ actorDB["teleportBlue"] = BlueTeleport
 
 export class RedTeleport extends Actor {
 	id = "teleportRed"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -110,7 +110,7 @@ actorDB["teleportRed"] = RedTeleport
 
 export class GreenTeleport extends Actor {
 	id = "teleportGreen"
-	get layer(): Layer {
+	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
