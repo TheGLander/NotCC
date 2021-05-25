@@ -17,52 +17,32 @@ export abstract class Animation extends Actor {
 	}
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
-		crossLevelData.queuedDespawns?.push({
-			ticksLeft: this.animationCooldown,
-			position: this.tile.position,
-		})
+		crossLevelData.queuedDespawns?.push(this)
 	}
 	_internalDecide(): void {
 		this.pendingDecision = this.moveDecision = Decision.NONE
-		this.animationCooldown--
 		if (this.cooldown) this.cooldown++
 	}
-	// Despawning means destroying, for animations
-	despawn(): void {
-		if (this.level.actors.includes(this))
-			this.level.actors.splice(this.level.actors.indexOf(this), 1)
-		if (this.level.decidingActors.includes(this))
-			this.level.decidingActors.splice(
-				this.level.decidingActors.indexOf(this),
-				1
-			)
-		super.despawn(true)
+	bumped(): void {
+		this.destroy(null, null)
+		crossLevelData.queuedDespawns?.splice(
+			crossLevelData.queuedDespawns.indexOf(this),
+			1
+		)
 	}
 }
 
-export interface QueuedAnimationDespawn {
-	ticksLeft: number
-	position: [number, number]
-	animationOnly?: boolean
-}
-
-onLevelAfterTick.push(level => {
+onLevelAfterTick.push(() => {
 	if (!crossLevelData.queuedDespawns) return
-	for (const despawn of [...crossLevelData.queuedDespawns]) {
-		if (despawn.animationOnly === undefined)
-			// If the tile has an animation, this is for animations ONLY
-			despawn.animationOnly = level.field[despawn.position[0]]?.[
-				despawn.position[1]
-			]?.[Layer.MOVABLE]?.some(actor => actor instanceof Animation)
-		despawn.ticksLeft--
-		if (despawn.ticksLeft <= 0) {
-			const actors =
-				level.field[despawn.position[0]]?.[despawn.position[1]]?.[Layer.MOVABLE]
-			if (despawn.animationOnly)
-				actors.find(val => val instanceof Animation)?.despawn()
-			else actors[0]?.despawn()
+	for (const anim of [...crossLevelData.queuedDespawns]) {
+		anim.animationCooldown--
+		if (anim.animationCooldown <= 0) {
+			// Always destoy the animation, just to not mess up anything
+			anim.destroy(null, null)
+			// If we were actually despawned, despawn that
+			if (anim.tile[Layer.MOVABLE][0]) anim.tile[Layer.MOVABLE][0].despawn()
 			crossLevelData.queuedDespawns.splice(
-				crossLevelData.queuedDespawns.indexOf(despawn),
+				crossLevelData.queuedDespawns.indexOf(anim),
 				1
 			)
 		}
@@ -71,7 +51,7 @@ onLevelAfterTick.push(level => {
 
 declare module "../level" {
 	export interface CrossLevelDataInterface {
-		queuedDespawns?: QueuedAnimationDespawn[]
+		queuedDespawns?: Animation[]
 	}
 }
 
