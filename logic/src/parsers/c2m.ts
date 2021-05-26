@@ -108,65 +108,31 @@ function createFieldFromArrayBuffer(
 								tiles.unshift(...modTiles)
 								break
 							case "notGate": {
-								if (
-									options >= 0x44 ||
-									(options >= 0x18 && options <= 0x1d) ||
-									(options >= 0x27 && options <= 0x3f)
-								)
-									throw new Error("Voodoo tiles not supported (for now)")
-								let keyOptions = options
-								const curTile = modTiles[0]
-								loop: while (keyOptions < 0x44) {
-									switch (keyOptions) {
-										case 0x3:
-											// Subtract [offset from 0] to get direction, 0 in this case
-											curTile[1] = options - 0x0
-											break loop
-										case 0x7:
-											curTile[0] = "andGate"
-											// Subtract [offset from 0] to get direction
-											curTile[1] = options - 0x4
-											break loop
-										case 0xb:
-											curTile[0] = "orGate"
-											// Subtract [offset from 0] to get direction
-											curTile[1] = options - 0x8
-											break loop
-										case 0xf:
-											curTile[0] = "xorGate"
-											// Subtract [offset from 0] to get direction
-											curTile[1] = options - 0xc
-											break loop
-										case 0x13:
-											curTile[0] = "latchGate"
-											// Subtract [offset from 0] to get direction
-											curTile[1] = options - 0x10
-											break loop
-										case 0x17:
-											curTile[0] = "nandGate"
-											// Subtract [offset from 0] to get direction
-											curTile[1] = options - 0x14
-											break loop
-										case 0x27:
-											curTile[0] = "countGate"
-											// Subtract [offset from 0] to get direction
-											curTile[2] = (options - 0x1e).toString(10)
-											break loop
-										case 0x43:
-											curTile[0] = "latchGateMirror"
-											// Subtract [offset from 0] to get direction
-											curTile[1] = options - 0x40
-											break loop
-										default:
-											keyOptions++
-											break
-									}
-								}
+								if (options < 0x18) {
+									modTiles[0][0] = (
+										[
+											"notGate",
+											"andGate",
+											"orGate",
+											"xorGate",
+											"latchGate",
+											"nandGate",
+										] as const
+									)[(4 & ~0x3) / 0x4]
+									modTiles[0][1] = 4 & 0x3
+								} else if (options >= 0x40 && options < 0x44) {
+									modTiles[0][0] = "latchGateMirror"
+									modTiles[0][1] = options - 0x40
+								} else if (options >= 0x1e && options <= 0x27) {
+									modTiles[0][0] = "countGate"
+									modTiles[0][2] = (options - 0x1e).toString()
+								} else throw new Error("Voodoo tiles not supported (for now)")
 								tiles.push(...modTiles)
 								break
 							}
 							default:
-								throw new Error("8-bit modified on unrelated tile!")
+								tiles.push(...modTiles)
+								break
 						}
 						break
 					}
