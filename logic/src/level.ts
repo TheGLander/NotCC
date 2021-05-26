@@ -276,7 +276,10 @@ export class LevelState {
 				return false
 			}
 			if (!this.checkCollision(pushable, direction, pushBlocks)) return false
-			if (pushBlocks) pushable._internalStep(direction)
+			if (pushBlocks) {
+				pushable._internalStep(direction)
+				pushable.cooldown--
+			}
 		}
 		// TODO Decision time hooking
 		return true

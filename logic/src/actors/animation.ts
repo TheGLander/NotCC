@@ -1,12 +1,7 @@
 import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { actorDB, Decision } from "../const"
-import {
-	LevelState,
-	onLevelDecisionTick,
-	crossLevelData,
-	onLevelAfterTick,
-} from "../level"
+import { LevelState, crossLevelData, onLevelAfterTick } from "../level"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16
@@ -23,7 +18,8 @@ export abstract class Animation extends Actor {
 		this.pendingDecision = this.moveDecision = Decision.NONE
 		if (this.cooldown) this.cooldown++
 	}
-	bumped(): void {
+	bumped(other: Actor, moveDirection: number): void {
+		if (this._internalBlocks(other, moveDirection)) return
 		this.destroy(null, null)
 		crossLevelData.queuedDespawns?.splice(
 			crossLevelData.queuedDespawns.indexOf(this),
