@@ -126,7 +126,15 @@ function createFieldFromArrayBuffer(
 								} else if (options >= 0x1e && options <= 0x27) {
 									modTiles[0][0] = "countGate"
 									modTiles[0][2] = (options - 0x1e).toString()
-								} else throw new Error("Voodoo tiles not supported (for now)")
+								} else if (options >= 0x18 && options <= 0x1d)
+									modTiles[0][0] = "combinationTile"
+								else if (options >= 43) {
+									modTiles[0][0] = "voodooTile"
+									modTiles[0][2] = options.toString()
+								} else
+									throw new Error(
+										"You are trying to create a wire-based voodoo tile, which is not yet supported!"
+									)
 								tiles.push(...modTiles)
 								break
 							}

@@ -1,7 +1,7 @@
 import { Direction } from "../helpers"
 
 const cc2Tiles = [
-	[["unknown"]],
+	[["combinationTile", 0, "0,0"]],
 	[],
 	[["wall"]],
 	[["ice"]],
@@ -163,6 +163,8 @@ export type cc2TileNames =
 	| "countGate"
 	| "nandGate"
 	| "latchGateMirror"
+	| "combinationTile"
+	| "voodooTile"
 export type cc2Tile = [cc2TileNames, Direction?, string?]
 
-export default (cc2Tiles as unknown) as cc2Tile[][]
+export default cc2Tiles as unknown as cc2Tile[][]

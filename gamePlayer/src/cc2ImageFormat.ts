@@ -432,6 +432,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			"^": [14.5, 0.5],
 			_: [15, 0.5],
 		},
+		voodooTileStart: [0, 21],
 	},
 }
 
