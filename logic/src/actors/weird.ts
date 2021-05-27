@@ -23,8 +23,8 @@ actorDB["combinationTile"] = CombinationTile
 export class VoodooTile extends Actor {
 	id = "voodooTile"
 	tileOffset: [number, number] = [
-		(parseInt(this.customData) - 28) % 18,
-		Math.floor((parseInt(this.customData) - 44) / 18),
+		(parseInt(this.customData) - 0x40 + 8) % 0x10,
+		Math.floor((parseInt(this.customData) - 0x40 + 8) / 0x10),
 	]
 	getLayer(): Layer {
 		return Layer.STATIONARY
