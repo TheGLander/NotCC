@@ -242,6 +242,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[10, 10],
 			[14, 10],
 		],
+		transmogrifier: [
+			[12, 19],
+			[15, 19],
+		],
 		water: [
 			[12, 24],
 			[15, 24],

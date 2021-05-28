@@ -111,3 +111,5 @@ artDB["flameJet"] = actor => ({
 })
 
 artDB["hint"] = { actorName: "hint" }
+
+artDB["transmogrifier"] = genericAnimatedArt("transmogrifier", 4)

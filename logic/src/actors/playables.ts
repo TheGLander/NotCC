@@ -118,13 +118,23 @@ export abstract class Playable extends Actor {
 	}
 	destroy(other?: Actor | null, anim?: string | null): boolean {
 		if (!super.destroy(other, anim)) return false
+		if (this.level.playables.includes(this))
+			this.level.playables.splice(this.level.playables.indexOf(this), 1)
 		this.level.gameState = GameState.LOST
 		return true
+	}
+	replaceWith(other: typeof actorDB[string]): Actor {
+		const newActor = super.replaceWith(other)
+		if (this.level.selectedPlayable === this)
+			this.level.selectedPlayable = newActor as Playable
+		this.level.gameState = GameState.PLAYING
+		return newActor
 	}
 }
 
 export class Chip extends Playable {
 	tags = ["playable", "chip", "can-reuse-key-green"]
+	transmogrifierTarget = "melinda"
 	id = "chip"
 }
 
@@ -132,6 +142,7 @@ actorDB["chip"] = Chip
 
 export class Melinda extends Playable {
 	tags = ["playable", "melinda", "can-reuse-key-yellow"]
+	transmogrifierTarget = "chip"
 	id = "melinda"
 	ignoreTags = ["ice"]
 }

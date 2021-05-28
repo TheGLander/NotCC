@@ -3,7 +3,7 @@ import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
 import { actorDB } from "../const"
-import { Fire } from "./terrain"
+import { Fire, Transmogrifier } from "./terrain"
 import Tile from "../tile"
 
 export abstract class Monster extends Actor {
@@ -24,6 +24,7 @@ export abstract class Monster extends Actor {
 
 export class Centipede extends Monster {
 	id = "centipede"
+	transmogrifierTarget = "fireball"
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.RIGHT, dir.FORWARD, dir.LEFT, dir.BACKWARD]
@@ -34,6 +35,7 @@ actorDB["centipede"] = Centipede
 
 export class Ant extends Monster {
 	id = "ant"
+	transmogrifierTarget = "glider"
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.LEFT, dir.FORWARD, dir.RIGHT, dir.BACKWARD]
@@ -44,6 +46,7 @@ actorDB["ant"] = Ant
 
 export class Glider extends Monster {
 	id = "glider"
+	transmogrifierTarget = "centipede"
 	ignoreTags = ["water"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
@@ -55,6 +58,7 @@ actorDB["glider"] = Glider
 
 export class Fireball extends Monster {
 	id = "fireball"
+	transmogrifierTarget = "ant"
 	ignoreTags = ["fire"]
 	tags = ["autonomous-monster", "normal-monster", "movable", "melting"]
 	decideMovement(): Direction[] {
@@ -67,6 +71,7 @@ actorDB["fireball"] = Fireball
 
 export class Ball extends Monster {
 	id = "ball"
+	transmogrifierTarget = "walker"
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.BACKWARD]
@@ -126,6 +131,20 @@ export class BlobMonster extends Monster {
 	id = "blob"
 	immuneTags = ["slime"]
 	moveSpeed = 8
+	get transmogrifierTarget(): string {
+		return [
+			"glider",
+			"centipede",
+			"fireball",
+			"ant",
+			"walker",
+			"ball",
+			"teethRed",
+			"tankBlue",
+			// TODO Timid teeth, this will kill NotCC 1/9 times otherwise haha
+			"teethRed",
+		][this.level.random() % 9]
+	}
 	newTileJoined(): void {
 		const spreadedSlime = this.oldTile?.allActors.find(val =>
 			val.tags.includes("slime")
@@ -146,6 +165,7 @@ actorDB["blob"] = BlobMonster
 
 export class Walker extends Monster {
 	id = "walker"
+	transmogrifierTarget = "ball"
 	decideMovement(): [Direction] {
 		if (!this.level.checkCollision(this, this.direction))
 			return [(this.level.random() + this.direction) % 4]

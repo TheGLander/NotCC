@@ -431,4 +431,10 @@ export abstract class Actor {
 	 * Called each subtick if anything is on this (called at cooldown time (move time))
 	 */
 	continuousActorCompletelyJoined?(other: Actor): void
+	replaceWith(other: typeof actorDB[string]): Actor {
+		this.destroy(null, null)
+		const newActor = new other(this.level, this.tile.position, this.customData)
+		newActor.direction = this.direction
+		return newActor
+	}
 }

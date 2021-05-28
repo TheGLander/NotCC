@@ -10,8 +10,7 @@ import {
 	crossLevelData,
 	onLevelDecisionTick,
 } from "../level"
-import { Direction } from "../helpers"
-import { onLevelAfterTick, onLevelStart } from "../level"
+import { Direction, hasOwnProperty } from "../helpers"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
@@ -521,3 +520,20 @@ export const updateJetlife = (level: LevelState): void => {
 }
 
 onLevelDecisionTick.push(updateJetlife)
+
+export class Transmogrifier extends Actor {
+	id = "transmogrifier"
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	actorCompletelyJoined(other: Actor): void {
+		if (
+			!hasOwnProperty(other, "transmogrifierTarget") ||
+			typeof other.transmogrifierTarget !== "string"
+		)
+			return
+		other.replaceWith(actorDB[other.transmogrifierTarget])
+	}
+}
+
+actorDB["transmogrifier"] = Transmogrifier

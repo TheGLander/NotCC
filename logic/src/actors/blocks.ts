@@ -6,6 +6,7 @@ import { Water, Dirt, Ice } from "./terrain"
 
 export class DirtBlock extends Actor {
 	id = "dirtBlock"
+	transmogrifierTarget = "iceBlock"
 	tags = ["block", "cc1block", "movable"]
 	ignoreTags = ["fire"]
 	getLayer(): Layer {
@@ -30,6 +31,7 @@ actorDB["dirtBlock"] = DirtBlock
 
 export class IceBlock extends Actor {
 	id = "iceBlock"
+	transmogrifierTarget = "dirtBlock"
 	pushTags = ["cc2block"]
 	tags = ["block", "cc2block", "movable", "can-stand-on-items"]
 	getLayer(): Layer {
