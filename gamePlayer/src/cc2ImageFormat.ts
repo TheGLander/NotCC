@@ -213,6 +213,20 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[15, 9],
 		],
 		steelWall: [15, 10],
+		teethBlue: {
+			vertical: [
+				[0, 17],
+				[1, 17],
+			],
+			right: [
+				[2, 17],
+				[3, 17],
+			],
+			left: [
+				[4, 17],
+				[5, 17],
+			],
+		},
 		forceFloor: {
 			up: [
 				[0, 19],

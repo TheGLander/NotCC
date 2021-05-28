@@ -133,7 +133,7 @@ export abstract class Playable extends Actor {
 }
 
 export class Chip extends Playable {
-	tags = ["playable", "chip", "can-reuse-key-green"]
+	tags = ["playable", "chip", "can-reuse-key-green", "scares-teeth-blue"]
 	transmogrifierTarget = "melinda"
 	id = "chip"
 }
@@ -141,7 +141,7 @@ export class Chip extends Playable {
 actorDB["chip"] = Chip
 
 export class Melinda extends Playable {
-	tags = ["playable", "melinda", "can-reuse-key-yellow"]
+	tags = ["playable", "melinda", "can-reuse-key-yellow", "scares-teeth-red"]
 	transmogrifierTarget = "chip"
 	id = "melinda"
 	ignoreTags = ["ice"]

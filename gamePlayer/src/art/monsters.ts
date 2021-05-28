@@ -19,6 +19,14 @@ artDB["teethRed"] = actor => ({
 			: ["right", "left"][(actor.direction - 1) / 2],
 	frame: actor.cooldown ? Math.floor(actor.level.currentTick / 3) % 3 : 0,
 })
+artDB["teethBlue"] = actor => ({
+	actorName: "teethBlue",
+	animation:
+		actor.direction % 2 === 0
+			? "vertical"
+			: ["right", "left"][(actor.direction - 1) / 2],
+	frame: actor.cooldown ? Math.floor(actor.level.currentTick / 3) % 2 : 0,
+})
 artDB["tankBlue"] = genericDirectionableArt("tankBlue", 2)
 artDB["blob"] = genericStretchyArt("blob", 8)
 artDB["walker"] = genericStretchyArt("walker", 8)

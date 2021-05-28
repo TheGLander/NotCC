@@ -90,24 +90,58 @@ export function getVisualCoordinates(actor: Actor): [number, number] {
 	]
 }
 
+function getPursuitCoords(
+	actor: Actor,
+	target: Actor,
+	reverse = false
+): Direction[] {
+	// This uses the visual position of the target
+	const targetPos = getVisualCoordinates(target)
+	const dx = actor.tile.x - targetPos[0],
+		dy = actor.tile.y - targetPos[1]
+	const directions: Direction[] = []
+	const addAmount = reverse ? 2 : 0
+	if (dx) directions.push((Math.sign(dx) + 2 + addAmount) % 4)
+	if (dy) directions.push((Math.sign(dy) + 3 - addAmount) % 4)
+	if (Math.abs(dy) >= Math.abs(dx)) directions.reverse()
+	return directions
+}
+
 export class TeethRed extends Monster {
 	id = "teethRed"
+	transmogrifierTarget = "teethBlue"
 	decideMovement(): Direction[] {
 		if (!this.level.selectedPlayable || (this.level.currentTick + 5) % 8 >= 4)
 			return []
-		// This uses the visual position of the player
-		const playerPos = getVisualCoordinates(this.level.selectedPlayable)
-		const dx = this.tile.x - playerPos[0],
-			dy = this.tile.y - playerPos[1]
-		const directions: Direction[] = []
-		if (dx) directions.push(Math.sign(dx) + 2)
-		if (dy) directions.push(-Math.sign(dy) + 1)
-		if (Math.abs(dy) >= Math.abs(dx)) directions.reverse()
-		return directions
+		return getPursuitCoords(
+			this,
+			this.level.selectedPlayable,
+			this.level.selectedPlayable
+				.getCompleteTags("tags")
+				.includes("scares-teeth-red")
+		)
 	}
 }
 
 actorDB["teethRed"] = TeethRed
+
+export class TeethBlue extends Monster {
+	id = "teethBlue"
+	transmogrifierTarget = "teethRed"
+	decideMovement(): Direction[] {
+		if (!this.level.selectedPlayable || (this.level.currentTick + 5) % 8 >= 4)
+			return []
+		return getPursuitCoords(
+			this,
+			this.level.selectedPlayable,
+			this.level.selectedPlayable
+				.getCompleteTags("tags")
+				.includes("scares-teeth-blue")
+		)
+	}
+}
+
+actorDB["teethBlue"] = TeethBlue
 
 export class TankBlue extends Monster {
 	id = "tankBlue"
@@ -141,8 +175,7 @@ export class BlobMonster extends Monster {
 			"ball",
 			"teethRed",
 			"tankBlue",
-			// TODO Timid teeth, this will kill NotCC 1/9 times otherwise haha
-			"teethRed",
+			"teethBlue",
 		][this.level.random() % 9]
 	}
 	newTileJoined(): void {
