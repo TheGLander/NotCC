@@ -23,11 +23,32 @@ export function globalButtonFactory(color: string) {
 	}
 }
 
+export function globalComplexButtonFactory(color: string) {
+	return class extends Actor {
+		id = `complexButton${color[0].toUpperCase()}${color
+			.substr(1)
+			.toLowerCase()}`
+		getLayer(): Layer {
+			return Layer.STATIONARY
+		}
+		actorCompletelyJoined(other: Actor): void {
+			for (const actor of this.level.actors)
+				if (actor.caresButtonColors.includes(color))
+					actor.buttonPressed?.(color, other.direction.toString())
+		}
+		actorLeft(other: Actor): void {
+			for (const actor of this.level.actors)
+				if (actor.caresButtonColors.includes(color))
+					actor.buttonUnpressed?.(color, other.direction.toString())
+		}
+	}
+}
+
 actorDB["buttonGreen"] = globalButtonFactory("green")
 
 actorDB["buttonBlue"] = globalButtonFactory("blue")
 
-// TODO Have the button be linked on level start
+actorDB["complexButtonYellow"] = globalComplexButtonFactory("yellow")
 
 export function ROConnectedButtonFactory(
 	color: string,

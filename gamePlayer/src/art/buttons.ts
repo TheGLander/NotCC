@@ -14,3 +14,8 @@ for (const color of [
 		actorName: "button",
 		animation: color,
 	}
+
+artDB["complexButtonYellow"] = {
+	actorName: "button",
+	animation: "yellow",
+}

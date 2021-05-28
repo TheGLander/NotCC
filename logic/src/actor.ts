@@ -416,13 +416,15 @@ export abstract class Actor {
 	/**
 	 * Called when a button is pressed, called only when the button applies to the actor
 	 * @param type The string color name of the button
+	 * @param data Custom data the button sent
 	 */
-	buttonPressed?(type: string): void
+	buttonPressed?(type: string, data?: string): void
 	/**
 	 * Called when a button is released, called only when the button applies to the actor
 	 * @param type The string color name of the button
+	 * @param data Custom data the button sent
 	 */
-	buttonUnpressed?(type: string): void
+	buttonUnpressed?(type: string, data?: string): void
 	/**
 	 * Called when the level starts
 	 */

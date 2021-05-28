@@ -285,6 +285,24 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[8, 19],
 			[11, 19],
 		],
+		tankYellow: {
+			up: [
+				[8, 17],
+				[9, 17],
+			],
+			right: [
+				[10, 17],
+				[11, 17],
+			],
+			down: [
+				[12, 17],
+				[13, 17],
+			],
+			left: [
+				[14, 17],
+				[15, 17],
+			],
+		},
 		secretEye: [11, 18],
 		teleportRed: [
 			[4, 20],
@@ -319,7 +337,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 			green: [9, 6],
 			red: [10, 6],
 			brown: [11, 6],
+			pink: [12, 6],
+			black: [13, 6],
 			orange: [14, 6],
+			yellow: [15, 6],
 		},
 		teethRed: {
 			vertical: [

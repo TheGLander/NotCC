@@ -2,8 +2,8 @@ import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
-import { actorDB } from "../const"
-import { Fire, Transmogrifier } from "./terrain"
+import { actorDB, Decision } from "../const"
+import { Fire } from "./terrain"
 import Tile from "../tile"
 
 export abstract class Monster extends Actor {
@@ -156,6 +156,7 @@ actorDB["floorMimic"] = FloorMimic
 
 export class TankBlue extends Monster {
 	id = "tankBlue"
+	transmogrifierTarget = "tankYellow"
 	turnPending = false
 	decideMovement(): Direction[] {
 		if (this.turnPending) {
@@ -200,8 +201,10 @@ export class BlobMonster extends Monster {
 				spreadedSlime.customData
 			)
 	}
-	decideMovement(): [Direction] {
-		return [(this.level.random() + this.level.blobMod()) % 4]
+	decideMovement(): [] {
+		// Weird quirk: blobs don't check collision at decision time
+		this.moveDecision = (this.level.random() + this.level.blobMod()) % 4
+		return []
 	}
 }
 
@@ -261,3 +264,24 @@ export class LitTNT extends Monster {
 	}
 }
 actorDB["tntLit"] = LitTNT
+
+export class TankYellow extends Monster {
+	id = "tankYellow"
+	transmogrifierTarget = "tankBlue"
+	movePending: Decision = Decision.NONE
+	decideMovement(): [] {
+		if (this.movePending) {
+			this.direction = this.movePending - 1
+			if (this.level.checkCollision(this, this.movePending - 1))
+				this.moveDecision = this.movePending
+			this.movePending = Decision.NONE
+		}
+		return []
+	}
+	caresButtonColors = ["yellow"]
+	buttonPressed(_type: string, data = "0"): void {
+		this.movePending = parseInt(data) + 1
+	}
+}
+
+actorDB["tankYellow"] = TankYellow
