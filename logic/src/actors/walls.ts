@@ -226,3 +226,23 @@ export class GreenWall extends Actor {
 }
 
 actorDB["greenWall"] = GreenWall
+
+export class NoChipSign extends Actor {
+	id = "noChipSign"
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	blockTags = ["chip"]
+}
+
+actorDB["noChipSign"] = NoChipSign
+
+export class NoMelindaSign extends Actor {
+	id = "noMelindaSign"
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	blockTags = ["melinda"]
+}
+
+actorDB["noMelindaSign"] = NoMelindaSign

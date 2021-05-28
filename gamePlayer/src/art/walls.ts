@@ -61,3 +61,7 @@ artDB["greenWall"] = actor => ({
 			? "real"
 			: "fake",
 })
+
+artDB["noChipSign"] = { actorName: "noChipSign" }
+
+artDB["noMelindaSign"] = { actorName: "noMelindaSign" }

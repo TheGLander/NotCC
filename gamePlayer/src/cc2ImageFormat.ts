@@ -433,6 +433,8 @@ const cc2ImageFormat: CC2ImageFormat = {
 			_: [15, 0.5],
 		},
 		voodooTileStart: [0, 21],
+		noMelindaSign: [5, 31],
+		noChipSign: [6, 31],
 	},
 }
 

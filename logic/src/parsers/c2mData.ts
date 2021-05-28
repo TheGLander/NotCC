@@ -91,8 +91,8 @@ const cc2Tiles = [
 	[["teethBlue", null], null],
 	[["unknown"]],
 	[["bootDirt"], null],
-	[["signMale"]],
-	[["signFemale"]],
+	[["noMelindaSign"]],
+	[["noChipSign"]],
 	[["notGate"]], // Custom stuff
 	[["unknown"]],
 	[["buttonPurple"]],
