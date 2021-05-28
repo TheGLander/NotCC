@@ -143,7 +143,7 @@ const cc2Tiles = [
 	[["ghost", null], null],
 	[["foil"], null],
 	[["turtle"]],
-	[["eye"], null],
+	[["secretEye"], null],
 	[["bribe"], null],
 	[["bootSpeed"], null],
 	[["unknown"]],

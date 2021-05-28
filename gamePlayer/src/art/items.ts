@@ -29,3 +29,5 @@ artDB["bonusFlag"] = actor => ({
 	actorName: "bonusFlag",
 	animation: actor.customData,
 })
+
+artDB["secretEye"] = { actorName: "secretEye" }

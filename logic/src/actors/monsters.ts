@@ -143,6 +143,17 @@ export class TeethBlue extends Monster {
 
 actorDB["teethBlue"] = TeethBlue
 
+export class FloorMimic extends Monster {
+	id = "floorMimic"
+	decideMovement(): Direction[] {
+		if (!this.level.selectedPlayable || (this.level.currentTick + 13) % 16 >= 4)
+			return []
+		return getPursuitCoords(this, this.level.selectedPlayable)
+	}
+}
+
+actorDB["floorMimic"] = FloorMimic
+
 export class TankBlue extends Monster {
 	id = "tankBlue"
 	turnPending = false

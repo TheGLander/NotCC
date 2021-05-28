@@ -34,10 +34,33 @@ artDB["thinWall"] = actor => ({
 // TODO Secret eye interaction thing
 
 setArtForActor<InvisibleWall>("invisibleWall", actor => ({
-	actorName: actor.animationLeft ? "wall" : null,
+	actorName: actor.level.selectedPlayable
+		?.getCompleteTags("tags")
+		.includes("can-see-secrets")
+		? "invisibleWall"
+		: actor.animationLeft
+		? "wall"
+		: null,
 }))
 
-artDB["blueWall"] = { actorName: "blueWall" }
+artDB["blueWall"] = actor => ({
+	actorName: "blueWall",
+	animation:
+		actor.customData === "fake" &&
+		actor.level.selectedPlayable
+			?.getCompleteTags("tags")
+			.includes("can-see-secrets")
+			? "revealed"
+			: "default",
+})
+
+artDB["appearingWall"] = actor => ({
+	actorName: actor.level.selectedPlayable
+		?.getCompleteTags("tags")
+		.includes("can-see-secrets")
+		? "appearingWall"
+		: null,
+})
 
 artDB["toggleWall"] = actor => [
 	{
@@ -57,9 +80,13 @@ artDB["swivel"] = { actorName: "swivel", animation: "floor" }
 artDB["greenWall"] = actor => ({
 	actorName: "greenWall",
 	animation:
-		actor.customData === "real" || actor.tile[Layer.MOVABLE].length === 0
-			? "real"
-			: "fake",
+		actor.customData === "fake" &&
+		(actor.tile[Layer.MOVABLE].length > 0 ||
+			actor.level.selectedPlayable
+				?.getCompleteTags("tags")
+				.includes("can-see-secrets"))
+			? "fake"
+			: "real",
 })
 
 artDB["noChipSign"] = { actorName: "noChipSign" }

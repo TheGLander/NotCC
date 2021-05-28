@@ -34,3 +34,10 @@ setArtForActor<LitTNT>("tntLit", actor => ({
 	actorName: "tnt",
 	frame: Math.floor(actor.lifeLeft / 60),
 }))
+artDB["floorMimic"] = actor => ({
+	actorName: actor.level.selectedPlayable
+		?.getCompleteTags("tags")
+		.includes("can-see-secrets")
+		? "floorMimic"
+		: "floor",
+})

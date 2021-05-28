@@ -89,7 +89,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 			yellow: [6, 1],
 			green: [7, 1],
 		},
-		blueWall: [0, 10],
+
+		blueWall: { default: [0, 10], revealed: [10, 31] },
+		invisibleWall: [9, 31],
+		appearingWall: [11, 31],
 		door: {
 			red: [0, 1],
 			blue: [1, 1],
@@ -278,6 +281,11 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[4, 19],
 			[7, 19],
 		],
+		teleportYellow: [
+			[8, 19],
+			[11, 19],
+		],
+		secretEye: [11, 18],
 		teleportRed: [
 			[4, 20],
 			[7, 20],
@@ -384,6 +392,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[12, 16],
 			],
 		},
+		floorMimic: [14, 16],
 		greenWall: { real: [12, 5], fake: [13, 5] },
 		noSign: [14, 5],
 		letter: {
