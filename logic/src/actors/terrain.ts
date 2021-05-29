@@ -86,12 +86,12 @@ export class ForceFloor extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorCompletelyJoined(other: Actor): void {
+	continuousActorCompletelyJoined(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
 	}
-	newActorOnTile = this.actorCompletelyJoined
+
 	onMemberSlideBonked(other: Actor): void {
 		// Give them a single subtick of cooldown
 		// FIXME First bump doesn't yield a cooldown in CC2
@@ -110,14 +110,14 @@ export class ForceFloorRandom extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorCompletelyJoined(other: Actor): void {
+	continuousActorCompletelyJoined(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		crossLevelData.RFFDirection ??= 0
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
 	}
-	newActorOnTile = this.actorCompletelyJoined
+
 	onMemberSlideBonked(other: Actor): void {
 		// Give them a single subtick of cooldown
 		// FIXME First bump doesn't yield a cooldown in CC2
@@ -229,7 +229,7 @@ export class EChipGate extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["normal-monster", "block"]
+	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (this.level.chipsLeft === 0) this.destroy(other, null)
 	}

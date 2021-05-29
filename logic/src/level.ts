@@ -265,7 +265,8 @@ export class LevelState {
 						// Item suffixes are dumb
 						continue
 					else break loop
-				if (actor._internalCanPush(blockActor)) toPush.push(blockActor)
+				if (actor._internalCanPush(blockActor, direction))
+					toPush.push(blockActor)
 				else return false
 			}
 

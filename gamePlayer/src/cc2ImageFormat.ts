@@ -416,6 +416,13 @@ const cc2ImageFormat: CC2ImageFormat = {
 		floorMimic: [14, 16],
 		greenWall: { real: [12, 5], fake: [13, 5] },
 		noSign: [14, 5],
+		directionalBlock: {
+			default: [15, 5],
+			arrowUp: [3, 10],
+			arrowRight: [3.75, 10],
+			arrowDown: [3, 10.75],
+			arrowLeft: [3, 10],
+		},
 		letter: {
 			"0": [8, 0],
 			"1": [8.5, 0],

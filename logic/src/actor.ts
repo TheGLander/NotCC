@@ -384,11 +384,15 @@ export abstract class Actor {
 	 * @param other The actor which this actor bumped into
 	 */
 	bumpedActor?(other: Actor, bumpDirection: Direction): void
-	_internalCanPush(other: Actor): boolean {
+	_internalCanPush(other: Actor, direction: Direction): boolean {
 		return (
 			!other.cooldown &&
 			!this._internalIgnores(other) &&
-			matchTags(other.getCompleteTags("tags"), this.getCompleteTags("pushTags"))
+			matchTags(
+				other.getCompleteTags("tags"),
+				this.getCompleteTags("pushTags")
+			) &&
+			(other.canBePushed?.(this, direction) ?? true)
 		)
 	}
 	/**
@@ -439,4 +443,8 @@ export abstract class Actor {
 		newActor.direction = this.direction
 		return newActor
 	}
+	/**
+	 * Checks if an actor can push this actor
+	 */
+	canBePushed?(other: Actor, direction: Direction): boolean
 }

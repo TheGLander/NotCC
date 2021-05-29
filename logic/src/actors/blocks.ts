@@ -3,6 +3,7 @@ import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
 import { Water, Dirt, Ice } from "./terrain"
+import { Direction } from "../helpers"
 
 export class DirtBlock extends Actor {
 	id = "dirtBlock"
@@ -65,3 +66,30 @@ export class IceBlock extends Actor {
 }
 
 actorDB["iceBlock"] = IceBlock
+
+export class DirectionalBlock extends Actor {
+	id = "directionalBlock"
+	getLayer(): Layer {
+		return Layer.MOVABLE
+	}
+	legalDirections = Array.from(this.customData).map(val => "urdl".indexOf(val))
+	blocks(): boolean {
+		return true
+	}
+	pushTags = ["block"]
+	tags = ["block", "cc2block", "movable", "can-stand-on-items"]
+	bumpedActor(other: Actor): void {
+		if (other instanceof Playable) other.destroy(this)
+	}
+	newTileCompletelyJoined(): void {
+		const water = this.tile[Layer.STATIONARY].find(val =>
+			val.tags.includes("water")
+		)
+		if (water) water.destroy(this, null)
+	}
+	canBePushed(_other: Actor, direction: Direction): boolean {
+		return this.legalDirections.includes(direction)
+	}
+}
+
+actorDB["directionalBlock"] = DirectionalBlock

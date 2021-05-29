@@ -267,6 +267,7 @@ actorDB["tntLit"] = LitTNT
 
 export class TankYellow extends Monster {
 	id = "tankYellow"
+	pushTags = ["block"]
 	transmogrifierTarget = "tankBlue"
 	movePending: Decision = Decision.NONE
 	decideMovement(): [] {
