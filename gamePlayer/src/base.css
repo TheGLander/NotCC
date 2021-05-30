@@ -23,11 +23,19 @@ body {
 	margin: 0;
 }
 
-select[multiple=""] {
+select {
 	background-color: black;
 	color: white;
 	border: none;
 	font-weight: bold;
+}
+
+.textbox {
+	background-color: black;
+	color: #00ffff;
+	border: none;
+	padding: 5px;
+	line-height: normal;
 }
 
 .raised {
