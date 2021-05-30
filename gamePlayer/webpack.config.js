@@ -1,6 +1,7 @@
 const path = require("path")
 const HtmlWebpackPlugin = require("html-webpack-plugin")
-const MinifyPlugin = require("babel-minify-webpack-plugin")
+const MiniCSSExtractPlugin = require("mini-css-extract-plugin")
+const TerserPlugin = require("terser-webpack-plugin")
 const ProgressPlugin = require("progress-webpack-plugin")
 const CopyPlugin = require("copy-webpack-plugin")
 
@@ -10,9 +11,9 @@ let plugins = [
 		template: "src/index.html",
 	}),
 	new CopyPlugin([{ from: "src/data", to: "data/" }]),
+	new MiniCSSExtractPlugin(),
 ]
-if (prod) plugins.push(new MinifyPlugin({}, { comments: false }))
-else plugins.push(new ProgressPlugin())
+if (!prod) plugins.push(new ProgressPlugin())
 module.exports = {
 	entry: "./src/index.ts",
 	output: {
@@ -35,7 +36,7 @@ module.exports = {
 			},
 			{
 				test: /\.css$/i,
-				use: ["style-loader", "css-loader"],
+				use: [MiniCSSExtractPlugin.loader, "css-loader"],
 				exclude: /node_modules/,
 			},
 		],
@@ -43,17 +44,8 @@ module.exports = {
 	watch: !prod,
 	resolve: { extensions: [".ts", ".js", ".json", ".jsonc"], symlinks: false },
 	devtool: "source-map",
-	/*optimization: {
-		splitChunks: {
-			cacheGroups: {
-				default: false,
-				vendor: {
-					chunks: "all",
-					name: "vendor",
-					test: /node_modules/,
-				},
-			},
-		},
+	optimization: {
+		minimize: prod,
+		minimizer: [new TerserPlugin()],
 	},
-*/
 }

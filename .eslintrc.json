@@ -21,7 +21,7 @@
 		"ecmaVersion": 2018,
 		"sourceType": "module"
 	},
-	"plugins": ["@typescript-eslint", "prettier"],
+	"plugins": ["@typescript-eslint"],
 	"rules": {
 		"indent": [0], //Prettier automatically handles this too
 		"linebreak-style": ["error", "unix"],
