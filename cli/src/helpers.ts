@@ -14,7 +14,7 @@ export function getFilesRecursive(dir: string): string[] {
 }
 
 export function resolveLevelPath(levelPath: string): string[] {
-	const inputPath = path.resolve(__dirname, levelPath)
+	const inputPath = path.resolve(process.cwd(), levelPath)
 	if (fs.statSync(inputPath).isDirectory())
 		return getFilesRecursive(inputPath).map(levelPath =>
 			path.resolve(inputPath, levelPath)
