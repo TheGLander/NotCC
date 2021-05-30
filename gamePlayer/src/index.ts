@@ -11,6 +11,11 @@ import { parseDAT } from "./logic/parsers/dat"
 import { levelAsSet } from "./logic/encoder"
 import { SetPlayer } from "./setPlayer"
 import { artDB } from "./const"
+import {
+	createLevelFromData,
+	onLevelAfterTick,
+	onLevelStart,
+} from "../../logic/src/level"
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -24,9 +29,8 @@ in ${ev.filename}
 const renderSpace = document.querySelector<HTMLElement>("#renderSpace")
 const itemSpace = document.querySelector<HTMLElement>("#itemSpace")
 const textStats = document.querySelector<HTMLTextAreaElement>("#textStats")
-const levelInputButton = document.querySelector<HTMLElement>(
-	"#levelInputButton"
-)
+const levelInputButton =
+	document.querySelector<HTMLElement>("#levelInputButton")
 const levelList = document.querySelector<HTMLSelectElement>("#levelList")
 const levelReplayButton = document.querySelector<HTMLButtonElement>(
 	"#levelSolutionButton"
@@ -55,7 +59,6 @@ levelList?.addEventListener("change", () => {
 })
 
 // We export it like this so the global values are always updated
-// TODO Have the level code be unrelated to the game instance
 const exportObject = {
 	get level(): LevelState {
 		return setPlayer.pulseManager.level
@@ -65,8 +68,11 @@ const exportObject = {
 	setPlayer,
 	keyNameList,
 	onLevelDecisionTick,
+	onLevelAfterTick,
+	onLevelStart,
 	crossLevelData,
 	artDB,
+	createLevelFromData,
 }
 
 export default exportObject
@@ -77,7 +83,7 @@ async function startNewLevelSet(
 ): Promise<void> {
 	await setPlayer.ready
 	const levelData = filename.toLowerCase().endsWith(".c2m")
-		? levelAsSet(parseC2M(buffer))
+		? levelAsSet(parseC2M(buffer, filename))
 		: parseDAT(buffer, filename)
 	setPlayer.setNewLevelSet(levelData)
 	setPlayer.restartLevel()

@@ -7,10 +7,10 @@ import { LevelData, LevelSetData } from "../encoder"
  */
 const GOOD_MAGIC_NUMBERS = [0x0002aaac, 0x0102aaac, 0x0003aaac]
 
-export function parseDAT(buff: ArrayBuffer, fileName: string): LevelSetData {
+export function parseDAT(buff: ArrayBuffer, filename: string): LevelSetData {
 	const view = new AutoReadDataView(buff)
 	const setData: LevelSetData = {
-		name: /(.+)\.(?:dat|ccl)$/.exec(fileName)?.[1] ?? "UNNAMED",
+		name: /(.+)\.(?:dat|ccl)$/.exec(filename)?.[1] ?? "UNNAMED",
 		levels: {},
 	}
 	let chipsLeft = 0
@@ -66,6 +66,7 @@ export function parseDAT(buff: ArrayBuffer, fileName: string): LevelSetData {
 			playablesRequiredToExit: 1,
 			field: [],
 			hints: [],
+			filename,
 		}
 		// Do it like this so TS believes it exists
 		levelData.connections = []

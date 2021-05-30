@@ -204,7 +204,7 @@ function createSolutionFromArrayBuffer(
 	return solution
 }
 
-function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
+export function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
 	const view = new AutoReadDataView(buff)
 	const totalLength = view.getUint16()
 	const newBuff = new ArrayBuffer(totalLength)
@@ -240,7 +240,7 @@ function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
 	return newBuff
 }
 
-export function parseC2M(buff: ArrayBuffer): LevelData {
+export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 	const view = new AutoReadDataView(buff)
 	const data: PartialLevelData = {
 		camera: {
@@ -251,6 +251,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 		timeLimit: 0,
 		blobMode: 4,
 		playablesRequiredToExit: "all",
+		filename,
 	}
 
 	const OPTNFuncs = [
@@ -372,6 +373,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				if (sectionName === "PRPL")
 					solutionData = unpackagePackedData(solutionData)
 				data.associatedSolution = createSolutionFromArrayBuffer(solutionData)
+				data.associatedSolution.associatedLevel = { filename, name: data.name }
 				view.skipBytes(length)
 				break
 			}

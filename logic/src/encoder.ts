@@ -6,7 +6,44 @@ export interface CameraType {
 	screens: number
 }
 
-export interface LevelData {
+/**
+ * Level data which can be used to identify this level
+ */
+export interface IdentifyingLevelData {
+	/**
+	 * The filename of this level (or the level set, if a DAT)
+	 */
+	filename?: string
+	/**
+	 * The name of the set this belongs to (not present in C2Ms or DATs)
+	 */
+	setName?: string
+	/**
+	 * Name of the level, can be absent
+	 */
+	name?: string
+	/**
+	 * The password used to access the level. Not supported in vanilla CC2
+	 */
+	password?: string
+}
+
+export interface LevelOutcome {
+	/**
+	 * The amount of subticks left on the clock. 0 if the level is untimed
+	 */
+	timeLeft?: number
+	/**
+	 * The score from bonus flags and such
+	 */
+	bonusScore?: number
+	/**
+	 * The total score from a level, including time left * 10, bonus score, and base level score
+	 */
+	totalScore?: number
+}
+
+export interface LevelData extends IdentifyingLevelData {
 	/**
 	 * The field which contains all actors
 	 */
@@ -23,7 +60,6 @@ export interface LevelData {
 	 * The blob pattern setting in CC2, 1 by default
 	 */
 	blobMode?: 1 | 4 | 256
-	name?: string
 	hints?: string[]
 	/**
 	 * If the hint tile didn't get a custom hint, it gets this
@@ -39,10 +75,6 @@ export interface LevelData {
 	 * The clone machine/trap custom connections. Not supported in vanilla CC2
 	 */
 	connections?: [[number, number], [number, number]][]
-	/**
-	 * The password used to access the level. Not supported in vanilla CC2
-	 */
-	password?: string
 	/**
 	 * The solution for this level
 	 */
@@ -93,4 +125,26 @@ export interface SolutionData {
 	steps: SolutionStep[][]
 	blobModSeed?: number
 	rffDirection?: Direction
+	associatedLevel?: IdentifyingLevelData
+	expectedOutcome?: LevelOutcome
+	c2gState?: C2GState
+}
+
+export interface C2GState {
+	enter: number
+	exit: number
+	flags: number
+	gender: number
+	keys: number
+	level: number
+	line: number
+	menu: number
+	reg1: number
+	reg2: number
+	reg3: number
+	reg4: number
+	result: number
+	speed: number
+	tleft: number
+	tools: number
 }
