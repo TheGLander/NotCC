@@ -203,7 +203,7 @@ export class BlobMonster extends Monster {
 	}
 	decideMovement(): [] {
 		// Weird quirk: blobs don't check collision at decision time
-		this.moveDecision = (this.level.random() + this.level.blobMod()) % 4
+		this.moveDecision = ((this.level.random() + this.level.blobMod()) % 4) + 1
 		return []
 	}
 }
