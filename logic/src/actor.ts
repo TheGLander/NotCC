@@ -363,7 +363,11 @@ export abstract class Actor {
 				1
 			)
 		this.despawn(true)
-		if (animType && actorDB[`${animType}Anim`]) {
+		if (
+			animType &&
+			actorDB[`${animType}Anim`] &&
+			this.tile[Layer.MOVABLE].length === 0
+		) {
 			const anim = new actorDB[`${animType}Anim`](
 				this.level,
 				this.tile.position

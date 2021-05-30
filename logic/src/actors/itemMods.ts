@@ -19,7 +19,7 @@ export class NoSign extends Actor {
 				return true
 		}
 		return [...this.tile[Layer.SPECIAL], ...this.tile[Layer.STATIONARY]].some(
-			val => val._internalBlocks(this, moveDirection)
+			val => val._internalBlocks(other, moveDirection)
 		)
 	}
 }
