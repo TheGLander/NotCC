@@ -28,9 +28,9 @@ export function parseAndApply100byteSave(
 		tleft: 0,
 	}
 	solution.expectedOutcome = {
-		bonusScore: arr[2],
-		timeLeft: arr[3],
-		totalScore: arr[23],
+		bonusScore: arr[2] === -1 ? undefined : arr[2],
+		timeLeft: arr[3] === -1 ? undefined : arr[3],
+		totalScore: arr[23] === -1 ? undefined : arr[23],
 	}
 	/* Data which is kinda useless:
 arr[1] - Total score for all levels in set
@@ -66,10 +66,10 @@ export function write100byteSaveFromSolution(
 		// tleft and speed are not saved
 	}
 	if (solution.expectedOutcome) {
-		arr[2] = solution.expectedOutcome.bonusScore ?? 0
-		arr[3] = solution.expectedOutcome.timeLeft ?? 0
-		arr[23] = solution.expectedOutcome.totalScore ?? 0
-	}
+		arr[2] = solution.expectedOutcome.bonusScore ?? -1
+		arr[3] = solution.expectedOutcome.timeLeft ?? -1
+		arr[23] = solution.expectedOutcome.totalScore ?? -1
+	} else arr[2] = arr[3] = arr[23] = -1
 	return buff
 }
 
@@ -81,8 +81,8 @@ function setSolutionSteps(
 
 	const playerN = view.getUint8()
 
-	if (!solution.steps) solution.steps = []
-
+	solution.steps ??= []
+	solution.steps[playerN] ??= []
 	while (view.offset < solutionData.byteLength) {
 		const newInput = view.getUint8()
 		const holdTime = view.getUint8()
@@ -156,7 +156,7 @@ export function parseNCCS(buffer: ArrayBuffer): SolutionData[] {
 				solution.associatedLevel.password = password =
 					view.getStringUntilNull() || undefined
 				break
-			case "SLN":
+			case "SLN ":
 			case "PSLN": {
 				let solutionData = buffer.slice(view.offset, view.offset + length)
 				if (sectionName === "PSLN")
