@@ -28,9 +28,15 @@ export default class AutoReadDataView extends DataView {
 			this.offset++
 		}
 	}
+	pushUint16(...values: number[]): void {
+		for (const i in values) {
+			super.setUint16(this.offset, values[i], this.smallEndian)
+			this.offset += 2
+		}
+	}
 	pushInt32(...values: number[]): void {
 		for (const i in values) {
-			super.setInt32(this.offset, values[i] & 0xff)
+			super.setInt32(this.offset, values[i], this.smallEndian)
 			this.offset += 4
 		}
 	}

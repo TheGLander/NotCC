@@ -1,5 +1,5 @@
 import AutoReadDataView from "./autoReader"
-import { unpackagePackedData } from "./c2m"
+import { packageData, unpackagePackedData } from "./c2m"
 import { SolutionData } from "../encoder"
 
 const LATEST_NCCS_VERSION = "0.2"
@@ -256,15 +256,20 @@ export function writeNCCS(solutions: SolutionData[]): ArrayBuffer {
 			setName = solution.associatedLevel?.setName
 			writeStringSection("TYPE", setName || "")
 		}
-		writeSection("MISC", write100byteSaveFromSolution(solution))
+		const miscData = write100byteSaveFromSolution(solution)
+		const packedMiscData = packageData(miscData)
+		if (packedMiscData) writeSection("PMSC", packedMiscData)
+		else writeSection("MISC", miscData)
+
 		if (solution.steps)
 			for (const [i, stepSet] of solution.steps.entries()) {
 				if (stepSet.length === 0) continue
-				// TODO Compress this
 				const buff = Uint8Array.from(
 					[[i], ...stepSet].reduce((acc, val) => [...acc, ...val], [])
-				)
-				writeSection("SLN ", buff)
+				).buffer
+				const packedBuff = packageData(buff)
+				if (packedBuff) writeSection("PSLN", packedBuff)
+				else writeSection("SLN ", buff)
 			}
 		if (solution.blobModSeed || solution.rffDirection) {
 			const data: number[] = []

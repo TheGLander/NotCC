@@ -241,6 +241,63 @@ export function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
 	return newBuff
 }
 
+export function packageData(buff: ArrayBuffer): ArrayBuffer | null {
+	const view = new AutoReadDataView(buff)
+	// It's easier to navigate with a raw uint8 array in some cases
+	const arr = new Uint8Array(buff)
+	const newBuff = new ArrayBuffer(buff.byteLength)
+	const newView = new AutoReadDataView(newBuff)
+	newView.pushUint16(buff.byteLength)
+
+	const pendingData: number[] = []
+
+	while (view.offset < view.byteLength) {
+		let refOff = -1,
+			refLength = -1
+		for (
+			let refCheckOff = Math.max(0, view.offset - 0x80);
+			refCheckOff !== view.offset;
+			refCheckOff++
+		) {
+			let refCheckLength = 0,
+				targetOffset = view.offset
+			// Count the amount of bytes we can reference at once
+			while (
+				arr[refCheckOff + refCheckLength] === arr[targetOffset] &&
+				// The limit of references
+				targetOffset - view.offset < 0x7f
+			) {
+				refCheckLength++
+				targetOffset++
+			}
+			// If this is the best reference yet, remember it
+			if (refCheckLength > refLength) {
+				refLength = refCheckLength
+				refOff = refCheckOff
+			}
+		}
+		// If this data does not have a good reference, add it to the unreferenced data pile
+		if (refLength <= 1) pendingData.push(view.getUint8())
+
+		// If we are at the non-reference limit or we are about to do a reference, push all of the unreferenced data
+		// (note that this doesn't influence the reference pointer since pointers reference the source array, while this is pushing to the packed array)
+		if (pendingData.length >= 0x7f || (refLength > 1 && pendingData.length)) {
+			newView.pushUint8(pendingData.length, ...pendingData)
+			pendingData.length = 0
+		}
+		// Do the reference
+		if (refLength > 1) {
+			newView.pushUint8(refLength + 0x80, view.offset - refOff)
+			view.skipBytes(refLength)
+		}
+		// If we cannot afford to add the pending data, bail
+		if (newView.byteLength - newView.offset < pendingData.length + 1)
+			return null
+	}
+	if (pendingData.length) newView.pushUint8(pendingData.length, ...pendingData)
+	return newBuff.slice(0, newView.offset)
+}
+
 export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 	const view = new AutoReadDataView(buff)
 	const data: PartialLevelData = {
