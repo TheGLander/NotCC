@@ -1,14 +1,20 @@
 # NCCS
 
 **NCCS** (extension being .ncss) is the file format used for storing
-NotCC level scores and solutions, similar to the TWS file
-format.
+NotCC level scores and solutions, similar to the TWS and C2H file
+formats.
 
 All data in the file is little-endian.
 
 (This is not an actual spec, more of a wikipedia article, but whatever)
 
 ## Format
+
+A NCCS file consists of one or multiple records.
+
+A record is a single set of level-specific data for a level.
+
+It may or may not contain a solution, so it can be used as a way to store scores without solutions.
 
 ### Section header
 
@@ -36,7 +42,9 @@ header, which is followed by the section's data.
 | NEXT       | No content (length is 0) | Means that the data for the previously-described level is over, and that the next data is for a different solution |
 | END        | No content (length is 0) | Signifies end of file |
 
-Note that the FILE, TYPE, NAME and PASS sections can be omitted in a solution record to reffer to the previous solution data for them.
+Note that the FILE, TYPE, NAME and PASS sections are "sticky" and can be omitted in a solution record to reffer to the previous solution data for them (all zero-length if referred at first record).
+
+All the sections types for a record are optional.
 
 #### Section packing
 

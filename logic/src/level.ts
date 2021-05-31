@@ -3,8 +3,15 @@ import { Field, Direction } from "./helpers"
 import { Playable } from "./actors/playables"
 import Tile from "./tile"
 import { Layer } from "./tile"
-import { LevelData, CameraType, SolutionData, SolutionStep } from "./encoder"
+import {
+	LevelData,
+	CameraType,
+	SolutionData,
+	SolutionStep,
+	SolutionDataWithSteps,
+} from "./encoder"
 import { actorDB } from "./const"
+import { hasSteps } from "./encoder"
 
 export enum GameState {
 	PLAYING,
@@ -307,10 +314,11 @@ export class LevelState {
 		}
 		return this.blobPrngValue
 	}
-	currentSolution?: SolutionData
+	currentSolution?: SolutionDataWithSteps
 	solutionStep = 0
 	solutionSubticksLeft = 0
 	playbackSolution(solution: SolutionData): void {
+		if (!hasSteps(solution)) throw new Error("The solution must have steps!")
 		this.currentSolution = solution
 		// TODO Multiplayer
 		this.solutionStep = 0

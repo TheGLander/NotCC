@@ -2,6 +2,8 @@ import AutoReadDataView from "./autoReader"
 import { unpackagePackedData } from "./c2m"
 import { SolutionData } from "../encoder"
 
+const LATEST_NCCS_VERSION = "0.2"
+
 export function parseAndApply100byteSave(
 	buffer: ArrayBuffer,
 	solution: SolutionData
@@ -41,6 +43,36 @@ arr[24] - Some kinda undocumented checksum
 */
 }
 
+export function write100byteSaveFromSolution(
+	solution: SolutionData
+): ArrayBuffer {
+	const buff = new ArrayBuffer(100)
+	const arr = new Int32Array(buff)
+	if (solution.c2gState) {
+		arr[0] = solution.c2gState.line
+		arr[6] = solution.c2gState.level
+		arr[9] = solution.c2gState.gender
+		arr[10] = solution.c2gState.enter
+		arr[11] = solution.c2gState.exit
+		arr[13] = solution.c2gState.result
+		arr[14] = solution.c2gState.reg1
+		arr[15] = solution.c2gState.reg2
+		arr[16] = solution.c2gState.reg3
+		arr[17] = solution.c2gState.reg4
+		arr[18] = solution.c2gState.menu
+		arr[19] = solution.c2gState.flags
+		arr[20] = solution.c2gState.tools
+		arr[21] = solution.c2gState.keys
+		// tleft and speed are not saved
+	}
+	if (solution.expectedOutcome) {
+		arr[2] = solution.expectedOutcome.bonusScore ?? 0
+		arr[3] = solution.expectedOutcome.timeLeft ?? 0
+		arr[23] = solution.expectedOutcome.totalScore ?? 0
+	}
+	return buff
+}
+
 function setSolutionSteps(
 	solutionData: ArrayBuffer,
 	solution: SolutionData
@@ -48,6 +80,8 @@ function setSolutionSteps(
 	const view = new AutoReadDataView(solutionData)
 
 	const playerN = view.getUint8()
+
+	if (!solution.steps) solution.steps = []
 
 	while (view.offset < solutionData.byteLength) {
 		const newInput = view.getUint8()
@@ -87,7 +121,7 @@ function parseSTATSection(buff: ArrayBuffer, solution: SolutionData): void {
 export function parseNCCS(buffer: ArrayBuffer): SolutionData[] {
 	const view = new AutoReadDataView(buffer)
 	const solutions: SolutionData[] = []
-	let solution: SolutionData = { steps: [] }
+	let solution: SolutionData = {}
 	solution.associatedLevel = {}
 	let setName: string | undefined,
 		filename: string | undefined,
@@ -98,12 +132,14 @@ export function parseNCCS(buffer: ArrayBuffer): SolutionData[] {
 		const length = view.getUint32()
 		const oldOffset = view.offset
 		switch (sectionName) {
-			case "NCCS":
+			case "NCCS": {
 				const fullVersion = view.getStringUntilNull()
 				const [major] = fullVersion.split(".")
-				if (parseInt(major) > 0)
+				const [currentMajor] = LATEST_NCCS_VERSION.split(".")
+				if (parseInt(major) > parseInt(currentMajor))
 					throw new Error("Solution major version is too new!")
 				break
+			}
 			case "FILE":
 				solution.associatedLevel.filename = filename =
 					view.getStringUntilNull() || undefined
@@ -125,12 +161,13 @@ export function parseNCCS(buffer: ArrayBuffer): SolutionData[] {
 				let solutionData = buffer.slice(view.offset, view.offset + length)
 				if (sectionName === "PSLN")
 					solutionData = unpackagePackedData(solutionData)
-				setSolutionSteps(solutionData, solution)
+				setSolutionSteps(solutionData, solution as SolutionData)
 				view.skipBytes(length)
+				break
 			}
 			case "STAT": {
 				const stateData = buffer.slice(view.offset, view.offset + length)
-				parseSTATSection(stateData, solution)
+				parseSTATSection(stateData, solution as SolutionData)
 				view.skipBytes(length)
 				break
 			}
@@ -161,4 +198,93 @@ export function parseNCCS(buffer: ArrayBuffer): SolutionData[] {
 	}
 	solutions.push(solution)
 	return solutions
+}
+
+export function writeNCCS(solutions: SolutionData[]): ArrayBuffer {
+	const solutionSectionsArray: ArrayBuffer[] = []
+	function writeSection(sectionName: string, data: ArrayBuffer): void {
+		const newData = new ArrayBuffer(data.byteLength + 8)
+
+		new Uint8Array(newData).set(
+			Uint8Array.from(sectionName, str => str.charCodeAt(0))
+		)
+		new DataView(newData).setUint32(4, data.byteLength, true)
+		new Uint8Array(newData).set(new Uint8Array(data), 8)
+		solutionSectionsArray.push(newData)
+	}
+	function writeStringSection(sectionName: string, sectionValue: string): void {
+		writeSection(
+			sectionName,
+			Uint8Array.from([
+				...Array.from(sectionValue, str => str.charCodeAt(0)),
+				0,
+			]).buffer
+		)
+	}
+	writeStringSection("NCCS", LATEST_NCCS_VERSION)
+	// Sort the solutions in this very careful way so records with the same sticky data are together
+	solutions = [...solutions].sort((solA, solB) => {
+		if (!solA.associatedLevel && !solB.associatedLevel) return 0
+		if (!solA.associatedLevel) return -1
+		if (!solB.associatedLevel) return 1
+		const a = solA.associatedLevel,
+			b = solB.associatedLevel
+		for (const prop of ["password", "name", "filename", "setName"] as const)
+			if (a[prop] && b[prop])
+				return (a[prop] as string).localeCompare(b[prop] as string)
+		return 0
+	})
+	let setName: string | undefined,
+		filename: string | undefined,
+		password: string | undefined,
+		levelName: string | undefined
+	for (const solution of solutions) {
+		// Write sticky metadata
+		if (solution.associatedLevel?.password !== password) {
+			password = solution.associatedLevel?.password
+			writeStringSection("PASS", password || "")
+		}
+		if (solution.associatedLevel?.filename !== filename) {
+			filename = solution.associatedLevel?.filename
+			writeStringSection("FILE", filename || "")
+		}
+		if (solution.associatedLevel?.name !== levelName) {
+			levelName = solution.associatedLevel?.name
+			writeStringSection("NAME", levelName || "")
+		}
+		if (solution.associatedLevel?.setName !== setName) {
+			setName = solution.associatedLevel?.setName
+			writeStringSection("TYPE", setName || "")
+		}
+		writeSection("MISC", write100byteSaveFromSolution(solution))
+		if (solution.steps)
+			for (const [i, stepSet] of solution.steps.entries()) {
+				if (stepSet.length === 0) continue
+				// TODO Compress this
+				const buff = Uint8Array.from(
+					[[i], ...stepSet].reduce((acc, val) => [...acc, ...val], [])
+				)
+				writeSection("SLN ", buff)
+			}
+		if (solution.blobModSeed || solution.rffDirection) {
+			const data: number[] = []
+			if (solution.rffDirection) data.push(0x01, 1, solution.rffDirection)
+			if (solution.blobModSeed) data.push(0x02, 1, solution.blobModSeed)
+			writeSection("STAT", Uint8Array.from(data).buffer)
+		}
+		writeSection("NEXT", new ArrayBuffer(0))
+	}
+	// Remove the last "NEXT" section
+	if (solutions.length > 0) solutionSectionsArray.pop()
+	writeSection("END ", new ArrayBuffer(0))
+	const buff = new ArrayBuffer(
+		solutionSectionsArray.reduce((acc, val) => acc + val.byteLength, 0)
+	)
+	const arr = new Uint8Array(buff)
+	let offset = 0
+	for (const section of solutionSectionsArray) {
+		arr.set(new Uint8Array(section), offset)
+		offset += section.byteLength
+	}
+	return buff
 }

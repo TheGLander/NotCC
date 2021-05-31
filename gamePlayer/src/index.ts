@@ -1,4 +1,11 @@
-import { LevelState, onLevelDecisionTick, crossLevelData } from "./logic/level"
+import {
+	LevelState,
+	onLevelDecisionTick,
+	crossLevelData,
+	createLevelFromData,
+	onLevelAfterTick,
+	onLevelStart,
+} from "./logic/level"
 import { Direction } from "./logic/helpers"
 import "./base.css"
 import { PulseManager } from "./pulse"
@@ -11,11 +18,8 @@ import { parseDAT } from "./logic/parsers/dat"
 import { levelAsSet } from "./logic/encoder"
 import { SetPlayer } from "./setPlayer"
 import { artDB } from "./const"
-import {
-	createLevelFromData,
-	onLevelAfterTick,
-	onLevelStart,
-} from "../../logic/src/level"
+import { parseNCCS, writeNCCS } from "./logic/parsers/nccs"
+
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...
@@ -63,6 +67,10 @@ const exportObject = {
 	get level(): LevelState {
 		return setPlayer.pulseManager.level
 	},
+	parseC2M,
+	parseDAT,
+	parseNCCS,
+	writeNCCS,
 	Direction,
 	actorDB,
 	setPlayer,

@@ -1,6 +1,8 @@
 export default class AutoReadDataView extends DataView {
 	offset = 0
 	smallEndian = true
+	autoAllocate = true
+	allocateSize = 1000
 	getUint8(): number
 	getUint8(amount: number): number[]
 	getUint8(amount: number | null = null): number | number[] {
@@ -24,6 +26,12 @@ export default class AutoReadDataView extends DataView {
 		for (const i in values) {
 			super.setUint8(this.offset, values[i] & 0xff)
 			this.offset++
+		}
+	}
+	pushInt32(...values: number[]): void {
+		for (const i in values) {
+			super.setInt32(this.offset, values[i] & 0xff)
+			this.offset += 4
 		}
 	}
 	getUint16(): number

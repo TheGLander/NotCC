@@ -168,7 +168,8 @@ function createFieldFromArrayBuffer(
 function createSolutionFromArrayBuffer(
 	solutionData: ArrayBuffer
 ): SolutionData {
-	const solution: SolutionData = { steps: [[], []] }
+	const solution: SolutionData = {}
+	solution.steps = [[], []]
 	const view = new AutoReadDataView(solutionData)
 
 	view.skipBytes(1)

@@ -114,20 +114,26 @@ export function levelAsSet(level: LevelData): LevelSetData {
 /**
  * A single input of the solution, the move number is:
  * `up + right * 0x2 + down * 0x4 + left * 0x8 + drop * 0x10 + cycle * 0x20 + switch * 0x40`
- * `waitBeforeInput` is the amount of subticks to wait before doing this step (the last input is sticky, so in the wait the input is not 0!)
+ * `holdLength` is the amount of subticks to hold this step for
  */
-export type SolutionStep = [moveNumber: number, waitBeforeInput: number]
+export type SolutionStep = [moveNumber: number, holdLength: number]
 
 export interface SolutionData {
 	/**
 	 * The steps needed to reach the exit, for each player
 	 */
-	steps: SolutionStep[][]
+	steps?: SolutionStep[][]
 	blobModSeed?: number
 	rffDirection?: Direction
 	associatedLevel?: IdentifyingLevelData
 	expectedOutcome?: LevelOutcome
 	c2gState?: C2GState
+}
+
+export type SolutionDataWithSteps = SolutionData & { steps: SolutionStep[][] }
+
+export function hasSteps(sol: SolutionData): sol is SolutionDataWithSteps {
+	return !!sol.steps
 }
 
 export interface C2GState {
