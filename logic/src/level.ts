@@ -83,7 +83,7 @@ export const onLevelAfterTick: ((level: LevelState) => void)[] = [
 export const debouncedInputs = ["drop", "rotateInv", "switchPlayable"] as const
 export const debouncePeriod = 50 // Debounce period in subticks
 
-function decodeSolutionStep(step: SolutionStep): KeyInputs {
+export function decodeSolutionStep(step: SolutionStep): KeyInputs {
 	return {
 		up: (step[0] & 0x1) > 0,
 		right: (step[0] & 0x2) > 0,
@@ -93,6 +93,19 @@ function decodeSolutionStep(step: SolutionStep): KeyInputs {
 		rotateInv: (step[0] & 0x20) > 0,
 		switchPlayable: (step[0] & 0x40) > 0,
 	}
+}
+
+export function encodeSolutionStep(input: KeyInputs): SolutionStep {
+	return [
+		(input.up ? 0x01 : 0) +
+			(input.right ? 0x02 : 0) +
+			(input.down ? 0x04 : 0) +
+			(input.left ? 0x08 : 0) +
+			(input.drop ? 0x10 : 0) +
+			(input.rotateInv ? 0x20 : 0) +
+			(input.switchPlayable ? 0x40 : 0),
+		0,
+	]
 }
 
 /**

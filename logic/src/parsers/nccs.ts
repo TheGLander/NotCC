@@ -1,6 +1,6 @@
 import AutoReadDataView from "./autoReader"
 import { packageData, unpackagePackedData } from "./c2m"
-import { SolutionData } from "../encoder"
+import { SolutionData, SolutionDataWithSteps, SolutionStep } from "../encoder"
 
 const LATEST_NCCS_VERSION = "0.2"
 
@@ -98,6 +98,19 @@ function setSolutionSteps(
 	}
 }
 
+function fixSolutionSteps(steps: SolutionStep[]): SolutionStep[] {
+	return steps.reduce<SolutionStep[]>((acc, val) => {
+		if (val[1] <= 0xfc) return [...acc, val]
+		const steps: SolutionStep[] = []
+		while (val[1] > 0xfc) {
+			steps.push([val[0], 0xfc])
+			val[1] -= 0xfc
+		}
+		steps.push(val)
+		return [...acc, ...steps]
+	}, [])
+}
+
 function parseSTATSection(buff: ArrayBuffer, solution: SolutionData): void {
 	const view = new AutoReadDataView(buff)
 	while (view.offset < buff.byteLength) {
@@ -172,12 +185,13 @@ export function parseNCCS(buffer: ArrayBuffer): SolutionData[] {
 				break
 			}
 			case "MISC":
-				parseAndApply100byteSave(
-					buffer.slice(view.offset, view.offset + 100),
-					solution
-				)
-				view.skipBytes(100)
+			case "PMSC": {
+				let miscData = buffer.slice(view.offset, view.offset + length)
+				if (sectionName === "PMSC") miscData = unpackagePackedData(miscData)
+				parseAndApply100byteSave(miscData, solution)
+				view.skipBytes(length)
 				break
+			}
 			case "NEXT":
 				solutions.push(solution)
 				solution = { steps: [] }
@@ -188,7 +202,7 @@ export function parseNCCS(buffer: ArrayBuffer): SolutionData[] {
 					password,
 				}
 				break
-			case "END":
+			case "END ":
 				break loop
 			default:
 				view.skipBytes(length)
@@ -265,7 +279,10 @@ export function writeNCCS(solutions: SolutionData[]): ArrayBuffer {
 			for (const [i, stepSet] of solution.steps.entries()) {
 				if (stepSet.length === 0) continue
 				const buff = Uint8Array.from(
-					[[i], ...stepSet].reduce((acc, val) => [...acc, ...val], [])
+					[[i], ...fixSolutionSteps(stepSet)].reduce(
+						(acc, val) => [...acc, ...val],
+						[]
+					)
 				).buffer
 				const packedBuff = packageData(buff)
 				if (packedBuff) writeSection("PSLN", packedBuff)

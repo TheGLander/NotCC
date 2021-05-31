@@ -1,10 +1,19 @@
-import { GameState, LevelState, InputType, KeyInputs } from "./logic/level"
+import {
+	GameState,
+	LevelState,
+	InputType,
+	KeyInputs,
+	decodeSolutionStep,
+	encodeSolutionStep,
+} from "./logic/level"
 import keycode from "keycode"
 import Renderer from "./visuals"
+import { SolutionStep } from "./logic/encoder"
 
-const isSmartTV = /smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
-	navigator.userAgent.toLowerCase()
-)
+const isSmartTV =
+	/smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
+		navigator.userAgent.toLowerCase()
+	)
 
 function stabilizeFactory(bufferLength = 60): (val: number) => number {
 	const buffer: number[] = []
@@ -54,7 +63,7 @@ export class PulseManager {
 		rotateInv: false,
 		switchPlayable: false,
 	}
-
+	recordedSteps: SolutionStep[] = []
 	renderer: Renderer
 	ready: Promise<void>
 	lastLevelGameState = GameState.PLAYING
@@ -120,6 +129,7 @@ export class PulseManager {
 		this.renderer.updateCameraSizes()
 		await this.renderer.updateFillerData()
 		this.eventsRegistered.newLevel.forEach(val => val())
+		this.recordedSteps = []
 	}
 	updateTextStats(): void {
 		if (!this.textStats) return
@@ -137,6 +147,12 @@ Bonus: ${this.level.bonusPoints}pts`
 		let ticksProcessed = 0
 		for (; ticksProcessed < this.ticksPerSecond / 60; ticksProcessed++)
 			this.level.tick()
+		if (
+			this.recordedSteps[this.recordedSteps.length - 1]?.[0] !==
+			encodeSolutionStep(this.keysPressed)[0]
+		)
+			this.recordedSteps.push(encodeSolutionStep(this.keysPressed))
+		this.recordedSteps[this.recordedSteps.length - 1][1]++
 		this.updateTextStats()
 		switch (this.level.gameState) {
 			case GameState.LOST:

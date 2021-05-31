@@ -36,7 +36,7 @@ header, which is followed by the section's data.
 | TYPE       | Null-terminated string   | Usually the name of the levelset. For the base CC2 set it's "Chips Challenge 2". If the level does not have a proper set name (eg. DATs, C2Ms outside of sets), is zero-length. |
 | NAME       | Null-terminated string   | The level's title, zero-length if the level has no title. |
 | PASS       | Null-terminated string   | The level's password, zero-length if the level has no password. |
-| MISC       | 100 bytes                | Level miscellaneous data. The format is identical to the format of the SAVE section in C2H files. |
+| MISC/PMSC  | 100 bytes                | Level miscellaneous data. The format is identical to the format of the SAVE section in C2H files. The PMSC section is compressed, the MISC section is not. ||
 | SLN /PSLN  | See SLN section below    | The recorded level solution. The PSLN section is compressed, the SLN section is not. |
 | STAT       | See STAT section below   | The state for some level variables |
 | NEXT       | No content (length is 0) | Means that the data for the previously-described level is over, and that the next data is for a different solution |
@@ -48,7 +48,7 @@ All the sections types for a record are optional.
 
 #### Section packing
 
-"PSLN" sections are packed via the same packing algorithm as C2M.
+"PSLN" and "PMSC" sections are packed via the same packing algorithm as C2M.
 
 ### SLN Section
 

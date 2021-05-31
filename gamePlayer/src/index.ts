@@ -15,10 +15,22 @@ import "./logic/actors"
 import "./art"
 import { actorDB, keyNameList } from "./logic/const"
 import { parseDAT } from "./logic/parsers/dat"
-import { levelAsSet } from "./logic/encoder"
+import { levelAsSet, SolutionData } from "./logic/encoder"
 import { SetPlayer } from "./setPlayer"
 import { artDB } from "./const"
 import { parseNCCS, writeNCCS } from "./logic/parsers/nccs"
+
+function downloadFile(buff: ArrayBuffer): void {
+	const blob = new Blob([buff], { type: "application/octet-stream" })
+	const url = URL.createObjectURL(blob)
+	const a = document.createElement("a")
+	a.style.display = "none"
+	a.download = "solution.nccs"
+	a.href = url
+	a.click()
+	URL.revokeObjectURL(url)
+	a.remove()
+}
 
 // Enable crash handling
 window.addEventListener("error", ev =>
@@ -40,6 +52,9 @@ const levelReplayButton = document.querySelector<HTMLButtonElement>(
 	"#levelSolutionButton"
 )
 const levelInput = document.createElement("input")
+const downloadSolutionButton = document.querySelector<HTMLButtonElement>(
+	"#downloadSolutionButton"
+)
 levelInput.type = "file"
 levelInput.accept = ".c2m,.dat,.ccl"
 levelInput.addEventListener("input", async () => {
@@ -52,10 +67,52 @@ levelInput.addEventListener("input", async () => {
 
 levelInputButton?.addEventListener("click", () => levelInput.click())
 
+const customSolutionButton = document.querySelector<HTMLButtonElement>(
+	"#customSolutionButton"
+)
+const solutionInput = document.createElement("input")
+
+solutionInput.type = "file"
+solutionInput.accept = ".nccs"
+solutionInput.addEventListener("input", async () => {
+	const files = solutionInput.files
+	if (!files) return console.log("Didn't find file list")
+	const file = files.item(0)
+	if (!file) return console.log("Didn't find file")
+	const solution = parseNCCS(await file.arrayBuffer())
+	await setPlayer.restartLevel()
+	setPlayer.pulseManager.level.playbackSolution(solution[0])
+})
+
+customSolutionButton?.addEventListener("click", () => solutionInput.click())
+
 const setPlayer = new SetPlayer(
 	new PulseManager(new LevelState(0, 0), renderSpace, itemSpace, textStats),
 	{ name: "LOADING", levels: {} }
 )
+
+let lastWinningSolution: SolutionData | undefined,
+	lastSolutionRFF: Direction | undefined,
+	lastSolutionBlobMod: number | undefined
+
+setPlayer.pulseManager.eventsRegistered.win.push(() => {
+	lastWinningSolution = {
+		steps: [setPlayer.pulseManager.recordedSteps],
+		rffDirection: lastSolutionRFF,
+		blobModSeed: lastSolutionBlobMod,
+		expectedOutcome: { timeLeft: setPlayer.pulseManager.level.timeLeft },
+	}
+	if (downloadSolutionButton) downloadSolutionButton.style.display = "unset"
+})
+
+setPlayer.pulseManager.eventsRegistered.newLevel.push(() => {
+	lastSolutionBlobMod = setPlayer.pulseManager.level.blobPrngValue
+	lastSolutionRFF = crossLevelData.RFFDirection
+})
+
+downloadSolutionButton?.addEventListener("click", () => {
+	if (lastWinningSolution) downloadFile(writeNCCS([lastWinningSolution]))
+})
 
 levelList?.addEventListener("change", () => {
 	setPlayer.currentLevelIndex = parseInt(levelList.value)
