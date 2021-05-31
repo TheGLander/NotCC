@@ -162,6 +162,7 @@ export abstract class Actor {
 		this.layer = this.getLayer()
 		level.actors.push(this)
 		this.tile = level.field[position[0]][position[1]]
+		for (const actor of this.tile[this.layer]) actor.despawn()
 		this.tile.addActors([this])
 		if (level.levelStarted)
 			for (const actor of this.tile.allActors)

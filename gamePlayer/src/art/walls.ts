@@ -18,18 +18,21 @@ for (const color of ["blue", "red", "yellow", "green"])
 		animation: color,
 	}
 
-artDB["thinWall"] = actor => ({
-	actorName: "thinWall",
-	animation: ["up", "right", "down", "left"][actor.direction],
-	cropSize: [
-		(((actor.direction + 1) % 2) + 1) / 2,
-		((actor.direction % 2) + 1) / 2,
-	],
-	imageOffset: [
-		actor.direction === Direction.RIGHT ? 0.5 : 0,
-		actor.direction === Direction.DOWN ? 0.5 : 0,
-	],
-})
+const shortDirNames = ["u", "r", "d", "l"]
+
+artDB["thinWall"] = actor =>
+	actor.customData.split("").map(val => {
+		const direction = shortDirNames.indexOf(val)
+		return {
+			actorName: "thinWall",
+			animation: ["up", "right", "down", "left"][direction],
+			cropSize: [(((direction + 1) % 2) + 1) / 2, ((direction % 2) + 1) / 2],
+			imageOffset: [
+				direction === Direction.RIGHT ? 0.5 : 0,
+				direction === Direction.DOWN ? 0.5 : 0,
+			],
+		}
+	})
 
 // TODO Secret eye interaction thing
 

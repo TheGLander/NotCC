@@ -73,17 +73,25 @@ actorDB["doorGreen"] = doorFactory("green")
 
 actorDB["doorYellow"] = doorFactory("yellow")
 
+const shortDirNames = ["u", "r", "d", "l"]
+
 export class ThinWall extends Actor {
 	id = "thinWall"
 	tags = ["thinWall"]
+	allowedDirections = Array.from(this.customData)
+		.map(val =>
+			shortDirNames.includes(val) ? 2 ** shortDirNames.indexOf(val) : 0
+		)
+		.reduce((acc, val) => acc + val, 0)
+
 	getLayer(): Layer {
 		return Layer.SPECIAL
 	}
 	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
-		return otherMoveDirection === (this.direction + 2) % 4
+		return !!((2 ** ((otherMoveDirection + 2) % 4)) & this.allowedDirections)
 	}
 	exitBlocks(_actor: Actor, otherMoveDirection: Direction): boolean {
-		return otherMoveDirection === this.direction
+		return !!((2 ** otherMoveDirection) & this.allowedDirections)
 	}
 }
 
