@@ -26,6 +26,7 @@ export function parseAndApply100byteSave(
 		keys: arr[21],
 		speed: 1,
 		tleft: 0,
+		score: arr[1],
 	}
 	solution.expectedOutcome = {
 		bonusScore: arr[2] === -1 ? undefined : arr[2],
@@ -33,7 +34,6 @@ export function parseAndApply100byteSave(
 		totalScore: arr[23] === -1 ? undefined : arr[23],
 	}
 	/* Data which is kinda useless:
-arr[1] - Total score for all levels in set
 arr[4] - Chips left in level
 arr[7] - Initial time
 arr[8] - Amount of tries before win
@@ -50,6 +50,7 @@ export function write100byteSaveFromSolution(
 	const arr = new Int32Array(buff)
 	if (solution.c2gState) {
 		arr[0] = solution.c2gState.line
+		arr[1] = solution.c2gState.score
 		arr[6] = solution.c2gState.level
 		arr[9] = solution.c2gState.gender
 		arr[10] = solution.c2gState.enter

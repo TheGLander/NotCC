@@ -42,7 +42,13 @@ module.exports = {
 		],
 	},
 	watch: !prod,
-	resolve: { extensions: [".ts", ".js", ".json", ".jsonc"], symlinks: false },
+	resolve: {
+		extensions: [".ts", ".js", ".json", ".jsonc"],
+		symlinks: false,
+		fallback: {
+			path: require.resolve("path-browserify"),
+		},
+	},
 	devtool: "source-map",
 	optimization: {
 		minimize: prod,

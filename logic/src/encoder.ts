@@ -1,4 +1,5 @@
 import { Field, Direction } from "./helpers"
+import { C2GState } from "./parsers/c2g"
 
 export interface CameraType {
 	width: number
@@ -134,23 +135,4 @@ export type SolutionDataWithSteps = SolutionData & { steps: SolutionStep[][] }
 
 export function hasSteps(sol: SolutionData): sol is SolutionDataWithSteps {
 	return !!sol.steps
-}
-
-export interface C2GState {
-	enter: number
-	exit: number
-	flags: number
-	gender: number
-	keys: number
-	level: number
-	line: number
-	menu: number
-	reg1: number
-	reg2: number
-	reg3: number
-	reg4: number
-	result: number
-	speed: number
-	tleft: number
-	tools: number
 }
