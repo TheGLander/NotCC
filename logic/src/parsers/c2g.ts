@@ -338,7 +338,7 @@ export class C2GRunner {
 					break
 				}
 				case "operator": {
-					const values = [stack.pop(), stack.pop()]
+					const values = [stack.pop(), stack.pop()].reverse()
 					if (!values[0] || !values[1]) {
 						console.warn(
 							"Not enough values on the stack to perform the operation!"
@@ -393,14 +393,14 @@ export class C2GRunner {
 							result = a && b
 							break
 						case "=":
-							result = b
-							if (!values[0][1] || !isVariable(values[0][1], this)) {
+							result = a
+							if (!values[1][1] || !isVariable(values[1][1], this)) {
 								console.warn(
 									"You are assigning a number to anything but a number!"
 								)
 								break
 							}
-							this.state[values[0][1]] = b
+							this.state[values[1][1]] = a
 							break
 						default:
 							console.warn(
