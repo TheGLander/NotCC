@@ -12,31 +12,39 @@ export async function startC2GShell(): Promise<void> {
 	const runner = new C2GRunner(tokenizeC2G('game "NotCC shell"'))
 	runner.stepLine()
 	function resolveQueuedAction() {
-		if (!runner.queuedAction) return
-		switch (runner.queuedAction.type) {
-			case "chain": {
-				const c2gPath = resolve(
-					process.cwd(),
-					runner.queuedAction.value.replace(/^~/, process.env.HOME ?? "")
-				)
-				if (!fs.existsSync(c2gPath))
-					errorAndExit("A chain path must lead to a file!")
-				runner.tokens = tokenizeC2G(
-					fs.readFileSync(c2gPath, { encoding: "latin1" })
-				)
-				while (runner.tokens[runner.currentToken]) {
-					runner.stepLine()
-					resolveQueuedAction()
+		for (
+			let action = runner.queuedActions.shift();
+			action;
+			action = runner.queuedActions.shift()
+		)
+			switch (action.type) {
+				case "chain": {
+					const c2gPath = resolve(
+						process.cwd(),
+						action.value.replace(/^~/, process.env.HOME ?? "")
+					)
+
+					if (!fs.existsSync(c2gPath))
+						errorAndExit("A chain path must lead to a file!")
+					runner.tokens = tokenizeC2G(
+						fs.readFileSync(c2gPath, { encoding: "latin1" })
+					)
+					runner.currentToken = 0
+					runner.updateLabels()
+					while (runner.tokens[runner.currentToken]) {
+						runner.stepLine()
+						resolveQueuedAction()
+					}
+					break
 				}
-				break
+				case "script":
+					console.log(action.value)
+
+					break
+				default:
+					console.warn("The CLI doesn't support this type of action!")
+					break
 			}
-			case "script":
-				console.log(runner.queuedAction.value)
-				break
-			default:
-				console.warn("The CLI doesn't support this type of action!")
-				break
-		}
 	}
 	// eslint-disable-next-line no-constant-condition
 	while (true) {
@@ -50,11 +58,17 @@ export async function startC2GShell(): Promise<void> {
 				},
 				{ onCancel: () => errorAndExit() }
 			)
-			runner.tokens.push(...tokenizeC2G(commandScript.command + "\n"))
+			runner.tokens.push(
+				...tokenizeC2G(commandScript.command.replace(/\\$/, "") + "\n")
+			)
 			if (!commandScript.command.endsWith("\\")) break
 		}
 		runner.updateLabels()
-		console.log(runner.stepLine())
-		resolveQueuedAction()
+		let latestValue: number | void
+		while (runner.tokens[runner.currentToken]) {
+			latestValue = runner.stepLine()
+			resolveQueuedAction()
+		}
+		console.log(latestValue)
 	}
 }

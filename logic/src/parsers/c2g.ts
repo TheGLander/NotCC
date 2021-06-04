@@ -65,10 +65,10 @@ export const C2GDirectives: Record<
 	chain() {
 		const filename = this.getToken()
 		if (filename?.type === "string")
-			this.queuedAction = {
+			this.queuedActions.push({
 				type: "chain",
 				value: join(this.fsPosition, filename.value),
-			}
+			})
 		else console.warn("The first argument of a chain must be a string!")
 	},
 	chdir() {
@@ -107,23 +107,23 @@ export const C2GDirectives: Record<
 	map() {
 		const mapName = this.getToken()
 		if (mapName?.type === "string")
-			this.queuedAction = {
+			this.queuedActions.push({
 				type: "map",
 				value: join(this.fsPosition, mapName.value),
-			}
+			})
 		else console.warn("The first argument of a map must be a string!")
 		return true
 	},
 	music() {
 		const mapName = this.getToken()
 		if (mapName?.type === "string")
-			this.queuedAction = {
+			this.queuedActions.push({
 				type: "music",
 				// This is not resolved, since it
 				// a. Can start with + to loop
 				// b. Can not be a path but an alias to a pre-set song
 				value: mapName.value,
-			}
+			})
 		else console.warn("The first argument of music must be a string!")
 	},
 	script() {
@@ -153,12 +153,12 @@ export const C2GDirectives: Record<
 				token = this.getToken()
 			)
 				escapeValues.push(this.evaluateExpression([token]))
-			finalString += printf(string, escapeValues) + "\n"
+			finalString += printf(string, ...escapeValues) + "\n"
 		}
 		// If this stopped by encountering a non-script token, vomit it back
 		if (this.tokens[this.currentToken]) this.currentToken--
 		if (finalString)
-			this.queuedAction = { type: "script", value: finalString.trimEnd() }
+			this.queuedActions.push({ type: "script", value: finalString.trimEnd() })
 		return true
 	},
 	wav() {
@@ -170,7 +170,7 @@ const tokenTypes: TokenType[] = [
 	{ regex: /\n/, name: "newline" },
 	// Strings are stopped by either quotes or newlines (or EOF) :clapping:
 	// Also, no escapes in C2G, yay
-	{ regex: /"([^"]*)(?:["\n]|$)/, name: "string" },
+	{ regex: /"([^"\n]*)(?:["\n]|$)/, name: "string" },
 	{ regex: /(?:\/\/|;).+/, name: "comment" },
 	// This is an obscure fact hidden in Architect's doc: Labels are terminated by whitespace only
 	{ regex: /#(\S+)/, name: "label" },
@@ -273,7 +273,7 @@ export class C2GRunner {
 	 */
 	labels: Record<string, number> = {}
 	fsPosition = ""
-	queuedAction?: QueuedC2GAction
+	queuedActions: QueuedC2GAction[] = []
 	state: C2GState = C2GVariables.reduce(
 		(acc, val) => ((acc[val] = 0), acc),
 		{} as Partial<C2GState>
@@ -338,7 +338,7 @@ export class C2GRunner {
 					break
 				}
 				case "operator": {
-					const values = [stack.pop(), stack.pop()].reverse()
+					const values = [stack.pop(), stack.pop()]
 					if (!values[0] || !values[1]) {
 						console.warn(
 							"Not enough values on the stack to perform the operation!"
@@ -382,6 +382,9 @@ export class C2GRunner {
 							break
 						case "<=":
 							result = a <= b ? 1 : 0
+							break
+						case "<":
+							result = a < b ? 1 : 0
 							break
 						case "||":
 							result = a || b
@@ -433,34 +436,40 @@ export class C2GRunner {
 	}
 	stepLine(): number | void {
 		let lastExpressionResult: number | void
-		for (let shouldContinue = true; shouldContinue; ) {
-			const directiveToken = this.getToken()
+		for (
+			let shouldContinue = true, directiveToken = this.getToken();
+			directiveToken && directiveToken.type !== "newline";
+			directiveToken = this.getToken()
+		) {
 			// This is EOF or a newline, there is only an expression on the line
-			if (!directiveToken || directiveToken.type === "newline") break
 
-			if (!C2GDirectives[directiveToken.value])
-				if (
-					["number", "operator", "string"].includes(directiveToken.type) ||
-					isVariable(directiveToken.value, this) ||
-					isPseudoVariable(directiveToken.value)
-				) {
-					this.currentToken--
-					const tokensToProcess = this.tokens.slice(this.currentToken)
-					lastExpressionResult = this.evaluateExpression(tokensToProcess)
-					this.currentToken = this.tokens.length - tokensToProcess.length
-				} else {
-					console.warn(
-						"This code encountered a directive which kinda but not really exists? Please file a bug report"
+			if (shouldContinue)
+				if (!C2GDirectives[directiveToken.value])
+					if (
+						["number", "operator", "string"].includes(directiveToken.type) ||
+						isVariable(directiveToken.value, this) ||
+						isPseudoVariable(directiveToken.value)
+					) {
+						this.currentToken--
+						const tokensToProcess = this.tokens.slice(this.currentToken)
+						lastExpressionResult = this.evaluateExpression(tokensToProcess)
+						this.currentToken = this.tokens.length - tokensToProcess.length
+					} else if (directiveToken.type === "label") {
+						lastExpressionResult = undefined
+						// Silently ignore labels
+					} else {
+						console.warn(
+							"This code encountered a directive which kinda but not really exists? Please file a bug report"
+						)
+						break
+					}
+				else {
+					shouldContinue = !C2GDirectives[directiveToken.value].call(
+						this,
+						(lastExpressionResult as number) ?? 0
 					)
-					break
+					lastExpressionResult = undefined
 				}
-			else {
-				shouldContinue = !C2GDirectives[directiveToken.value].call(
-					this,
-					(lastExpressionResult as number) ?? 0
-				)
-				lastExpressionResult = undefined
-			}
 		}
 		return lastExpressionResult
 	}
