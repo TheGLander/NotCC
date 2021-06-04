@@ -1,4 +1,4 @@
-import { resolve } from "path"
+import { join } from "path"
 import { printf } from "fast-printf"
 
 interface TokenType {
@@ -12,6 +12,8 @@ interface Token {
 	fullValue: string
 	position: number
 }
+
+export const C2G_NOTCC_VERSION = "0.2-NotCC"
 
 export const C2GVariables = [
 	"enter",
@@ -65,14 +67,14 @@ export const C2GDirectives: Record<
 		if (filename?.type === "string")
 			this.queuedAction = {
 				type: "chain",
-				value: resolve(this.fsPosition, filename.value),
+				value: join(this.fsPosition, filename.value),
 			}
 		else console.warn("The first argument of a chain must be a string!")
 	},
 	chdir() {
 		const dirname = this.getToken()
 		if (dirname?.type === "string")
-			this.fsPosition = resolve(this.fsPosition, dirname.value)
+			this.fsPosition = join(this.fsPosition, dirname.value)
 		else console.warn("The first argument of a chdir must be a string!")
 	},
 	dlc() {
@@ -107,7 +109,7 @@ export const C2GDirectives: Record<
 		if (mapName?.type === "string")
 			this.queuedAction = {
 				type: "map",
-				value: resolve(this.fsPosition, mapName.value),
+				value: join(this.fsPosition, mapName.value),
 			}
 		else console.warn("The first argument of a map must be a string!")
 		return true
@@ -126,12 +128,20 @@ export const C2GDirectives: Record<
 	},
 	script() {
 		let finalString = ""
+		// Strip everything before the first line
+		for (
+			let token = this.getToken();
+			token && token.type !== "newline";
+			token = this.getToken() // eslint-disable-next-line no-empty
+		) {}
 		for (
 			let token = this.getToken();
 			token && (token.type === "newline" || token.type === "string");
 			token = this.getToken()
 		) {
 			if (token.type === "newline") {
+				// If the first line is actually a newline, this is an invalid script
+				if (finalString === "") return true
 				finalString += "\n"
 				continue
 			}
@@ -147,7 +157,8 @@ export const C2GDirectives: Record<
 		}
 		// If this stopped by encountering a non-script token, vomit it back
 		if (this.tokens[this.currentToken]) this.currentToken--
-		this.queuedAction = { type: "script", value: finalString }
+		if (finalString)
+			this.queuedAction = { type: "script", value: finalString.trimEnd() }
 		return true
 	},
 	wav() {
@@ -282,14 +293,7 @@ export class C2GRunner {
 				"All C2Gs must contain a closed string in the first line!"
 			)
 		this.c2gTitle = str.value
-		// Search for good labels
-		for (const [i, token] of tokens.entries()) {
-			if (
-				token.type === "label" &&
-				(!tokens[i - 1] || tokens[i - 1].type === "newline")
-			)
-				this.labels[token.value] = i
-		}
+		this.updateLabels()
 	}
 	getToken(): Token | undefined {
 		const result = this.tokens[this.currentToken]
@@ -417,15 +421,22 @@ export class C2GRunner {
 			}
 		return stack[0]?.[0] ?? 0
 	}
-	stepLine(): void {
-		for (
-			let shouldContinue = true, lastExpressionResult = 0;
-			shouldContinue;
-
-		) {
+	updateLabels(): void {
+		// Search for good labels
+		for (const [i, token] of this.tokens.entries()) {
+			if (
+				token.type === "label" &&
+				(!this.tokens[i - 1] || this.tokens[i - 1].type === "newline")
+			)
+				this.labels[token.value] = i
+		}
+	}
+	stepLine(): number | void {
+		let lastExpressionResult: number | void
+		for (let shouldContinue = true; shouldContinue; ) {
 			const directiveToken = this.getToken()
 			// This is EOF or a newline, there is only an expression on the line
-			if (!directiveToken || directiveToken.type === "newline") return
+			if (!directiveToken || directiveToken.type === "newline") break
 
 			if (!C2GDirectives[directiveToken.value])
 				if (
@@ -441,13 +452,16 @@ export class C2GRunner {
 					console.warn(
 						"This code encountered a directive which kinda but not really exists? Please file a bug report"
 					)
-					return
+					break
 				}
-			else
+			else {
 				shouldContinue = !C2GDirectives[directiveToken.value].call(
 					this,
-					lastExpressionResult
+					(lastExpressionResult as number) ?? 0
 				)
+				lastExpressionResult = undefined
+			}
 		}
+		return lastExpressionResult
 	}
 }

@@ -32,10 +32,10 @@ export function verifyLevelFiles(args: CLIArguments): void {
 			// TODO This shouldn't happen in any solutions anyways
 			crossLevelData.despawnedActors = crossLevelData.queuedDespawns = []
 
-			const levelData = parseC2M(new Uint8Array(levelBuffer).buffer)
+			const levelData = parseC2M(new Uint8Array(levelBuffer).buffer, levelPath)
 			const level = createLevelFromData(levelData)
 
-			if (!levelData?.associatedSolution)
+			if (!levelData?.associatedSolution || !levelData.associatedSolution.steps)
 				throw new Error("Level has no baked solution!")
 
 			spinner.start(` ${levelData.name} - Verifying...`)

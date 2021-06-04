@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 import { verifyLevelFiles } from "./verifyLevels"
 import { errorAndExit } from "./helpers"
+import { startC2GShell } from "./c2gShell"
 
 export interface CLIArguments {
 	unpos: string[]
@@ -24,6 +25,7 @@ Usage: notcc <command>
 	notcc verify <levelPath>
 Commands:
 	verify - Verifies a level set by the in-baked solutions
+	c2g - Starts the C2G shell to experiment with C2G
 Options:
 	--help - Shows this
 	--onlyError - Shows only success lines`,
@@ -34,7 +36,9 @@ switch (cliArguments.pos[0]) {
 	case "verify":
 		verifyLevelFiles(cliArguments)
 		break
-
+	case "c2g":
+		startC2GShell()
+		break
 	// Hehehe
 	case "csb":
 		errorAndExit("Stop the bobs")
