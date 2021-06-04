@@ -158,7 +158,10 @@ export const C2GDirectives: Record<
 		// If this stopped by encountering a non-script token, vomit it back
 		if (this.tokens[this.currentToken]) this.currentToken--
 		if (finalString)
-			this.queuedActions.push({ type: "script", value: finalString.trimEnd() })
+			this.queuedActions.push({
+				type: "script",
+				value: finalString.replace(/\w+$/, ""),
+			})
 		return true
 	},
 	wav() {

@@ -2,6 +2,7 @@ import { Actor, SlidingState } from "../actor"
 import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
+import { Item, ItemDestination } from "./items"
 
 function findNextTeleport<T extends Actor>(
 	this: T,
@@ -28,13 +29,10 @@ function findNextTeleport<T extends Actor>(
 		// eslint-disable-next-line no-constant-condition
 		true;
 		// This is used for valid level wrapping
-		y = (y + this.level.height + (goInRRO ? -1 : 1)) % this.level.height
+		y = (y + this.level.height + (goInRRO ? -1 : 1)) % this.level.height,
+			x = (this.level.width + x) % this.level.width
 	)
-		for (
-			x = (this.level.width + x) % this.level.width;
-			x >= 0 && x < this.level.width;
-			goInRRO ? x-- : x++
-		) {
+		for (; x >= 0 && x < this.level.width; goInRRO ? x-- : x++) {
 			const newTeleport = this.level.field[x][y].allActors.find(
 				val => val instanceof thisConstructor
 			) as T | undefined
@@ -174,3 +172,38 @@ export class GreenTeleport extends Actor {
 }
 
 actorDB["teleportGreen"] = GreenTeleport
+
+export class YellowTeleport extends Actor implements Item {
+	id = "teleportYellow"
+	destination = ItemDestination.ITEM
+	blocks(): false {
+		return false
+	}
+	onMemberSlideBonked(other: Actor): void {
+		other.slidingState = SlidingState.NONE
+	}
+	ignores = this.blocks
+	shouldPickup = true
+	levelStarted(): void {
+		// If this is the only yellow teleport at yellow start, never pick up
+		if (findNextTeleport.call(this, this, false, () => true) === this)
+			this.shouldPickup = false
+	}
+	actorCompletelyJoined(other: Actor): void {
+		const newTP = findNextTeleport.call(this, other, false)
+		if (this.shouldPickup && newTP === this)
+			Item.prototype.actorCompletelyJoined.call(this, other)
+		else {
+			other.oldTile = other.tile
+			other.tile = newTP.tile
+			other._internalUpdateTileStates()
+			other.slidingState = SlidingState.WEAK
+			if (other instanceof Playable) other.hasOverride = true
+		}
+	}
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+}
+
+actorDB["teleportYellow"] = YellowTeleport

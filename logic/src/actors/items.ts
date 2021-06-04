@@ -17,22 +17,27 @@ export abstract class Item extends Actor {
 	/**
 	 * Tags to add to the carrier of the item
 	 */
-	carrierTags: Record<string, string[]> = {}
+	carrierTags?: Record<string, string[]> = {}
 	blocks?(other: Actor): boolean {
-		return !matchTags(other.tags, [
-			"can-pickup-items",
-			"can-stand-on-items",
-			"playable",
-		])
+		return (
+			this.tile[Layer.ITEM_SUFFIX].length === 0 &&
+			!matchTags(other.tags, [
+				"can-pickup-items",
+				"can-stand-on-items",
+				"playable",
+			])
+		)
 	}
 	getLayer(): Layer {
 		return Layer.ITEM
 	}
-	ignores(): boolean {
-		return this.tile[Layer.ITEM_SUFFIX].length > 0
-	}
 	actorCompletelyJoined(other: Actor): void {
-		if (other.tags.includes("can-stand-on-items")) return
+		if (
+			other.tags.includes("can-stand-on-items") ||
+			(this.shouldBePickedUp && this.shouldBePickedUp(other)) ||
+			this.tile[Layer.ITEM_SUFFIX].length > 0
+		)
+			return
 		this.destroy(other, null)
 		switch (this.destination) {
 			case ItemDestination.KEY:
@@ -50,6 +55,7 @@ export abstract class Item extends Actor {
 	}
 	onPickup?(other: Actor): void
 	onDrop?(other: Actor): void
+	shouldBePickedUp?(other: Actor): void
 }
 
 export class EChipPlus extends Item {

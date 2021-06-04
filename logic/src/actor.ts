@@ -105,7 +105,7 @@ export abstract class Actor {
 					...this.inventory.items.reduce(
 						(acc, val) => [
 							...acc, // @ts-expect-error Typescript dumb
-							...(val.carrierTags[id] ? val.carrierTags[id] : []),
+							...(val.carrierTags?.[id] ? val.carrierTags[id] : []),
 						],
 						new Array<string>()
 					),
