@@ -120,6 +120,7 @@ export class ForceFloorRandom extends Actor {
 	}
 
 	onMemberSlideBonked(other: Actor): void {
+// This is shite code but whatever
 		crossLevelData.RFFDirection ??= 0
 		crossLevelData.RFFDirection--
 		this.continuousActorCompletelyJoined(other)
