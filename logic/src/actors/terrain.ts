@@ -93,9 +93,10 @@ export class ForceFloor extends Actor {
 	}
 
 	onMemberSlideBonked(other: Actor): void {
+		this.continuousActorCompletelyJoined(other)
 		// Give them a single subtick of cooldown
 		// FIXME First bump doesn't yield a cooldown in CC2
-		other.cooldown++
+		if (!(other instanceof Playable) || other.hasOverride) other.cooldown++
 	}
 	speedMod(): 2 {
 		return 2
@@ -119,9 +120,12 @@ export class ForceFloorRandom extends Actor {
 	}
 
 	onMemberSlideBonked(other: Actor): void {
+		crossLevelData.RFFDirection ??= 0
+		crossLevelData.RFFDirection--
+		this.continuousActorCompletelyJoined(other)
 		// Give them a single subtick of cooldown
 		// FIXME First bump doesn't yield a cooldown in CC2
-		other.cooldown++
+		if (!(other instanceof Playable) || other.hasOverride) other.cooldown++
 	}
 	speedMod(): 2 {
 		return 2

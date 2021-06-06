@@ -113,7 +113,7 @@ export abstract class Playable extends Actor {
 					else this.moveDecision = horiz + 1
 				}
 			}
-			this.hasOverride = bonked
+			this.hasOverride = false
 		}
 	}
 	destroy(other?: Actor | null, anim?: string | null): boolean {
