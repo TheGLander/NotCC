@@ -187,7 +187,7 @@ export class YellowTeleport extends Actor implements Item {
 	levelStarted(): void {
 		// If this is the only yellow teleport at yellow start, never pick up
 		this.shouldPickup =
-			findNextTeleport.call(this, this, false, () => true) === this
+			findNextTeleport.call(this, this, false, () => true) !== this
 	}
 	actorCompletelyJoined(other: Actor): void {
 		const newTP = findNextTeleport.call(this, other, false)

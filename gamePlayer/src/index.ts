@@ -20,6 +20,8 @@ import { SetPlayer } from "./setPlayer"
 import { artDB } from "./const"
 import { parseNCCS, writeNCCS } from "./logic/parsers/nccs"
 import { tokenizeC2G, C2GRunner } from "./logic/parsers/c2g"
+import { Actor } from "./logic/actor"
+import { Item } from "./logic/actors/items"
 
 function downloadFile(buff: ArrayBuffer): void {
 	const blob = new Blob([buff], { type: "application/octet-stream" })
@@ -141,6 +143,8 @@ const exportObject = {
 	crossLevelData,
 	artDB,
 	createLevelFromData,
+	Actor,
+	Item,
 }
 
 export default exportObject
