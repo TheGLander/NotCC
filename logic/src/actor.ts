@@ -197,8 +197,6 @@ export abstract class Actor {
 
 		if (!directions) return
 
-		// TODO Force redirection of movement (train tracks)
-
 		for (const direction of directions)
 			if (this.level.checkCollision(this, direction)) {
 				// Yeah, we can go here
@@ -212,16 +210,24 @@ export abstract class Actor {
 	}
 
 	_internalStep(direction: Direction): boolean {
-		if (this.cooldown) return false
-		// TODO Force redirection of movement (train tracks)
+		if (this.cooldown || !this.moveSpeed) return false
 		this.direction = direction
-		const canMove = this.level.checkCollision(this, direction, true)
-		// Welp, something stole our spot, too bad
-		if (!canMove || !this.moveSpeed) return false
 		const newTile = this.tile.getNeighbor(direction)
 		if (!newTile) return false
+		const canMove = this.level.checkCollisionToTile(
+			this,
+			newTile,
+			direction,
+			true
+		)
+
+		// Welp, something stole our spot, too bad
+		if (!canMove) return false
 		if (!this.isDeciding) this.level.decidingActors.push(this)
 		this.isDeciding = true
+		/* for (const exitActor of this.tile.allActors)
+			direction =
+				exitActor.redirectTileMemberDirection?.(this, direction) ?? direction */
 		const moveLength = (this.moveSpeed * 3) / newTile.getSpeedMod(this)
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
@@ -452,4 +458,8 @@ export abstract class Actor {
 	 * Checks if an actor can push this actor
 	 */
 	canBePushed?(other: Actor, direction: Direction): boolean
+	/**
+	 * When an actor tries to check anything direction related while being on this actor, the direction can be changed with this
+	 */
+	redirectTileMemberDirection?(other: Actor, direction: Direction): Direction
 }

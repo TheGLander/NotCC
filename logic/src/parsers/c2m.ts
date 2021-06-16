@@ -35,7 +35,7 @@ function createFieldFromArrayBuffer(
 				tiles.push(...parseTile())
 				continue
 			}
-			if (tile[1] === null) tile[1] = view.getUint8()
+			if (tile[1] === null) tile[1] = view.getUint8() % 4
 			if (tile[2] === null) {
 				// Handle special cases
 				switch (tile[0]) {
@@ -71,12 +71,17 @@ function createFieldFromArrayBuffer(
 					case "letterTile":
 						tile[2] = " "
 						break
-					case "modifier8": {
-						const options = view.getUint8()
+					case "modifier8":
+					case "modifier16":
+					case "modifier32": {
+						let options
+						if (tile[0] === "modifier8") options = view.getUint8()
+						else if (tile[0] === "modifier16") options = view.getUint16()
+						else options = view.getUint32()
+
 						const modTiles = parseTile()
 						tiles.splice(tiles.indexOf(tile), 1)
 						switch (modTiles[0]?.[0]) {
-							case undefined:
 							case "steelWall":
 							case "toggleSwitch":
 							case "transmogrifier":
@@ -144,7 +149,26 @@ function createFieldFromArrayBuffer(
 								tiles.push(...modTiles)
 								break
 							}
+							case "railroad": {
+								modTiles[0][2] = ""
+								const activeTrack = (options >> 8) - (options >> 12) * 0x10
+								if (activeTrack >= 6)
+									throw new Error(
+										`Railroad's active track is invalid! Expected value to be less than 6, got ${activeTrack}`
+									)
+								modTiles[0][2] += activeTrack
+								// Initial direction is mod 4
+								modTiles[0][2] += (options >> 12) % 4
+								for (let i = 0; i < 6; i++)
+									if (getBit(options, i)) modTiles[0][2] += i.toString()
+								if (getBit(options, 7)) modTiles[0][2] += "s"
+								tiles.push(...modTiles)
+								break
+							}
 							default:
+								console.warn(
+									`Found a modifier on an unrelated actor "${tiles[0]}"`
+								)
 								tiles.push(...modTiles)
 								break
 						}

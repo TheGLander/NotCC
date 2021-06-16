@@ -80,7 +80,7 @@ export abstract class Playable extends Actor {
 			}
 		}
 		canMove &&= !forcedOnly
-		const [vert, horiz] = getMovementDirections(this.level.gameInput)
+		let [vert, horiz] = getMovementDirections(this.level.gameInput)
 		if (
 			this.slidingState &&
 			(!canMove || (vert === undefined && horiz === undefined))
@@ -95,12 +95,14 @@ export abstract class Playable extends Actor {
 			// We have a direction we certanly wanna move to
 			if (vert === undefined || horiz === undefined) {
 				// @ts-expect-error We ruled out the possibility of no directions earlier, so if any of them is undefined, the other one is not
-				this.moveDecision = (vert ?? horiz) + 1
-				bonked = !this.level.checkCollision(this, this.moveDecision - 1, true)
+				bonked = !this.level.checkCollision(this, vert ?? horiz, true)
+				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
 			} else {
 				// We have two directions
 				const canHoriz = this.level.checkCollision(this, horiz, true)
+				horiz = this.level.resolvedCollisionCheckDirection
 				const canVert = this.level.checkCollision(this, vert, true)
+				vert = this.level.resolvedCollisionCheckDirection
 				if (canHoriz && !canVert) this.moveDecision = horiz + 1
 				else if (canVert && !canHoriz) this.moveDecision = vert + 1
 				else {

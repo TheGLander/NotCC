@@ -237,32 +237,38 @@ export class LevelState {
 		direction: Direction,
 		pushBlocks = false
 	): boolean {
-		const newTile = actor.tile.getNeighbor(direction)
-		return newTile
-			? this.checkCollisionToTile(actor, newTile, direction, pushBlocks)
-			: false
+		return this.checkCollisionToTile(actor, actor.tile, direction, pushBlocks)
 	}
+	resolvedCollisionCheckDirection: Direction = Direction.UP
 	/**
 	 * Checks if a specific actor can move in a certain direction to a certain tile
 	 * @param actor The actor to check for
 	 * @param direction The direction the actor wants to enter the tile
-	 * @param newTile The tile the actor wants to enter
+	 * @param fromTile The tile the actor is coming from
 	 * @param pushBlocks If true, it will push blocks
 	 * @returns If the actor *can* move in that direction
 	 */
 	checkCollisionToTile(
 		actor: Actor,
-		newTile: Tile,
+		fromTile: Tile,
 		direction: Direction,
 		pushBlocks = false
 	): boolean {
+		// This is a pass by reference-esque thing, please don't die of cring
+		this.resolvedCollisionCheckDirection = direction
+
 		// Do stuff on the leaving tile
 
-		for (const exitActor of actor.tile.allActors)
+		for (const exitActor of actor.tile.allActors.reverse())
 			if (exitActor._internalExitBlocks(actor, direction)) {
 				actor.onBlocked?.(exitActor)
 				return false
-			}
+			} else
+				this.resolvedCollisionCheckDirection = direction =
+					exitActor.redirectTileMemberDirection?.(actor, direction) ?? direction
+
+		const newTile = fromTile.getNeighbor(direction)
+		if (newTile === null) return false
 
 		const toPush: Actor[] = []
 

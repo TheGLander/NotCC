@@ -80,7 +80,7 @@ const cc2Tiles = [
 	[["timeBonus"], null],
 	[["stopwatch"], null],
 	[["transmogrifier"]],
-	[["railroadTrack"]], // Oh no
+	[["railroad"]], // Oh no
 	[["steelWall"]],
 	[["tnt"], null],
 	[["helmet"], null],
@@ -112,7 +112,7 @@ const cc2Tiles = [
 	[["unknown"]],
 	[["thinWall", 0, null], null],
 	[["unknown"]],
-	[["railroadSign"], null],
+	[["railroadIgnoreSign"], null],
 	[["customWall", 0, null]],
 	[["letterTile", 0, null]],
 	[["outlineContinuos", 0, "on"]],

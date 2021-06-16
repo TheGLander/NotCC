@@ -1,6 +1,6 @@
 import { artDB, setArtForActor } from "../const"
-import { genericAnimatedArt } from "../visuals"
-import { Trap } from "../logic/actors/terrain"
+import { ActorArt, genericAnimatedArt } from "../visuals"
+import { Railroad, Trap } from "../logic/actors/terrain"
 
 artDB["letterTile"] = actor => [
 	{
@@ -113,3 +113,15 @@ artDB["flameJet"] = actor => ({
 artDB["hint"] = { actorName: "hint" }
 
 artDB["transmogrifier"] = genericAnimatedArt("transmogrifier", 4)
+
+setArtForActor<Railroad>("railroad", actor => [
+	{ actorName: "gravel" },
+	...actor.legalRedirects.reduce<ActorArt[]>(
+		(acc, val) =>
+			new Array<ActorArt>({
+				actorName: "railroad",
+				animation: `wood${val}`,
+			}).concat(acc, [{ actorName: "railroad", animation: `rail${val}` }]),
+		[]
+	),
+])

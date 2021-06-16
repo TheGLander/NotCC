@@ -120,7 +120,7 @@ export class ForceFloorRandom extends Actor {
 	}
 
 	onMemberSlideBonked(other: Actor): void {
-// This is shite code but whatever
+		// This is shite code but whatever
 		crossLevelData.RFFDirection ??= 0
 		crossLevelData.RFFDirection--
 		this.continuousActorCompletelyJoined(other)
@@ -542,3 +542,47 @@ export class Transmogrifier extends Actor {
 }
 
 actorDB["transmogrifier"] = Transmogrifier
+
+const directionStrings = "URDL"
+
+export class Railroad extends Actor {
+	id = "railroad"
+	activeTrack: Direction = parseInt(this.customData[0] || "0")
+	lastEnteredDirection: Direction = parseInt(this.customData[1] || "0")
+	legalRedirects: string[] = Array.from(this.customData.substr(2)).map(
+		val => ["UR", "DR", "DL", "UL", "LR", "UD"][parseInt(val)]
+	)
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	blocks(_other: Actor, enterDirection: Direction): boolean {
+		const directionString = directionStrings[(enterDirection + 2) % 4]
+		// If there is no legal redirect regarding this direction, this direction cannot be entered
+		return !this.legalRedirects.find(val => val.includes(directionString))
+	}
+	actorCompletelyJoined(other: Actor): void {
+		const directionString = directionStrings[(other.direction + 2) % 4]
+		const isLegalDirection = this.legalRedirects.find(val =>
+			val.includes(directionString)
+		)
+		if (isLegalDirection) this.lastEnteredDirection = other.direction
+	}
+	redirectTileMemberDirection(_other: Actor, direction: Direction): Direction {
+		const directionString =
+			directionStrings[(this.lastEnteredDirection + 2) % 4]
+		const legalRedirects = this.legalRedirects
+			.filter(val => val.includes(directionString))
+			.map(val =>
+				directionStrings.indexOf(val[1 - val.indexOf(directionString)])
+			)
+		// Search for a valid (relative) direction in this order: Forward, right, left, backward
+		// TODO Railroad switches
+		for (const offset of [0, 1, -1, 2])
+			if (legalRedirects.includes((direction + offset + 4) % 4))
+				return (direction + offset + 4) % 4
+		// This...shouldn't happen outside of illegal railroads, so just don't redirect
+		return direction
+	}
+}
+
+actorDB["railroad"] = Railroad

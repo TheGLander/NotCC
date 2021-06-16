@@ -16,8 +16,8 @@ class Tile extends Array<Array<Actor>> {
 			...this[Layer.ITEM],
 			...this[Layer.MOVABLE],
 			...this[Layer.STATIONARY],
-			...this[Layer.ITEM_SUFFIX],
 			...this[Layer.SPECIAL],
+			...this[Layer.ITEM_SUFFIX],
 		]
 	}
 	x: number

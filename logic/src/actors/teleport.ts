@@ -12,11 +12,13 @@ function findNextTeleport<T extends Actor>(
 		other,
 		teleport
 	) => {
-		const neighbor = teleport.tile.getNeighbor(other.direction)
 		return (
 			(teleport.tile[Layer.MOVABLE].length === 0 &&
-				neighbor &&
-				this.level.checkCollisionToTile(other, neighbor, other.direction)) ??
+				this.level.checkCollisionToTile(
+					other,
+					teleport.tile,
+					other.direction
+				)) ??
 			false
 		)
 	}
@@ -78,20 +80,16 @@ export class RedTeleport extends Actor {
 			false,
 			(other: Actor, teleport: Actor) => {
 				if (teleport.tile[Layer.MOVABLE].length !== 0) return false
-				const rotateUntil = other.direction + 4
-				for (; rotateUntil !== other.direction; other.direction++) {
-					const neighbor = teleport.tile.getNeighbor(other.direction % 4)
+				for (let offset = 0; offset < 4; offset++)
 					if (
-						neighbor &&
 						this.level.checkCollisionToTile(
 							other,
-							neighbor,
-							other.direction % 4
+							teleport.tile,
+							(other.direction + offset) % 4
 						)
 					)
 						return true
-				}
-				other.direction %= 4
+
 				return false
 			}
 		).tile
@@ -139,24 +137,19 @@ export class GreenTeleport extends Actor {
 			]
 			other.direction = this.level.random() % 4
 			mainLoop: for (const teleport of validTeleports) {
-				const rotateUntil = other.direction + 4
-				for (; rotateUntil !== other.direction; other.direction++) {
-					const neighbor = teleport.tile.getNeighbor(other.direction % 4)
+				for (let offset = 0; offset < 4; offset++)
 					if (
-						neighbor &&
 						this.level.checkCollisionToTile(
 							other,
-							neighbor,
-							other.direction % 4
+							teleport.tile,
+							other.direction + offset
 						)
 					) {
 						targetTeleport = teleport
 						break mainLoop
 					}
-				}
 			}
 		}
-		other.direction %= 4
 		if (!targetTeleport)
 			throw new Error(
 				"This state should never happen, please report if this happens"
