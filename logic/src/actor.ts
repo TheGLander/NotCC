@@ -212,19 +212,17 @@ export abstract class Actor {
 	_internalStep(direction: Direction): boolean {
 		if (this.cooldown || !this.moveSpeed) return false
 		this.direction = direction
-		const newTile = this.tile.getNeighbor(direction)
-		if (!newTile) return false
-		const canMove = this.level.checkCollisionToTile(
-			this,
-			newTile,
-			direction,
-			true
-		)
+		const canMove = this.level.checkCollision(this, direction, true)
 
 		// Welp, something stole our spot, too bad
 		if (!canMove) return false
 		if (!this.isDeciding) this.level.decidingActors.push(this)
 		this.isDeciding = true
+		const newTile = this.tile.getNeighbor(
+			this.level.resolvedCollisionCheckDirection
+		)
+		// This is purely a defensive programming thing, shouldn't happen normally (checkCollision should check for going OOB)
+		if (!newTile) return false
 		/* for (const exitActor of this.tile.allActors)
 			direction =
 				exitActor.redirectTileMemberDirection?.(this, direction) ?? direction */
