@@ -76,6 +76,12 @@ export class IceCorner extends Actor {
 			otherMoveDirection === (this.direction + 1) % 4
 		)
 	}
+	exitBlocks(_other: Actor, otherMoveDirection: Direction): boolean {
+		return (
+			otherMoveDirection === this.direction ||
+			otherMoveDirection === (this.direction + 1) % 4
+		)
+	}
 	// TODO Block exit from ice corners with cleats
 }
 actorDB["iceCorner"] = IceCorner
