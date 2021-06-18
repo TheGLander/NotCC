@@ -237,7 +237,7 @@ export class LevelState {
 		direction: Direction,
 		pushBlocks = false
 	): boolean {
-		return this.checkCollisionToTile(actor, actor.tile, direction, pushBlocks)
+		return this.checkCollisionFromTile(actor, actor.tile, direction, pushBlocks)
 	}
 	resolvedCollisionCheckDirection: Direction = Direction.UP
 	/**
@@ -248,7 +248,7 @@ export class LevelState {
 	 * @param pushBlocks If true, it will push blocks
 	 * @returns If the actor *can* move in that direction
 	 */
-	checkCollisionToTile(
+	checkCollisionFromTile(
 		actor: Actor,
 		fromTile: Tile,
 		direction: Direction,
@@ -259,7 +259,7 @@ export class LevelState {
 
 		// Do stuff on the leaving tile
 
-		for (const exitActor of actor.tile.allActors.reverse())
+		for (const exitActor of fromTile.allActors.reverse())
 			if (exitActor._internalExitBlocks(actor, direction)) {
 				actor.onBlocked?.(exitActor)
 				return false
@@ -283,17 +283,16 @@ export class LevelState {
 			for (const blockActor of newTile[layer]) {
 				blockActor.bumped?.(actor, direction)
 				actor.bumpedActor?.(blockActor, direction)
-				if (!blockActor._internalBlocks(actor, direction))
-					if (
-						(layer !== Layer.ITEM_SUFFIX && layer !== Layer.MOVABLE) ||
-						newTile[layer].indexOf(blockActor) !== newTile[layer].length - 1
-					)
-						// Item suffixes are dumb
-						continue
-					else break loop
-				if (actor._internalCanPush(blockActor, direction))
-					toPush.push(blockActor)
-				else return false
+				if (blockActor._internalBlocks(actor, direction))
+					if (actor._internalCanPush(blockActor, direction))
+						toPush.push(blockActor)
+					else return false
+				if (
+					(layer === Layer.ITEM_SUFFIX || layer === Layer.MOVABLE) &&
+					newTile[layer].indexOf(blockActor) === newTile[layer].length - 1
+				)
+					// This is dumb
+					break loop
 			}
 
 		for (const pushable of toPush) {

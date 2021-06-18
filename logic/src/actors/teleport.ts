@@ -14,7 +14,7 @@ function findNextTeleport<T extends Actor>(
 	) => {
 		return (
 			(teleport.tile[Layer.MOVABLE].length === 0 &&
-				this.level.checkCollisionToTile(
+				this.level.checkCollisionFromTile(
 					other,
 					teleport.tile,
 					other.direction,
@@ -83,7 +83,7 @@ export class RedTeleport extends Actor {
 				if (teleport.tile[Layer.MOVABLE].length !== 0) return false
 				for (let offset = 0; offset < 4; offset++)
 					if (
-						this.level.checkCollisionToTile(
+						this.level.checkCollisionFromTile(
 							other,
 							teleport.tile,
 							(other.direction + offset) % 4,
@@ -141,7 +141,7 @@ export class GreenTeleport extends Actor {
 			mainLoop: for (const teleport of validTeleports) {
 				for (let offset = 0; offset < 4; offset++)
 					if (
-						this.level.checkCollisionToTile(
+						this.level.checkCollisionFromTile(
 							other,
 							teleport.tile,
 							(other.direction + offset) % 4,
