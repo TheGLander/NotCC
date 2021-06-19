@@ -298,7 +298,6 @@ export abstract class Actor {
 				this.getCompleteTags("tags"),
 				other.getCompleteTags("collisionIgnoreTags")
 			) &&
-			!this._internalIgnores(other) &&
 			(this.blocks?.(other, moveDirection) ||
 				other.blockedBy?.(this, moveDirection) ||
 				matchTags(
@@ -417,7 +416,10 @@ export abstract class Actor {
 	_internalExitBlocks(other: Actor, exitDirection: Direction): boolean {
 		// TODO Block exit via tags(?) Not sure if that can be useful
 		return (
-			(!this._internalIgnores(other) &&
+			(!matchTags(
+				this.getCompleteTags("tags"),
+				other.getCompleteTags("collisionIgnoreTags")
+			) &&
 				this.exitBlocks?.(other, exitDirection)) ??
 			false
 		)
