@@ -452,6 +452,7 @@ export abstract class Actor {
 		this.destroy(null, null)
 		const newActor = new other(this.level, this.tile.position, this.customData)
 		newActor.direction = this.direction
+		newActor.inventory = this.inventory
 		return newActor
 	}
 	/**
