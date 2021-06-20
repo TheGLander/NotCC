@@ -161,7 +161,7 @@ function createFieldFromArrayBuffer(
 								modTiles[0][2] += (options >> 12) % 4
 								for (let i = 0; i < 6; i++)
 									if (getBit(options, i)) modTiles[0][2] += i.toString()
-								if (getBit(options, 7)) modTiles[0][2] += "s"
+								if (getBit(options, 6)) modTiles[0][2] += "s"
 								tiles.push(...modTiles)
 								break
 							}

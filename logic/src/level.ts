@@ -263,10 +263,15 @@ export class LevelState {
 			if (exitActor._internalExitBlocks(actor, direction)) {
 				actor.onBlocked?.(exitActor)
 				return false
-			} else
-				this.resolvedCollisionCheckDirection = direction =
-					exitActor.redirectTileMemberDirection?.(actor, direction) ?? direction
-
+			} else {
+				const redirection = exitActor.redirectTileMemberDirection?.(
+					actor,
+					direction
+				)
+				if (redirection === undefined) continue
+				if (redirection === null) return false
+				this.resolvedCollisionCheckDirection = direction = redirection
+			}
 		const newTile = fromTile.getNeighbor(direction)
 		if (newTile === null) return false
 

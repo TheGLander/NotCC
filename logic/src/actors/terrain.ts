@@ -549,15 +549,24 @@ export class Transmogrifier extends Actor {
 
 actorDB["transmogrifier"] = Transmogrifier
 
-const directionStrings = "URDL"
+export const directionStrings = "URDL"
 
 export class Railroad extends Actor {
 	id = "railroad"
-	activeTrack: Direction = parseInt(this.customData[0] || "0")
+	isSwitch = this.customData.includes("s")
+	allRRRedirects = ["UR", "DR", "DL", "UL", "LR", "UD"]
+	activeTrack: string = this.allRRRedirects[parseInt(this.customData[0] || "0")]
 	lastEnteredDirection: Direction = parseInt(this.customData[1] || "0")
-	legalRedirects: string[] = Array.from(this.customData.substr(2)).map(
-		val => ["UR", "DR", "DL", "UL", "LR", "UD"][parseInt(val)]
-	)
+	baseRedirects: string[] = Array.from(this.customData.substr(2))
+		.filter(val => !isNaN(parseInt(val)))
+		.map(val => this.allRRRedirects[parseInt(val)])
+	get legalRedirects(): string[] {
+		return this.isSwitch
+			? this.baseRedirects.includes(this.activeTrack)
+				? [this.activeTrack]
+				: []
+			: this.baseRedirects
+	}
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -567,13 +576,14 @@ export class Railroad extends Actor {
 		return !this.legalRedirects.find(val => val.includes(directionString))
 	}
 	actorCompletelyJoined(other: Actor): void {
-		const directionString = directionStrings[(other.direction + 2) % 4]
-		const isLegalDirection = this.legalRedirects.find(val =>
-			val.includes(directionString)
-		)
-		if (isLegalDirection) this.lastEnteredDirection = other.direction
+		this.lastEnteredDirection = other.direction
 	}
-	redirectTileMemberDirection(_other: Actor, direction: Direction): Direction {
+	redirectTileMemberDirection(
+		other: Actor,
+		direction: Direction
+	): Direction | null {
+		if (other.getCompleteTags("tags").includes("ignores-railroad-redirect"))
+			return direction
 		const directionString =
 			directionStrings[(this.lastEnteredDirection + 2) % 4]
 		const legalRedirects = this.legalRedirects
@@ -582,12 +592,34 @@ export class Railroad extends Actor {
 				directionStrings.indexOf(val[1 - val.indexOf(directionString)])
 			)
 		// Search for a valid (relative) direction in this order: Forward, right, left, backward
-		// TODO Railroad switches
 		for (const offset of [0, 1, -1, 2])
 			if (legalRedirects.includes((direction + offset + 4) % 4))
 				return (direction + offset + 4) % 4
-		// This...shouldn't happen outside of illegal railroads, so just don't redirect
-		return direction
+		// This...shouldn't happen outside of illegal railroads or RR signs, so don't redirect
+		return null
+	}
+	actorLeft(other: Actor): void {
+		if (!this.isSwitch) return
+		const enterDirection =
+				directionStrings[(this.lastEnteredDirection + 2) % 4],
+			// Note that it doesn't have to make a move which makes sense, you just have to enter and exit in directions which are valid in a vacuum
+			isLegalISH = !!this.legalRedirects.find(
+				val =>
+					val.includes(enterDirection) &&
+					val.includes(directionStrings[other.direction])
+			)
+		if (isLegalISH) {
+			const exActiveTrack = this.allRRRedirects.indexOf(this.activeTrack)
+			for (
+				let redirectID = (exActiveTrack + 1) % 6;
+				redirectID !== exActiveTrack;
+				redirectID = (redirectID + 1) % 6
+			)
+				if (this.baseRedirects.includes(this.allRRRedirects[redirectID])) {
+					this.activeTrack = this.allRRRedirects[redirectID]
+					break
+				}
+		}
 	}
 }
 

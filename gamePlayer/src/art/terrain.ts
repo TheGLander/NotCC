@@ -114,14 +114,24 @@ artDB["hint"] = { actorName: "hint" }
 
 artDB["transmogrifier"] = genericAnimatedArt("transmogrifier", 4)
 
-setArtForActor<Railroad>("railroad", actor => [
-	{ actorName: "gravel" },
-	...actor.legalRedirects.reduce<ActorArt[]>(
+setArtForActor<Railroad>("railroad", actor => {
+	let railArt: ActorArt[] = []
+	if (actor.isSwitch)
+		// Add non-active tracks
+		railArt = actor.baseRedirects.map(val => ({
+			actorName: "railroad",
+			animation: `toggleRail${val}`,
+		}))
+	// Add all active tracks
+	railArt = actor.legalRedirects.reduce<ActorArt[]>(
 		(acc, val) =>
 			new Array<ActorArt>({
 				actorName: "railroad",
 				animation: `wood${val}`,
 			}).concat(acc, [{ actorName: "railroad", animation: `rail${val}` }]),
-		[]
-	),
-])
+		railArt
+	)
+	if (actor.isSwitch)
+		railArt.push({ actorName: "railroad", animation: "toggleMark" })
+	return [{ actorName: "gravel" }, ...railArt]
+})

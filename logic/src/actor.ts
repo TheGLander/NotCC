@@ -168,7 +168,11 @@ export abstract class Actor {
 			for (const actor of this.tile.allActors)
 				if (actor.newActorOnTile && !actor._internalIgnores(this))
 					actor.newActorOnTile(this)
-		this.isDeciding = !!(this.layer === Layer.MOVABLE || this.onEachDecision)
+		this.isDeciding = !!(
+			this.layer === Layer.MOVABLE ||
+			this.onEachDecision ||
+			this.decideMovement
+		)
 		if (this.isDeciding) level.decidingActors.push(this)
 	}
 	/**
@@ -213,7 +217,7 @@ export abstract class Actor {
 		if (this.cooldown || !this.moveSpeed) return false
 		this.direction = direction
 		const canMove = this.level.checkCollision(this, direction, true)
-
+		this.direction = this.level.resolvedCollisionCheckDirection
 		// Welp, something stole our spot, too bad
 		if (!canMove) return false
 		if (!this.isDeciding) this.level.decidingActors.push(this)
@@ -223,9 +227,6 @@ export abstract class Actor {
 		)
 		// This is purely a defensive programming thing, shouldn't happen normally (checkCollision should check for going OOB)
 		if (!newTile) return false
-		/* for (const exitActor of this.tile.allActors)
-			direction =
-				exitActor.redirectTileMemberDirection?.(this, direction) ?? direction */
 		const moveLength = (this.moveSpeed * 3) / newTile.getSpeedMod(this)
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
@@ -461,6 +462,10 @@ export abstract class Actor {
 	canBePushed?(other: Actor, direction: Direction): boolean
 	/**
 	 * When an actor tries to check anything direction related while being on this actor, the direction can be changed with this
+	 * Returning null is the same as exit-blocking on all sides
 	 */
-	redirectTileMemberDirection?(other: Actor, direction: Direction): Direction
+	redirectTileMemberDirection?(
+		other: Actor,
+		direction: Direction
+	): Direction | null
 }
