@@ -193,7 +193,7 @@ actorDB["goronBraslet"] = GoronBraslet
 export class Helmet extends Item {
 	id = "helmet"
 	destination = ItemDestination.ITEM
-	carrierTags = { immuneTags: ["movable"] }
+	carrierTags = { tags: ["ignore-default-monster-kill"] }
 }
 
 actorDB["helmet"] = Helmet

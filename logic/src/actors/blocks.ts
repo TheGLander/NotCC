@@ -17,7 +17,13 @@ export class DirtBlock extends Actor {
 		return true
 	}
 	bumpedActor(other: Actor): void {
-		if (other instanceof Playable) other.destroy(this)
+		if (
+			other instanceof Playable &&
+			!this.getCompleteTags("tags")
+				.concat(other.getCompleteTags("tags"))
+				.includes("ignore-default-monster-kill")
+		)
+			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
 		const water = this.tile[Layer.STATIONARY].find(val => val instanceof Water)
