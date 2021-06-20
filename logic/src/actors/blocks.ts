@@ -48,7 +48,13 @@ export class IceBlock extends Actor {
 		return true
 	}
 	bumpedActor(other: Actor): void {
-		if (other instanceof Playable) other.destroy(this)
+		if (
+			other instanceof Playable &&
+			!this.getCompleteTags("tags")
+				.concat(other.getCompleteTags("tags"))
+				.includes("ignore-default-monster-kill")
+		)
+			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
 		const water = this.tile[Layer.STATIONARY].find(val =>
@@ -85,7 +91,13 @@ export class DirectionalBlock extends Actor {
 	pushTags = ["block"]
 	tags = ["block", "cc2block", "movable", "can-stand-on-items"]
 	bumpedActor(other: Actor): void {
-		if (other instanceof Playable) other.destroy(this)
+		if (
+			other instanceof Playable &&
+			!this.getCompleteTags("tags")
+				.concat(other.getCompleteTags("tags"))
+				.includes("ignore-default-monster-kill")
+		)
+			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
 		const water = this.tile[Layer.STATIONARY].find(val =>
