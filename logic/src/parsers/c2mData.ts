@@ -112,7 +112,7 @@ const cc2Tiles = [
 	[["unknown"]],
 	[["thinWall", 0, null], null],
 	[["unknown"]],
-	[["railroadIgnoreSign"], null],
+	[["railroadSign"], null],
 	[["customWall", 0, null]],
 	[["letterTile", 0, null]],
 	[["outlineContinuos", 0, "on"]],

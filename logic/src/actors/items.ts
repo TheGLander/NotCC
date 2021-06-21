@@ -234,3 +234,14 @@ export class SecretEye extends Item {
 }
 
 actorDB["secretEye"] = SecretEye
+
+export class RailroadSign extends Item {
+	id = "railroadSign"
+	carrierTags = {
+		tags: ["ignores-railroad-redirect"],
+		collisionIgnoreTags: ["railroad"],
+	}
+	destination = ItemDestination.ITEM
+}
+
+actorDB["railroadSign"] = RailroadSign

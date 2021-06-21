@@ -31,3 +31,5 @@ artDB["bonusFlag"] = actor => ({
 })
 
 artDB["secretEye"] = { actorName: "secretEye" }
+
+artDB["railroadSign"] = { actorName: "railroadSign" }

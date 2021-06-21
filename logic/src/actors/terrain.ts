@@ -553,6 +553,7 @@ export const directionStrings = "URDL"
 
 export class Railroad extends Actor {
 	id = "railroad"
+	tags = ["railroad"]
 	isSwitch = this.customData.includes("s")
 	allRRRedirects = ["UR", "DR", "DL", "UL", "LR", "UD"]
 	activeTrack: string = this.allRRRedirects[parseInt(this.customData[0] || "0")]
