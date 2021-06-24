@@ -42,3 +42,5 @@ artDB["floorMimic"] = actor => ({
 		? "floorMimic"
 		: "floor",
 })
+
+artDB["bowlingBallRolling"] = genericAnimatedArt("bowlingBall", 2)

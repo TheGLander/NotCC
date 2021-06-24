@@ -3,7 +3,7 @@ import { Actor, matchTags } from "../actor"
 import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
 import { Playable } from "./playables"
-import { LitTNT } from "./monsters"
+import { LitTNT, RollingBowlingBall } from "./monsters"
 
 export const enum ItemDestination {
 	NONE,
@@ -34,7 +34,7 @@ export abstract class Item extends Actor {
 	actorCompletelyJoined(other: Actor): void {
 		if (
 			other.tags.includes("can-stand-on-items") ||
-			(this.shouldBePickedUp && this.shouldBePickedUp(other)) ||
+			(this.shouldBePickedUp && !this.shouldBePickedUp(other)) ||
 			this.tile[Layer.ITEM_SUFFIX].length > 0
 		)
 			return
@@ -55,7 +55,7 @@ export abstract class Item extends Actor {
 	}
 	onPickup?(other: Actor): void
 	onDrop?(other: Actor): void
-	shouldBePickedUp?(other: Actor): void
+	shouldBePickedUp?(other: Actor): boolean
 }
 
 export class EChipPlus extends Item {
@@ -64,6 +64,9 @@ export class EChipPlus extends Item {
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		level.chipsTotal++
+	}
+	shouldBePickedUp(other: Actor): boolean {
+		return other instanceof Playable
 	}
 	onPickup(): void {
 		this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
@@ -245,3 +248,16 @@ export class RailroadSign extends Item {
 }
 
 actorDB["railroadSign"] = RailroadSign
+
+export class BowlingBall extends Item {
+	id = "bowlingBall"
+	destination = ItemDestination.ITEM
+	onDrop(dropper: Actor): void {
+		dropper.despawn(true)
+		const rollingGuy = this.replaceWith(RollingBowlingBall)
+		rollingGuy._internalStep(dropper.direction)
+		dropper.respawn()
+	}
+}
+
+actorDB["bowlingBall"] = BowlingBall

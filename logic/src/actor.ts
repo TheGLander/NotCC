@@ -68,6 +68,14 @@ export abstract class Actor {
 			console.warn("A despawn has happended")
 		}
 	}
+	respawn(): void {
+		this.despawned = false
+		if (!this.tile.allActors.includes(this)) {
+			// Remove all other things on the same layer
+			for (const actor of this.tile[this.layer]) actor.despawn()
+			this.tile.addActors(this)
+		}
+	}
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
 	 */

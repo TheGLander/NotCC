@@ -14,8 +14,8 @@ export abstract class Monster extends Actor {
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
-	bumped(other: Actor): void {
-		// Monsters kill players which bump into them if they can move into them
+	bumped(other: Actor, _bumpedDirection: Direction): void {
+		// Monsters kill players which bump into
 		if (
 			other instanceof Playable &&
 			!this.getCompleteTags("tags")
@@ -25,7 +25,16 @@ export abstract class Monster extends Actor {
 			other.destroy(this)
 	}
 	// Monsters kill players which they bump into
-	bumpedActor = this.bumped
+	bumpedActor(other: Actor, _bumpedDirection: Direction): void {
+		// Monsters kill players which bump into them if they can move into them
+		if (
+			other instanceof Playable &&
+			!this.getCompleteTags("tags")
+				.concat(other.getCompleteTags("tags"))
+				.includes("ignore-default-monster-kill")
+		)
+			other.destroy(this)
+	}
 }
 
 export class Centipede extends Monster {
@@ -53,7 +62,7 @@ actorDB["ant"] = Ant
 export class Glider extends Monster {
 	id = "glider"
 	transmogrifierTarget = "centipede"
-	ignoreTags = ["water"]
+	ignoreTags = ["water-ish"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
@@ -278,9 +287,9 @@ export class TankYellow extends Monster {
 	movePending: Decision = Decision.NONE
 	decideMovement(): [] {
 		if (this.movePending) {
-			this.direction = this.movePending - 1
 			if (this.level.checkCollision(this, this.movePending - 1))
-				this.moveDecision = this.movePending
+				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
+			this.direction = this.level.resolvedCollisionCheckDirection
 			this.movePending = Decision.NONE
 		}
 		return []
@@ -292,3 +301,19 @@ export class TankYellow extends Monster {
 }
 
 actorDB["tankYellow"] = TankYellow
+
+export class RollingBowlingBall extends Monster {
+	id = "bowlingBallRolling"
+	tags = ["can-pickup-items", "movable"]
+	decideMovement(): [Direction] {
+		return [this.direction]
+	}
+	bumpedActor(other: Actor, direction: Direction): void {
+		if (other._internalBlocks(this, direction)) {
+			if (other.layer === Layer.MOVABLE) other.destroy(this)
+			this.destroy(this)
+		}
+	}
+}
+
+actorDB["bowlingBallRolling"] = RollingBowlingBall

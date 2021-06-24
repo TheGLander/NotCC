@@ -179,7 +179,7 @@ actorDB["void"] = Void
 
 export class Water extends Actor {
 	id = "water"
-	tags = ["water"]
+	tags = ["water", "water-ish"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -411,7 +411,7 @@ actorDB["bomb"] = Bomb
 
 export class Turtle extends Actor {
 	id = "turtle"
-	tags = ["blocks-ghost"]
+	tags = ["water-ish"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}

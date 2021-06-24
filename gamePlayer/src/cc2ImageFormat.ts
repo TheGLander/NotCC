@@ -230,6 +230,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[5, 17],
 			],
 		},
+		bowlingBall: [
+			[6, 17],
+			[7, 17],
+		],
 		forceFloor: {
 			up: [
 				[0, 19],
@@ -397,6 +401,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[12, 14],
 			],
 		},
+		helmet: [0, 14],
 		blob: {
 			idle: [0, 15],
 			vertical: [
