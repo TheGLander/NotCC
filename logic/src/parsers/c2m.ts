@@ -82,6 +82,7 @@ function createFieldFromArrayBuffer(
 						const modTiles = parseTile()
 						tiles.splice(tiles.indexOf(tile), 1)
 						switch (modTiles[0]?.[0]) {
+							case undefined:
 							case "steelWall":
 							case "toggleSwitch":
 							case "transmogrifier":

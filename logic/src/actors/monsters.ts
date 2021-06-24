@@ -74,6 +74,7 @@ actorDB["glider"] = Glider
 export class Fireball extends Monster {
 	id = "fireball"
 	transmogrifierTarget = "ant"
+	collisionIgnoreTags = ["fire"]
 	ignoreTags = ["fire"]
 	tags = ["autonomous-monster", "normal-monster", "movable", "melting"]
 	decideMovement(): Direction[] {
