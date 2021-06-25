@@ -7,7 +7,9 @@ import {
 } from "../encoder"
 import { Field, Direction } from "../helpers"
 import data, { cc2Tile } from "./c2mData"
-import clone from "deepclone"
+import rfdc from "rfdc"
+
+const clone = rfdc()
 
 /**
  * Gets a bit from a number

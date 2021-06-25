@@ -9,6 +9,9 @@ import {
 import keycode from "keycode"
 import Renderer from "./visuals"
 import { SolutionStep } from "./logic/encoder"
+import rfdc from "rfdc"
+
+const clone = rfdc({ circles: true })
 
 const isSmartTV =
 	/smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
@@ -91,6 +94,7 @@ export class PulseManager {
 		this.renderer.frame()
 		this.trackFps()
 	}
+	oldLevelStates: LevelState[] = []
 	constructor(
 		public level: LevelState,
 		public renderSpace?: HTMLElement | null,
@@ -130,6 +134,7 @@ export class PulseManager {
 		await this.renderer.updateFillerData()
 		this.eventsRegistered.newLevel.forEach(val => val())
 		this.recordedSteps = []
+		this.oldLevelStates = []
 	}
 	updateTextStats(): void {
 		if (!this.textStats) return
@@ -179,6 +184,8 @@ Bonus: ${this.level.bonusPoints}pts`
 			delayCounter.innerText = `Calculation delay: ${
 				Math.round(this.countDelay(Date.now() - oldTime) * 1000) / 1000
 			}ms`
+		// if (this.level.currentTick % 300 === 0)
+		//			this.oldLevelStates.push(clone(this.level))
 		setTimeout(
 			this.tickLevel,
 			1000 / (this.ticksPerSecond / ticksProcessed) - (Date.now() - oldTime)
