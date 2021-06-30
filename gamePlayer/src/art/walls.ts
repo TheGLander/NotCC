@@ -84,7 +84,7 @@ artDB["greenWall"] = actor => ({
 	actorName: "greenWall",
 	animation:
 		actor.customData === "fake" &&
-		(actor.tile[Layer.MOVABLE].length > 0 ||
+		(actor.tile.hasLayer(Layer.MOVABLE) ||
 			actor.level.selectedPlayable
 				?.getCompleteTags("tags")
 				.includes("can-see-secrets"))

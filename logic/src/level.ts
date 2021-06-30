@@ -12,6 +12,7 @@ import {
 } from "./encoder"
 import { actorDB } from "./const"
 import { hasSteps } from "./encoder"
+import { iterableIndexOf } from "./iterableHelpers"
 
 export enum GameState {
 	PLAYING,
@@ -259,7 +260,7 @@ export class LevelState {
 
 		// Do stuff on the leaving tile
 
-		for (const exitActor of fromTile.allActors.reverse())
+		for (const exitActor of Array.from(fromTile.allActors).reverse())
 			if (exitActor._internalExitBlocks(actor, direction)) {
 				actor.onBlocked?.(exitActor)
 				return false
@@ -294,7 +295,8 @@ export class LevelState {
 					else return false
 				if (
 					(layer === Layer.ITEM_SUFFIX || layer === Layer.MOVABLE) &&
-					newTile[layer].indexOf(blockActor) === newTile[layer].length - 1
+					iterableIndexOf(newTile[layer], blockActor) ===
+						newTile.layerLength(layer) - 1
 				)
 					// This is dumb
 					break loop

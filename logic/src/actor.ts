@@ -4,6 +4,7 @@ import { Direction } from "./helpers"
 import { Layer } from "./tile"
 import Tile from "./tile"
 import { Item, Key } from "./actors/items"
+import { iterableIncludes } from "./iterableHelpers"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -70,55 +71,54 @@ export abstract class Actor {
 	}
 	respawn(): void {
 		this.despawned = false
-		if (!this.tile.allActors.includes(this)) {
+		if (!iterableIncludes(this.tile.allActors, this)) {
 			// Remove all other things on the same layer
 			for (const actor of this.tile[this.layer]) actor.despawn()
-			this.tile.addActors(this)
+			this.tile.optimizedState[this.layer] = this
 		}
 	}
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
 	 */
-	pushTags: string[] = []
+	pushTags?: string[]
 	/**
 	 * General-use tags to use, for example, for collisions
 	 */
-	tags: string[] = []
+	tags?: string[]
 	/**
 	 * Tags which this actor blocks
 	 */
-	blockTags: string[] = []
+	blockTags?: string[]
 	/**
 	 * Tags which this actor is blocked by
 	 */
-	blockedByTags: string[] = []
+	blockedByTags?: string[]
 
 	/**
 	 * Tags which this actor refuses to be blocked by
 	 */
-	collisionIgnoreTags: string[] = []
+	collisionIgnoreTags?: string[]
 	/**
 	 * Tags which this actor will not conduct any interactions with.
 	 */
-	ignoreTags: string[] = []
+	ignoreTags?: string[]
 	/**
 	 * Tags which this actor should not be destroyed by
 	 */
-	immuneTags: string[] = []
+	immuneTags?: string[]
 	getCompleteTags<T extends keyof this>(id: T): string[] {
-		// @ts-expect-error Typescript dumb
-		return this[id] instanceof Array
-			? [
-					...(this[id] as unknown as string[]),
-					...this.inventory.items.reduce(
-						(acc, val) => [
-							...acc, // @ts-expect-error Typescript dumb
-							...(val.carrierTags?.[id] ? val.carrierTags[id] : []),
-						],
-						new Array<string>()
-					),
-			  ]
-			: null
+		return [
+			...((this[id] as unknown as string[])
+				? (this[id] as unknown as string[])
+				: []),
+			...this.inventory.items.reduce(
+				(acc, val) => [
+					...acc, // @ts-expect-error Typescript dumb
+					...(val.carrierTags?.[id] ? val.carrierTags[id] : []),
+				],
+				new Array<string>()
+			),
+		]
 	}
 	ignores?(other: Actor): boolean
 	_internalIgnores(other: Actor): boolean {
@@ -149,7 +149,7 @@ export abstract class Actor {
 		itemMax: 4,
 	}
 	dropItem(): void {
-		if (this.tile[Layer.ITEM].length > 0) return
+		if (this.tile.hasLayer(Layer.ITEM)) return
 		const itemToDrop = this.inventory.items.pop()
 		if (!itemToDrop) return
 		if (this.despawned)
@@ -171,7 +171,7 @@ export abstract class Actor {
 		level.actors.push(this)
 		this.tile = level.field[position[0]][position[1]]
 		for (const actor of this.tile[this.layer]) actor.despawn()
-		this.tile.addActors([this])
+		this.tile.optimizedState[this.layer] = this
 		if (level.levelStarted)
 			for (const actor of this.tile.allActors)
 				if (actor.newActorOnTile && !actor._internalIgnores(this))
@@ -379,7 +379,7 @@ export abstract class Actor {
 		if (
 			animType &&
 			actorDB[`${animType}Anim`] &&
-			this.tile[Layer.MOVABLE].length === 0
+			!this.tile.hasLayer(Layer.MOVABLE)
 		) {
 			const anim = new actorDB[`${animType}Anim`](
 				this.level,

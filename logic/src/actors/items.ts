@@ -20,8 +20,8 @@ export abstract class Item extends Actor {
 	carrierTags?: Record<string, string[]> = {}
 	blocks?(other: Actor): boolean {
 		return (
-			this.tile[Layer.ITEM_SUFFIX].length === 0 &&
-			!matchTags(other.tags, [
+			!this.tile.hasLayer(Layer.ITEM_SUFFIX) &&
+			!matchTags(other.getCompleteTags("tags"), [
 				"can-pickup-items",
 				"can-stand-on-items",
 				"playable",
@@ -33,9 +33,9 @@ export abstract class Item extends Actor {
 	}
 	actorCompletelyJoined(other: Actor): void {
 		if (
-			other.tags.includes("can-stand-on-items") ||
+			other.getCompleteTags("tags").includes("can-stand-on-items") ||
 			(this.shouldBePickedUp && !this.shouldBePickedUp(other)) ||
-			this.tile[Layer.ITEM_SUFFIX].length > 0
+			this.tile.hasLayer(Layer.ITEM_SUFFIX)
 		)
 			return
 		this.destroy(other, null)

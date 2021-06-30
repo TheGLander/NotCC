@@ -5,6 +5,7 @@ import { Playable } from "./playables"
 import { actorDB, Decision } from "../const"
 import { Fire } from "./terrain"
 import Tile from "../tile"
+import { iterableFind } from "../iterableHelpers"
 
 export abstract class Monster extends Actor {
 	blocks(): true {
@@ -207,10 +208,12 @@ export class BlobMonster extends Monster {
 		][this.level.random() % 9]
 	}
 	newTileJoined(): void {
-		const spreadedSlime = this.oldTile?.allActors.find(val =>
-			val.tags.includes("slime")
-		)
-		if (spreadedSlime && this.tile[spreadedSlime.layer].length === 0)
+		const spreadedSlime =
+			this.oldTile &&
+			iterableFind(this.oldTile.allActors, (val: Actor) =>
+				val.getCompleteTags("tags").includes("slime")
+			)
+		if (spreadedSlime && !this.tile.hasLayer(spreadedSlime.layer))
 			new actorDB[spreadedSlime.id](
 				this.level,
 				this.tile.position,
@@ -245,7 +248,7 @@ export class LitTNT extends Monster {
 	id = "tntLit"
 	nukeTile(tile: Tile): void {
 		let protectedLayer: Layer = Layer.STATIONARY
-		const tileHadMovable = tile[Layer.MOVABLE].length > 0
+		const tileHadMovable = tile.hasLayer(Layer.MOVABLE)
 		let movableDied = false
 		// TODO Canopies
 		if (tileHadMovable) protectedLayer = Layer.STATIONARY + 1 // Protect stationary only
@@ -261,7 +264,7 @@ export class LitTNT extends Monster {
 					movableDied = true
 			}
 		// Create a memorial fire if a movable got blown up (if we can)
-		if (tileHadMovable && movableDied && tile[Layer.STATIONARY].length === 0)
+		if (tileHadMovable && movableDied && !tile.hasLayer(Layer.MOVABLE))
 			new Fire(this.level, tile.position)
 	}
 	onEachDecision(): void {

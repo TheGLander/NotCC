@@ -3,6 +3,7 @@ import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Playable } from "./playables"
 import { Item, ItemDestination } from "./items"
+import { iterableFind } from "../iterableHelpers"
 
 function findNextTeleport<T extends Actor>(
 	this: T,
@@ -13,7 +14,7 @@ function findNextTeleport<T extends Actor>(
 		teleport
 	) => {
 		return (
-			(teleport.tile[Layer.MOVABLE].length === 0 &&
+			(teleport.tile.hasLayer(Layer.MOVABLE) &&
 				this.level.checkCollisionFromTile(
 					other,
 					teleport.tile,
@@ -36,12 +37,16 @@ function findNextTeleport<T extends Actor>(
 			x = (this.level.width + x) % this.level.width
 	)
 		for (; x >= 0 && x < this.level.width; goInRRO ? x-- : x++) {
-			const newTeleport = this.level.field[x][y].allActors.find(
+			const newTeleport = iterableFind(
+				this.level.field[x][y].allActors,
 				val => val instanceof thisConstructor
-			) as T | undefined
+			)
 			if (newTeleport === this) return this
-			if (newTeleport && validateDestination.call(this, other, newTeleport))
-				return newTeleport
+			if (
+				newTeleport &&
+				validateDestination.call(this, other, newTeleport as T)
+			)
+				return newTeleport as T
 		}
 }
 
@@ -80,7 +85,7 @@ export class RedTeleport extends Actor {
 			other,
 			false,
 			(other: Actor, teleport: Actor) => {
-				if (teleport.tile[Layer.MOVABLE].length !== 0) return false
+				if (!teleport.tile.hasLayer(Layer.MOVABLE)) return false
 				for (let offset = 0; offset < 4; offset++)
 					if (
 						this.level.checkCollisionFromTile(
@@ -123,7 +128,7 @@ export class GreenTeleport extends Actor {
 			teleport = findNextTeleport.call(teleport, other, false, () => true)
 		) {
 			allTeleports.push(teleport as this)
-			if (teleport.tile[Layer.MOVABLE].length === 0)
+			if (teleport.tile.hasLayer(Layer.MOVABLE))
 				validTeleports.push(teleport as this)
 		}
 		// We have only 1 teleport in level, do not even try anything
@@ -170,6 +175,7 @@ export class GreenTeleport extends Actor {
 actorDB["teleportGreen"] = GreenTeleport
 
 export class YellowTeleport extends Actor implements Item {
+	tags = []
 	id = "teleportYellow"
 	destination = ItemDestination.ITEM
 	blocks(): false {

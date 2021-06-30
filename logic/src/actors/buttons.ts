@@ -85,7 +85,7 @@ export function ROConnectedButtonFactory(
 			if (foundActor) this.connectedActor = foundActor
 
 			if (shouldActivateOnLevelStart)
-				if (this.tile[Layer.MOVABLE].length > 1) this.actorCompletelyJoined()
+				if (this.tile.hasLayer(Layer.MOVABLE)) this.actorCompletelyJoined()
 		}
 		actorCompletelyJoined(): void {
 			this.connectedActor?.buttonPressed?.(color)

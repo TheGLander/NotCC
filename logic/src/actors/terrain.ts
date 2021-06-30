@@ -359,7 +359,7 @@ export class CloneMachine extends Actor {
 	blockTags = ["cc1block", "normal-monster", "playable"]
 	// Block actors when this already has a source
 	blocks(): boolean {
-		return this.tile[Layer.MOVABLE].length > 0
+		return this.tile.hasLayer(Layer.MOVABLE)
 	}
 	getLayer(): Layer {
 		return Layer.STATIONARY

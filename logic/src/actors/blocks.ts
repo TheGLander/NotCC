@@ -26,7 +26,9 @@ export class DirtBlock extends Actor {
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile[Layer.STATIONARY].find(val => val instanceof Water)
+		const water = this.tile.findActor(Layer.STATIONARY, val =>
+			val.getCompleteTags("tags").includes("water")
+		)
 		if (water) {
 			water.destroy(this, null)
 			new Dirt(this.level, this.tile.position)
@@ -57,8 +59,8 @@ export class IceBlock extends Actor {
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile[Layer.STATIONARY].find(val =>
-			val.tags.includes("water")
+		const water = this.tile.findActor(Layer.STATIONARY, val =>
+			val.getCompleteTags("tags").includes("water")
 		)
 		if (water) {
 			water.destroy(this, null)
@@ -71,7 +73,7 @@ export class IceBlock extends Actor {
 		if (other.getCompleteTags("tags").includes("melting")) {
 			this.destroy(this, null)
 			if (other.layer === Layer.STATIONARY) other.destroy(this, null)
-			if (this.tile[Layer.STATIONARY].length === 0)
+			if (!this.tile.hasLayer(Layer.STATIONARY))
 				new Water(this.level, this.tile.position)
 		}
 	}
@@ -100,8 +102,8 @@ export class DirectionalBlock extends Actor {
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile[Layer.STATIONARY].find(val =>
-			val.tags.includes("water")
+		const water = this.tile.findActor(Layer.STATIONARY, val =>
+			val.getCompleteTags("tags").includes("water")
 		)
 		if (water) water.destroy(this, null)
 	}

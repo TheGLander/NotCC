@@ -10,15 +10,38 @@ export enum Layer {
 	SPECIAL, // Thin walls, canopies, swivels, etc.
 }
 
-class Tile extends Array<Array<Actor>> {
-	get allActors(): Actor[] {
-		return [
-			...this[Layer.ITEM],
-			...this[Layer.MOVABLE],
-			...this[Layer.STATIONARY],
-			...this[Layer.SPECIAL],
-			...this[Layer.ITEM_SUFFIX],
-		]
+class Tile {
+	optimizedState: Partial<Record<Layer, Actor | Actor[]>> = {}
+	protected *getAllLayers(): IterableIterator<Actor> {
+		yield* this.getLayer(Layer.ITEM)
+		yield* this.getLayer(Layer.MOVABLE)
+		yield* this.getLayer(Layer.STATIONARY)
+		yield* this.getLayer(Layer.SPECIAL)
+		yield* this.getLayer(Layer.ITEM_SUFFIX)
+	}
+	protected *getLayer(layer: Layer): IterableIterator<Actor> {
+		if (!this.optimizedState[layer]) return
+		if (this.optimizedState[layer] instanceof Actor)
+			yield this.optimizedState[layer] as Actor
+		else yield* this.optimizedState[layer] as Actor[]
+	}
+	get [Layer.ITEM](): IterableIterator<Actor> {
+		return this.getLayer(Layer.ITEM)
+	}
+	get [Layer.ITEM_SUFFIX](): IterableIterator<Actor> {
+		return this.getLayer(Layer.ITEM_SUFFIX)
+	}
+	get [Layer.MOVABLE](): IterableIterator<Actor> {
+		return this.getLayer(Layer.MOVABLE)
+	}
+	get [Layer.SPECIAL](): IterableIterator<Actor> {
+		return this.getLayer(Layer.SPECIAL)
+	}
+	get [Layer.STATIONARY](): IterableIterator<Actor> {
+		return this.getLayer(Layer.STATIONARY)
+	}
+	get allActors(): IterableIterator<Actor> {
+		return this.getAllLayers()
 	}
 	x: number
 	y: number
@@ -27,23 +50,66 @@ class Tile extends Array<Array<Actor>> {
 		public position: [number, number],
 		actors: Actor[]
 	) {
-		super()
-		for (let i = 0; i <= 5; i++) this[i] = []
 		;[this.x, this.y] = position
 		this.addActors(actors)
+	}
+	findActor(
+		layer: Layer,
+		func: (val: Actor, i: number) => boolean
+	): Actor | null
+	findActor(func: (val: Actor, i: number) => boolean): Actor | null
+	findActor(
+		funcOrLayer: Layer | ((val: Actor, i: number) => boolean),
+		funcIfLayer?: (val: Actor, i: number) => boolean
+	): Actor | null {
+		// Handle the per-layer situation first
+		if (!(funcOrLayer instanceof Function) && funcIfLayer) {
+			const theLayer = this.optimizedState[funcOrLayer]
+			if (!theLayer) return null
+			if (!(theLayer instanceof Array))
+				return funcIfLayer(theLayer, 0) ? theLayer : null
+			return theLayer.find(funcIfLayer) ?? null
+		}
+		if (!(funcOrLayer instanceof Function)) return null
+		let i = 0
+		for (const actor of this.getAllLayers())
+			if (funcOrLayer(actor, i++)) return actor
+		return null
+	}
+	layerLength(layer: Layer): number {
+		const theLayer = this.optimizedState[layer]
+		if (!theLayer) return 0
+		if (theLayer instanceof Actor) return 1
+		return theLayer.length
+	}
+	hasLayer(layer: Layer): boolean {
+		return !!this.optimizedState[layer]
 	}
 	/**
 	 * Adds new actors to the tile, sorting everything automatically
 	 */
 	addActors(actors: Actor | Actor[]): void {
 		actors = actors instanceof Array ? actors : [actors]
-		for (const actor of actors) this[actor.layer].push(actor)
+		for (const actor of actors) {
+			const theLayer = this.optimizedState[actor.layer]
+			if (!theLayer) this.optimizedState[actor.layer] = actor
+			else if (theLayer instanceof Actor)
+				this.optimizedState[actor.layer] = [theLayer, actor]
+			else theLayer.push(actor)
+		}
 	}
 	removeActors(actors: Actor | Actor[]): void {
 		actors = actors instanceof Array ? actors : [actors]
 		for (const actor of actors) {
-			if (this[actor.layer].includes(actor))
-				this[actor.layer].splice(this[actor.layer].indexOf(actor), 1)
+			const theLayer = this.optimizedState[actor.layer]
+			// Ignore attempts to remove a non-existant actor
+			if (!theLayer) continue
+			if (theLayer instanceof Actor) delete this.optimizedState[actor.layer]
+			else {
+				const index = theLayer.indexOf(actor)
+				if (index === -1) continue
+				theLayer.splice(index, 1)
+			}
 		}
 	}
 	getNeighbor(direction: Direction): Tile | null {
@@ -66,14 +132,12 @@ class Tile extends Array<Array<Actor>> {
 				)
 		}
 	}
+	// TODO Speed boots
 	getSpeedMod(other: Actor): number {
-		return this.allActors.reduce(
-			(acc, val) =>
-				val.speedMod && !other._internalIgnores(val)
-					? val.speedMod(other) * acc
-					: acc,
-			1
-		)
+		let speedMod = 1
+		for (const actor of this.getAllLayers())
+			if (actor.speedMod) speedMod *= actor.speedMod(other)
+		return speedMod
 	}
 	*getDiamondSearch(level: number): IterableIterator<Tile> {
 		const offsets = [

@@ -8,7 +8,7 @@ artDB["dirtBlock"] = actor => ({
 	animation:
 		actor.level.selectedPlayable
 			?.getCompleteTags("tags")
-			.includes("can-see-secrets") && actor.tile.allActors.length > 1
+			.includes("can-see-secrets") && !actor.tile.allActors.next().done
 			? "seeThrough"
 			: "default",
 })
@@ -18,7 +18,7 @@ artDB["iceBlock"] = actor => ({
 	animation:
 		actor.level.selectedPlayable
 			?.getCompleteTags("tags")
-			.includes("can-see-secrets") && actor.tile.allActors.length > 1
+			.includes("can-see-secrets") && !actor.tile.allActors.next().done
 			? "seeThrough"
 			: "default",
 })

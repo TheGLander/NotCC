@@ -16,34 +16,20 @@ export abstract class Animation extends Actor {
 	}
 	_internalDecide(): void {
 		this.pendingDecision = this.moveDecision = Decision.NONE
-		if (this.cooldown) this.cooldown++
+		this.animationCooldown--
+		if (!this.animationCooldown) {
+			this.destroy(null, null)
+			if (this.tile.hasLayer(Layer.MOVABLE))
+				this.tile[Layer.MOVABLE].next().value.despawn()
+		}
 	}
+	// eslint-disable-next-line @typescript-eslint/no-empty-function
+	_internalDoCooldown(): void {}
 	bumped(other: Actor, moveDirection: number): void {
 		if (this._internalBlocks(other, moveDirection)) return
 		this.destroy(null, null)
-		crossLevelData.queuedDespawns?.splice(
-			crossLevelData.queuedDespawns.indexOf(this),
-			1
-		)
 	}
 }
-
-onLevelAfterTick.push(() => {
-	if (!crossLevelData.queuedDespawns) return
-	for (const anim of [...crossLevelData.queuedDespawns]) {
-		anim.animationCooldown--
-		if (anim.animationCooldown <= 0) {
-			// Always destoy the animation, just to not mess up anything
-			anim.destroy(null, null)
-			// If we were actually despawned, despawn that
-			if (anim.tile[Layer.MOVABLE][0]) anim.tile[Layer.MOVABLE][0].despawn()
-			crossLevelData.queuedDespawns.splice(
-				crossLevelData.queuedDespawns.indexOf(anim),
-				1
-			)
-		}
-	}
-})
 
 declare module "../level" {
 	export interface CrossLevelDataInterface {
