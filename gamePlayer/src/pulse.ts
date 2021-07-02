@@ -184,8 +184,12 @@ Bonus: ${this.level.bonusPoints}pts`
 			delayCounter.innerText = `Calculation delay: ${
 				Math.round(this.countDelay(Date.now() - oldTime) * 1000) / 1000
 			}ms`
-		// if (this.level.currentTick % 300 === 0)
-		//			this.oldLevelStates.push(clone(this.level))
+		/*if (
+			this.level.currentTick >= 300 &&
+			this.level.currentTick % 300 === 0 &&
+			this.level.subtick === 2
+		)
+			this.oldLevelStates.push(clone(this.level))*/
 		setTimeout(
 			this.tickLevel,
 			1000 / (this.ticksPerSecond / ticksProcessed) - (Date.now() - oldTime)

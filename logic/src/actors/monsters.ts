@@ -321,3 +321,39 @@ export class RollingBowlingBall extends Monster {
 }
 
 actorDB["bowlingBallRolling"] = RollingBowlingBall
+
+export const roverMimicOrder: string[] = [
+	"teethRed",
+	"glider",
+	"ant",
+	"ball",
+	"teethBlue",
+	"fireball",
+	"centipede",
+	"walker",
+]
+
+export class Rover extends Monster {
+	id = "rover"
+	tags = ["autonomous-monster", "can-pickup-items", "movable"]
+	pushTags = ["block"]
+	moveSpeed = 8
+	emulatedMonster: typeof roverMimicOrder[number] = roverMimicOrder[0]
+	decisionsUntilNext = 32
+	decideMovement(): Direction[] {
+		this.decisionsUntilNext--
+		if (!this.decisionsUntilNext) {
+			this.emulatedMonster =
+				roverMimicOrder[
+					(roverMimicOrder.indexOf(this.emulatedMonster) + 1) %
+						roverMimicOrder.length
+				]
+			this.decisionsUntilNext = 32
+		}
+		return (
+			actorDB[this.emulatedMonster].prototype.decideMovement?.apply(this) || []
+		)
+	}
+}
+
+actorDB["rover"] = Rover

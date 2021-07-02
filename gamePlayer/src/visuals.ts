@@ -104,8 +104,18 @@ for (const actorAnimsName in ogData.actorMapping) {
 			if (actorAnim.length === 2) {
 				data.actorMapping[actorAnimsName][actorAnimName] = []
 				const animRanges = actorAnim as [[number, number], [number, number]]
-				for (let x = animRanges[0][0]; x <= animRanges[1][0]; x++)
-					for (let y = animRanges[0][1]; y <= animRanges[1][1]; y++)
+				const reverseX = animRanges[0][0] > animRanges[1][0],
+					reverseY = animRanges[0][1] > animRanges[1][1]
+				for (
+					let x = animRanges[0][0];
+					reverseX ? x >= animRanges[1][0] : x <= animRanges[1][0];
+					reverseX ? x-- : x++
+				)
+					for (
+						let y = animRanges[0][1];
+						reverseY ? y >= animRanges[1][1] : y <= animRanges[1][1];
+						reverseY ? y-- : y++
+					)
 						data.actorMapping[actorAnimsName][actorAnimName].push([x, y])
 			} else
 				data.actorMapping[actorAnimsName][actorAnimName] = actorAnim as [
@@ -387,47 +397,45 @@ export default class Renderer {
 /**
  * Creates an art function for a generic directionable actor
  */
-export const genericDirectionableArt = (name: string, animLength: number) => (
-	actor: Actor
-): ActorArt => ({
-	actorName: name,
-	animation: ["up", "right", "down", "left"][actor.direction],
-	frame: actor.cooldown ? actor.level.currentTick % animLength : 0,
-})
+export const genericDirectionableArt =
+	(name: string, animLength: number) =>
+	(actor: Actor): ActorArt => ({
+		actorName: name,
+		animation: ["up", "right", "down", "left"][actor.direction],
+		frame: actor.cooldown ? actor.level.currentTick % animLength : 0,
+	})
 
-export const genericAnimatedArt = (
-	name: string,
-	animLength: number,
-	animationName?: string
-) => (actor: Actor): ActorArt => ({
-	actorName: name,
-	animation: animationName,
-	frame: actor.level.currentTick % animLength,
-})
+export const genericAnimatedArt =
+	(name: string, animLength: number, animationName?: string) =>
+	(actor: Actor): ActorArt => ({
+		actorName: name,
+		animation: animationName,
+		frame: actor.level.currentTick % animLength,
+	})
 
-export const genericStretchyArt = (name: string, animLength: number) => (
-	actor: Actor
-): ActorArt => {
-	const offset = 1 - actor.cooldown / (actor.currentMoveSpeed ?? 1)
-	return !actor.cooldown
-		? { actorName: name, animation: "idle" }
-		: actor.direction % 2 === 0
-		? {
-				actorName: name,
-				animation: "vertical",
-				frame: Math.floor(
-					(actor.direction >= 2 ? offset : 1 - offset) * (animLength - 1)
-				),
-				cropSize: [1, 2],
-				imageOffset: [0, actor.direction >= 2 ? -offset : offset - 1],
-		  }
-		: {
-				actorName: name,
-				animation: "horizontal",
-				frame: Math.floor(
-					(actor.direction < 2 ? offset : 1 - offset) * (animLength - 1)
-				),
-				cropSize: [2, 1],
-				imageOffset: [actor.direction < 2 ? -offset : offset - 1, 0],
-		  }
-}
+export const genericStretchyArt =
+	(name: string, animLength: number) =>
+	(actor: Actor): ActorArt => {
+		const offset = 1 - actor.cooldown / (actor.currentMoveSpeed ?? 1)
+		return !actor.cooldown
+			? { actorName: name, animation: "idle" }
+			: actor.direction % 2 === 0
+			? {
+					actorName: name,
+					animation: "vertical",
+					frame: Math.floor(
+						(actor.direction >= 2 ? offset : 1 - offset) * (animLength - 1)
+					),
+					cropSize: [1, 2],
+					imageOffset: [0, actor.direction >= 2 ? -offset : offset - 1],
+			  }
+			: {
+					actorName: name,
+					animation: "horizontal",
+					frame: Math.floor(
+						(actor.direction < 2 ? offset : 1 - offset) * (animLength - 1)
+					),
+					cropSize: [2, 1],
+					imageOffset: [actor.direction < 2 ? -offset : offset - 1, 0],
+			  }
+	}

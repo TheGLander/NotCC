@@ -1,5 +1,5 @@
 import { artDB, setArtForActor } from "../const"
-import { LitTNT } from "../logic/actors/monsters"
+import { LitTNT, Rover } from "../logic/actors/monsters"
 import {
 	genericAnimatedArt,
 	genericStretchyArt,
@@ -44,3 +44,17 @@ artDB["floorMimic"] = actor => ({
 })
 
 artDB["bowlingBallRolling"] = genericAnimatedArt("bowlingBall", 2)
+
+setArtForActor<Rover>("rover", actor => [
+	{
+		actorName: "rover",
+		animation: actor.emulatedMonster,
+		frame: Math.floor(actor.level.currentTick / 3) % 8,
+	},
+	{
+		actorName: "rover",
+		animation: "antenna" + ["Up", "Right", "Down", "Left"][actor.direction],
+		cropSize: [0.5, 0.5],
+		imageOffset: [0.25, 0.25],
+	},
+])

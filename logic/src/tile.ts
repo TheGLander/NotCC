@@ -136,7 +136,8 @@ class Tile {
 	getSpeedMod(other: Actor): number {
 		let speedMod = 1
 		for (const actor of this.getAllLayers())
-			if (actor.speedMod) speedMod *= actor.speedMod(other)
+			if (actor.speedMod && !actor._internalIgnores(other))
+				speedMod *= actor.speedMod(other)
 		return speedMod
 	}
 	*getDiamondSearch(level: number): IterableIterator<Tile> {
