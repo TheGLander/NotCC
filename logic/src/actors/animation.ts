@@ -1,7 +1,7 @@
 import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { actorDB, Decision } from "../const"
-import { LevelState, crossLevelData, onLevelAfterTick } from "../level"
+import { LevelState, crossLevelData } from "../level"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16

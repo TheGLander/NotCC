@@ -12,18 +12,14 @@ function findNextTeleport<T extends Actor>(
 	validateDestination: (other: Actor, newTeleport: T) => boolean = (
 		other,
 		teleport
-	) => {
-		return (
-			(teleport.tile.hasLayer(Layer.MOVABLE) &&
-				this.level.checkCollisionFromTile(
-					other,
-					teleport.tile,
-					other.direction,
-					true
-				)) ??
-			false
+	) =>
+		!teleport.tile.hasLayer(Layer.MOVABLE) &&
+		this.level.checkCollisionFromTile(
+			other,
+			teleport.tile,
+			other.direction,
+			true
 		)
-	}
 ): T {
 	const thisConstructor = Object.getPrototypeOf(this).constructor
 	let x = this.tile.x + (goInRRO ? -1 : 1)
