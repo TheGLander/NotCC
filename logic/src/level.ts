@@ -346,7 +346,7 @@ export class LevelState {
 		if (!hasSteps(solution)) throw new Error("The solution must have steps!")
 		this.currentSolution = solution
 		// TODO Multiplayer
-		this.solutionStep = -1
+		this.solutionStep = 0
 		this.solutionSubticksLeft = solution.steps[0][0][1] + 1
 		if (solution.blobModSeed) this.blobPrngValue = solution.blobModSeed
 		if (solution.rffDirection)

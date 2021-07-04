@@ -25,7 +25,7 @@ export function verifyLevelFiles(args: CLIArguments): void {
 	globalThis.alert = () => {}
 
 	for (const levelPath of files) {
-		const spinner = ora()
+		const spinner = ora({ discardStdin: false, hideCursor: false })
 		try {
 			const levelBuffer = fs.readFileSync(levelPath, null)
 
