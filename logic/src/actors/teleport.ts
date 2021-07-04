@@ -81,7 +81,7 @@ export class RedTeleport extends Actor {
 			other,
 			false,
 			(other: Actor, teleport: Actor) => {
-				if (!teleport.tile.hasLayer(Layer.MOVABLE)) return false
+				if (teleport.tile.hasLayer(Layer.MOVABLE)) return false
 				for (let offset = 0; offset < 4; offset++)
 					if (
 						this.level.checkCollisionFromTile(
@@ -124,13 +124,13 @@ export class GreenTeleport extends Actor {
 			teleport = findNextTeleport.call(teleport, other, false, () => true)
 		) {
 			allTeleports.push(teleport as this)
-			if (teleport.tile.hasLayer(Layer.MOVABLE))
+			if (!teleport.tile.hasLayer(Layer.MOVABLE))
 				validTeleports.push(teleport as this)
 		}
 		// We have only 1 teleport in level, do not even try anything
 		if (allTeleports.length === 1) targetTeleport = this
 		else {
-			// This is a wack CC2 bug, I guess, (Props to magical and eevee from CCBBC for figuring it out)
+			// This is a wack CC2 bug, I guess, (Props to magical and eevee from CCBBCDS for figuring it out)
 			const targetIndex =
 				(this.level.random() % (allTeleports.length - 1)) %
 				validTeleports.length
