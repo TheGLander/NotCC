@@ -387,13 +387,15 @@ export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 			data.blobMode = ([1, 4, 256] as const)[view.getUint8()]
 		},
 	]
+	let preventInvalidity = false
 	loop: while (view.offset < view.byteLength) {
 		const sectionName = view.getString(4)
-		//debugger
 		const length = view.getUint32()
 		const oldOffset = view.offset
 		switch (sectionName) {
 			case "CC2M":
+				if (view.offset === 8) preventInvalidity = true
+				else throw new Error("The CC2M header must be first!")
 				if (parseInt(view.getStringUntilNull()) > 7)
 					throw new Error("Invalid file! (CC2M version is >7)")
 				break
@@ -488,6 +490,7 @@ export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 			default:
 				view.skipBytes(length)
 		}
+		if (!preventInvalidity) throw new Error("The CC2M header must be first!")
 		if (oldOffset + length !== view.offset)
 			throw new Error("Offsets don't match up!")
 	}

@@ -2,6 +2,7 @@
 import { verifyLevelFiles } from "./verifyLevels"
 import { errorAndExit } from "./helpers"
 import { startC2GShell } from "./c2gShell"
+import { statFile } from "./statLevel"
 
 export interface CLIArguments {
 	unpos: string[]
@@ -23,9 +24,12 @@ if (cliArguments.options.help)
 		`notcc: An emulator of the game "Chip's Challenge"
 Usage: notcc <command>
 	notcc verify <levelPath>
+	notcc c2g
+	notcc stat <filePath>
 Commands:
 	verify - Verifies a level set by the in-baked solutions
 	c2g - Starts the C2G shell to experiment with C2G
+	stat - Tells if file is a CC-related one, and shows metadata if so
 Options:
 	--help - Shows this
 	--onlyError - Shows only success lines`,
@@ -38,6 +42,9 @@ switch (cliArguments.pos[0]) {
 		break
 	case "c2g":
 		startC2GShell()
+		break
+	case "stat":
+		statFile(cliArguments)
 		break
 	// Hehehe
 	case "csb":
