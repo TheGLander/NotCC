@@ -59,25 +59,6 @@ export abstract class Actor {
 	despawned = false
 	isDeciding = false
 	/**
-	 * Kinda like destroying, but bugged and shouldn't be used
-	 */
-	despawn(intended = false): void {
-		this.despawned = true
-		this.tile.removeActors(this)
-		if (!intended) {
-			crossLevelData.despawnedActors?.push(this)
-			console.warn("A despawn has happended")
-		}
-	}
-	respawn(): void {
-		this.despawned = false
-		if (!iterableIncludes(this.tile.allActors, this)) {
-			// Remove all other things on the same layer
-			for (const actor of this.tile[this.layer]) actor.despawn()
-			this.tile.optimizedState[this.layer] = this
-		}
-	}
-	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
 	 */
 	pushTags?: string[]
@@ -170,8 +151,7 @@ export abstract class Actor {
 		this.layer = this.getLayer()
 		level.actors.push(this)
 		this.tile = level.field[position[0]][position[1]]
-		for (const actor of this.tile[this.layer]) actor.despawn()
-		this.tile.optimizedState[this.layer] = this
+		this.tile.addActors(this)
 		if (level.levelStarted)
 			for (const actor of this.tile.allActors)
 				if (actor.newActorOnTile && !actor._internalIgnores(this))
@@ -348,13 +328,9 @@ export abstract class Actor {
 		}
 		this.oldTile?.removeActors(this)
 		// Spread from and to to not have actors which create new actors instantly be interacted with
-		if (this.oldTile) {
-			for (const actor of this.oldTile[this.layer]) actor.despawn(false)
+		if (this.oldTile)
 			for (const actor of [...this.oldTile.allActors])
 				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
-		}
-		// Despawn all actors which are already there, you should've blocked this, if you cared to exist!
-		for (const actor of this.tile[this.layer]) actor.despawn(false)
 
 		this.tile.addActors(this)
 		this.slidingState = SlidingState.NONE
@@ -375,7 +351,7 @@ export abstract class Actor {
 				this.level.decidingActors.indexOf(this),
 				1
 			)
-		this.despawn(true)
+		this.tile.removeActors(this)
 		if (
 			animType &&
 			actorDB[`${animType}Anim`] &&

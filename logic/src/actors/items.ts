@@ -253,10 +253,10 @@ export class BowlingBall extends Item {
 	id = "bowlingBall"
 	destination = ItemDestination.ITEM
 	onDrop(dropper: Actor): void {
-		dropper.despawn(true)
+		dropper.tile.removeActors(dropper)
 		const rollingGuy = this.replaceWith(RollingBowlingBall)
 		rollingGuy._internalStep(dropper.direction)
-		dropper.respawn()
+		dropper.tile.addActors(dropper)
 	}
 }
 

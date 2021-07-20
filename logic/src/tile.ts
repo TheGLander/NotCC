@@ -93,22 +93,40 @@ class Tile {
 		for (const actor of actors) {
 			const theLayer = this.optimizedState[actor.layer]
 			if (!theLayer) this.optimizedState[actor.layer] = actor
-			else if (theLayer instanceof Actor)
-				this.optimizedState[actor.layer] = [theLayer, actor]
-			else theLayer.push(actor)
+			else if (this.level.extendedMode) {
+				if (theLayer instanceof Actor)
+					this.optimizedState[actor.layer] = [theLayer, actor]
+				else theLayer.push(actor)
+			} else {
+				if (theLayer instanceof Actor) theLayer.despawned = true
+				else theLayer.forEach(val => (val.despawned = true))
+				this.optimizedState[actor.layer] = actor
+				console.warn("A despawn has happened.")
+			}
 		}
 	}
 	removeActors(actors: Actor | Actor[]): void {
 		actors = actors instanceof Array ? actors : [actors]
+
 		for (const actor of actors) {
 			const theLayer = this.optimizedState[actor.layer]
 			// Ignore attempts to remove a non-existant actor
 			if (!theLayer) continue
-			if (theLayer instanceof Actor) delete this.optimizedState[actor.layer]
-			else {
-				const index = theLayer.indexOf(actor)
-				if (index === -1) continue
-				theLayer.splice(index, 1)
+			if (this.level.extendedMode) {
+				if (theLayer instanceof Actor) {
+					if (theLayer === actor) delete this.optimizedState[actor.layer]
+				} else {
+					const index = theLayer.indexOf(actor)
+					if (index === -1) continue
+					theLayer.splice(index, 1)
+				}
+			} else {
+				if (theLayer !== actor) {
+					console.warn("A despawn has happened.")
+					if (theLayer instanceof Actor) theLayer.despawned = true
+					else theLayer.forEach(val => val !== actor && (val.despawned = true))
+				}
+				delete this.optimizedState[actor.layer]
 			}
 		}
 	}

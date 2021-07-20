@@ -135,6 +135,10 @@ export class LevelState {
 	playablesLeft = 0
 	playablesToSwap = false
 	levelStarted = false
+	/**
+	 * If a level is considered to be in extended mode, despawns don't happen and multiple actors of the same layer can be on the same tile, yay!
+	 */
+	extendedMode = false
 	gameInput: KeyInputs = {
 		up: false,
 		down: false,

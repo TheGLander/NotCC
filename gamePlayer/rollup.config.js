@@ -34,4 +34,5 @@ export default {
 		sourcemap: true,
 	},
 	plugins,
+	watch: { include: "src/**" },
 }

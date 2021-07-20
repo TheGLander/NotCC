@@ -17,11 +17,7 @@ export abstract class Animation extends Actor {
 	_internalDecide(): void {
 		this.pendingDecision = this.moveDecision = Decision.NONE
 		this.animationCooldown--
-		if (!this.animationCooldown) {
-			this.destroy(null, null)
-			if (this.tile.hasLayer(Layer.MOVABLE))
-				this.tile[Layer.MOVABLE].next().value.despawn()
-		}
+		if (!this.animationCooldown) this.destroy(null, null)
 	}
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	_internalDoCooldown(): void {}
