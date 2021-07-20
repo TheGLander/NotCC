@@ -1,20 +1,20 @@
 :root {
-	--button: #285080;
-	--light: #3c78c0;
-	--mid-light: #3264a0;
-	--dark: #142840;
-	--mid: #1a3555;
-	--window: #285080;
-} 
-
+	--hue: 213;
+	--saturation: 52.4%;
+}
 
 button {
-	background-color: var(--button);
+	background-color: var(--window);
 	border-color: var(--light) var(--dark) var(--dark) var(--light);
 	color: white;
 }
 
 body {
+	--dark: hsl(var(--hue), var(--saturation), 16.5%);
+	--mid: hsl(var(--hue), var(--saturation), 21.8%);
+	--window: hsl(var(--hue), var(--saturation), 32.9%);
+	--mid-light: hsl(var(--hue), var(--saturation), 41.2%);
+	--light: hsl(var(--hue), var(--saturation), 49.4%);
 	background-color: var(--window);
 	display: flex;
 	align-items: center;
@@ -57,10 +57,12 @@ select {
 	display: inline-block;
 	margin-left: auto;
 	margin-right: auto;
+	border-width: 2px;
 }
 
 #itemSpace {
-	display:inline-block;
+	display: inline-flex;
+	margin: 0 auto !important;
 }
 
 #textStats {
@@ -73,19 +75,24 @@ select {
 
 #miscThings {
 	height: 95vh;
-	margin-right: .75%;
+	margin-right: 0.75%;
 	width: 15%;
 	display: flex;
 	flex-direction: column;
+	padding: 2.5px;
+}
+
+#miscThings > * {
+	margin: 2.5px;
+	border-width: 2px;
 }
 
 /* Renderer things */
 
 .renderer {
 	image-rendering: -moz-crisp-edges;
-  image-rendering: -webkit-crisp-edges;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+	image-rendering: -webkit-crisp-edges;
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
 	image-rendering: optimizeSpeed;
 }
-
