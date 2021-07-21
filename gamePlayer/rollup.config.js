@@ -6,8 +6,6 @@ import nodePolyfills from "rollup-plugin-node-polyfills"
 import copy from "rollup-plugin-copy"
 import css from "rollup-plugin-css-porter"
 
-const production = process.env.NODE_ENV === "production"
-
 const plugins = [
 	resolve({ browser: true, preferBuiltins: false }),
 	commonjs(),
@@ -33,6 +31,7 @@ export default {
 		format: "umd",
 		sourcemap: true,
 	},
+	preserveSymlinks: true,
 	plugins,
 	watch: { include: "src/**" },
 }
