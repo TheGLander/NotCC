@@ -58,6 +58,7 @@ export abstract class Actor {
 	abstract id: string
 	despawned = false
 	isDeciding = false
+	createdN: number
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
 	 */
@@ -162,6 +163,7 @@ export abstract class Actor {
 			this.decideMovement
 		)
 		if (this.isDeciding) level.decidingActors.push(this)
+		this.createdN = this.level.createdN++
 	}
 	/**
 	 * Decides the movements the actor will attempt to do
@@ -399,7 +401,6 @@ export abstract class Actor {
 	 */
 	exitBlocks?(other: Actor, exitDirection: Direction): boolean
 	_internalExitBlocks(other: Actor, exitDirection: Direction): boolean {
-		// TODO Block exit via tags(?) Not sure if that can be useful
 		return (
 			(!matchTags(
 				this.getCompleteTags("tags"),

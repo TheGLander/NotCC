@@ -6,6 +6,8 @@ import nodePolyfills from "rollup-plugin-node-polyfills"
 import copy from "rollup-plugin-copy"
 import css from "rollup-plugin-css-porter"
 
+const production = process.env.NODE_ENV === "production"
+
 const plugins = [
 	resolve({ browser: true, preferBuiltins: false }),
 	commonjs(),
@@ -14,7 +16,7 @@ const plugins = [
 		tsconfig: "./tsconfig.json",
 	}),
 	css({ minify: false }),
-	terser(),
+	production ? terser() : undefined,
 	copy({
 		targets: [
 			{ src: "src/data", dest: "dist" },

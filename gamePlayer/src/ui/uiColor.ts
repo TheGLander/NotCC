@@ -14,3 +14,4 @@ export function setColorScheme(hue: number, saturation: number): void {
 
 if (location.href.includes("randomcolor"))
 	setColorScheme(Math.random() * 360, Math.random() * 100)
+else if (location.href.includes("localhost")) setColorScheme(0, 52.4)

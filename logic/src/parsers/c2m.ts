@@ -367,7 +367,6 @@ export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 					}
 					break
 				case 2:
-					// TODO Check actual screen sizes for multiplayer
 					data.camera = { width: 10, height: 10, screens: 2 }
 					break
 				default:

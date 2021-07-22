@@ -82,27 +82,35 @@ export class IceCorner extends Actor {
 			otherMoveDirection === (this.direction + 1) % 4
 		)
 	}
-	// TODO Block exit from ice corners with cleats
 }
+
 actorDB["iceCorner"] = IceCorner
 
 export class ForceFloor extends Actor {
 	id = "forceFloor"
 	tags = ["force-floor"]
+	hasFreeBump = true
+	lastEnteredActor?: number
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	continuousActorCompletelyJoined(other: Actor): void {
+	actorCompletelyJoined(other: Actor): void {
+		if (this.lastEnteredActor !== other.createdN) this.hasFreeBump = true
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
 	}
-
+	newActorOnTile = this.actorCompletelyJoined
+	actorLeft(): void {
+		delete this.lastEnteredActor
+		this.hasFreeBump = true
+	}
 	onMemberSlideBonked(other: Actor): void {
-		this.continuousActorCompletelyJoined(other)
+		other.slidingState = SlidingState.WEAK
+		other.direction = this.direction
 		// Give them a single subtick of cooldown
-		// FIXME First bump doesn't yield a cooldown in CC2
-		if (!(other instanceof Playable) || other.hasOverride) other.cooldown++
+		if (this.hasFreeBump) this.hasFreeBump = false
+		else other.cooldown++
 	}
 	speedMod(): 2 {
 		return 2
@@ -114,25 +122,33 @@ actorDB["forceFloor"] = ForceFloor
 export class ForceFloorRandom extends Actor {
 	id = "forceFloorRandom"
 	tags = ["force-floor"]
+	hasFreeBump = true
+	lastEnteredActor?: number
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	continuousActorCompletelyJoined(other: Actor): void {
+	actorCompletelyJoined(other: Actor): void {
+		if (this.lastEnteredActor !== other.createdN) this.hasFreeBump = true
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		crossLevelData.RFFDirection ??= 0
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
 	}
-
+	newActorOnTile = this.actorCompletelyJoined
+	actorLeft(): void {
+		delete this.lastEnteredActor
+		this.hasFreeBump = true
+	}
 	onMemberSlideBonked(other: Actor): void {
-		// This is shite code but whatever
-		crossLevelData.RFFDirection ??= 0
-		crossLevelData.RFFDirection--
-		this.continuousActorCompletelyJoined(other)
 		// Give them a single subtick of cooldown
-		// FIXME First bump doesn't yield a cooldown in CC2
-		if (!(other instanceof Playable) || other.hasOverride) other.cooldown++
+		if (this.hasFreeBump) {
+			this.hasFreeBump = false
+			other.slidingState = SlidingState.WEAK
+			crossLevelData.RFFDirection ??= 0
+			other.direction = crossLevelData.RFFDirection++
+			crossLevelData.RFFDirection %= 4
+		} else other.cooldown++
 	}
 	speedMod(): 2 {
 		return 2
