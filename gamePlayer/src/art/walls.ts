@@ -41,7 +41,7 @@ setArtForActor<InvisibleWall>("invisibleWall", actor => ({
 		? "invisibleWall"
 		: actor.animationLeft
 		? "wall"
-		: null,
+		: "floor",
 }))
 
 artDB["blueWall"] = actor => ({
@@ -60,7 +60,7 @@ artDB["appearingWall"] = actor => ({
 		?.getCompleteTags("tags")
 		.includes("can-see-secrets")
 		? "appearingWall"
-		: null,
+		: "floor",
 })
 
 artDB["toggleWall"] = actor => [

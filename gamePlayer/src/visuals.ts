@@ -58,10 +58,7 @@ const itemCtx = document
 	.createElement("canvas")
 	.getContext("2d") as CanvasRenderingContext2D
 
-async function removeBackground(
-	link: string,
-	bgColor: number
-): Promise<HTMLCanvasElement> {
+async function removeBackground(link: string): Promise<HTMLCanvasElement> {
 	const img = await new Promise<HTMLImageElement>((res, rej) => {
 		const img = new Image()
 		img.addEventListener("load", () => res(img))
@@ -73,15 +70,14 @@ async function removeBackground(
 	;[ctx.canvas.width, ctx.canvas.height] = [img.width, img.height]
 	ctx.drawImage(img, 0, 0)
 	const rawData = ctx.getImageData(0, 0, img.width, img.height)
-	for (let i = 0; i < rawData.data.length; i += 4) {
+	for (let i = 0; i < rawData.data.length; i += 4)
 		if (
-			rawData.data[i] * 0x010000 +
-				rawData.data[i + 1] * 0x000100 +
-				rawData.data[i + 2] * 0x000001 ===
-			bgColor
+			rawData.data[i] === rawData.data[0] &&
+			rawData.data[i + 1] === rawData.data[1] &&
+			rawData.data[i + 2] === rawData.data[2]
 		)
 			rawData.data[i + 3] = 0
-	}
+
 	ctx.putImageData(rawData, 0, 0)
 	return ctx.canvas
 }
@@ -143,10 +139,8 @@ function convertDirection(direction: Direction): [number, number] {
 const tileSize = 32 as const
 
 // TODO Custom tilsets
-const fetchTiles = (async (): Promise<SizedWebGLTexture> =>
-	renderer.addTexture(
-		await removeBackground("./data/img/tiles.png", 0x52ce6b)
-	))()
+let fetchTiles = (async (): Promise<SizedWebGLTexture> =>
+	renderer.addTexture(await removeBackground("./data/img/tiles.png")))()
 
 export default class Renderer {
 	ready: Promise<void>
@@ -172,7 +166,7 @@ export default class Renderer {
 		})()
 	}
 	updateCameraSizes(): void {
-		renderer.scaling = 1
+		renderer.scaling = 2
 		;[renderer.canvas.width, renderer.canvas.height] = [
 			this.level.cameraType.width * tileSize,
 			this.level.cameraType.height * tileSize,
@@ -372,6 +366,12 @@ export default class Renderer {
 	destroy(): void {
 		this.renderSpace?.removeChild(renderer.canvas)
 		this.itemSpace?.removeChild(itemCtx.canvas)
+	}
+	async setTileset(tilesetImage: string): Promise<void> {
+		this.readyBool = false
+		fetchTiles = renderer.addTexture(await removeBackground(tilesetImage))
+		this.renderTexture = await fetchTiles
+		this.readyBool = true
 	}
 }
 
