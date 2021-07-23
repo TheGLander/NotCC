@@ -9,7 +9,7 @@ export class NoSign extends Actor {
 	getLayer(): Layer {
 		return Layer.ITEM_SUFFIX
 	}
-	blocks(other: Actor, moveDirection: Direction): boolean {
+	blocks(other: Actor): boolean {
 		for (const item of this.tile[Layer.ITEM]) {
 			if (item instanceof Key) {
 				if (other.inventory.keys[item.id]?.amount > 0) return true
@@ -18,9 +18,7 @@ export class NoSign extends Actor {
 			)
 				return true
 		}
-		return [...this.tile[Layer.SPECIAL], ...this.tile[Layer.STATIONARY]].some(
-			val => val._internalBlocks(other, moveDirection)
-		)
+		return false
 	}
 }
 

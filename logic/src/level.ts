@@ -299,7 +299,7 @@ export class LevelState {
 						toPush.push(blockActor)
 					else return false
 				if (
-					(layer === Layer.ITEM_SUFFIX || layer === Layer.MOVABLE) &&
+					layer === Layer.MOVABLE &&
 					iterableIndexOf(newTile[layer], blockActor) ===
 						newTile.layerLength(layer) - 1
 				)
