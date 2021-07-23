@@ -34,8 +34,6 @@ artDB["thinWall"] = actor =>
 		}
 	})
 
-// TODO Secret eye interaction thing
-
 setArtForActor<InvisibleWall>("invisibleWall", actor => ({
 	actorName: actor.level.selectedPlayable
 		?.getCompleteTags("tags")

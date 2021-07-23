@@ -2,13 +2,22 @@ import { artDB, setArtForActor } from "../const"
 import { DirectionalBlock } from "../logic/actors/blocks"
 import { ActorArt } from "../visuals"
 import { Direction } from "../logic/helpers"
+import { Layer } from "../logic"
+
+const layersToSearch = [
+	Layer.ITEM,
+	Layer.ITEM_SUFFIX,
+	Layer.SPECIAL,
+	Layer.STATIONARY,
+]
 
 artDB["dirtBlock"] = actor => ({
 	actorName: "dirtBlock",
 	animation:
 		actor.level.selectedPlayable
 			?.getCompleteTags("tags")
-			.includes("can-see-secrets") && !actor.tile.allActors.next().done
+			.includes("can-see-secrets") &&
+		layersToSearch.some(val => actor.tile.hasLayer(val))
 			? "seeThrough"
 			: "default",
 })
@@ -18,7 +27,8 @@ artDB["iceBlock"] = actor => ({
 	animation:
 		actor.level.selectedPlayable
 			?.getCompleteTags("tags")
-			.includes("can-see-secrets") && !actor.tile.allActors.next().done
+			.includes("can-see-secrets") &&
+		layersToSearch.some(val => actor.tile.hasLayer(val))
 			? "seeThrough"
 			: "default",
 })

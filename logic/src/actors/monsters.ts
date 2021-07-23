@@ -278,7 +278,7 @@ export class LitTNT extends Monster {
 				Math.abs(tile.y - this.tile.y) < 3
 			)
 				this.nukeTile(tile)
-		if (this.explosionStage === 3) this.nukeTile(this.tile)
+		if (this.explosionStage >= 3) this.nukeTile(this.tile)
 		this.tags.pop()
 	}
 }

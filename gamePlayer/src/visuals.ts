@@ -5,6 +5,7 @@ import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
 import { keyNameList } from "./logic/const"
 import { Actor } from "./logic/actor"
 import { artDB } from "./const"
+import { Layer } from "./logic"
 
 function getArt(actor: Actor): ActorArt[] {
 	let art = artDB[actor.id]
@@ -57,16 +58,10 @@ const itemCtx = document
 	.createElement("canvas")
 	.getContext("2d") as CanvasRenderingContext2D
 
-function canvasToBlobURI(canvas: HTMLCanvasElement) {
-	return new Promise<string>(res =>
-		canvas.toBlob(blob => res(URL.createObjectURL(blob)))
-	)
-}
-
 async function removeBackground(
 	link: string,
 	bgColor: number
-): Promise<string> {
+): Promise<HTMLCanvasElement> {
 	const img = await new Promise<HTMLImageElement>((res, rej) => {
 		const img = new Image()
 		img.addEventListener("load", () => res(img))
@@ -88,7 +83,7 @@ async function removeBackground(
 			rawData.data[i + 3] = 0
 	}
 	ctx.putImageData(rawData, 0, 0)
-	return canvasToBlobURI(ctx.canvas)
+	return ctx.canvas
 }
 
 const data: InflatedCC2ImageFormat = { actorMapping: {} }
@@ -158,9 +153,7 @@ export default class Renderer {
 	readyBool = false
 	// @ts-expect-error We don't use it unless we have it
 	renderTexture: SizedWebGLTexture
-	// @ts-expect-error We don't use it unless we have it
-	backgroundFiller: SizedWebGLTexture
-	backgroundFillerCanvas?: HTMLCanvasElement
+
 	/**
 	 * Initializes the renderer, optional `this.ready` promise
 	 * @param level
@@ -173,65 +166,31 @@ export default class Renderer {
 		this.updateCameraSizes()
 		this.ready = (async () => {
 			this.renderTexture = await fetchTiles
-			this.backgroundFillerCanvas = document.createElement("canvas")
-			this.backgroundFillerCanvas.width = this.backgroundFillerCanvas.height = 0
-			await this.updateFillerData()
 			renderSpace?.appendChild(renderer.canvas)
 			itemSpace?.appendChild(itemCtx.canvas)
 			this.readyBool = true
 		})()
 	}
 	updateCameraSizes(): void {
-		renderer.scaling = 2
+		renderer.scaling = 1
 		;[renderer.canvas.width, renderer.canvas.height] = [
 			this.level.cameraType.width * tileSize,
 			this.level.cameraType.height * tileSize,
 		]
 		renderer.updateSize()
 	}
-	/**
-	 * Updates all filler texture-related camera, so a renderer can be reused
-	 */
-	async updateFillerData(): Promise<void> {
-		const ctx = this.backgroundFillerCanvas?.getContext("2d")
-		if (!ctx) return
-		const oldWidth = ctx.canvas.width,
-			oldHeight = ctx.canvas.height
-		ctx.canvas.width = Math.max(
-			Math.max(
-				this.level.cameraType.width + 1,
-				this.level.selectedPlayable?.inventory.itemMax ?? 4
-			) * tileSize,
-			oldWidth
-		)
-		ctx.canvas.height = Math.max(
-			Math.max(this.level.cameraType.height + 1, 2) * tileSize,
-			oldHeight
-		)
-		// If the thing is already up-to-date, no need to regenerate it
-		if (ctx.canvas.height === oldHeight && ctx.canvas.width === oldWidth) return
-		for (let x = oldWidth; x < this.level.cameraType.width + 1; x++)
-			for (let y = oldHeight; y < this.level.cameraType.height + 1; y++)
-				ctx.drawImage(
-					this.renderTexture.image,
-					data.actorMapping.floor.default[0][0] * tileSize,
-					data.actorMapping.floor.default[0][1] * tileSize,
-					tileSize,
-					tileSize,
-					x * tileSize,
-					y * tileSize,
-					tileSize,
-					tileSize
-				)
-		this.backgroundFiller = await renderer.addTexture(
-			await canvasToBlobURI(ctx.canvas)
-		)
-	}
+
 	updateItems(): void {
-		const player = this.level.selectedPlayable
-		itemCtx.canvas.width = (player?.inventory.itemMax ?? 4) * tileSize
-		itemCtx.canvas.height = 2 * tileSize
-		itemCtx.drawImage(this.backgroundFiller.image, 0, 0)
+		const player = this.level.selectedPlayable,
+			expectedWidth = (player?.inventory.itemMax ?? 4) * tileSize,
+			expectedHeight = 2 * tileSize
+		if (
+			itemCtx.canvas.width !== expectedWidth ||
+			itemCtx.canvas.height !== expectedHeight
+		) {
+			itemCtx.canvas.width = (player?.inventory.itemMax ?? 4) * tileSize
+			itemCtx.canvas.height = 2 * tileSize
+		} else itemCtx.clearRect(0, 0, expectedWidth, expectedHeight)
 		if (!player) return
 		for (const [i, item] of player.inventory.items.entries()) {
 			const artPiece = getArt(item)[0]
@@ -242,7 +201,7 @@ export default class Renderer {
 				]?.[artPiece.frame ?? 0]
 			if (!frame) continue
 			itemCtx.drawImage(
-				this.renderTexture.image,
+				this.renderTexture.image as HTMLImageElement,
 				frame[0] * tileSize,
 				frame[1] * tileSize,
 				tileSize,
@@ -268,7 +227,7 @@ export default class Renderer {
 			let index = keyNameList.indexOf(key.type.id)
 			if (index === -1) index = nonRegisteredOffset++
 			itemCtx.drawImage(
-				this.renderTexture.image,
+				this.renderTexture.image as HTMLImageElement,
 				frame[0] * tileSize,
 				frame[1] * tileSize,
 				tileSize,
@@ -329,7 +288,7 @@ export default class Renderer {
 				cameraPos[1] * tileSize,
 			]
 		}
-		renderer.drawImage(
+		/*renderer.drawImage(
 			this.backgroundFiller.texture,
 			this.backgroundFiller.width,
 			this.backgroundFiller.height,
@@ -341,51 +300,73 @@ export default class Renderer {
 			renderer.cameraPosition[1] - (renderer.cameraPosition[1] % tileSize),
 			this.backgroundFiller.width,
 			this.backgroundFiller.height
-		)
-		const sortedActors = this.level.actors.sort((a, b) => a.layer - b.layer)
-		for (const actor of sortedActors) {
-			if (
-				actor.tile.x < Math.floor(cameraPos[0] - 1) ||
-				actor.tile.x >
-					Math.ceil(cameraPos[0] + this.level.cameraType.width + 1) ||
-				actor.tile.y < Math.floor(cameraPos[1] - 1) ||
-				actor.tile.y >
-					Math.ceil(cameraPos[1] + this.level.cameraType.height + 1) ||
-				actor.despawned
+		)*/
+		for (let layer = Layer.STATIONARY; layer <= Layer.SPECIAL; layer++)
+			for (
+				let x = Math.max(0, Math.floor(cameraPos[0] - 1));
+				x <= Math.ceil(cameraPos[0] + this.level.cameraType.width + 1) &&
+				x < this.level.width;
+				x++
 			)
-				continue
-			const movedPos = [actor.tile.x, actor.tile.y]
-			if (actor.cooldown && actor.currentMoveSpeed) {
-				const mults = convertDirection(actor.direction)
-				const offsetMult =
-					1 -
-					(actor.currentMoveSpeed - actor.cooldown + 1) / actor.currentMoveSpeed
-				movedPos[0] -= offsetMult * mults[0]
-				movedPos[1] -= offsetMult * mults[1]
-			}
-			for (const art of getArt(actor)) {
-				if (!art) continue
-				if (art.actorName === null || art.animation === null) continue
-				const frame =
-					data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
-						art.frame ?? 0
-					] ?? data.actorMapping.floor.default[0]
-				const croppedSize = art.cropSize ?? [1, 1]
-				renderer.drawImage(
-					this.renderTexture.texture,
-					this.renderTexture.width,
-					this.renderTexture.height,
-					frame[0] * tileSize + (art.sourceOffset?.[0] ?? 0) * tileSize,
-					frame[1] * tileSize + (art.sourceOffset?.[1] ?? 0) * tileSize,
-					croppedSize[0] * tileSize,
-					croppedSize[1] * tileSize,
-					(movedPos[0] + (art.imageOffset?.[0] ?? 0)) * tileSize,
-					(movedPos[1] + (art.imageOffset?.[1] ?? 0)) * tileSize,
-					croppedSize[0] * tileSize,
-					croppedSize[1] * tileSize
-				)
-			}
-		}
+				for (
+					let y = Math.max(0, Math.floor(cameraPos[1] - 1));
+					y <= Math.ceil(cameraPos[1] + this.level.cameraType.height + 1) &&
+					y < this.level.height;
+					y++
+				) {
+					if (
+						layer === Layer.STATIONARY &&
+						!this.level.field[x][y].hasLayer(Layer.STATIONARY)
+					)
+						renderer.drawImage(
+							this.renderTexture.texture,
+							this.renderTexture.width,
+							this.renderTexture.height,
+							data.actorMapping.floor.default[0][0] * tileSize,
+							data.actorMapping.floor.default[0][1] * tileSize,
+							tileSize,
+							tileSize,
+							x * tileSize,
+							y * tileSize,
+							tileSize,
+							tileSize
+						)
+					else
+						for (const actor of this.level.field[x][y][layer]) {
+							const movedPos = [x, y]
+							if (actor.cooldown && actor.currentMoveSpeed) {
+								const mults = convertDirection(actor.direction)
+								const offsetMult =
+									1 -
+									(actor.currentMoveSpeed - actor.cooldown + 1) /
+										actor.currentMoveSpeed
+								movedPos[0] -= offsetMult * mults[0]
+								movedPos[1] -= offsetMult * mults[1]
+							}
+							for (const art of getArt(actor)) {
+								if (!art) continue
+								if (art.actorName === null || art.animation === null) continue
+								const frame =
+									data.actorMapping[art.actorName]?.[
+										art.animation ?? "default"
+									]?.[art.frame ?? 0] ?? data.actorMapping.floor.default[0]
+								const croppedSize = art.cropSize ?? [1, 1]
+								renderer.drawImage(
+									this.renderTexture.texture,
+									this.renderTexture.width,
+									this.renderTexture.height,
+									frame[0] * tileSize + (art.sourceOffset?.[0] ?? 0) * tileSize,
+									frame[1] * tileSize + (art.sourceOffset?.[1] ?? 0) * tileSize,
+									croppedSize[0] * tileSize,
+									croppedSize[1] * tileSize,
+									(movedPos[0] + (art.imageOffset?.[0] ?? 0)) * tileSize,
+									(movedPos[1] + (art.imageOffset?.[1] ?? 0)) * tileSize,
+									croppedSize[0] * tileSize,
+									croppedSize[1] * tileSize
+								)
+							}
+						}
+				}
 		this.updateItems()
 	}
 	destroy(): void {

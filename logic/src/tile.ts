@@ -7,17 +7,16 @@ export enum Layer {
 	ITEM, // All item-eque things: Bombs, echips, boots, keys, etc.
 	ITEM_SUFFIX, // No sign, etc.
 	MOVABLE, // Blocks, Players, Monsters
-	SPECIAL, // Thin walls, canopies, swivels, etc.
+	SPECIAL, // Thin walls, canopies, etc.
 }
 
 class Tile {
 	optimizedState: Partial<Record<Layer, Actor | Actor[]>> = {}
 	protected *getAllLayers(): IterableIterator<Actor> {
-		yield* this.getLayer(Layer.ITEM)
-		yield* this.getLayer(Layer.MOVABLE)
-		yield* this.getLayer(Layer.STATIONARY)
-		yield* this.getLayer(Layer.SPECIAL)
-		yield* this.getLayer(Layer.ITEM_SUFFIX)
+		for (let i = 0; i <= Layer.SPECIAL; i++) yield* this.getLayer(i)
+	}
+	protected *getAllLayersReverse(): IterableIterator<Actor> {
+		for (let i = Layer.SPECIAL; i >= 0; i--) yield* this.getLayer(i)
 	}
 	protected *getLayer(layer: Layer): IterableIterator<Actor> {
 		if (!this.optimizedState[layer]) return
@@ -42,6 +41,9 @@ class Tile {
 	}
 	get allActors(): IterableIterator<Actor> {
 		return this.getAllLayers()
+	}
+	get allActorsReverse(): IterableIterator<Actor> {
+		return this.getAllLayersReverse()
 	}
 	x: number
 	y: number

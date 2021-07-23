@@ -265,7 +265,7 @@ export class LevelState {
 
 		// Do stuff on the leaving tile
 
-		for (const exitActor of Array.from(fromTile.allActors).reverse())
+		for (const exitActor of fromTile.allActorsReverse)
 			if (exitActor._internalExitBlocks(actor, direction)) {
 				actor.onBlocked?.(exitActor)
 				return false

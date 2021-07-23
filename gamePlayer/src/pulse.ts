@@ -131,7 +131,7 @@ export class PulseManager {
 			switchPlayable: false,
 		}
 		this.renderer.updateCameraSizes()
-		await this.renderer.updateFillerData()
+
 		this.eventsRegistered.newLevel.forEach(val => val())
 		this.recordedSteps = []
 		this.oldLevelStates = []
