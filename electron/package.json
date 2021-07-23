@@ -1,0 +1,29 @@
+{
+	"name": "notcc-electron",
+	"private": true,
+	"version": "0.1.0",
+	"main": "./dist/index.js",
+	"scripts": {
+		"postinstall": "electron-builder install-app-deps",
+		"build": "tsc",
+		"start": "electron ."
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/TheGLander/NotCC.git"
+	},
+	"author": {
+		"name": "G lander",
+		"email": "public@glander.club"
+	},
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/TheGLander/NotCC/issues"
+	},
+	"homepage": "https://github.com/TheGLander/NotCC#readme",
+	"devDependencies": {
+		"electron": "^13.1.7",
+		"electron-builder": "^22.11.7",
+		"typescript": "^4.2.4"
+	}
+}

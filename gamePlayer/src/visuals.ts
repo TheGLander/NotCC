@@ -172,7 +172,7 @@ export default class Renderer {
 		})()
 	}
 	updateCameraSizes(): void {
-		renderer.scaling = 1
+		renderer.scaling = 2
 		;[renderer.canvas.width, renderer.canvas.height] = [
 			this.level.cameraType.width * tileSize,
 			this.level.cameraType.height * tileSize,

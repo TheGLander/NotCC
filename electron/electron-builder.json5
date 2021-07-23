@@ -1,0 +1,16 @@
+{
+	appId: "club.glander.notcc-electron",
+	productName: "NotCC",
+	files: [
+		"node_modules",
+		"dist",
+		{ from: "./gamePlayer/", to: "./gamePlayer/", filter: "**/*" },
+	],
+	directories: {
+		output: "electronDist",
+	},
+	publish: null,
+	linux: {
+		category: "Game",
+	},
+}
