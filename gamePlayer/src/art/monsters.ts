@@ -58,3 +58,8 @@ setArtForActor<Rover>("rover", actor => [
 		imageOffset: [0.25, 0.25],
 	},
 ])
+
+artDB["ghost"] = actor => ({
+	actorName: "ghost",
+	animation: ["up", "right", "down", "left"][actor.direction],
+})

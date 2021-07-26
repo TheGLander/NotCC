@@ -23,6 +23,7 @@ actorDB["letterTile"] = LetterTile
 
 export class CustomFloor extends Actor {
 	id = "customFloor"
+	tags = ["blocks-ghost"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -64,7 +65,9 @@ export class IceCorner extends Actor {
 		other.direction %= 4
 	}
 	onMemberSlideBonked(other: Actor): void {
-		other.direction -= (this.direction - other.direction) * 2 - 5
+		other.direction += 2
+		if (!other._internalIgnores(this))
+			other.direction += (other.direction - this.direction) * 2 + 3
 		other.direction %= 4
 	}
 	speedMod(): 2 {
@@ -341,6 +344,7 @@ actorDB["thiefKey"] = ThiefKey
 
 export class Trap extends Actor {
 	id = "trap"
+	tags = ["machinery"]
 	// The amount of buttons current pressed and linked to this trap
 	openRequests = 0
 	getLayer(): Layer {
@@ -371,6 +375,7 @@ actorDB["trap"] = Trap
 export class CloneMachine extends Actor {
 	id = "cloneMachine"
 	isCloning = false
+	tags = ["machinery"]
 	// Always block boomer actors
 	blockTags = ["cc1block", "normal-monster", "playable"]
 	// Block actors when this already has a source

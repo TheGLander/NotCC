@@ -20,6 +20,7 @@ actorDB["wall"] = Wall
 // TODO Ghost blockage
 export class SteelWall extends Actor {
 	id = "steelWall"
+	tags = ["blocks-ghost"]
 	immuneTags = ["tnt"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
@@ -33,6 +34,7 @@ actorDB["steelWall"] = SteelWall
 
 export class CustomWall extends Actor {
 	id = "customWall"
+	tags = ["blocks-ghost"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}

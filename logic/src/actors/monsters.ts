@@ -357,3 +357,33 @@ export class Rover extends Monster {
 }
 
 actorDB["rover"] = Rover
+
+export class Ghost extends Monster {
+	id = "ghost"
+	tags = ["autonomous-monster", "can-pickup-items", "movable", "ghost"]
+	blockedByTags = ["blocks-ghost", "water-ish"]
+	nonIgnoredTags = ["machinery", "button", "movable"]
+	ignoreTags = ["bonusFlag"]
+	decideMovement(): Direction[] {
+		const dir = relativeToAbsolute(this.direction)
+		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
+	}
+	collisionIgnores(other: Actor): boolean {
+		return (
+			!other
+				.getCompleteTags("tags")
+				.some(val => this.blockedByTags.includes(val)) &&
+			other.layer !== Layer.MOVABLE
+		)
+	}
+	ignores(other: Actor): boolean {
+		return (
+			!other
+				.getCompleteTags("tags")
+				.some(val => this.nonIgnoredTags.includes(val)) &&
+			other.layer !== Layer.ITEM
+		)
+	}
+}
+
+actorDB["ghost"] = Ghost

@@ -604,6 +604,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[10.5, 19],
 			],
 		},
+		ghost: { up: [12, 18], right: [13, 18], down: [14, 18], left: [15, 18] },
 	},
 }
 

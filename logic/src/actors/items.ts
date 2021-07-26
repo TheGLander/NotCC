@@ -203,6 +203,7 @@ actorDB["helmet"] = Helmet
 
 export class BonusFlag extends Item {
 	id = "bonusFlag"
+	tags = ["bonusFlag"]
 	destination = ItemDestination.NONE
 	onPickup(carrier: Actor): void {
 		if (carrier instanceof Playable)

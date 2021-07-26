@@ -7,6 +7,7 @@ import Tile from "../tile"
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
+		tags = ["button"]
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
@@ -28,6 +29,7 @@ export function globalComplexButtonFactory(color: string) {
 		id = `complexButton${color[0].toUpperCase()}${color
 			.substr(1)
 			.toLowerCase()}`
+		tags = ["button"]
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
@@ -56,6 +58,7 @@ export function ROConnectedButtonFactory(
 ) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
+		tags = ["button"]
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
 		getLayer(): Layer {
@@ -103,6 +106,7 @@ actorDB["buttonBrown"] = ROConnectedButtonFactory("brown", true)
 export function diamondConnectedButtonFactory(color: string) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
+		tags = ["button"]
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
 		getLayer(): Layer {

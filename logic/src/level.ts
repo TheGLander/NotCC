@@ -270,6 +270,7 @@ export class LevelState {
 				actor.onBlocked?.(exitActor)
 				return false
 			} else {
+				if (actor._internalIgnores(exitActor)) continue
 				const redirection = exitActor.redirectTileMemberDirection?.(
 					actor,
 					direction

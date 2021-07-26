@@ -5,6 +5,7 @@ import { Layer } from "./tile"
 import Tile from "./tile"
 import { Item, Key } from "./actors/items"
 import { iterableIncludes } from "./iterableHelpers"
+import AutoReadDataView from "./parsers/autoReader"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -88,6 +89,8 @@ export abstract class Actor {
 	 * Tags which this actor should not be destroyed by
 	 */
 	immuneTags?: string[]
+
+	nonIgnoredSlideBonkTags?: string[]
 	getCompleteTags<T extends keyof this>(id: T): string[] {
 		return [
 			...((this[id] as unknown as string[])
@@ -118,7 +121,7 @@ export abstract class Actor {
 			false
 		)
 	}
-
+	collisionIgnores?(other: Actor, enterDirection: Direction): boolean
 	/**
 	 * Amount of ticks it takes for the actor to move
 	 */
@@ -289,6 +292,7 @@ export abstract class Actor {
 				this.getCompleteTags("tags"),
 				other.getCompleteTags("collisionIgnoreTags")
 			) &&
+			!other.collisionIgnores?.(this, moveDirection) &&
 			(this.blocks?.(other, moveDirection) ||
 				other.blockedBy?.(this, moveDirection) ||
 				matchTags(
@@ -402,10 +406,11 @@ export abstract class Actor {
 	exitBlocks?(other: Actor, exitDirection: Direction): boolean
 	_internalExitBlocks(other: Actor, exitDirection: Direction): boolean {
 		return (
-			(!matchTags(
-				this.getCompleteTags("tags"),
-				other.getCompleteTags("collisionIgnoreTags")
-			) &&
+			(!other.collisionIgnores?.(this, exitDirection) &&
+				!matchTags(
+					this.getCompleteTags("tags"),
+					other.getCompleteTags("collisionIgnoreTags")
+				) &&
 				this.exitBlocks?.(other, exitDirection)) ??
 			false
 		)
