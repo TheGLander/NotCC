@@ -6,12 +6,8 @@ import {
 	decodeSolutionStep,
 	encodeSolutionStep,
 } from "./logic/level"
-import keycode from "keycode"
 import Renderer from "./visuals"
 import { SolutionStep } from "./logic/encoder"
-import rfdc from "rfdc"
-
-const clone = rfdc({ circles: true })
 
 const isSmartTV =
 	/smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
@@ -29,22 +25,22 @@ function stabilizeFactory(bufferLength = 60): (val: number) => number {
 
 const keymap: Record<string, InputType> = isSmartTV
 	? {
-			2: "up",
-			4: "left",
-			6: "right",
-			8: "down",
-			1: "drop",
-			3: "rotateInv",
-			5: "switchPlayable",
+			Digit2: "up",
+			Digit4: "left",
+			Digit6: "right",
+			Digit8: "down",
+			Digit1: "drop",
+			Digit3: "rotateInv",
+			Digit5: "switchPlayable",
 	  }
 	: {
-			up: "up",
-			down: "down",
-			left: "left",
-			right: "right",
-			z: "drop",
-			x: "rotateInv",
-			c: "switchPlayable",
+			ArrowUp: "up",
+			ArrowDown: "down",
+			ArrowLeft: "left",
+			ArrowRight: "right",
+			KeyZ: "drop",
+			KeyX: "rotateInv",
+			KeyC: "switchPlayable",
 	  }
 
 const checkIfRelevant = (key: string): key is keyof typeof keymap =>
@@ -80,12 +76,12 @@ export class PulseManager {
 	protected countFps = stabilizeFactory()
 	protected countDelay = stabilizeFactory()
 	protected keyDownFunc(ev: KeyboardEvent): void {
-		const key = keycode(ev)
+		const key = ev.code
 		if (!checkIfRelevant(key)) return
 		this.keysPressed[keymap[key]] = true
 	}
 	protected keyUpFunc(ev: KeyboardEvent): void {
-		const key = keycode(ev)
+		const key = ev.code
 		if (!checkIfRelevant(key)) return
 		this.keysPressed[keymap[key]] = false
 	}

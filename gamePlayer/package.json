@@ -6,7 +6,8 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "npx rollup -c",
 		"watch": "env NODE_ENV=development npm run build -- --watch",
-		"prodBuild": "env NODE_ENV=production npm run build"
+		"prodBuild": "env NODE_ENV=production npm run build",
+		"start": "nollup -c"
 	},
 	"repository": {
 		"type": "git",
@@ -22,7 +23,7 @@
 		"@rollup/plugin-commonjs": "^19.0.1",
 		"@rollup/plugin-node-resolve": "^13.0.2",
 		"fast-printf": "^1.6.5",
-		"keycode": "^2.2.0",
+		"nollup": "^0.18.2",
 		"rfdc": "^1.3.0",
 		"rollup": "^2.53.2",
 		"rollup-plugin-analyzer": "^4.0.0",

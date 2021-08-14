@@ -30,7 +30,7 @@ export default {
 	output: {
 		name: "NotCC",
 		file: "./dist/index.js",
-		format: "umd",
+		format: "iife",
 		sourcemap: true,
 	},
 	preserveSymlinks: true,
