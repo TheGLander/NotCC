@@ -496,6 +496,7 @@ actorDB["slime"] = Slime
 export class FlameJet extends Actor {
 	id = "flameJet"
 	tags = this.customData === "on" ? ["fire"] : []
+	immuneTags = ["meltable-block"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}

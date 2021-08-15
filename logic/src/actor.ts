@@ -276,13 +276,17 @@ export abstract class Actor {
 	 * Called when a new actor was born on the same tile as this
 	 */
 	newActorOnTile?(actor: Actor): void
-	_internalShouldDestroy(other: Actor): boolean {
+
+	shouldDie?(killer: Actor): boolean
+
+	_internalShouldDie(killer: Actor): boolean {
 		return !(
-			this._internalIgnores(other) ||
+			this._internalIgnores(killer) ||
 			matchTags(
-				other.getCompleteTags("tags"),
+				killer.getCompleteTags("tags"),
 				this.getCompleteTags("immuneTags")
-			)
+			) ||
+			(this.shouldDie && !this.shouldDie(killer))
 		)
 	}
 
@@ -349,7 +353,7 @@ export abstract class Actor {
 		killer?: Actor | null,
 		animType: string | null = "explosion"
 	): boolean {
-		if (killer && !this._internalShouldDestroy(killer)) return false
+		if (killer && !this._internalShouldDie(killer)) return false
 		if (this.level.actors.includes(this))
 			this.level.actors.splice(this.level.actors.indexOf(this), 1)
 		if (this.level.decidingActors.includes(this))

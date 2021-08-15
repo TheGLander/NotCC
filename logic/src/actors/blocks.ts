@@ -42,7 +42,13 @@ export class IceBlock extends Actor {
 	id = "iceBlock"
 	transmogrifierTarget = "dirtBlock"
 	pushTags = ["cc2block"]
-	tags = ["block", "cc2block", "movable", "can-stand-on-items"]
+	tags = [
+		"block",
+		"cc2block",
+		"movable",
+		"can-stand-on-items",
+		"meltable-block",
+	]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -62,17 +68,22 @@ export class IceBlock extends Actor {
 		const water = this.tile.findActor(Layer.STATIONARY, val =>
 			val.getCompleteTags("tags").includes("water")
 		)
+		const melting = this.tile.findActor(Layer.STATIONARY, val =>
+			val.getCompleteTags("tags").includes("melting")
+		)
 		if (water) {
 			water.destroy(this, null)
 			new Ice(this.level, this.tile.position)
 		}
-		for (const actor of this.tile[Layer.STATIONARY]) this.melt(actor)
+		if (melting) {
+			melting.destroy(this, null)
+			new Water(this.level, this.tile.position)
+		}
 	}
-	bumped = this.melt
-	melt(other: Actor): void {
+	bumped(other: Actor): void {
 		if (other.getCompleteTags("tags").includes("melting")) {
-			this.destroy(this, null)
-			if (other.layer === Layer.STATIONARY) other.destroy(this, null)
+			this.destroy(this, "splash")
+
 			if (!this.tile.hasLayer(Layer.STATIONARY))
 				new Water(this.level, this.tile.position)
 		}
