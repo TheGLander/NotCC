@@ -99,6 +99,7 @@ export abstract class Key extends Item {
 export class KeyRed extends Key {
 	id = "keyRed"
 	ignoreTags = ["!playable"]
+	blocks = undefined
 	keyUsed(other: Actor): void {
 		if (other.getCompleteTags("tags").includes("can-reuse-key-red"))
 			other.inventory.keys[this.id].amount++

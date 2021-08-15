@@ -275,13 +275,9 @@ export class Hint extends Actor {
 	hint?: string
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
-		this.level.hintsLeftInLevel++
-	}
-	levelStarted(): void {
-		this.level.hintsLeftInLevel--
-		if (this.level.hintsLeftInLevel >= this.level.hintsLeft.length - 1)
-			this.hint = this.level.defaultHint
-		else this.hint = this.level.hintsLeft[this.level.hintsLeftInLevel]
+		if (this.level.hintsLeft.length > 0)
+			this.hint = this.level.hintsLeft.shift()
+		else this.hint = this.level.defaultHint
 	}
 	getLayer(): Layer {
 		return Layer.STATIONARY
@@ -289,7 +285,7 @@ export class Hint extends Actor {
 	actorCompletelyJoined(other: Actor): void {
 		// Sorry
 		if (other instanceof Playable && this.hint)
-			(alert ?? console.log)(this.hint)
+			(globalThis.alert ?? console.log)(this.hint)
 	}
 	blockTags = ["normal-monster", "cc1block"]
 }
@@ -399,8 +395,8 @@ export class CloneMachine extends Actor {
 		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
 			const direction = clonee.direction
 
-			if (!this.level.checkCollision(clonee, direction, true)) continue
-			clonee._internalStep(direction)
+			if (clonee._internalStep(direction)) clonee.cooldown--
+			else continue
 			new actorDB[clonee.id](
 				this.level,
 				this.tile.position,

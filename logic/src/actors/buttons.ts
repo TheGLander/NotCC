@@ -64,8 +64,7 @@ export function ROConnectedButtonFactory(
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
-		constructor(level: LevelState, position: [number, number]) {
-			super(level, position)
+		levelStarted(): void {
 			// Search for an explicit connection
 			for (const connection of this.level.connections)
 				if (
@@ -74,8 +73,6 @@ export function ROConnectedButtonFactory(
 				)
 					this.explicitlyConnectedTile =
 						this.level.field[connection[1][0]]?.[connection[1][1]]
-		}
-		levelStarted(): void {
 			const thisIndex = this.level.actors.indexOf(this)
 			const foundActor = [
 				// TODO This relies that actor order is in RRO, maybe this should do it more like teleports?
@@ -112,8 +109,7 @@ export function diamondConnectedButtonFactory(color: string) {
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
-		constructor(level: LevelState, position: [number, number]) {
-			super(level, position)
+		levelStarted(): void {
 			// Search for an explicit connection
 			for (const connection of this.level.connections)
 				if (
@@ -122,8 +118,6 @@ export function diamondConnectedButtonFactory(color: string) {
 				)
 					this.explicitlyConnectedTile =
 						this.level.field[connection[1][0]]?.[connection[1][1]]
-		}
-		levelStarted(): void {
 			if (this.explicitlyConnectedTile) {
 				for (const actor of this.explicitlyConnectedTile.allActors)
 					if (actor.caresButtonColors.includes(color))

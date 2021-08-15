@@ -153,7 +153,7 @@ export abstract class Actor {
 		public customData = ""
 	) {
 		this.layer = this.getLayer()
-		level.actors.push(this)
+		level.actors.unshift(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors(this)
 		if (level.levelStarted)
@@ -165,7 +165,7 @@ export abstract class Actor {
 			this.onEachDecision ||
 			this.decideMovement
 		)
-		if (this.isDeciding) level.decidingActors.push(this)
+		if (this.isDeciding) level.decidingActors.unshift(this)
 		this.createdN = this.level.createdN++
 	}
 	/**

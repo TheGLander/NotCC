@@ -163,10 +163,11 @@ export class LevelState {
 	connections: [[number, number], [number, number]][] = []
 	protected decisionTick(forcedOnly = false): void {
 		onLevelDecisionTick.forEach(val => val(this))
-		for (const actor of this.decidingActors) actor._internalDecide(forcedOnly)
+		for (const actor of Array.from(this.decidingActors))
+			actor._internalDecide(forcedOnly)
 	}
 	protected moveTick(): void {
-		for (const actor of this.decidingActors) {
+		for (const actor of Array.from(this.decidingActors)) {
 			actor._internalMove()
 			actor._internalDoCooldown()
 		}
@@ -178,9 +179,9 @@ export class LevelState {
 	tick(): void {
 		if (!this.levelStarted) {
 			this.levelStarted = true
-			for (const actor of this.actors) actor.levelStarted?.()
+			for (const actor of Array.from(this.actors)) actor.levelStarted?.()
 			onLevelStart.forEach(val => val(this))
-			for (const actor of this.actors)
+			for (const actor of Array.from(this.actors))
 				if (actor.newActorOnTile)
 					for (const actorNeigh of actor.tile.allActors)
 						if (actorNeigh !== actor && !actor._internalIgnores(actorNeigh))
@@ -377,8 +378,8 @@ export function createLevelFromData(data: LevelData): LevelState {
 		level.playablesLeft = data.playablesRequiredToExit
 	if (data.extraChipsRequired) level.chipsRequired = data.extraChipsRequired
 	if (data.connections) level.connections = data.connections
-	for (let y = level.height - 1; y >= 0; y--)
-		for (let x = level.width - 1; x >= 0; x--)
+	for (let y = 0; y < level.height; y++)
+		for (let x = 0; x < level.width; x++)
 			for (const actor of data.field[x][y]) {
 				if (!actorDB[actor[0]])
 					throw new Error(`Cannot find actor with id "${actor[0]}"!`)

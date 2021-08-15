@@ -203,9 +203,6 @@ export class Swivel extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	constructor(level: LevelState, position: [number, number]) {
-		super(level, position)
-	}
 	levelStarted(): void {
 		this.rotatingPart = new SwivelRotatingPart(this.level, this.tile.position)
 		this.rotatingPart.direction = this.direction

@@ -35,5 +35,4 @@ export default {
 	},
 	preserveSymlinks: true,
 	plugins,
-	watch: { include: "src/**" },
 }
