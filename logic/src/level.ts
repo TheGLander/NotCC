@@ -361,8 +361,9 @@ export class LevelState {
 		// TODO Multiplayer
 		this.solutionStep = 0
 		this.solutionSubticksLeft = solution.steps[0][0][1] + 1
-		if (solution.blobModSeed) this.blobPrngValue = solution.blobModSeed
-		if (solution.rffDirection)
+		if (solution.blobModSeed !== undefined)
+			this.blobPrngValue = solution.blobModSeed
+		if (solution.rffDirection !== undefined)
 			crossLevelData.RFFDirection = solution.rffDirection
 	}
 }
