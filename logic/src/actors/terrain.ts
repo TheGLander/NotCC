@@ -92,28 +92,18 @@ actorDB["iceCorner"] = IceCorner
 export class ForceFloor extends Actor {
 	id = "forceFloor"
 	tags = ["force-floor"]
-	hasFreeBump = true
-	lastEnteredActor?: number
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (this.lastEnteredActor !== other.createdN) this.hasFreeBump = true
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
 	}
 	newActorOnTile = this.actorCompletelyJoined
-	actorLeft(): void {
-		delete this.lastEnteredActor
-		this.hasFreeBump = true
-	}
 	onMemberSlideBonked(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
-		// Give them a single subtick of cooldown
-		if (this.hasFreeBump) this.hasFreeBump = false
-		else other.cooldown++
 	}
 	speedMod(): 2 {
 		return 2
@@ -125,13 +115,10 @@ actorDB["forceFloor"] = ForceFloor
 export class ForceFloorRandom extends Actor {
 	id = "forceFloorRandom"
 	tags = ["force-floor"]
-	hasFreeBump = true
-	lastEnteredActor?: number
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (this.lastEnteredActor !== other.createdN) this.hasFreeBump = true
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		crossLevelData.RFFDirection ??= 0
@@ -139,19 +126,11 @@ export class ForceFloorRandom extends Actor {
 		crossLevelData.RFFDirection %= 4
 	}
 	newActorOnTile = this.actorCompletelyJoined
-	actorLeft(): void {
-		delete this.lastEnteredActor
-		this.hasFreeBump = true
-	}
 	onMemberSlideBonked(other: Actor): void {
-		// Give them a single subtick of cooldown
-		if (this.hasFreeBump) {
-			this.hasFreeBump = false
-			other.slidingState = SlidingState.WEAK
-			crossLevelData.RFFDirection ??= 0
-			other.direction = crossLevelData.RFFDirection++
-			crossLevelData.RFFDirection %= 4
-		} else other.cooldown++
+		other.slidingState = SlidingState.WEAK
+		crossLevelData.RFFDirection ??= 0
+		other.direction = crossLevelData.RFFDirection++
+		crossLevelData.RFFDirection %= 4
 	}
 	speedMod(): 2 {
 		return 2

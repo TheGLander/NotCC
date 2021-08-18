@@ -14,7 +14,9 @@ import { CLIArguments } from "./index"
 
 export function verifyLevelFiles(args: CLIArguments): void {
 	if (!args.pos[1]) errorAndExit("Supply a level path!")
-	const files = resolveLevelPath(args.pos[1])
+	const files = resolveLevelPath(args.pos[1]).filter(val =>
+		val.toLowerCase().endsWith(".c2m")
+	)
 
 	let levelsKilledBySolution = 0,
 		levelsRanOutOfInput = 0,
