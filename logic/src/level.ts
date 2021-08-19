@@ -170,10 +170,6 @@ export class LevelState {
 		for (const actor of Array.from(this.decidingActors)) {
 			actor._internalMove()
 			actor._internalDoCooldown()
-			/*if (actor === this.selectedPlayable)
-				//@ts-expect-error Sus
-				notCCStuff[this.currentTick * 3 + this.subtick] =
-					this.selectedPlayable.cooldown */
 		}
 	}
 	/**
@@ -183,8 +179,6 @@ export class LevelState {
 	tick(): void {
 		if (!this.levelStarted) {
 			this.levelStarted = true
-			/* //@ts-expect-error Sus 2 in cinemas soon
-			window.notCCStuff = new Uint8Array(60 * 60) */
 			for (const actor of Array.from(this.actors)) actor.levelStarted?.()
 			onLevelStart.forEach(val => val(this))
 			for (const actor of Array.from(this.actors))

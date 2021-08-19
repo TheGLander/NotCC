@@ -335,6 +335,9 @@ export class Trap extends Actor {
 	caresButtonColors = ["brown"]
 	buttonPressed(): void {
 		this.openRequests++
+		if (this.openRequests === 1)
+			for (const movable of this.tile[Layer.MOVABLE])
+				if (movable._internalStep(movable.direction)) movable.cooldown--
 	}
 	buttonUnpressed(): void {
 		this.openRequests = Math.max(0, this.openRequests - 1)
