@@ -312,15 +312,23 @@ export abstract class Actor {
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
 			this.cooldown--
-			for (const actor of [...this.tile.allActors])
-				if (actor !== this && !this._internalIgnores(actor))
-					actor.actorCompletelyJoined?.(this)
+			for (const actor of [...this.tile.allActorsReverse])
+				if (
+					actor !== this &&
+					actor.actorCompletelyJoined &&
+					!this._internalIgnores(actor)
+				)
+					actor.actorCompletelyJoined(this)
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
 		if (!this.cooldown) {
 			for (const actor of [...this.tile.allActors])
-				if (actor !== this && !this._internalIgnores(actor))
-					actor.continuousActorCompletelyJoined?.(this)
+				if (
+					actor !== this &&
+					actor.continuousActorCompletelyJoined &&
+					!this._internalIgnores(actor)
+				)
+					actor.continuousActorCompletelyJoined(this)
 		}
 	}
 	/**
@@ -344,7 +352,7 @@ export abstract class Actor {
 
 		this.tile.addActors(this)
 		this.slidingState = SlidingState.NONE
-		for (const actor of [...this.tile.allActors])
+		for (const actor of [...this.tile.allActorsReverse])
 			if (actor !== this && !this._internalIgnores(actor))
 				actor.actorJoined?.(this)
 		this.newTileJoined?.()
@@ -462,4 +470,5 @@ export abstract class Actor {
 		other: Actor,
 		direction: Direction
 	): Direction | null
+	bumpedEdge?(fromTile: Tile, direction: Direction): void
 }

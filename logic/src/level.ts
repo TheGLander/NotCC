@@ -281,7 +281,10 @@ export class LevelState {
 				this.resolvedCollisionCheckDirection = direction = redirection
 			}
 		const newTile = fromTile.getNeighbor(direction)
-		if (newTile === null) return false
+		if (newTile === null) {
+			actor.bumpedEdge?.(fromTile, direction)
+			return false
+		}
 
 		const toPush: Actor[] = []
 

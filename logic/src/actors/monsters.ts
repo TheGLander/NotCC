@@ -318,6 +318,9 @@ export class RollingBowlingBall extends Monster {
 			this.destroy(this)
 		}
 	}
+	bumpedEdge(): void {
+		if (!this.slidingState) this.destroy(this)
+	}
 }
 
 actorDB["bowlingBallRolling"] = RollingBowlingBall
