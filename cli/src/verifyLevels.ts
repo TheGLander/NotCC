@@ -1,101 +1,93 @@
-import {
-	createLevelFromData,
-	crossLevelData,
-	GameState,
-	parseC2M,
-} from "../../logic"
-import fs from "fs"
-import path from "path"
-import ora from "ora"
 import { exit } from "process"
-import chalk from "chalk"
 import { resolveLevelPath, errorAndExit } from "./helpers"
 import { CLIArguments } from "./index"
+import { Worker } from "worker_threads"
+import { join } from "path"
+import Ora from "ora"
+import os from "os"
+export interface LevelsMessage {
+	levels: string[]
+	onlyError: boolean
+	ping: boolean
+}
 
-export function verifyLevelFiles(args: CLIArguments): void {
+export interface WorkerMessage {
+	levelName?: string
+	progress?: number
+	outcome?: "success" | "no_input" | "bad_input" | "error"
+	done?: boolean
+	getLevel?: boolean
+}
+
+export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 	if (!args.pos[1]) errorAndExit("Supply a level path!")
 	const files = resolveLevelPath(args.pos[1]).filter(val =>
 		val.toLowerCase().endsWith(".c2m")
 	)
-
+	const spinner = Ora({ discardStdin: false, hideCursor: false })
+	spinner.start()
 	let levelsKilledBySolution = 0,
 		levelsRanOutOfInput = 0,
 		levelsThrewError = 0
 
-	// TODO Refactor hint tile to not use alerts
-	// eslint-disable-next-line @typescript-eslint/no-empty-function
-	globalThis.alert = () => {}
+	const workers: Worker[] = [],
+		workerPromises: Promise<number>[] = [],
+		workerProgresses: [string, number][] = []
 
-	for (const levelPath of files) {
-		const spinner = ora({ discardStdin: false, hideCursor: false })
-		try {
-			const levelBuffer = fs.readFileSync(levelPath, null)
+	for (let i = 0; i < os.cpus().length; i++) {
+		const worker = new Worker(join(__dirname, "./levelVerifyThread.js"))
+		workers.push(worker)
+		worker.postMessage({
+			levels: files.slice(
+				(i * files.length) / os.cpus().length,
+				((i + 1) * files.length) / os.cpus().length
+			),
+			onlyError: args.options.onlyError,
+			ping: false,
+		} as LevelsMessage)
+		let lastLevel = ""
+		workerPromises.push(
+			new Promise<number>(res => {
+				worker.on("message", (ev: WorkerMessage) => {
+					if (ev.done) {
+						const id = workers.indexOf(worker)
+						delete workers[id]
+						delete workerProgresses[id]
+						return res(worker.terminate())
+					}
+					if (ev.progress)
+						workerProgresses[workers.indexOf(worker)] = [lastLevel, ev.progress]
+					switch (ev.outcome) {
+						case "bad_input":
+							levelsKilledBySolution++
+							spinner.fail(`${lastLevel} - Solution killed the player`)
+							break
+						case "error":
+							levelsThrewError++
+							spinner.fail(`${lastLevel} - Failed to run`)
+							break
+						case "no_input":
+							levelsRanOutOfInput++
+							spinner.fail(`${lastLevel} - Solution ran out of steps`)
+							break
+						case "success":
+							spinner.succeed(`${lastLevel} - Success`)
+							break
+					}
+					if (ev.levelName !== lastLevel && ev.levelName)
+						lastLevel = ev.levelName
 
-			// TODO This shouldn't happen in any solutions anyways
-			crossLevelData.despawnedActors = crossLevelData.queuedDespawns = []
-
-			const levelData = parseC2M(new Uint8Array(levelBuffer).buffer, levelPath)
-			const level = createLevelFromData(levelData)
-
-			if (!levelData?.associatedSolution || !levelData.associatedSolution.steps)
-				throw new Error("Level has no baked solution!")
-
-			spinner.start(` ${levelData.name} - Verifying...`)
-
-			let lastDelay = Date.now(),
-				bonusTicks = 60 * 10
-			const startTime = lastDelay
-			level.playbackSolution(levelData.associatedSolution)
-			while (level.gameState === GameState.PLAYING && bonusTicks > 0) {
-				level.tick()
-				if (level.solutionSubticksLeft === Infinity) bonusTicks--
-				if (Date.now() - lastDelay > 80) {
-					spinner.text = `${levelData.name} - Verifying... (${Math.round(
-						(level.solutionStep /
-							levelData.associatedSolution.steps[0].length) *
-							100
-					)}%)`
+					spinner.text = workerProgresses.reduce(
+						(acc, val) => `${acc} ${val[0]} (${val[1]}%)`,
+						"Verifying "
+					)
 					spinner.render()
-					lastDelay = Date.now()
-				}
-			}
-			const speedCoef = Math.round(
-				level.currentTick / 60 / ((Date.now() - startTime) / 1000)
-			)
-
-			let reasonText: string
-
-			switch (level.gameState) {
-				case GameState.PLAYING:
-					levelsRanOutOfInput++
-					reasonText = "Input end before win"
-					break
-				case GameState.LOST:
-					levelsKilledBySolution++
-					reasonText = "Solution killed the player"
-					break
-				case GameState.WON:
-					reasonText = "Success"
-					break
-			}
-			const isSuccess = level.gameState === GameState.WON
-
-			if (!(args.options.onlyError && isSuccess))
-				spinner[isSuccess ? "succeed" : "fail"](
-					chalk` ${levelData.name ?? "UNNAMED"} - {${
-						isSuccess ? "green" : "red"
-					} ${reasonText}} (${speedCoef.toString()} times faster)`
-				)
-		} catch (err) {
-			levelsThrewError++
-			if (!args.options.onlyError)
-				spinner.fail(
-					` ${path.basename(levelPath)} - Failed to run (${err.message})`
-				)
-		}
-		if (args.options.onlyError) spinner.stop()
+				})
+			})
+		)
 	}
-
+	await Promise.all(workerPromises)
+	spinner.clear()
 	const totalWins =
 		files.length -
 		levelsKilledBySolution -
