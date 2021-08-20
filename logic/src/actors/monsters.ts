@@ -5,7 +5,7 @@ import { Playable } from "./playables"
 import { actorDB, Decision } from "../const"
 import { Fire } from "./terrain"
 import Tile from "../tile"
-import { iterableFind } from "../iterableHelpers"
+import { iterableFind, iterableIncludes } from "../iterableHelpers"
 
 export abstract class Monster extends Actor {
 	blocks(): true {
@@ -252,7 +252,7 @@ export class LitTNT extends Monster {
 		let movableDied = false
 		// TODO Canopies
 		if (tileHadMovable) protectedLayer = Layer.STATIONARY + 1 // Protect stationary only
-		for (const actor of tile.allActors)
+		for (const actor of Array.from(tile.allActors))
 			if (actor.layer >= protectedLayer) {
 				actor.bumped?.(
 					this,
@@ -260,7 +260,10 @@ export class LitTNT extends Monster {
 						? 2 + Math.sign(tile.x - this.tile.x)
 						: 1 + Math.sign(tile.y - this.tile.y)
 				)
-				if (actor.destroy(this) && actor.layer === Layer.MOVABLE)
+				if (
+					(!actor.exists || actor.destroy(this)) &&
+					actor.layer === Layer.MOVABLE
+				)
 					movableDied = true
 			}
 		// Create a memorial fire if a movable got blown up (if we can)

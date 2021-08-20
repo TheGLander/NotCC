@@ -34,12 +34,12 @@ export abstract class Playable extends Actor {
 	hasOverride = false
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
-		level.playables.push(this)
+		level.playables.unshift(this)
+		if (!this.level.selectedPlayable) this.level.selectedPlayable = this
 	}
 	levelStarted(): void {
 		if (this.level.levelData?.playablesRequiredToExit === "all")
 			this.level.playablesLeft++
-		this.level.selectedPlayable = this
 	}
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)

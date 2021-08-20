@@ -210,9 +210,7 @@ export class LevelState {
 		}
 		for (const debouncedKey of debouncedInputs)
 			if (!this.gameInput[debouncedKey]) this.debouncedInputs[debouncedKey] = 0
-			else if (this.debouncedInputs[debouncedKey] === 0)
-				this.debouncedInputs[debouncedKey] = debouncePeriod
-			else if (this.debouncedInputs[debouncedKey] !== -1) {
+			else if (this.debouncedInputs[debouncedKey] > 0) {
 				if (this.debouncedInputs[debouncedKey] === 1)
 					this.debouncedInputs[debouncedKey]--
 				this.debouncedInputs[debouncedKey]--

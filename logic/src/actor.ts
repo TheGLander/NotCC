@@ -4,8 +4,6 @@ import { Direction } from "./helpers"
 import { Layer } from "./tile"
 import Tile from "./tile"
 import { Item, Key } from "./actors/items"
-import { iterableIncludes } from "./iterableHelpers"
-import AutoReadDataView from "./parsers/autoReader"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -58,6 +56,7 @@ export abstract class Actor {
 	layer: Layer
 	abstract id: string
 	despawned = false
+	exists = true
 	isDeciding = false
 	createdN: number
 	/**
@@ -239,7 +238,7 @@ export abstract class Actor {
 		if (this.cooldown > 0 || !this.moveDecision) return
 		const ogDirection = this.moveDecision - 1
 		const bonked = !this._internalStep(ogDirection)
-		if (bonked && this.slidingState) {
+		if (this.exists && bonked && this.slidingState) {
 			for (const bonkListener of this.tile.allActors)
 				if (!this._internalIgnores(bonkListener))
 					bonkListener.onMemberSlideBonked?.(this)
@@ -317,8 +316,10 @@ export abstract class Actor {
 					actor !== this &&
 					actor.actorCompletelyJoined &&
 					!this._internalIgnores(actor)
-				)
+				) {
 					actor.actorCompletelyJoined(this)
+					if (!this.exists) return
+				}
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
 		if (!this.cooldown) {
@@ -370,6 +371,7 @@ export abstract class Actor {
 				1
 			)
 		this.tile.removeActors(this)
+		this.exists = false
 		if (
 			animType &&
 			actorDB[`${animType}Anim`] &&

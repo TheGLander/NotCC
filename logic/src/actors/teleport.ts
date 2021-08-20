@@ -149,6 +149,8 @@ export class GreenTeleport extends Actor {
 							true
 						)
 					) {
+						other.direction += offset
+						other.direction %= 4
 						targetTeleport = teleport
 						break mainLoop
 					}

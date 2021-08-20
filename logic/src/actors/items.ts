@@ -4,6 +4,7 @@ import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
 import { Playable } from "./playables"
 import { LitTNT, RollingBowlingBall } from "./monsters"
+import { Animation } from "./animation"
 
 export const enum ItemDestination {
 	NONE,
@@ -258,6 +259,9 @@ export class BowlingBall extends Item {
 		dropper.tile.removeActors(dropper)
 		const rollingGuy = this.replaceWith(RollingBowlingBall)
 		rollingGuy._internalStep(dropper.direction)
+		// Hello animation from rolling bowling ball movement failure, please die so my dropper can go back
+		for (const movable of dropper.tile[Layer.MOVABLE])
+			if (movable instanceof Animation) movable.destroy(null, null)
 		dropper.tile.addActors(dropper)
 	}
 }
