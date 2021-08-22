@@ -126,8 +126,9 @@ keyNameList.push("keyBlue")
 
 export class KeyYellow extends Key {
 	id = "keyYellow"
-	keyUsed(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("can-reuse-key-yellow")
+	keyUsed(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("can-reuse-key-yellow"))
+			other.inventory.keys[this.id].amount++
 	}
 }
 
@@ -149,7 +150,7 @@ keyNameList.push("keyGreen")
 
 export class BootWater extends Item {
 	id = "bootWater"
-	carrierTags = { ignoreTags: ["water"] }
+	carrierTags = { ignoreTags: ["water"], collisionIgnoreTags: ["water"] }
 	destination = ItemDestination.ITEM
 }
 

@@ -90,8 +90,11 @@ export class RedTeleport extends Actor {
 							(other.direction + offset) % 4,
 							true
 						)
-					)
+					) {
+						other.direction += offset
+						other.direction %= 4
 						return true
+					}
 
 				return false
 			}

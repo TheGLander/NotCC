@@ -50,7 +50,7 @@ export class IceBlock extends Actor {
 		"can-stand-on-items",
 		"meltable-block",
 	]
-	ignoreTags = ["water"]
+	ignoreTags = ["water", "melting"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
