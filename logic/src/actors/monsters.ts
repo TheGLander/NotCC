@@ -368,8 +368,9 @@ export class Ghost extends Monster {
 	id = "ghost"
 	tags = ["autonomous-monster", "can-pickup-items", "movable", "ghost"]
 	blockedByTags = ["blocks-ghost", "water-ish"]
-	nonIgnoredTags = ["machinery", "button", "movable"]
+	nonIgnoredTags = ["machinery", "button", "door", "echip-gate", "jet"]
 	ignoreTags = ["bonusFlag"]
+	collisionIgnoreTags = ["door", "echip-gate"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
@@ -378,8 +379,11 @@ export class Ghost extends Monster {
 		return (
 			!other
 				.getCompleteTags("tags")
-				.some(val => this.blockedByTags.includes(val)) &&
-			other.layer !== Layer.MOVABLE
+				.some(
+					val =>
+						this.blockedByTags.includes(val) ||
+						this.nonIgnoredTags.includes(val)
+				) && other.layer !== Layer.MOVABLE
 		)
 	}
 	ignores(other: Actor): boolean {
@@ -387,7 +391,8 @@ export class Ghost extends Monster {
 			!other
 				.getCompleteTags("tags")
 				.some(val => this.nonIgnoredTags.includes(val)) &&
-			other.layer !== Layer.ITEM
+			other.layer !== Layer.ITEM &&
+			other.layer !== Layer.MOVABLE
 		)
 	}
 }

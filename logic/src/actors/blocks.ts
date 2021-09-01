@@ -85,10 +85,12 @@ export class IceBlock extends Actor {
 		}
 	}
 	bumped(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("melting")) {
+		if (
+			other.getCompleteTags("tags").includes("melting") &&
+			!this.tile.hasLayer(Layer.STATIONARY)
+		) {
 			this.destroy(this, "splash")
-			if (!this.tile.hasLayer(Layer.STATIONARY))
-				new Water(this.level, this.tile.position)
+			new Water(this.level, this.tile.position)
 		}
 	}
 }

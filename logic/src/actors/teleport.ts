@@ -193,7 +193,7 @@ export class YellowTeleport extends Actor implements Item {
 			findNextTeleport.call(this, this, false, () => true) !== this
 	}
 	actorCompletelyJoined(other: Actor): void {
-		const newTP = findNextTeleport.call(this, other, false)
+		const newTP = findNextTeleport.call(this, other)
 		if (this.shouldPickup && newTP === this)
 			Item.prototype.actorCompletelyJoined.call(this, other)
 		else {

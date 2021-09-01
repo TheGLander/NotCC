@@ -93,16 +93,12 @@ export class ForceFloor extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorCompletelyJoined(other: Actor): void {
+	continuousActorCompletelyJoined(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
 	}
-	newActorOnTile = this.actorCompletelyJoined
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.WEAK
-		other.direction = this.direction
-	}
+	onMemberSlideBonked = this.continuousActorCompletelyJoined
 	speedMod(): 2 {
 		return 2
 	}
@@ -116,20 +112,14 @@ export class ForceFloorRandom extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorCompletelyJoined(other: Actor): void {
+	continuousActorCompletelyJoined(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		crossLevelData.RFFDirection ??= 0
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
 	}
-	newActorOnTile = this.actorCompletelyJoined
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.WEAK
-		crossLevelData.RFFDirection ??= 0
-		other.direction = crossLevelData.RFFDirection++
-		crossLevelData.RFFDirection %= 4
-	}
+	onMemberSlideBonked = this.continuousActorCompletelyJoined
 	speedMod(): 2 {
 		return 2
 	}
@@ -151,8 +141,7 @@ export class RecessedWall extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	// Funny how recessed walls have the exact same collision as monsters
-	blockTags = ["!playable"]
+	blockTags = ["cc1block", "normal-monster"]
 	actorLeft(): void {
 		this.destroy(this, null)
 		new Wall(this.level, this.tile.position)
@@ -219,10 +208,15 @@ export class Exit extends Actor {
 	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
+			this.level.selectedPlayable =
+				this.level.playables[
+					(this.level.playables.indexOf(other) + 1) %
+						this.level.playables.length
+				]
 			other.destroy(this, null)
 			this.level.gameState = GameState.PLAYING
 			this.level.playablesLeft--
-			this.level.playablesToSwap = true
+
 			if (this.level.playablesLeft <= 0) this.level.gameState = GameState.WON
 		}
 	}
@@ -232,6 +226,7 @@ actorDB["exit"] = Exit
 
 export class EChipGate extends Actor {
 	id = "echipGate"
+	tags = ["echip-gate"]
 	immuneTags = ["tnt"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
@@ -326,22 +321,24 @@ export class Trap extends Actor {
 	exitBlocks(): boolean {
 		return this.openRequests === 0
 	}
-	newActorOnTile(actor: Actor): void {
-		if (this.openRequests === 0) actor.slidingState = SlidingState.WEAK
+	continuousActorCompletelyJoined(actor: Actor): void {
+		if (this.openRequests === 0 && actor.layer === Layer.MOVABLE)
+			actor.slidingState = SlidingState.WEAK
 	}
-	actorCompletelyJoined = this.newActorOnTile
 	caresButtonColors = ["brown"]
 	buttonPressed(): void {
 		this.openRequests++
 		if (this.openRequests === 1)
-			for (const movable of this.tile[Layer.MOVABLE])
+			for (const movable of this.tile[Layer.MOVABLE]) {
 				if (movable._internalStep(movable.direction)) movable.cooldown--
+				movable.slidingState = SlidingState.NONE
+			}
 	}
 	buttonUnpressed(): void {
 		this.openRequests = Math.max(0, this.openRequests - 1)
 		if (this.openRequests === 0)
 			for (const movable of this.tile[Layer.MOVABLE])
-				this.newActorOnTile(movable)
+				movable.slidingState = SlidingState.WEAK
 	}
 }
 
@@ -365,10 +362,10 @@ export class CloneMachine extends Actor {
 	exitBlocks(): boolean {
 		return !this.isCloning
 	}
-	newActorOnTile(actor: Actor): void {
+	continuousActorCompletelyJoined(actor: Actor): void {
 		actor.slidingState = SlidingState.STRONG
 	}
-	actorCompletelyJoined = this.newActorOnTile
+
 	caresButtonColors = ["red"]
 	buttonPressed(): boolean {
 		this.isCloning = true
@@ -377,11 +374,13 @@ export class CloneMachine extends Actor {
 
 			if (clonee._internalStep(direction)) clonee.cooldown--
 			else continue
-			new actorDB[clonee.id](
+			const newClone = new actorDB[clonee.id](
 				this.level,
 				this.tile.position,
 				clonee.customData
-			).direction = direction
+			)
+			newClone.direction = direction
+			newClone.slidingState = SlidingState.STRONG
 		}
 		this.isCloning = false
 		return true
@@ -396,12 +395,11 @@ export class Bomb extends Actor {
 	getLayer(): Layer {
 		return Layer.ITEM // Yes
 	}
-	actorCompletelyJoined(other: Actor): void {
+	continuousActorCompletelyJoined(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.destroy(this, null)
 		this.destroy(other)
 	}
-	newActorOnTile = this.actorCompletelyJoined
 }
 
 actorDB["bomb"] = Bomb
@@ -449,6 +447,18 @@ export class GreenBomb extends Actor {
 	caresButtonColors = ["green"]
 	buttonPressed(): void {
 		this.customData = this.customData === "bomb" ? "echip" : "bomb"
+		if (this.customData === "echip") this.tags.push("item")
+		else this.tags.splice(this.tags.indexOf("item"))
+	}
+	blocks(other: Actor): boolean {
+		return (
+			this.customData === "echip" &&
+			!matchTags(other.getCompleteTags("tags"), [
+				"can-pickup-items",
+				"can-stand-on-items",
+				"playable",
+			])
+		)
 	}
 }
 
@@ -475,7 +485,7 @@ actorDB["slime"] = Slime
 
 export class FlameJet extends Actor {
 	id = "flameJet"
-	tags = this.customData === "on" ? ["fire"] : []
+	tags = this.customData === "on" ? ["fire", "jet"] : ["jet"]
 	immuneTags = ["meltable-block"]
 	getLayer(): Layer {
 		return Layer.STATIONARY

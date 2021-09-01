@@ -181,11 +181,6 @@ export class LevelState {
 			this.levelStarted = true
 			for (const actor of Array.from(this.actors)) actor.levelStarted?.()
 			onLevelStart.forEach(val => val(this))
-			for (const actor of Array.from(this.actors))
-				if (actor.newActorOnTile)
-					for (const actorNeigh of actor.tile.allActors)
-						if (actorNeigh !== actor && !actor._internalIgnores(actorNeigh))
-							actor.newActorOnTile(actorNeigh)
 		}
 		if (this.solutionSubticksLeft >= 0 && this.currentSolution) {
 			let step = this.currentSolution.steps[0][this.solutionStep]

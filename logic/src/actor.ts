@@ -155,10 +155,7 @@ export abstract class Actor {
 		level.actors.unshift(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors(this)
-		if (level.levelStarted)
-			for (const actor of this.tile.allActors)
-				if (actor.newActorOnTile && !actor._internalIgnores(this))
-					actor.newActorOnTile(this)
+
 		this.isDeciding = !!(
 			this.layer === Layer.MOVABLE ||
 			this.onEachDecision ||
@@ -271,10 +268,6 @@ export abstract class Actor {
 	 * Called when this actor stops walking to a new tile
 	 */
 	newTileCompletelyJoined?(): void
-	/**
-	 * Called when a new actor was born on the same tile as this
-	 */
-	newActorOnTile?(actor: Actor): void
 
 	shouldDie?(killer: Actor): boolean
 
@@ -311,18 +304,19 @@ export abstract class Actor {
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
 			this.cooldown--
-			for (const actor of [...this.tile.allActorsReverse])
-				if (
-					actor !== this &&
-					actor.actorCompletelyJoined &&
-					!this._internalIgnores(actor)
-				) {
+			for (const actor of [...this.tile.allActorsReverse]) {
+				if (actor === this) continue
+				const notIgnores = !this._internalIgnores(actor)
+				if (notIgnores && actor.continuousActorCompletelyJoined)
+					actor.continuousActorCompletelyJoined(this)
+				if (!this.exists) return
+				if (notIgnores && actor.actorCompletelyJoined)
 					actor.actorCompletelyJoined(this)
-					if (!this.exists) return
-				}
+				if (!this.exists) return
+			}
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
-		if (!this.cooldown) {
+		else
 			for (const actor of [...this.tile.allActors])
 				if (
 					actor !== this &&
@@ -330,7 +324,6 @@ export abstract class Actor {
 					!this._internalIgnores(actor)
 				)
 					actor.continuousActorCompletelyJoined(this)
-		}
 	}
 	/**
 	 * Updates tile states and calls hooks
