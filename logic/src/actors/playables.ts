@@ -106,13 +106,17 @@ export abstract class Playable extends Actor {
 				if (canHoriz && !canVert) this.moveDecision = horiz + 1
 				else if (canVert && !canHoriz) this.moveDecision = vert + 1
 				else {
-					bonked = !canHoriz
 					// We can move in both / none directions, crap
-					// We first try to be biased towards current direction
-					if (horiz === this.direction) this.moveDecision = horiz + 1
-					else if (vert === this.direction) this.moveDecision = vert + 1
-					// As a last resort, we always pick horiz over vert
-					else this.moveDecision = horiz + 1
+					bonked = !canHoriz
+					// Just discovered: When both dirs are blocked, always choose horiz
+					if (!canHoriz) this.moveDecision = horiz + 1
+					else {
+						// We first try to be biased towards current direction
+						if (horiz === this.direction) this.moveDecision = horiz + 1
+						else if (vert === this.direction) this.moveDecision = vert + 1
+						// As a last resort, we always pick horiz over vert
+						else this.moveDecision = horiz + 1
+					}
 				}
 			}
 			this.hasOverride = bonked
