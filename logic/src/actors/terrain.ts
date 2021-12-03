@@ -591,8 +591,9 @@ export class Railroad extends Actor {
 		other: Actor,
 		direction: Direction
 	): Direction | null {
-		if (other.getCompleteTags("tags").includes("ignores-railroad-redirect"))
-			return direction
+		const otherTags = other.getCompleteTags("tags")
+		if (otherTags.includes("ignores-railroad-redirect")) return direction
+
 		const directionString =
 			directionStrings[(this.lastEnteredDirection + 2) % 4]
 		const legalRedirects = this.legalRedirects
@@ -600,6 +601,8 @@ export class Railroad extends Actor {
 			.map(val =>
 				directionStrings.indexOf(val[1 - val.indexOf(directionString)])
 			)
+		if (otherTags.includes("reverse-on-railroad"))
+			legalRedirects.push((this.lastEnteredDirection + 2) % 4)
 		// Search for a valid (relative) direction in this order: Forward, right, left, backward
 		for (const offset of [0, 1, -1, 2])
 			if (legalRedirects.includes((direction + offset + 4) % 4))

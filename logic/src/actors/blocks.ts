@@ -8,7 +8,7 @@ import { Direction } from "../helpers"
 export class DirtBlock extends Actor {
 	id = "dirtBlock"
 	transmogrifierTarget = "iceBlock"
-	tags = ["block", "cc1block", "movable"]
+	tags = ["block", "cc1block", "movable", "reverse-on-railroad"]
 	ignoreTags = ["fire", "water"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
@@ -49,6 +49,7 @@ export class IceBlock extends Actor {
 		"movable",
 		"can-stand-on-items",
 		"meltable-block",
+		"reverse-on-railroad",
 	]
 	ignoreTags = ["water", "melting"]
 	getLayer(): Layer {
@@ -108,7 +109,13 @@ export class DirectionalBlock extends Actor {
 		return true
 	}
 	pushTags = ["block"]
-	tags = ["block", "cc2block", "movable", "can-stand-on-items"]
+	tags = [
+		"block",
+		"cc2block",
+		"movable",
+		"can-stand-on-items",
+		"reverse-on-railroad",
+	]
 	bumpedActor(other: Actor): void {
 		if (
 			other instanceof Playable &&

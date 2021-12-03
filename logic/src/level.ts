@@ -317,6 +317,7 @@ export class LevelState {
 				pushable.cooldown--
 			}
 		}
+		this.resolvedCollisionCheckDirection = direction
 		// TODO Decision time hooking
 		return true
 	}
