@@ -45,6 +45,7 @@ export abstract class Item extends Actor {
 				if (!other.inventory.keys[this.id])
 					other.inventory.keys[this.id] = { amount: 0, type: this as Key }
 				other.inventory.keys[this.id].amount++
+				other.inventory.keys[this.id].amount %= 256
 				break
 			case ItemDestination.ITEM:
 				other.inventory.items.unshift(this)
