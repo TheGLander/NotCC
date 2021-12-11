@@ -163,7 +163,7 @@ actorDB["teethBlue"] = TeethBlue
 export class FloorMimic extends Monster {
 	id = "floorMimic"
 	decideMovement(): Direction[] {
-		if (!this.level.selectedPlayable || (this.level.currentTick + 13) % 16 >= 4)
+		if (!this.level.selectedPlayable || (this.level.currentTick + 5) % 16 >= 4)
 			return []
 		return getPursuitCoords(this, this.level.selectedPlayable)
 	}
