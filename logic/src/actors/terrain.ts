@@ -312,7 +312,6 @@ actorDB["thiefKey"] = ThiefKey
 
 export class Trap extends Actor {
 	id = "trap"
-	tags = ["machinery"]
 	// The amount of buttons current pressed and linked to this trap
 	openRequests = this.customData === "open" ? 1 : 0
 	getLayer(): Layer {
@@ -547,12 +546,13 @@ export class Transmogrifier extends Actor {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (
-			!hasOwnProperty(other, "transmogrifierTarget") ||
-			typeof other.transmogrifierTarget !== "string"
-		)
-			return
-		other.replaceWith(actorDB[other.transmogrifierTarget])
+		let transmogValue: string | undefined
+		if (hasOwnProperty(other, "transmogrifierTarget"))
+			if (typeof other.transmogrifierTarget === "string")
+				transmogValue = other.transmogrifierTarget
+			else if (typeof other.transmogrifierTarget === "function")
+				transmogValue = other.transmogrifierTarget()
+		if (transmogValue) other.replaceWith(actorDB[transmogValue])
 	}
 }
 

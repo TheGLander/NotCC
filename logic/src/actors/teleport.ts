@@ -43,6 +43,7 @@ function findNextTeleport<T extends Actor>(
 
 export class BlueTeleport extends Actor {
 	id = "teleportBlue"
+	tags = ["machinery"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -66,6 +67,7 @@ actorDB["teleportBlue"] = BlueTeleport
 
 export class RedTeleport extends Actor {
 	id = "teleportRed"
+	tags = ["machinery"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -106,6 +108,7 @@ actorDB["teleportRed"] = RedTeleport
 
 export class GreenTeleport extends Actor {
 	id = "teleportGreen"
+	tags = ["machinery"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -169,7 +172,7 @@ export class GreenTeleport extends Actor {
 actorDB["teleportGreen"] = GreenTeleport
 
 export class YellowTeleport extends Actor implements Item {
-	tags = []
+	tags = ["machinery"]
 	id = "teleportYellow"
 	destination = ItemDestination.ITEM
 	blocks(): false {

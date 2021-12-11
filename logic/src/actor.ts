@@ -169,7 +169,6 @@ export abstract class Actor {
 	 * Must return an array of absolute directions
 	 */
 	decideMovement?(): Direction[]
-	onBlocked?(blocker?: Actor): void
 	onEachDecision?(forcedOnly: boolean): void
 	_internalDecide(forcedOnly = false): void {
 		this.moveDecision = Decision.NONE

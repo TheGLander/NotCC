@@ -51,12 +51,24 @@ export abstract class Playable extends Actor {
 
 	_internalDecide(forcedOnly: boolean): void {
 		this.moveDecision = Decision.NONE
+		if (
+			this.level.selectedPlayable === this &&
+			(this.slidingState || !this.cooldown) &&
+			this.level.gameInput.switchPlayable &&
+			this.level.debouncedInputs.switchPlayable <= 0
+		) {
+			this.level.playablesToSwap = true
+			this.level.debounceInput("switchPlayable")
+		}
+		// TODO Split screen
+
 		if (this.cooldown) return
 
 		let canMove =
 			this.level.selectedPlayable === this &&
 			(!this.slidingState ||
-				(this.slidingState === SlidingState.WEAK && this.hasOverride))
+				(this.slidingState === SlidingState.WEAK && this.hasOverride)) &&
+			!forcedOnly
 		if (canMove) {
 			if (
 				this.level.gameInput.rotateInv &&
@@ -70,16 +82,8 @@ export abstract class Playable extends Actor {
 				this.dropItem()
 				this.level.debounceInput("drop")
 			}
-			// TODO Split screen
-			if (
-				this.level.gameInput.switchPlayable &&
-				this.level.debouncedInputs.switchPlayable <= 0
-			) {
-				this.level.playablesToSwap = true
-				this.level.debounceInput("switchPlayable")
-			}
 		}
-		canMove &&= !forcedOnly
+
 		let [vert, horiz] = getMovementDirections(this.level.gameInput)
 		if (
 			this.slidingState &&

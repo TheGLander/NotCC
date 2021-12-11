@@ -194,7 +194,7 @@ export class BlobMonster extends Monster {
 	id = "blob"
 	immuneTags = ["slime"]
 	moveSpeed = 8
-	get transmogrifierTarget(): string {
+	transmogrifierTarget(): string {
 		return [
 			"glider",
 			"centipede",
@@ -289,6 +289,7 @@ actorDB["tntLit"] = LitTNT
 
 export class TankYellow extends Monster {
 	id = "tankYellow"
+	tags = ["normal-monster", "movable"]
 	pushTags = ["block"]
 	transmogrifierTarget = "tankBlue"
 	movePending: Decision = Decision.NONE

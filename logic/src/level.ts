@@ -269,7 +269,8 @@ export class LevelState {
 
 		for (const exitActor of fromTile.allActorsReverse)
 			if (exitActor._internalExitBlocks(actor, direction)) {
-				actor.onBlocked?.(exitActor)
+				exitActor.bumped?.(actor, direction)
+				actor.bumpedActor?.(exitActor, direction)
 				return false
 			} else {
 				if (

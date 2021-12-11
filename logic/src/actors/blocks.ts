@@ -88,7 +88,8 @@ export class IceBlock extends Actor {
 	bumped(other: Actor): void {
 		if (
 			other.getCompleteTags("tags").includes("melting") &&
-			!this.tile.hasLayer(Layer.STATIONARY)
+			(!this.tile.hasLayer(Layer.STATIONARY) ||
+				this.tile[Layer.STATIONARY].next().value.id === "water")
 		) {
 			this.destroy(this, "splash")
 			new Water(this.level, this.tile.position)
