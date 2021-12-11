@@ -94,6 +94,12 @@ export class IceBlock extends Actor {
 			new Water(this.level, this.tile.position)
 		}
 	}
+	canBePushed(other: Actor): boolean {
+		// Fun fact: Ice blocks just can't be pushed when they are sliding an a block is pushing them
+		return !(
+			this.slidingState && other.getCompleteTags("tags").includes("block")
+		)
+	}
 }
 
 actorDB["iceBlock"] = IceBlock

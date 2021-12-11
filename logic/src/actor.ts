@@ -191,7 +191,7 @@ export abstract class Actor {
 		if (!directions) return
 
 		for (const direction of directions)
-			if (this.level.checkCollision(this, direction)) {
+			if (this.level.checkCollision(this, direction, false)) {
 				// Yeah, we can go here
 				this.moveDecision = direction + 1
 				return
@@ -205,7 +205,7 @@ export abstract class Actor {
 	_internalStep(direction: Direction): boolean {
 		if (this.cooldown || !this.moveSpeed) return false
 		this.direction = direction
-		const canMove = this.level.checkCollision(this, direction, true)
+		const canMove = this.level.checkCollision(this, direction)
 		this.direction = this.level.resolvedCollisionCheckDirection
 		// Welp, something stole our spot, too bad
 		if (!canMove) return false
@@ -225,6 +225,7 @@ export abstract class Actor {
 		return true
 	}
 	_internalMove(): void {
+		if (this.cooldown > 0) return
 		// If the thing has a decision queued up, do it forcefully
 		// (Currently only used for blocks pushed while sliding)
 		if (this.pendingDecision) {
@@ -232,7 +233,7 @@ export abstract class Actor {
 			this.pendingDecision = Decision.NONE
 		}
 
-		if (this.cooldown > 0 || !this.moveDecision) return
+		if (!this.moveDecision) return
 		const ogDirection = this.moveDecision - 1
 		const bonked = !this._internalStep(ogDirection)
 		if (this.exists && bonked && this.slidingState) {
@@ -284,29 +285,32 @@ export abstract class Actor {
 
 	_internalBlocks(other: Actor, moveDirection: Direction): boolean {
 		return (
-			!matchTags(
+			!!this.cooldown ||
+			(!matchTags(
 				this.getCompleteTags("tags"),
 				other.getCompleteTags("collisionIgnoreTags")
 			) &&
-			!other.collisionIgnores?.(this, moveDirection) &&
-			(this.blocks?.(other, moveDirection) ||
-				other.blockedBy?.(this, moveDirection) ||
-				matchTags(
-					other.getCompleteTags("tags"),
-					this.getCompleteTags("blockTags")
-				) ||
-				matchTags(
-					this.getCompleteTags("tags"),
-					other.getCompleteTags("blockedByTags")
-				))
+				!other.collisionIgnores?.(this, moveDirection) &&
+				(this.blocks?.(other, moveDirection) ||
+					other.blockedBy?.(this, moveDirection) ||
+					matchTags(
+						other.getCompleteTags("tags"),
+						this.getCompleteTags("blockTags")
+					) ||
+					matchTags(
+						this.getCompleteTags("tags"),
+						other.getCompleteTags("blockedByTags")
+					)))
 		)
 	}
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
 			this.cooldown--
+			this.slidingState = SlidingState.NONE
 			for (const actor of [...this.tile.allActorsReverse]) {
 				if (actor === this) continue
 				const notIgnores = !this._internalIgnores(actor)
+
 				if (notIgnores && actor.continuousActorCompletelyJoined)
 					actor.continuousActorCompletelyJoined(this)
 				if (!this.exists) return
@@ -345,7 +349,7 @@ export abstract class Actor {
 				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
 
 		this.tile.addActors(this)
-		this.slidingState = SlidingState.NONE
+
 		for (const actor of [...this.tile.allActorsReverse])
 			if (actor !== this && !this._internalIgnores(actor))
 				actor.actorJoined?.(this)
@@ -391,15 +395,16 @@ export abstract class Actor {
 	 */
 	bumpedActor?(other: Actor, bumpDirection: Direction): void
 	_internalCanPush(other: Actor, direction: Direction): boolean {
-		return (
-			!other.cooldown &&
-			!this._internalIgnores(other) &&
-			matchTags(
+		if (other.pendingDecision) return false
+		if (
+			!matchTags(
 				other.getCompleteTags("tags"),
 				this.getCompleteTags("pushTags")
-			) &&
-			(other.canBePushed?.(this, direction) ?? true)
+			) ||
+			!(other.canBePushed?.(this, direction) ?? true)
 		)
+			return false
+		return this.level.checkCollision(other, direction, true, true)
 	}
 	/**
 	 * Called when a new actor enters the tile, must return the number to divide the speed by

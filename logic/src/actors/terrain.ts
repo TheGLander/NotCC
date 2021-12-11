@@ -314,7 +314,7 @@ export class Trap extends Actor {
 	id = "trap"
 	tags = ["machinery"]
 	// The amount of buttons current pressed and linked to this trap
-	openRequests = 0
+	openRequests = this.customData === "open" ? 1 : 0
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -327,7 +327,8 @@ export class Trap extends Actor {
 	}
 	caresButtonColors = ["brown"]
 	buttonPressed(): void {
-		this.openRequests++
+		if (this.customData === "open") this.customData = ""
+		else this.openRequests++
 		if (this.openRequests === 1)
 			for (const movable of this.tile[Layer.MOVABLE]) {
 				if (movable._internalStep(movable.direction)) movable.cooldown--

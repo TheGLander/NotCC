@@ -235,9 +235,16 @@ export class LevelState {
 	checkCollision(
 		actor: Actor,
 		direction: Direction,
-		pushBlocks = false
+		pushBlocks = true,
+		exitOnly = false
 	): boolean {
-		return this.checkCollisionFromTile(actor, actor.tile, direction, pushBlocks)
+		return this.checkCollisionFromTile(
+			actor,
+			actor.tile,
+			direction,
+			pushBlocks,
+			exitOnly
+		)
 	}
 	resolvedCollisionCheckDirection: Direction = Direction.UP
 	/**
@@ -252,7 +259,8 @@ export class LevelState {
 		actor: Actor,
 		fromTile: Tile,
 		direction: Direction,
-		pushBlocks = false
+		pushBlocks = true,
+		exitOnly = false
 	): boolean {
 		// This is a pass by reference-esque thing, please don't die of cring
 		this.resolvedCollisionCheckDirection = direction
@@ -264,15 +272,19 @@ export class LevelState {
 				actor.onBlocked?.(exitActor)
 				return false
 			} else {
-				if (actor._internalIgnores(exitActor)) continue
-				const redirection = exitActor.redirectTileMemberDirection?.(
+				if (
+					!exitActor.redirectTileMemberDirection ||
+					actor._internalIgnores(exitActor)
+				)
+					continue
+				const redirection = exitActor.redirectTileMemberDirection(
 					actor,
 					direction
 				)
-				if (redirection === undefined) continue
 				if (redirection === null) return false
 				this.resolvedCollisionCheckDirection = direction = redirection
 			}
+		if (exitOnly) return true
 		const newTile = fromTile.getNeighbor(direction)
 		if (newTile === null) {
 			actor.bumpedEdge?.(fromTile, direction)
@@ -311,6 +323,7 @@ export class LevelState {
 				// We did not move, shame, but we did queue this block push
 				return false
 			}
+			if (pushable.cooldown) return false
 			if (!this.checkCollision(pushable, direction, pushBlocks)) return false
 			if (pushBlocks) {
 				pushable._internalStep(direction)

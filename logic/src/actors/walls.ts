@@ -178,7 +178,7 @@ export class ToggleWall extends Actor {
 
 actorDB["toggleWall"] = ToggleWall
 
-export class SwivelRotatingPart extends Actor {
+/* export class SwivelRotatingPart extends Actor {
 	id = "swivelRotatingPart"
 	immuneTags = ["tnt"]
 	getLayer(): Layer {
@@ -195,24 +195,35 @@ export class SwivelRotatingPart extends Actor {
 		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
 		this.direction %= 4
 	}
-}
+} */
 
 export class Swivel extends Actor {
 	id = "swivel"
-	rotatingPart?: SwivelRotatingPart
+	// rotatingPart?: SwivelRotatingPart
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	levelStarted(): void {
+	/* levelStarted(): void {
 		this.rotatingPart = new SwivelRotatingPart(this.level, this.tile.position)
 		this.rotatingPart.direction = this.direction
-	}
-	destroy(killer?: Actor | null, animType?: string | null): boolean {
+	} */
+	/* destroy(killer?: Actor | null, animType?: string | null): boolean {
 		if (super.destroy(killer, animType)) {
 			this.rotatingPart?.destroy(null, null)
 			return true
 		}
 		return false
+	}*/
+	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
+		return (
+			otherMoveDirection === (this.direction + 2) % 4 ||
+			otherMoveDirection === (this.direction + 3) % 4
+		)
+	}
+	actorLeft(actor: Actor): void {
+		if (actor.direction === this.direction) this.direction++
+		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
+		this.direction %= 4
 	}
 }
 

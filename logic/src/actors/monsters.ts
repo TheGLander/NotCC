@@ -184,7 +184,7 @@ export class TankBlue extends Monster {
 	}
 	caresButtonColors = ["blue"]
 	buttonPressed(): void {
-		this.turnPending = true
+		this.turnPending = !this.turnPending
 	}
 }
 
@@ -294,7 +294,7 @@ export class TankYellow extends Monster {
 	movePending: Decision = Decision.NONE
 	decideMovement(): [] {
 		if (this.movePending) {
-			if (this.level.checkCollision(this, this.movePending - 1))
+			if (this.level.checkCollision(this, this.movePending - 1, false))
 				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
 			this.direction = this.level.resolvedCollisionCheckDirection
 			this.movePending = Decision.NONE

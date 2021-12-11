@@ -66,7 +66,7 @@ const cc2Tiles = [
 	[["bootWater"], null],
 	[["thiefTool"]],
 	[["bomb"], null],
-	[["trap"]],
+	[["trap", 0, "open"]],
 	[["trap"]],
 	[["cloneMachine", 0, "cc1"]],
 	[["cloneMachine"]],

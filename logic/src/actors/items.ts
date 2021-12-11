@@ -29,6 +29,9 @@ export abstract class Item extends Actor {
 			])
 		)
 	}
+	ignores(): boolean {
+		return this.tile.hasLayer(Layer.ITEM_SUFFIX)
+	}
 	getLayer(): Layer {
 		return Layer.ITEM
 	}
