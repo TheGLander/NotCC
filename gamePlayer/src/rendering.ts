@@ -41,8 +41,12 @@ export class WebGLRenderer {
 		this.canvas.classList.add("renderer")
 		this.canvas.addEventListener("resize", () => this.updateSize())
 		this.gl = getWebGLContext(this.canvas, {
+			// Meh
 			alpha: true,
+			// Ew blurry pixel art
 			antialias: true,
+			// Emulates a dumb CC2 tearing effect with some weird tiles
+			preserveDrawingBuffer: true,
 		})
 		this.gl.enable(this.gl.BLEND)
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA)
@@ -114,6 +118,7 @@ void main() {
 					}
 				)
 			})
+		// Fun fact: "instant" loading from elements just doesn't call the callback, so do an emulation of that here in case of an element
 		else
 			return Promise.resolve({
 				height: source.height,
