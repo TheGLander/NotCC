@@ -3,7 +3,7 @@ import { unzlib, AsyncUnzlibOptions } from "fflate"
 
 function unzlibActuallyAsync(
 	buffer: ArrayBuffer,
-	options: AsyncUnzlibOptions = { consume: true, size: buffer.byteLength }
+	options: AsyncUnzlibOptions = { consume: true }
 ): Promise<ArrayBuffer> {
 	return new Promise((res, rej) =>
 		unzlib(new Uint8Array(buffer), options, (err, data) => {
