@@ -93,12 +93,12 @@ export class ForceFloor extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	continuousActorCompletelyJoined(other: Actor): void {
+	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
 	}
-	onMemberSlideBonked = this.continuousActorCompletelyJoined
+	onMemberSlideBonked = this.actorOnTile
 	speedMod(): 2 {
 		return 2
 	}
@@ -112,14 +112,14 @@ export class ForceFloorRandom extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	continuousActorCompletelyJoined(other: Actor): void {
+	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		crossLevelData.RFFDirection ??= 0
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
 	}
-	onMemberSlideBonked = this.continuousActorCompletelyJoined
+	onMemberSlideBonked = this.actorOnTile
 	speedMod(): 2 {
 		return 2
 	}
@@ -320,7 +320,7 @@ export class Trap extends Actor {
 	exitBlocks(): boolean {
 		return this.openRequests === 0
 	}
-	continuousActorCompletelyJoined(actor: Actor): void {
+	actorOnTile(actor: Actor): void {
 		if (this.openRequests === 0 && actor.layer === Layer.MOVABLE)
 			actor.slidingState = SlidingState.WEAK
 	}
@@ -362,7 +362,7 @@ export class CloneMachine extends Actor {
 	exitBlocks(): boolean {
 		return !this.isCloning
 	}
-	continuousActorCompletelyJoined(actor: Actor): void {
+	actorOnTile(actor: Actor): void {
 		actor.slidingState = SlidingState.STRONG
 	}
 
@@ -395,7 +395,7 @@ export class Bomb extends Actor {
 	getLayer(): Layer {
 		return Layer.ITEM // Yes
 	}
-	continuousActorCompletelyJoined(other: Actor): void {
+	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.destroy(this, null)
 		this.destroy(other)
@@ -496,7 +496,7 @@ export class FlameJet extends Actor {
 		else if (this.customData === "off" && this.tags.includes("fire"))
 			this.tags.splice(this.tags.indexOf("fire"))
 	}
-	continuousActorCompletelyJoined(other: Actor): void {
+	actorOnTile(other: Actor): void {
 		if (this.customData === "on" && other.layer === Layer.MOVABLE)
 			other.destroy(this)
 	}

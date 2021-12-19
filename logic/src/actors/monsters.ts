@@ -295,7 +295,7 @@ export class TankYellow extends Monster {
 	movePending: Decision = Decision.NONE
 	decideMovement(): [] {
 		if (this.movePending) {
-			if (this.level.checkCollision(this, this.movePending - 1, false))
+			if (this.level.checkCollision(this, this.movePending - 1))
 				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
 			this.direction = this.level.resolvedCollisionCheckDirection
 			this.movePending = Decision.NONE

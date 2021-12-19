@@ -90,7 +90,7 @@ export abstract class Actor {
 	immuneTags?: string[]
 
 	nonIgnoredSlideBonkTags?: string[]
-	getCompleteTags<T extends keyof this>(id: T): string[] {
+	getCompleteTags<T extends keyof this>(id: T, toIgnore?: Actor): string[] {
 		return [
 			...((this[id] as unknown as string[])
 				? (this[id] as unknown as string[])
@@ -98,7 +98,9 @@ export abstract class Actor {
 			...this.inventory.items.reduce(
 				(acc, val) => [
 					...acc, // @ts-expect-error Typescript dumb
-					...(val.carrierTags?.[id] ? val.carrierTags[id] : []),
+					...(val.carrierTags?.[id] && val !== toIgnore // @ts-expect-error Typescript dumb
+						? val.carrierTags[id]
+						: []),
 				],
 				new Array<string>()
 			),
@@ -187,7 +189,7 @@ export abstract class Actor {
 		if (forcedOnly) return
 		const directions = this.decideMovement?.()
 
-		if (!directions) return
+		if (!directions || directions.length === 0) return
 
 		for (const direction of directions)
 			if (this.level.checkCollision(this, direction, false)) {
@@ -197,8 +199,8 @@ export abstract class Actor {
 			}
 
 		// Force last decision if all other fail
-		if (directions.length > 0)
-			this.moveDecision = directions[directions.length - 1] + 1
+
+		this.moveDecision = directions[directions.length - 1] + 1
 	}
 
 	_internalStep(direction: Direction): boolean {
@@ -284,22 +286,25 @@ export abstract class Actor {
 
 	_internalBlocks(other: Actor, moveDirection: Direction): boolean {
 		return (
-			!!this.cooldown ||
-			(!matchTags(
-				this.getCompleteTags("tags"),
-				other.getCompleteTags("collisionIgnoreTags")
-			) &&
-				!other.collisionIgnores?.(this, moveDirection) &&
-				(this.blocks?.(other, moveDirection) ||
-					other.blockedBy?.(this, moveDirection) ||
-					matchTags(
-						other.getCompleteTags("tags"),
-						this.getCompleteTags("blockTags")
-					) ||
-					matchTags(
-						this.getCompleteTags("tags"),
-						other.getCompleteTags("blockedByTags")
-					)))
+			// A hack for teleports, but it's not that dumb of a limitation, so maybe it's fine?
+			other !== this &&
+			// FIXME A hack for blocks, really shouldn't be a forced limitation
+			(!!this.cooldown ||
+				(!matchTags(
+					this.getCompleteTags("tags"),
+					other.getCompleteTags("collisionIgnoreTags")
+				) &&
+					!other.collisionIgnores?.(this, moveDirection) &&
+					(this.blocks?.(other, moveDirection) ||
+						other.blockedBy?.(this, moveDirection) ||
+						matchTags(
+							other.getCompleteTags("tags"),
+							this.getCompleteTags("blockTags")
+						) ||
+						matchTags(
+							this.getCompleteTags("tags"),
+							other.getCompleteTags("blockedByTags")
+						))))
 		)
 	}
 	_internalDoCooldown(): void {
@@ -310,11 +315,10 @@ export abstract class Actor {
 				if (actor === this) continue
 				const notIgnores = !this._internalIgnores(actor)
 
-				if (notIgnores && actor.continuousActorCompletelyJoined)
-					actor.continuousActorCompletelyJoined(this)
 				if (!this.exists) return
 				if (notIgnores && actor.actorCompletelyJoined)
 					actor.actorCompletelyJoined(this)
+				if (notIgnores && actor.actorOnTile) actor.actorOnTile(this)
 				if (!this.exists) return
 			}
 			this.newTileCompletelyJoined?.()
@@ -323,10 +327,10 @@ export abstract class Actor {
 			for (const actor of [...this.tile.allActors])
 				if (
 					actor !== this &&
-					actor.continuousActorCompletelyJoined &&
+					actor.actorOnTile &&
 					!this._internalIgnores(actor)
 				)
-					actor.continuousActorCompletelyJoined(this)
+					actor.actorOnTile(this)
 	}
 	/**
 	 * Updates tile states and calls hooks
@@ -449,7 +453,7 @@ export abstract class Actor {
 	/**
 	 * Called each subtick if anything is on this (called at cooldown time (move time))
 	 */
-	continuousActorCompletelyJoined?(other: Actor): void
+	actorOnTile?(other: Actor): void
 	replaceWith(other: typeof actorDB[string]): Actor {
 		this.destroy(null, null)
 		const newActor = new other(this.level, this.tile.position, this.customData)

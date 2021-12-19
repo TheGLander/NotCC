@@ -1,5 +1,5 @@
 import { Layer } from "../tile"
-import { Actor, matchTags } from "../actor"
+import { Actor, matchTags, SlidingState } from "../actor"
 import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
 import { Playable } from "./playables"
@@ -172,6 +172,14 @@ export class BootIce extends Item {
 	id = "bootIce"
 	carrierTags = { ignoreTags: ["ice"] }
 	destination = ItemDestination.ITEM
+	/* onPickup(other: Actor): void {
+		// Indeed, a hack, but I really don't want to ever calculate the sliding state automatically
+		if (
+			other.getCompleteTags("ignoreTags").includes("ice") &&
+			!other.getCompleteTags("ignoreTags", this).includes("ice")
+		)
+			other.slidingState = SlidingState.NONE
+	} */
 }
 
 actorDB["bootIce"] = BootIce

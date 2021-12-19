@@ -41,37 +41,42 @@ function findNextTeleport<T extends Actor>(
 		}
 }
 
-export class BlueTeleport extends Actor {
-	id = "teleportBlue"
+export abstract class Teleport extends Actor {
 	tags = ["machinery"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorJoined(other: Actor): void {
-		other.slidingState = SlidingState.STRONG
+	shouldProcessThing = false
+	actorCompletelyJoined() {
+		this.shouldProcessThing = true
 	}
+	actorOnTile(other: Actor): void {
+		if (!this.shouldProcessThing) return
+		this.shouldProcessThing = false
+		this.onTeleport(other)
+	}
+	onMemberSlideBonked(other: Actor): void {
+		other.slidingState = SlidingState.NONE
+	}
+	abstract onTeleport(other: Actor): void
+}
+export class BlueTeleport extends Teleport {
+	id = "teleportBlue"
 
-	actorCompletelyJoined(other: Actor): void {
+	onTeleport(other: Actor): void {
 		other.oldTile = other.tile
 		other.tile = findNextTeleport.call(this, other).tile
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.STRONG
-		other.pendingDecision = other.direction + 1
-	}
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.NONE
+		if (!other.pendingDecision) other.pendingDecision = other.direction + 1
 	}
 }
 
 actorDB["teleportBlue"] = BlueTeleport
 
-export class RedTeleport extends Actor {
+export class RedTeleport extends Teleport {
 	id = "teleportRed"
-	tags = ["machinery"]
-	getLayer(): Layer {
-		return Layer.STATIONARY
-	}
-	actorCompletelyJoined(other: Actor): void {
+	onTeleport(other: Actor): void {
 		other.oldTile = other.tile
 		other.tile = findNextTeleport.call(
 			this,
@@ -99,20 +104,14 @@ export class RedTeleport extends Actor {
 		other.slidingState = SlidingState.WEAK
 		if (other instanceof Playable) other.hasOverride = true
 	}
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.NONE
-	}
 }
 
 actorDB["teleportRed"] = RedTeleport
 
-export class GreenTeleport extends Actor {
+export class GreenTeleport extends Teleport {
 	id = "teleportGreen"
-	tags = ["machinery"]
-	getLayer(): Layer {
-		return Layer.STATIONARY
-	}
-	actorCompletelyJoined(other: Actor): void {
+
+	onTeleport(other: Actor): void {
 		// All green TPs
 		const allTeleports: this[] = [this]
 		// TPs which do not have an actor on them
@@ -164,22 +163,16 @@ export class GreenTeleport extends Actor {
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.STRONG
 	}
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.NONE
-	}
 }
 
 actorDB["teleportGreen"] = GreenTeleport
 
-export class YellowTeleport extends Actor implements Item {
+export class YellowTeleport extends Teleport implements Item {
 	tags = ["machinery"]
 	id = "teleportYellow"
 	destination = ItemDestination.ITEM
 	blocks(): false {
 		return false
-	}
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.NONE
 	}
 	ignores = this.blocks
 	shouldPickup = true
@@ -188,7 +181,7 @@ export class YellowTeleport extends Actor implements Item {
 		this.shouldPickup =
 			findNextTeleport.call(this, this, false, () => true) !== this
 	}
-	actorCompletelyJoined(other: Actor): void {
+	onTeleport(other: Actor): void {
 		const newTP = findNextTeleport.call(this, other)
 		if (this.shouldPickup && newTP === this)
 			Item.prototype.actorCompletelyJoined.call(this, other)
@@ -199,9 +192,6 @@ export class YellowTeleport extends Actor implements Item {
 			other.slidingState = SlidingState.WEAK
 			if (other instanceof Playable) other.hasOverride = true
 		}
-	}
-	getLayer(): Layer {
-		return Layer.STATIONARY
 	}
 }
 
