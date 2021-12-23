@@ -267,7 +267,7 @@ export class LitTNT extends Monster {
 					movableDied = true
 			}
 		// Create a memorial fire if a movable got blown up (if we can)
-		if (tileHadMovable && movableDied && !tile.hasLayer(Layer.MOVABLE))
+		if (tileHadMovable && movableDied && !tile.hasLayer(Layer.STATIONARY))
 			new Fire(this.level, tile.position)
 	}
 	onEachDecision(): void {
