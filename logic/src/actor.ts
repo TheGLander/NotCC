@@ -4,6 +4,7 @@ import { Direction } from "./helpers"
 import { Layer } from "./tile"
 import Tile from "./tile"
 import { Item, Key } from "./actors/items"
+import { CircuitCity, WireOverlapMode, Wires } from "./wires"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -481,4 +482,9 @@ export abstract class Actor {
 		direction: Direction
 	): Direction | null
 	bumpedEdge?(fromTile: Tile, direction: Direction): void
+	wires: Wires = 0
+	poweredWires: Wires = 0
+	wireTunnels: Wires = 0
+	circuits?: CircuitCity[]
+	wireOverlapMode: WireOverlapMode = WireOverlapMode.NONE
 }

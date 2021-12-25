@@ -2,10 +2,11 @@ import { artDB, setArtForActor } from "../const"
 import { Direction } from "../logic/helpers"
 import { InvisibleWall } from "../logic/actors/walls"
 import { Layer } from "../logic/tile"
+import { wiredTerrainArt } from "../visuals"
 
 artDB["wall"] = { actorName: "wall" }
 
-artDB["steelWall"] = { actorName: "steelWall" }
+artDB["steelWall"] = wiredTerrainArt("steelWall")
 
 artDB["customWall"] = actor => ({
 	actorName: "customWall",

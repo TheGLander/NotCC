@@ -23,9 +23,9 @@ function getBit(number: number, bitPosition: number): boolean {
 function createFieldFromArrayBuffer(
 	fieldData: ArrayBuffer,
 	size: [number, number]
-): Field<[string, Direction?, string?][]> {
+): Field<[string, Direction?, string?, number?][]> {
 	const view = new AutoReadDataView(fieldData)
-	const field: Field<[string, Direction?, string?][]> = []
+	const field: Field<[string, Direction?, string?, number?][]> = []
 	function parseTile(): cc2Tile[] {
 		const tileId = view.getUint8()
 		const tiles = clone(data[tileId])
@@ -52,7 +52,7 @@ function createFieldFromArrayBuffer(
 									.filter((_val, i) => !!((2 ** i) & options))
 									.join(),
 							])
-						if (getBit(options, 4)) additions.unshift(["canopy", 0])
+						if (getBit(options, 4)) additions.unshift(["canopy"])
 						tiles.splice(tiles.indexOf(tile), 1, ...additions)
 						break
 					}
@@ -92,11 +92,8 @@ function createFieldFromArrayBuffer(
 							case "teleportBlue":
 							case "buttonPurple":
 							case "buttonBlack":
+								modTiles[0][3] = options
 								tiles.unshift(...modTiles)
-								for (let j = 0; j < 4; j++)
-									if (getBit(options, j)) tiles.unshift(["wire", j])
-								for (let j = 4; j < 8; j++)
-									if (getBit(options, j)) tiles.unshift(["wireTunnel", j])
 								break
 							case "letterTile":
 								if (options >= 0x1c && options <= 0x1f)

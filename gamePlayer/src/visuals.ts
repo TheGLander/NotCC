@@ -6,6 +6,7 @@ import { keyNameList } from "./logic/const"
 import { Actor } from "./logic/actor"
 import { artDB } from "./const"
 import { Layer } from "./logic"
+import { WireOverlapMode } from "./logic/wires"
 
 function getArt(actor: Actor): ActorArt[] {
 	let art = artDB[actor.id]
@@ -415,3 +416,52 @@ export const genericStretchyArt =
 					imageOffset: [actor.direction < 2 ? -offset : offset - 1, 0],
 			  }
 	}
+
+const WIRE_WIDTH = 1 / 32
+
+export const wiredTerrainArt = (name: string) => (actor: Actor) => {
+	const toDraw: ActorArt[] = [{ actorName: name, animation: "wireBase" }]
+	// Just draw the four wire corner things
+	// Also, don't do it in a loop, don't want the JITc to unroll the loops weirdly
+	// Up
+	if (actor.wires & 0b0001)
+		toDraw.push({
+			actorName: "wire",
+			animation: actor.poweredWires & 0b0001 ? "true" : "false",
+			cropSize: [2 * WIRE_WIDTH, 0.5 + WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0],
+		})
+	// Right
+	if (actor.wires & 0b0010)
+		toDraw.push({
+			actorName: "wire",
+			animation: actor.poweredWires & 0b0010 ? "true" : "false",
+			cropSize: [0.5 + WIRE_WIDTH, 2 * WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+		})
+	// Down
+	if (actor.wires & 0b0100)
+		toDraw.push({
+			actorName: "wire",
+			animation: actor.poweredWires & 0b0100 ? "true" : "false",
+			cropSize: [2 * WIRE_WIDTH, 0.5 + WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+		})
+	// Left
+	if (actor.wires & 0b1000)
+		toDraw.push({
+			actorName: "wire",
+			animation: actor.poweredWires & 0b1000 ? "true" : "false",
+			cropSize: [0.5 + WIRE_WIDTH, 2 * WIRE_WIDTH],
+			imageOffset: [0, 0.5 - WIRE_WIDTH],
+		})
+	toDraw.push({
+		actorName: name,
+		animation:
+			//@ts-expect-error Typescript dumb
+			actor.wires === 0b1111 && actor.wireOverlapMode === WireOverlapMode.CROSS
+				? "wireOverlapCross"
+				: "wireOverlap",
+	})
+	return toDraw
+}

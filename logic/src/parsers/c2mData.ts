@@ -165,6 +165,6 @@ export type cc2TileNames =
 	| "latchGateMirror"
 	| "combinationTile"
 	| "voodooTile"
-export type cc2Tile = [cc2TileNames, Direction?, string?]
+export type cc2Tile = [cc2TileNames, Direction?, string?, number?]
 
 export default cc2Tiles as unknown as cc2Tile[][]
