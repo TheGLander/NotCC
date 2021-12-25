@@ -32,7 +32,7 @@ export function verifyLevelFiles(args: CLIArguments): void {
 			const levelBuffer = fs.readFileSync(levelPath, null)
 
 			// TODO This shouldn't happen in any solutions anyways
-			crossLevelData.despawnedActors = crossLevelData.queuedDespawns = []
+			crossLevelData.despawnedActors = []
 
 			const levelData = parseC2M(new Uint8Array(levelBuffer).buffer, levelPath)
 			const level = createLevelFromData(levelData)

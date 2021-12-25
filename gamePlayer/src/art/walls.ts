@@ -71,12 +71,13 @@ artDB["toggleWall"] = actor => [
 	actor.customData === "on" && { actorName: "outlineWall" },
 ]
 
-artDB["swivelRotatingPart"] = actor => ({
-	actorName: "swivel",
-	animation: ["ur", "dr", "dl", "ul"][actor.direction],
-})
-
-artDB["swivel"] = { actorName: "swivel", animation: "floor" }
+artDB["swivel"] = actor => [
+	{ actorName: "swivel", animation: "floor" },
+	{
+		actorName: "swivel",
+		animation: ["ur", "dr", "dl", "ul"][actor.direction],
+	},
+]
 
 artDB["greenWall"] = actor => ({
 	actorName: "greenWall",

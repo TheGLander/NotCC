@@ -1,5 +1,5 @@
 import { Direction } from "./logic/helpers"
-import { LevelState } from "./logic/level"
+import { LevelState, crossLevelData } from "./logic/level"
 import ogData from "./cc2ImageFormat"
 import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
 import { keyNameList } from "./logic/const"
@@ -282,19 +282,45 @@ export default class Renderer {
 				cameraPos[1] * tileSize,
 			]
 		}
-		/*renderer.drawImage(
-			this.backgroundFiller.texture,
-			this.backgroundFiller.width,
-			this.backgroundFiller.height,
-			0,
-			0,
-			this.backgroundFiller.width,
-			this.backgroundFiller.height,
-			renderer.cameraPosition[0] - (renderer.cameraPosition[0] % tileSize),
-			renderer.cameraPosition[1] - (renderer.cameraPosition[1] % tileSize),
-			this.backgroundFiller.width,
-			this.backgroundFiller.height
-		)*/
+		const drawActor = (
+			actor: Actor,
+			x: number,
+			y: number,
+			colorMult?: [number, number, number, number],
+			desaturate: boolean = false
+		) => {
+			const movedPos = [x, y]
+			if (actor.cooldown && actor.currentMoveSpeed) {
+				const mults = convertDirection(actor.direction)
+				const offsetMult =
+					1 -
+					(actor.currentMoveSpeed - actor.cooldown + 1) / actor.currentMoveSpeed
+				movedPos[0] -= offsetMult * mults[0]
+				movedPos[1] -= offsetMult * mults[1]
+			}
+			for (const art of getArt(actor)) {
+				if (!art) continue
+				if (art.actorName === null || art.animation === null) continue
+				const frame =
+					data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
+						art.frame ?? 0
+					] ?? data.actorMapping.floor.default[0]
+				const croppedSize = art.cropSize ?? [1, 1]
+				renderer.drawImage(
+					this.renderTexture,
+					frame[0] * tileSize + (art.sourceOffset?.[0] ?? 0) * tileSize,
+					frame[1] * tileSize + (art.sourceOffset?.[1] ?? 0) * tileSize,
+					croppedSize[0] * tileSize,
+					croppedSize[1] * tileSize,
+					(movedPos[0] + (art.imageOffset?.[0] ?? 0)) * tileSize,
+					(movedPos[1] + (art.imageOffset?.[1] ?? 0)) * tileSize,
+					croppedSize[0] * tileSize,
+					croppedSize[1] * tileSize,
+					colorMult,
+					desaturate
+				)
+			}
+		}
 		for (let layer = Layer.STATIONARY; layer <= Layer.SPECIAL; layer++)
 			for (
 				let x = Math.max(0, Math.floor(cameraPos[0] - 1));
@@ -313,9 +339,7 @@ export default class Renderer {
 						!this.level.field[x][y].hasLayer(Layer.STATIONARY)
 					)
 						renderer.drawImage(
-							this.renderTexture.texture,
-							this.renderTexture.width,
-							this.renderTexture.height,
+							this.renderTexture,
 							data.actorMapping.floor.default[0][0] * tileSize,
 							data.actorMapping.floor.default[0][1] * tileSize,
 							tileSize,
@@ -326,41 +350,12 @@ export default class Renderer {
 							tileSize
 						)
 					else
-						for (const actor of this.level.field[x][y][layer]) {
-							const movedPos = [x, y]
-							if (actor.cooldown && actor.currentMoveSpeed) {
-								const mults = convertDirection(actor.direction)
-								const offsetMult =
-									1 -
-									(actor.currentMoveSpeed - actor.cooldown + 1) /
-										actor.currentMoveSpeed
-								movedPos[0] -= offsetMult * mults[0]
-								movedPos[1] -= offsetMult * mults[1]
-							}
-							for (const art of getArt(actor)) {
-								if (!art) continue
-								if (art.actorName === null || art.animation === null) continue
-								const frame =
-									data.actorMapping[art.actorName]?.[
-										art.animation ?? "default"
-									]?.[art.frame ?? 0] ?? data.actorMapping.floor.default[0]
-								const croppedSize = art.cropSize ?? [1, 1]
-								renderer.drawImage(
-									this.renderTexture.texture,
-									this.renderTexture.width,
-									this.renderTexture.height,
-									frame[0] * tileSize + (art.sourceOffset?.[0] ?? 0) * tileSize,
-									frame[1] * tileSize + (art.sourceOffset?.[1] ?? 0) * tileSize,
-									croppedSize[0] * tileSize,
-									croppedSize[1] * tileSize,
-									(movedPos[0] + (art.imageOffset?.[0] ?? 0)) * tileSize,
-									(movedPos[1] + (art.imageOffset?.[1] ?? 0)) * tileSize,
-									croppedSize[0] * tileSize,
-									croppedSize[1] * tileSize
-								)
-							}
-						}
+						for (const actor of this.level.field[x][y][layer])
+							drawActor(actor, x, y)
 				}
+		if (crossLevelData.despawnedActors)
+			for (const actor of crossLevelData.despawnedActors)
+				drawActor(actor, actor.tile.x, actor.tile.y, [1, 1, 1, 0.75], true)
 		this.updateItems()
 	}
 	destroy(): void {

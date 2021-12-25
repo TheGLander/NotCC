@@ -34,14 +34,13 @@ export type InputType = keyof KeyInputs
 
 // TODO Blue teleport gate madness
 export interface CrossLevelDataInterface {
-	despawnedActors?: Actor[]
+	despawnedActors: Actor[]
 }
 
 export const crossLevelData: CrossLevelDataInterface = { despawnedActors: [] }
 
 export const onLevelStart: ((level: LevelState) => void)[] = [
 	level => {
-		if (!crossLevelData.despawnedActors) return
 		let undefinedBehaviorWarningGiven = false
 		for (const actor of crossLevelData.despawnedActors) {
 			if (

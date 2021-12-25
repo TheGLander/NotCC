@@ -1,7 +1,7 @@
 import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { actorDB, Decision } from "../const"
-import { LevelState, crossLevelData } from "../level"
+import { LevelState } from "../level"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16
@@ -12,7 +12,6 @@ export abstract class Animation extends Actor {
 	}
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
-		crossLevelData.queuedDespawns?.push(this)
 	}
 	_internalDecide(): void {
 		this.pendingDecision = this.moveDecision = Decision.NONE
@@ -26,14 +25,6 @@ export abstract class Animation extends Actor {
 		this.destroy(null, null)
 	}
 }
-
-declare module "../level" {
-	export interface CrossLevelDataInterface {
-		queuedDespawns?: Animation[]
-	}
-}
-
-crossLevelData.queuedDespawns = []
 
 export class Explosion extends Animation {
 	id = "explosionAnim"

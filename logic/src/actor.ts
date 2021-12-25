@@ -339,7 +339,7 @@ export abstract class Actor {
 		if (this.despawned) {
 			// We moved! That means this is no longer despawned and we are no longer omni-present
 			this.despawned = false
-			if (crossLevelData.despawnedActors?.includes(this))
+			if (crossLevelData.despawnedActors.includes(this))
 				crossLevelData.despawnedActors.splice(
 					crossLevelData.despawnedActors.indexOf(this),
 					1
@@ -370,6 +370,13 @@ export abstract class Actor {
 				this.level.decidingActors.indexOf(this),
 				1
 			)
+		if (this.despawned) {
+			if (crossLevelData.despawnedActors.includes(this))
+				crossLevelData.despawnedActors.splice(
+					crossLevelData.despawnedActors.indexOf(this),
+					1
+				)
+		}
 		this.tile.removeActors(this)
 		this.exists = false
 		if (

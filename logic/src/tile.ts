@@ -1,5 +1,5 @@
 import { Actor } from "./actor"
-import { LevelState } from "./level"
+import { LevelState, crossLevelData } from "./level"
 import { Direction } from "./helpers"
 
 export enum Layer {
@@ -100,8 +100,14 @@ class Tile {
 					this.optimizedState[actor.layer] = [theLayer, actor]
 				else theLayer.push(actor)
 			} else {
-				if (theLayer instanceof Actor) theLayer.despawned = true
-				else theLayer.forEach(val => (val.despawned = true))
+				if (theLayer instanceof Actor) {
+					theLayer.despawned = true
+					crossLevelData.despawnedActors.push(theLayer)
+				} else
+					theLayer.forEach(val => {
+						val.despawned = true
+						crossLevelData.despawnedActors.push(val)
+					})
 				this.optimizedState[actor.layer] = actor
 				console.warn("A despawn has happened.")
 			}
@@ -125,8 +131,16 @@ class Tile {
 			} else {
 				if (theLayer !== actor) {
 					console.warn("A despawn has happened.")
-					if (theLayer instanceof Actor) theLayer.despawned = true
-					else theLayer.forEach(val => val !== actor && (val.despawned = true))
+					if (theLayer instanceof Actor) {
+						theLayer.despawned = true
+						crossLevelData.despawnedActors.push(theLayer)
+					} else
+						theLayer.forEach(val => {
+							if (val !== actor) {
+								val.despawned = true
+								crossLevelData.despawnedActors.push(val)
+							}
+						})
 				}
 				delete this.optimizedState[actor.layer]
 			}
