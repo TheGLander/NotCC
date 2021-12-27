@@ -13,6 +13,7 @@ import {
 import { actorDB } from "./const"
 import { hasSteps } from "./encoder"
 import { iterableIndexOf } from "./iterableHelpers"
+import { buildCircuits, CircuitCity } from "./wires"
 
 export enum GameState {
 	PLAYING,
@@ -178,6 +179,7 @@ export class LevelState {
 	tick(): void {
 		if (!this.levelStarted) {
 			this.levelStarted = true
+			buildCircuits(this)
 			for (const actor of Array.from(this.actors)) actor.levelStarted?.()
 			onLevelStart.forEach(val => val(this))
 		}
@@ -370,6 +372,25 @@ export class LevelState {
 		if (solution.rffDirection !== undefined)
 			crossLevelData.RFFDirection = solution.rffDirection
 	}
+	*tiles(
+		rro = true,
+		relativeTo: [number, number] = [0, 0]
+	): Generator<Tile, void> {
+		yield this.field[relativeTo[0]][relativeTo[1]]
+		const stopAt = relativeTo[0] + relativeTo[1] * this.width
+		for (
+			let pos =
+				(stopAt + (rro ? this.width * this.height - 1 : +1)) %
+				(this.width * this.height);
+			pos !== stopAt;
+			rro
+				? (pos =
+						(pos + this.width * this.height - 1) % (this.width * this.height))
+				: (pos = (pos + 1) % (this.width * this.height))
+		)
+			yield this.field[pos % this.width][Math.floor(pos / this.width)]
+	}
+	circuits: CircuitCity[] = []
 }
 
 export function createLevelFromData(data: LevelData): LevelState {
@@ -392,6 +413,14 @@ export function createLevelFromData(data: LevelData): LevelState {
 	for (let y = 0; y < level.height; y++)
 		for (let x = 0; x < level.width; x++)
 			for (const actor of data.field[x][y]) {
+				if (!actor[0]) {
+					if (actor[3]) {
+						const tile = level.field[x][y]
+						tile.wires = actor[3] & 0x0f
+						tile.wireTunnels = actor[3] & 0xf0
+					}
+					continue
+				}
 				if (!actorDB[actor[0]])
 					throw new Error(`Cannot find actor with id "${actor[0]}"!`)
 				const actorInstance: Actor = new actorDB[actor[0]](
@@ -405,5 +434,6 @@ export function createLevelFromData(data: LevelData): LevelState {
 					actorInstance.wireTunnels = actor[3] & 0xf0
 				}
 			}
+
 	return level
 }

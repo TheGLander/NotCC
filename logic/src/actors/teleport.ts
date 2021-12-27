@@ -5,6 +5,7 @@ import { Playable } from "./playables"
 import { Item, ItemDestination } from "./items"
 import { iterableFind } from "../iterableHelpers"
 
+// TODO Use LevelState.tiles() for this
 function findNextTeleport<T extends Actor>(
 	this: T,
 	other: Actor,

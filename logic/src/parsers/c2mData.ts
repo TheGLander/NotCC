@@ -154,8 +154,6 @@ export type cc2TileNames =
 	| Exclude<typeof cc2Tiles[number][0], undefined>[0]
 	// Indirect tile additions
 	| "canopy"
-	| "wire"
-	| "wireTunnel"
 	| "andGate"
 	| "orGate"
 	| "xorGate"
@@ -165,6 +163,8 @@ export type cc2TileNames =
 	| "latchGateMirror"
 	| "combinationTile"
 	| "voodooTile"
+	// Yep, used for floor wires
+	| null
 export type cc2Tile = [cc2TileNames, Direction?, string?, number?]
 
 export default cc2Tiles as unknown as cc2Tile[][]

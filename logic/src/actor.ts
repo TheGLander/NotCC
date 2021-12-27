@@ -4,7 +4,7 @@ import { Direction } from "./helpers"
 import { Layer } from "./tile"
 import Tile from "./tile"
 import { Item, Key } from "./actors/items"
-import { CircuitCity, WireOverlapMode, Wires } from "./wires"
+import { CircuitCity, Wirable, WireOverlapMode, Wires } from "./wires"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -46,7 +46,7 @@ export interface Inventory {
 	itemMax: number
 }
 
-export abstract class Actor {
+export abstract class Actor implements Wirable {
 	moveDecision = Decision.NONE
 	currentMoveSpeed: number | null = null
 	oldTile: Tile | null = null

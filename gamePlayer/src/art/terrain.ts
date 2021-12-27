@@ -1,6 +1,8 @@
 import { artDB, setArtForActor } from "../const"
-import { ActorArt, genericAnimatedArt } from "../visuals"
+import { ActorArt, genericAnimatedArt, wiredTerrainArt } from "../visuals"
 import { Railroad, Trap } from "../logic/actors/terrain"
+
+artDB["floor"] = wiredTerrainArt("floor")
 
 artDB["letterTile"] = actor => [
 	{

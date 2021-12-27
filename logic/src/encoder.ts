@@ -48,7 +48,7 @@ export interface LevelData extends IdentifyingLevelData {
 	/**
 	 * The field which contains all actors
 	 */
-	field: Field<[string, Direction?, string?, number?][]>
+	field: Field<[string | null, Direction?, string?, number?][]>
 	playablesRequiredToExit: number | "all"
 	width: number
 	height: number

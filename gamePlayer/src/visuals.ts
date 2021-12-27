@@ -6,12 +6,23 @@ import { keyNameList } from "./logic/const"
 import { Actor } from "./logic/actor"
 import { artDB } from "./const"
 import { Layer } from "./logic"
-import { WireOverlapMode } from "./logic/wires"
+import { Wirable, WireOverlapMode } from "./logic/wires"
+import Tile from "./logic/tile"
 
 function getArt(actor: Actor): ActorArt[] {
 	let art = artDB[actor.id]
 	if (!art) return [{ actorName: "unknown" }]
 	if (typeof art === "function") art = art(actor)
+	if (art instanceof Array)
+		return art.filter<ActorArt>((art): art is ActorArt => !!art)
+	else return [art]
+}
+
+function getFloorArt(tile: Tile): ActorArt[] {
+	let art = artDB["floor"]
+	if (!art) return [{ actorName: "unknown" }]
+	// Hack, as the floor art code takes any wirable, not onlt actors
+	if (typeof art === "function") art = art(tile as Wirable as Actor)
 	if (art instanceof Array)
 		return art.filter<ActorArt>((art): art is ActorArt => !!art)
 	else return [art]
@@ -283,23 +294,14 @@ export default class Renderer {
 				cameraPos[1] * tileSize,
 			]
 		}
-		const drawActor = (
-			actor: Actor,
+		const drawArt = (
+			arr: ActorArt[],
 			x: number,
 			y: number,
 			colorMult?: [number, number, number, number],
 			desaturate: boolean = false
 		) => {
-			const movedPos = [x, y]
-			if (actor.cooldown && actor.currentMoveSpeed) {
-				const mults = convertDirection(actor.direction)
-				const offsetMult =
-					1 -
-					(actor.currentMoveSpeed - actor.cooldown + 1) / actor.currentMoveSpeed
-				movedPos[0] -= offsetMult * mults[0]
-				movedPos[1] -= offsetMult * mults[1]
-			}
-			for (const art of getArt(actor)) {
+			for (const art of arr) {
 				if (!art) continue
 				if (art.actorName === null || art.animation === null) continue
 				const frame =
@@ -313,14 +315,32 @@ export default class Renderer {
 					frame[1] * tileSize + (art.sourceOffset?.[1] ?? 0) * tileSize,
 					croppedSize[0] * tileSize,
 					croppedSize[1] * tileSize,
-					(movedPos[0] + (art.imageOffset?.[0] ?? 0)) * tileSize,
-					(movedPos[1] + (art.imageOffset?.[1] ?? 0)) * tileSize,
+					(x + (art.imageOffset?.[0] ?? 0)) * tileSize,
+					(y + (art.imageOffset?.[1] ?? 0)) * tileSize,
 					croppedSize[0] * tileSize,
 					croppedSize[1] * tileSize,
 					colorMult,
 					desaturate
 				)
 			}
+		}
+		const drawActor = (
+			actor: Actor,
+			x: number,
+			y: number,
+			colorMult?: [number, number, number, number],
+			desaturate?: boolean
+		) => {
+			const movedPos = [x, y]
+			if (actor.cooldown && actor.currentMoveSpeed) {
+				const mults = convertDirection(actor.direction)
+				const offsetMult =
+					1 -
+					(actor.currentMoveSpeed - actor.cooldown + 1) / actor.currentMoveSpeed
+				movedPos[0] -= offsetMult * mults[0]
+				movedPos[1] -= offsetMult * mults[1]
+			}
+			drawArt(getArt(actor), movedPos[0], movedPos[1], colorMult, desaturate)
 		}
 		for (let layer = Layer.STATIONARY; layer <= Layer.SPECIAL; layer++)
 			for (
@@ -339,17 +359,7 @@ export default class Renderer {
 						layer === Layer.STATIONARY &&
 						!this.level.field[x][y].hasLayer(Layer.STATIONARY)
 					)
-						renderer.drawImage(
-							this.renderTexture,
-							data.actorMapping.floor.default[0][0] * tileSize,
-							data.actorMapping.floor.default[0][1] * tileSize,
-							tileSize,
-							tileSize,
-							x * tileSize,
-							y * tileSize,
-							tileSize,
-							tileSize
-						)
+						drawArt(getFloorArt(this.level.field[x][y]), x, y)
 					else
 						for (const actor of this.level.field[x][y][layer])
 							drawActor(actor, x, y)
@@ -419,7 +429,7 @@ export const genericStretchyArt =
 
 const WIRE_WIDTH = 1 / 32
 
-export const wiredTerrainArt = (name: string) => (actor: Actor) => {
+export const wiredTerrainArt = (name: string) => (actor: Wirable) => {
 	const toDraw: ActorArt[] = [{ actorName: name, animation: "wireBase" }]
 	// Just draw the four wire corner things
 	// Also, don't do it in a loop, don't want the JITc to unroll the loops weirdly

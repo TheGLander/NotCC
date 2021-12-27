@@ -3,7 +3,7 @@ import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Direction } from "../helpers"
 import { Playable } from "./playables"
-import { LevelState } from "../level"
+import { WireOverlapMode } from "../wires"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall"]
@@ -28,6 +28,7 @@ export class SteelWall extends Actor {
 	blocks(): boolean {
 		return true
 	}
+	wireOverlapMode = WireOverlapMode.CROSS
 }
 
 actorDB["steelWall"] = SteelWall

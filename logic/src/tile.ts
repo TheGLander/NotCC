@@ -1,6 +1,7 @@
 import { Actor } from "./actor"
 import { LevelState, crossLevelData } from "./level"
 import { Direction } from "./helpers"
+import { CircuitCity, Wirable, WireOverlapMode, Wires } from "./wires"
 
 export enum Layer {
 	STATIONARY, // Terrain, etc.
@@ -10,7 +11,7 @@ export enum Layer {
 	SPECIAL, // Thin walls, canopies, etc.
 }
 
-class Tile {
+class Tile implements Wirable {
 	optimizedState: Partial<Record<Layer, Actor | Actor[]>> = {}
 	protected *getAllLayers(): IterableIterator<Actor> {
 		for (let i = 0; i <= Layer.SPECIAL; i++) yield* this.getLayer(i)
@@ -204,6 +205,11 @@ class Tile {
 			if (tile) yield tile
 		}
 	}
+	wires: Wires = 0
+	poweredWires: Wires = 0
+	wireTunnels: Wires = 0
+	circuits?: CircuitCity[]
+	wireOverlapMode: WireOverlapMode = WireOverlapMode.CROSS
 }
 
 export default Tile
