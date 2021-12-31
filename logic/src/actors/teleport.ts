@@ -4,6 +4,7 @@ import { actorDB } from "../const"
 import { Playable } from "./playables"
 import { Item, ItemDestination } from "./items"
 import { iterableFind } from "../iterableHelpers"
+import { WireOverlapMode } from "../wires"
 
 // TODO Use LevelState.tiles() for this
 function findNextTeleport<T extends Actor>(
@@ -71,6 +72,7 @@ export class BlueTeleport extends Teleport {
 		other.slidingState = SlidingState.STRONG
 		if (!other.pendingDecision) other.pendingDecision = other.direction + 1
 	}
+	wireOverlapMode = WireOverlapMode.OVERLAP
 }
 
 actorDB["teleportBlue"] = BlueTeleport
@@ -105,6 +107,7 @@ export class RedTeleport extends Teleport {
 		other.slidingState = SlidingState.WEAK
 		if (other instanceof Playable) other.hasOverride = true
 	}
+	wireOverlapMode = WireOverlapMode.NONE
 }
 
 actorDB["teleportRed"] = RedTeleport

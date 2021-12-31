@@ -353,7 +353,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			green: [9, 6],
 			red: [10, 6],
 			brown: [11, 6],
-			pink: [12, 6],
+			purple: [12, 6],
 			black: [13, 6],
 			orange: [14, 6],
 			yellow: [15, 6],
@@ -617,7 +617,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			],
 		},
 		ghost: { up: [12, 18], right: [13, 18], down: [14, 18], left: [15, 18] },
-		toggleSwitch: { wireBase: [14, 21], false: [12, 21], true: [13, 21] },
+		toggleSwitch: { wireBase: [14, 21], off: [12, 21], on: [13, 21] },
 		wire: { true: [15, 26], false: [13, 26] },
 	},
 }

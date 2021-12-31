@@ -62,7 +62,7 @@ artDB["thiefKey"] = { actorName: "thief", animation: "key" }
 
 setArtForActor<Trap>("trap", actor => ({
 	actorName: "trap",
-	animation: actor.openRequests > 0 ? "open" : "closed",
+	animation: actor.isOpen ? "open" : "closed",
 }))
 
 artDB["cloneMachine"] = { actorName: "cloneMachine" }

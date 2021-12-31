@@ -175,9 +175,30 @@ export class ToggleWall extends Actor {
 	buttonPressed(): void {
 		this.customData = this.customData === "on" ? "off" : "on"
 	}
+	pulse(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
+	}
 }
 
 actorDB["toggleWall"] = ToggleWall
+
+export class HoldWall extends Actor {
+	id = "holdWall"
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	blocks(): boolean {
+		return this.customData === "on"
+	}
+	pulse(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
+	}
+	unpulse(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
+	}
+}
+
+actorDB["holdWall"] = HoldWall
 
 /* export class SwivelRotatingPart extends Actor {
 	id = "swivelRotatingPart"
@@ -224,6 +245,10 @@ export class Swivel extends Actor {
 	actorLeft(actor: Actor): void {
 		if (actor.direction === this.direction) this.direction++
 		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
+		this.direction %= 4
+	}
+	pulse(): void {
+		this.direction += 1
 		this.direction %= 4
 	}
 }

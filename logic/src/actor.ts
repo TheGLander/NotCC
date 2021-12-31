@@ -482,9 +482,23 @@ export abstract class Actor implements Wirable {
 		direction: Direction
 	): Direction | null
 	bumpedEdge?(fromTile: Tile, direction: Direction): void
-	wires: Wires = 0
-	poweredWires: Wires = 0
-	wireTunnels: Wires = 0
+	wires: number = 0
+	/**
+	 * The currently powered wires, either by it's own abilities of via neighbors
+	 */
+	poweredWires: number = 0
+	/**
+	 * The wires this actor is powering itself
+	 */
+	poweringWires: number = 0
+	wireTunnels: number = 0
 	circuits?: CircuitCity[]
 	wireOverlapMode: WireOverlapMode = WireOverlapMode.NONE
+	/**
+	 * Called at the start of wire phase, usually used to update powered wires.
+	 */
+	updateWires?(): void
+	pulse?(): void
+	unpulse?(): void
+	listensWires = false
 }

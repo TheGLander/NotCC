@@ -44,7 +44,7 @@ function createFieldFromArrayBuffer(
 					case "thinWall": {
 						const options = view.getUint8()
 						const additions: cc2Tile[] = []
-						if (options & 0xf)
+						if (options & 0b11111)
 							additions.unshift([
 								"thinWall",
 								0,
@@ -52,7 +52,7 @@ function createFieldFromArrayBuffer(
 									.filter((_val, i) => !!((2 ** i) & options))
 									.join(),
 							])
-						if (getBit(options, 4)) additions.unshift(["canopy"])
+						// if (getBit(options, 4)) additions.unshift(["canopy"])
 						tiles.splice(tiles.indexOf(tile), 1, ...additions)
 						break
 					}

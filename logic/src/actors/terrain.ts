@@ -102,6 +102,10 @@ export class ForceFloor extends Actor {
 	speedMod(): 2 {
 		return 2
 	}
+	pulse(): void {
+		this.direction += 2
+		this.direction %= 4
+	}
 }
 
 actorDB["forceFloor"] = ForceFloor
@@ -314,20 +318,22 @@ export class Trap extends Actor {
 	id = "trap"
 	// The amount of buttons current pressed and linked to this trap
 	openRequests = this.customData === "open" ? 1 : 0
+	isOpen = this.customData === "open"
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	exitBlocks(): boolean {
-		return this.openRequests === 0
+		return !this.isOpen
 	}
 	actorOnTile(actor: Actor): void {
-		if (this.openRequests === 0 && actor.layer === Layer.MOVABLE)
+		if (!this.isOpen && actor.layer === Layer.MOVABLE)
 			actor.slidingState = SlidingState.WEAK
 	}
 	caresButtonColors = ["brown"]
 	buttonPressed(): void {
 		if (this.customData === "open") this.customData = ""
 		else this.openRequests++
+		this.isOpen = true
 		if (this.openRequests === 1)
 			for (const movable of this.tile[Layer.MOVABLE]) {
 				if (movable._internalStep(movable.direction)) movable.cooldown--
@@ -336,13 +342,29 @@ export class Trap extends Actor {
 	}
 	buttonUnpressed(): void {
 		this.openRequests = Math.max(0, this.openRequests - 1)
-		if (this.openRequests === 0)
+		if (this.openRequests === 0) {
+			this.isOpen = false
 			for (const movable of this.tile[Layer.MOVABLE])
 				movable.slidingState = SlidingState.WEAK
+		}
 	}
+
+	listensWires = true
 }
 
 actorDB["trap"] = Trap
+
+onLevelDecisionTick.push(level => {
+	for (const tile of level.tiles())
+		for (const trap of tile[Layer.STATIONARY]) {
+			if (!(trap instanceof Trap)) continue
+			if (!trap.circuits) continue
+			trap.isOpen = !!trap.poweredWires
+			if (trap.isOpen)
+				for (const movable of trap.tile[Layer.MOVABLE])
+					movable.slidingState = SlidingState.NONE
+		}
+})
 
 // TODO CC1 clone machines, direction arrows on clone machine
 export class CloneMachine extends Actor {
@@ -367,23 +389,35 @@ export class CloneMachine extends Actor {
 	}
 
 	caresButtonColors = ["red"]
-	buttonPressed(): boolean {
+	clone(attemptToRotate: boolean): void {
 		this.isCloning = true
 		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
-			const direction = clonee.direction
-
-			if (clonee._internalStep(direction)) clonee.cooldown--
-			else continue
+			if (clonee._internalStep(clonee.direction)) clonee.cooldown--
+			else {
+				if (attemptToRotate)
+					for (let i = 1; i <= 3; i++)
+						if (clonee._internalStep((clonee.direction + i) % 4)) {
+							clonee.cooldown--
+							break
+						}
+				if (clonee.cooldown === 0) continue
+			}
 			const newClone = new actorDB[clonee.id](
 				this.level,
 				this.tile.position,
 				clonee.customData
 			)
-			newClone.direction = direction
+			newClone.direction = clonee.direction
 			newClone.slidingState = SlidingState.STRONG
 		}
 		this.isCloning = false
+	}
+	buttonPressed(): boolean {
+		this.clone(false)
 		return true
+	}
+	pulse(): void {
+		this.clone(true)
 	}
 }
 
@@ -506,6 +540,7 @@ export class FlameJet extends Actor {
 		this.updateTags()
 	}
 	buttonUnpressed = this.buttonPressed
+	pulse = this.buttonPressed
 }
 
 actorDB["flameJet"] = FlameJet
@@ -612,7 +647,7 @@ export class Railroad extends Actor {
 		return null
 	}
 	actorLeft(other: Actor): void {
-		if (!this.isSwitch) return
+		if (!this.isSwitch || this.circuits) return
 		const enterDirection =
 				directionStrings[(this.lastEnteredDirection + 2) % 4],
 			// Note that it doesn't have to make a move which makes sense, you just have to enter and exit in directions which are valid in a vacuum
@@ -633,6 +668,18 @@ export class Railroad extends Actor {
 					break
 				}
 		}
+	}
+	pulse(): void {
+		const exActiveTrack = this.allRRRedirects.indexOf(this.activeTrack)
+		for (
+			let redirectID = (exActiveTrack + 1) % 6;
+			redirectID !== exActiveTrack;
+			redirectID = (redirectID + 1) % 6
+		)
+			if (this.baseRedirects.includes(this.allRRRedirects[redirectID])) {
+				this.activeTrack = this.allRRRedirects[redirectID]
+				break
+			}
 	}
 }
 

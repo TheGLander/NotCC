@@ -72,6 +72,14 @@ artDB["toggleWall"] = actor => [
 	actor.customData === "on" && { actorName: "outlineWall" },
 ]
 
+artDB["holdWall"] = actor => [
+	{
+		actorName: "outline",
+		animation: "purple",
+	},
+	actor.customData === "on" && { actorName: "outlineWall" },
+]
+
 artDB["swivel"] = actor => [
 	{ actorName: "swivel", animation: "floor" },
 	{

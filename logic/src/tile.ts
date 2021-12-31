@@ -205,11 +205,13 @@ class Tile implements Wirable {
 			if (tile) yield tile
 		}
 	}
-	wires: Wires = 0
-	poweredWires: Wires = 0
-	wireTunnels: Wires = 0
+	wires: number = 0
+	poweredWires: number = 0
+	wireTunnels: number = 0
 	circuits?: CircuitCity[]
 	wireOverlapMode: WireOverlapMode = WireOverlapMode.CROSS
+	poweringWires: number = 0
+	listensWires = false
 }
 
 export default Tile

@@ -13,7 +13,7 @@ import {
 import { actorDB } from "./const"
 import { hasSteps } from "./encoder"
 import { iterableIndexOf } from "./iterableHelpers"
-import { buildCircuits, CircuitCity } from "./wires"
+import { buildCircuits, CircuitCity, Wirable, wireTick } from "./wires"
 
 export enum GameState {
 	PLAYING,
@@ -179,7 +179,7 @@ export class LevelState {
 	tick(): void {
 		if (!this.levelStarted) {
 			this.levelStarted = true
-			buildCircuits(this)
+			buildCircuits.apply(this)
 			for (const actor of Array.from(this.actors)) actor.levelStarted?.()
 			onLevelStart.forEach(val => val(this))
 		}
@@ -195,6 +195,7 @@ export class LevelState {
 		}
 		this.decisionTick(this.subtick !== 2)
 		this.moveTick()
+		wireTick.apply(this)
 		//	if (this.playables.length === 0) this.lost = true
 		if (this.subtick === 2) {
 			this.currentTick++
@@ -391,6 +392,7 @@ export class LevelState {
 			yield this.field[pos % this.width][Math.floor(pos / this.width)]
 	}
 	circuits: CircuitCity[] = []
+	circuitOutputs: Wirable[] = []
 }
 
 export function createLevelFromData(data: LevelData): LevelState {

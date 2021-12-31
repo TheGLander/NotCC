@@ -2,13 +2,19 @@ import { Direction } from "./helpers"
 import { Actor } from "./actor"
 import { LevelState } from "./level"
 import Tile, { Layer } from "./tile"
+import { iterableFindIndex, iterableIncludes } from "./iterableHelpers"
 
 export interface Wirable {
-	wires: Wires
-	poweredWires: Wires
-	wireTunnels: Wires
+	wires: number
+	poweredWires: number
+	wireTunnels: number
 	circuits?: CircuitCity[]
 	wireOverlapMode: WireOverlapMode
+	poweringWires: number
+	pulse?(): void
+	unpulse?(): void
+	processOutput?(): void
+	listensWires: boolean
 }
 
 export enum Wires {
@@ -31,7 +37,6 @@ export function getWireMask(wirable: Wirable, dir: Wires): Wires {
 		case WireOverlapMode.NONE:
 			return dir
 		case WireOverlapMode.CROSS:
-			//@ts-expect-error Typescript dumb
 			if (wirable.wires === 0b1111)
 				return dir >= 0b0100 ? dir | (dir >> 2) : dir | (dir << 2)
 
@@ -41,17 +46,23 @@ export function getWireMask(wirable: Wirable, dir: Wires): Wires {
 	}
 }
 
-// TODO Is there anything to it other than the population?
-export type CircuitCity = [Wirable, Wires][]
+// TODO Is there anything to it other than the population and outputs?
+export interface CircuitCity {
+	population: Map<Wirable, Wires>
+	outputs: Wirable[]
+}
 
 function getTileWirable(tile: Tile): Wirable {
-	for (const actor of tile.allActors) if (actor.wires) return actor
+	for (const actor of tile.allActors)
+		if (actor.wires || (actor.layer === Layer.STATIONARY && tile.wires === 0))
+			return actor
 	return tile
 }
 
 function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 	// TypeScript: Allows 123 as Wires. Also TypeScript: Wires and 123 have no overlap
-	const TODOstack: CircuitCity = []
+	// Not a map since we need to queue up multiple directions with the same wirable
+	const TODOstack: [Wirable, Wires][] = []
 	const baseWireMask = getWireMask(base, dirToWire(direction))
 	for (let i = Wires.UP; i <= Wires.LEFT; i *= 2)
 		if (baseWireMask & i) TODOstack.push([base, i])
@@ -62,24 +73,20 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 		TODOstack.push([base, dirToWire((direction + 2) % 4)])
 	if (
 		base.wireOverlapMode === WireOverlapMode.OVERLAP ||
-		// @ts-expect-error Typescript dumb
 		(base.wires !== 0b111 && base.wireOverlapMode === WireOverlapMode.CROSS)
-	)
-		TODOstack.push(
-			[base, dirToWire((direction + 1) % 4)],
-			[base, dirToWire((direction + 3) % 4)]
-		)
-	const seen: CircuitCity = []
+	) {
+		TODOstack.push([base, dirToWire((direction + 1) % 4)])
+		TODOstack.push([base, dirToWire((direction + 3) % 4)])
+	}
+	const seen: Map<Wirable, Wires> = new Map()
+	const outputs: Wirable[] = []
 	while (TODOstack.length > 0) {
 		const [wirable, direction] = TODOstack.shift() as [Wirable, Wires]
-		const registeredActor = seen.find(val => val[0] === wirable)
-		if (
-			!(wirable.wires & direction) ||
-			(registeredActor && registeredActor[1] & direction)
-		)
-			continue
-		if (registeredActor) registeredActor[1] |= direction
-		else seen.push([wirable, direction])
+		const registeredWires = seen.get(wirable)
+		if (registeredWires && registeredWires & direction) continue
+		if (registeredWires) seen.set(wirable, registeredWires | direction)
+		else seen.set(wirable, direction)
+		if (!(wirable.wires & direction)) continue
 		let newWirable: Wirable | null
 		if (wirable instanceof Actor) {
 			const neigh = wirable.tile.getNeighbor(wireToDir(direction))
@@ -92,35 +99,90 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 		} else throw new Error("Um, this shouldn't happen")
 
 		const entraceWire = dirToWire((wireToDir(direction) + 2) % 4)
-		if (!newWirable || !(newWirable.wires & entraceWire)) continue
+		if (!newWirable) continue
+		if (
+			newWirable.pulse ||
+			newWirable.unpulse ||
+			newWirable.listensWires ||
+			newWirable.processOutput
+		)
+			outputs.push(newWirable)
+		if (!(newWirable.wires & entraceWire)) {
+			const newRegisteredWires = seen.get(newWirable)
+			// Welp, the journey of this no-wire wirable ends here,
+			// but we still record it because clone machines
+			// and stuff use wires as input even when they
+			// don't have the wires themselves
+			if (newRegisteredWires)
+				seen.set(newWirable, newRegisteredWires | entraceWire)
+			else seen.set(newWirable, entraceWire)
+			continue
+		}
 		const newWireMask = getWireMask(newWirable, entraceWire)
 		for (let i = Wires.UP; i <= Wires.LEFT; i *= 2)
 			if (newWirable.wires & i && newWireMask & i)
 				TODOstack.push([newWirable, i])
 	}
-	return seen
+	return { population: seen, outputs }
 }
 
-export function buildCircuits(level: LevelState): void {
-	for (const tile of level.tiles()) {
+export function buildCircuits(this: LevelState): void {
+	for (const tile of this.tiles()) {
 		const wirable = getTileWirable(tile)
 		if (!wirable.wires) continue
 		tileLoop: for (let i = Wires.UP; i <= Wires.LEFT; i *= 2) {
 			if (
 				!(wirable.wires & i) ||
-				level.circuits.some(val =>
-					val.some(
-						val => val[0] === wirable && val[1] & getWireMask(wirable, i)
-					)
+				this.circuits.some(
+					val =>
+						iterableFindIndex(
+							val.population.entries(),
+							val =>
+								val[0] === wirable && (val[1] & getWireMask(wirable, i)) > 0
+						) >= 0
 				)
 			)
 				continue tileLoop
 			const circuit: CircuitCity = traceCircuit(wirable, wireToDir(i))
-			level.circuits.push(circuit)
-			for (const wirable of circuit) {
+			this.circuits.push(circuit)
+			for (const wirable of circuit.population) {
 				if (!wirable[0].circuits) wirable[0].circuits = [circuit]
 				else wirable[0].circuits.push(circuit)
 			}
 		}
+	}
+	this.circuitOutputs = this.circuits
+		.reduce<Wirable[]>((acc, val) => acc.concat(val.outputs), [])
+		.filter((val, i, arr) => arr.indexOf(val) === i)
+}
+
+export function wireTick(this: LevelState) {
+	if (!this.circuits.length) return
+	// Step 1. Let all inputs calcuate output
+	for (const actor of this.actors) actor.updateWires?.()
+	// Also, save all wire states, for pulse detection
+	const wasPowered = new Map<Wirable, boolean>()
+	for (const output of this.circuitOutputs)
+		wasPowered.set(output, !!output.poweredWires)
+	// Step 2. Update circuits to be powered, based on the powering population
+	for (const circuit of this.circuits) {
+		let circuitPowered = false
+		for (const actor of circuit.population)
+			if (actor[0].poweringWires & actor[1]) {
+				circuitPowered = true
+				break
+			}
+
+		for (const actor of circuit.population)
+			if (circuitPowered) actor[0].poweredWires |= actor[1]
+			else actor[0].poweredWires &= ~actor[1]
+	}
+	// Step 3. Notify outputs for pulses/unpulses
+	for (const output of this.circuitOutputs) {
+		output.processOutput?.()
+		if (wasPowered.get(output) && !output.poweredWires && output.unpulse)
+			output.unpulse()
+		else if (!wasPowered.get(output) && output.poweredWires && output.pulse)
+			output.pulse()
 	}
 }
