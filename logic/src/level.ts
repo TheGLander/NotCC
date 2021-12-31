@@ -310,7 +310,10 @@ export class LevelState {
 				if (blockActor._internalBlocks(actor, direction))
 					if (actor._internalCanPush(blockActor, direction))
 						toPush.push(blockActor)
-					else return false
+					else {
+						this.resolvedCollisionCheckDirection = direction
+						return false
+					}
 				if (
 					layer === Layer.MOVABLE &&
 					iterableIndexOf(newTile[layer], blockActor) ===
@@ -324,10 +327,17 @@ export class LevelState {
 			if (pushable.slidingState) {
 				pushable.pendingDecision = direction + 1
 				// We did not move, shame, but we did queue this block push
+				this.resolvedCollisionCheckDirection = direction
 				return false
 			}
-			if (pushable.cooldown) return false
-			if (!this.checkCollision(pushable, direction, pushBlocks)) return false
+
+			if (
+				pushable.cooldown ||
+				!this.checkCollision(pushable, direction, pushBlocks)
+			) {
+				this.resolvedCollisionCheckDirection = direction
+				return false
+			}
 			if (pushBlocks) {
 				pushable._internalStep(direction)
 				pushable.cooldown--

@@ -580,7 +580,11 @@ export class Transmogrifier extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
+	isActive() {
+		return !this.circuits || this.poweredWires
+	}
 	actorCompletelyJoined(other: Actor): void {
+		if (!this.isActive()) return
 		let transmogValue: string | undefined
 		if (hasOwnProperty(other, "transmogrifierTarget"))
 			if (typeof other.transmogrifierTarget === "string")

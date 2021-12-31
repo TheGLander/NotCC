@@ -78,8 +78,11 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 		TODOstack.push([base, dirToWire((direction + 1) % 4)])
 		TODOstack.push([base, dirToWire((direction + 3) % 4)])
 	}
+
 	const seen: Map<Wirable, Wires> = new Map()
 	const outputs: Wirable[] = []
+	if (base.pulse || base.unpulse || base.listensWires || base.processOutput)
+		outputs.push(base)
 	while (TODOstack.length > 0) {
 		const [wirable, direction] = TODOstack.shift() as [Wirable, Wires]
 		const registeredWires = seen.get(wirable)
