@@ -147,13 +147,15 @@ class Tile implements Wirable {
 			}
 		}
 	}
-	getNeighbor(direction: Direction): Tile | null {
+	getNeighbor(direction: Direction, wrap: boolean = true): Tile | null {
 		switch (direction) {
 			case Direction.UP:
 				return (
 					this.level.field[this.position[0]]?.[this.position[1] - 1] ?? null
 				)
 			case Direction.LEFT:
+				if (this.x === 0 && wrap)
+					return this.level.field[this.level.width - 1]?.[this.y - 1] ?? null
 				return (
 					this.level.field[this.position[0] - 1]?.[this.position[1]] ?? null
 				)
@@ -162,6 +164,8 @@ class Tile implements Wirable {
 					this.level.field[this.position[0]]?.[this.position[1] + 1] ?? null
 				)
 			case Direction.RIGHT:
+				if (this.x === this.level.width - 1 && wrap)
+					return this.level.field[0]?.[this.y + 1] ?? null
 				return (
 					this.level.field[this.position[0] + 1]?.[this.position[1]] ?? null
 				)
@@ -208,10 +212,9 @@ class Tile implements Wirable {
 	wires: number = 0
 	poweredWires: number = 0
 	wireTunnels: number = 0
-	circuits?: CircuitCity[]
+	circuits?: [CircuitCity?, CircuitCity?, CircuitCity?, CircuitCity?]
 	wireOverlapMode: WireOverlapMode = WireOverlapMode.CROSS
 	poweringWires: number = 0
-	listensWires = false
 }
 
 export default Tile

@@ -4,7 +4,7 @@ import { Direction } from "./helpers"
 import { Layer } from "./tile"
 import Tile from "./tile"
 import { Item, Key } from "./actors/items"
-import { CircuitCity, Wirable, WireOverlapMode, Wires } from "./wires"
+import { CircuitCity, isWired, Wirable, WireOverlapMode, Wires } from "./wires"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -158,7 +158,6 @@ export abstract class Actor implements Wirable {
 		level.actors.unshift(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors(this)
-
 		this.isDeciding = !!(
 			this.layer === Layer.MOVABLE ||
 			this.onEachDecision ||
@@ -166,6 +165,10 @@ export abstract class Actor implements Wirable {
 		)
 		if (this.isDeciding) level.decidingActors.unshift(this)
 		this.createdN = this.level.createdN++
+		if (this.level.levelStarted) {
+			this.onCreation?.()
+			this.wired = isWired(this)
+		}
 	}
 	/**
 	 * Decides the movements the actor will attempt to do
@@ -214,7 +217,8 @@ export abstract class Actor implements Wirable {
 		if (!this.isDeciding) this.level.decidingActors.push(this)
 		this.isDeciding = true
 		const newTile = this.tile.getNeighbor(
-			this.level.resolvedCollisionCheckDirection
+			this.level.resolvedCollisionCheckDirection,
+			false
 		)
 		// This is purely a defensive programming thing, shouldn't happen normally (checkCollision should check for going OOB)
 		if (!newTile) return false
@@ -492,7 +496,7 @@ export abstract class Actor implements Wirable {
 	 */
 	poweringWires: number = 0
 	wireTunnels: number = 0
-	circuits?: CircuitCity[]
+	circuits?: [CircuitCity?, CircuitCity?, CircuitCity?, CircuitCity?]
 	wireOverlapMode: WireOverlapMode = WireOverlapMode.NONE
 	/**
 	 * Called at the start of wire phase, usually used to update powered wires.
@@ -500,5 +504,8 @@ export abstract class Actor implements Wirable {
 	updateWires?(): void
 	pulse?(): void
 	unpulse?(): void
-	listensWires = false
+	listensWires?: boolean
+	onCreation?(): void
+	providesPower?: boolean
+	wired: boolean = false
 }

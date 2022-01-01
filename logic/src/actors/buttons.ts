@@ -169,6 +169,7 @@ export class ButtonPurple extends Actor {
 		}
 		this.poweringWires = 0
 	}
+	providesPower = true
 }
 
 actorDB["buttonPurple"] = ButtonPurple
@@ -189,6 +190,7 @@ export class ButtonBlack extends Actor {
 		}
 		this.poweringWires = 0b1111
 	}
+	providesPower = true
 }
 
 actorDB["buttonBlack"] = ButtonBlack
@@ -208,6 +210,7 @@ export class ToggleSwitch extends Actor {
 	processOutput() {
 		this.poweringWires = this.customData === "on" ? 0b1111 : 0
 	}
+	providesPower = true
 }
 
 actorDB["toggleSwitch"] = ToggleSwitch

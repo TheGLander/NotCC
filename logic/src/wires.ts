@@ -8,13 +8,14 @@ export interface Wirable {
 	wires: number
 	poweredWires: number
 	wireTunnels: number
-	circuits?: CircuitCity[]
+	circuits?: [CircuitCity?, CircuitCity?, CircuitCity?, CircuitCity?]
 	wireOverlapMode: WireOverlapMode
 	poweringWires: number
 	pulse?(): void
 	unpulse?(): void
 	processOutput?(): void
-	listensWires: boolean
+	listensWires?: boolean
+	providesPower?: boolean
 }
 
 export enum Wires {
@@ -46,8 +47,10 @@ export function getWireMask(wirable: Wirable, dir: Wires): Wires {
 	}
 }
 
-// TODO Is there anything to it other than the population and outputs?
 export interface CircuitCity {
+	/**
+	 * All wirables, including neighbours which don't have wires
+	 */
 	population: Map<Wirable, Wires>
 	outputs: Wirable[]
 }
@@ -79,16 +82,19 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 		TODOstack.push([base, dirToWire((direction + 3) % 4)])
 	}
 
-	const seen: Map<Wirable, Wires> = new Map()
-	const outputs: Wirable[] = []
+	const circuit: CircuitCity = {
+		outputs: [],
+		population: new Map(),
+	}
 	if (base.pulse || base.unpulse || base.listensWires || base.processOutput)
-		outputs.push(base)
+		circuit.outputs.push(base)
 	while (TODOstack.length > 0) {
 		const [wirable, direction] = TODOstack.shift() as [Wirable, Wires]
-		const registeredWires = seen.get(wirable)
+		const registeredWires = circuit.population.get(wirable)
 		if (registeredWires && registeredWires & direction) continue
-		if (registeredWires) seen.set(wirable, registeredWires | direction)
-		else seen.set(wirable, direction)
+		if (registeredWires)
+			circuit.population.set(wirable, registeredWires | direction)
+		else circuit.population.set(wirable, direction)
 		if (!(wirable.wires & direction)) continue
 		let newWirable: Wirable | null
 		if (wirable instanceof Actor) {
@@ -109,16 +115,16 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 			newWirable.listensWires ||
 			newWirable.processOutput
 		)
-			outputs.push(newWirable)
+			circuit.outputs.push(newWirable)
 		if (!(newWirable.wires & entraceWire)) {
-			const newRegisteredWires = seen.get(newWirable)
+			const newRegisteredWires = circuit.population.get(newWirable)
 			// Welp, the journey of this no-wire wirable ends here,
 			// but we still record it because clone machines
 			// and stuff use wires as input even when they
 			// don't have the wires themselves
 			if (newRegisteredWires)
-				seen.set(newWirable, newRegisteredWires | entraceWire)
-			else seen.set(newWirable, entraceWire)
+				circuit.population.set(newWirable, newRegisteredWires | entraceWire)
+			else circuit.population.set(newWirable, entraceWire)
 			continue
 		}
 		const newWireMask = getWireMask(newWirable, entraceWire)
@@ -126,7 +132,7 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 			if (newWirable.wires & i && newWireMask & i)
 				TODOstack.push([newWirable, i])
 	}
-	return { population: seen, outputs }
+	return circuit
 }
 
 export function buildCircuits(this: LevelState): void {
@@ -149,8 +155,8 @@ export function buildCircuits(this: LevelState): void {
 			const circuit: CircuitCity = traceCircuit(wirable, wireToDir(i))
 			this.circuits.push(circuit)
 			for (const wirable of circuit.population) {
-				if (!wirable[0].circuits) wirable[0].circuits = [circuit]
-				else wirable[0].circuits.push(circuit)
+				if (!wirable[0].circuits) wirable[0].circuits = []
+				wirable[0].circuits[wireToDir(i)] = circuit
 			}
 		}
 	}
@@ -159,6 +165,7 @@ export function buildCircuits(this: LevelState): void {
 		.filter((val, i, arr) => arr.indexOf(val) === i)
 }
 
+// TODO Optimize this
 export function wireTick(this: LevelState) {
 	if (!this.circuits.length) return
 	// Step 1. Let all inputs calcuate output
@@ -188,4 +195,21 @@ export function wireTick(this: LevelState) {
 		else if (!wasPowered.get(output) && output.poweredWires && output.pulse)
 			output.pulse()
 	}
+}
+
+export function isWired(actor: Actor): boolean {
+	for (let i = 0; i < 4; i++) {
+		const neigh = actor.tile.getNeighbor(i)
+		if (!neigh) continue
+		const wirable = getTileWirable(neigh)
+		if (
+			!wirable ||
+			// A wirable which doesn't provide power and can't share the power via neighbours is useless for this tile
+			(wirable.wireOverlapMode === WireOverlapMode.NONE &&
+				!wirable.providesPower)
+		)
+			continue
+		if (wirable.wires & dirToWire((i + 2) % 4)) return true
+	}
+	return false
 }

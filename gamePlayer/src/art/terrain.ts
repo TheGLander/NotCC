@@ -1,6 +1,7 @@
 import { artDB, setArtForActor } from "../const"
 import { ActorArt, genericAnimatedArt, wiredTerrainArt } from "../visuals"
 import { Railroad, Trap } from "../logic/actors/terrain"
+import { Actor } from "../logic"
 
 artDB["floor"] = wiredTerrainArt("floor")
 
@@ -114,7 +115,14 @@ artDB["flameJet"] = actor => ({
 
 artDB["hint"] = { actorName: "hint" }
 
-artDB["transmogrifier"] = genericAnimatedArt("transmogrifier", 4)
+artDB["transmogrifier"] = (actor: Actor): ActorArt => ({
+	actorName: "transmogrifier",
+
+	frame:
+		actor.wired && actor.wires && !actor.poweredWires
+			? 0
+			: actor.level.currentTick % 4,
+})
 
 setArtForActor<Railroad>("railroad", actor => {
 	let railArt: ActorArt[] = []

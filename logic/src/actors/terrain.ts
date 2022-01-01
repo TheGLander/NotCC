@@ -11,6 +11,7 @@ import {
 	onLevelDecisionTick,
 } from "../level"
 import { Direction, hasOwnProperty } from "../helpers"
+import { isWired } from "../wires"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
@@ -580,8 +581,9 @@ export class Transmogrifier extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	isActive() {
-		return !this.circuits || this.poweredWires
+	wired = false
+	isActive(): boolean {
+		return !this.wired || !!this.poweredWires
 	}
 	actorCompletelyJoined(other: Actor): void {
 		if (!this.isActive()) return
@@ -651,7 +653,7 @@ export class Railroad extends Actor {
 		return null
 	}
 	actorLeft(other: Actor): void {
-		if (!this.isSwitch || this.circuits) return
+		if (!this.isSwitch || this.wired) return
 		const enterDirection =
 				directionStrings[(this.lastEnteredDirection + 2) % 4],
 			// Note that it doesn't have to make a move which makes sense, you just have to enter and exit in directions which are valid in a vacuum

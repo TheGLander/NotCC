@@ -13,7 +13,7 @@ import {
 import { actorDB } from "./const"
 import { hasSteps } from "./encoder"
 import { iterableIndexOf } from "./iterableHelpers"
-import { buildCircuits, CircuitCity, Wirable, wireTick } from "./wires"
+import { buildCircuits, CircuitCity, isWired, Wirable, wireTick } from "./wires"
 
 export enum GameState {
 	PLAYING,
@@ -180,7 +180,11 @@ export class LevelState {
 		if (!this.levelStarted) {
 			this.levelStarted = true
 			buildCircuits.apply(this)
-			for (const actor of Array.from(this.actors)) actor.levelStarted?.()
+			for (const actor of Array.from(this.actors)) {
+				actor.levelStarted?.()
+				actor.onCreation?.()
+				actor.wired = isWired(actor)
+			}
 			onLevelStart.forEach(val => val(this))
 		}
 		if (this.solutionSubticksLeft >= 0 && this.currentSolution) {
@@ -288,7 +292,7 @@ export class LevelState {
 				this.resolvedCollisionCheckDirection = direction = redirection
 			}
 		if (exitOnly) return true
-		const newTile = fromTile.getNeighbor(direction)
+		const newTile = fromTile.getNeighbor(direction, false)
 		if (newTile === null) {
 			actor.bumpedEdge?.(fromTile, direction)
 			return false
