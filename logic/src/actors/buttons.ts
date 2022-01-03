@@ -170,6 +170,7 @@ export class ButtonPurple extends Actor {
 		this.poweringWires = 0
 	}
 	providesPower = true
+	requiresFullConnect = true
 }
 
 actorDB["buttonPurple"] = ButtonPurple
@@ -191,6 +192,7 @@ export class ButtonBlack extends Actor {
 		this.poweringWires = 0b1111
 	}
 	providesPower = true
+	requiresFullConnect = true
 }
 
 actorDB["buttonBlack"] = ButtonBlack
@@ -211,6 +213,7 @@ export class ToggleSwitch extends Actor {
 		this.poweringWires = this.customData === "on" ? 0b1111 : 0
 	}
 	providesPower = true
+	requiresFullConnect = true
 }
 
 actorDB["toggleSwitch"] = ToggleSwitch

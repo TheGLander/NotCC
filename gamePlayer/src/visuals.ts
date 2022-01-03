@@ -467,6 +467,37 @@ export const wireBaseArt = (wires: Wires, poweredWires: Wires) => {
 	return toDraw
 }
 
+export const wireTunnelArt = (wireTunnels: Wires): ActorArt[] => {
+	const toDraw: ActorArt[] = []
+	if (wireTunnels & 0b0001)
+		toDraw.push({
+			actorName: "wireTunnel",
+			animation: "0",
+			cropSize: [1, 0.25],
+		})
+	if (wireTunnels & 0b0010)
+		toDraw.push({
+			actorName: "wireTunnel",
+			animation: "1",
+			cropSize: [0.25, 1],
+			imageOffset: [0.75, 0],
+		})
+	if (wireTunnels & 0b0100)
+		toDraw.push({
+			actorName: "wireTunnel",
+			animation: "2",
+			cropSize: [1, 0.25],
+			imageOffset: [0, 0.75],
+		})
+	if (wireTunnels & 0b1000)
+		toDraw.push({
+			actorName: "wireTunnel",
+			animation: "3",
+			cropSize: [0.25, 1],
+		})
+	return toDraw
+}
+
 export const wiredTerrainArt = (name: string) => (actor: Wirable) =>
 	[
 		{ actorName: name, animation: "wireBase" },
@@ -479,6 +510,7 @@ export const wiredTerrainArt = (name: string) => (actor: Wirable) =>
 					? "wireOverlapCross"
 					: "wireOverlap",
 		},
+		...wireTunnelArt(actor.wireTunnels),
 	]
 
 export const genericWiredTerrainArt =

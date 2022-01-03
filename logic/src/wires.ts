@@ -16,6 +16,7 @@ export interface Wirable {
 	processOutput?(): void
 	listensWires?: boolean
 	providesPower?: boolean
+	requiresFullConnect?: boolean
 }
 
 export enum Wires {
@@ -57,9 +58,33 @@ export interface CircuitCity {
 
 function getTileWirable(tile: Tile): Wirable {
 	for (const actor of tile.allActors)
-		if (actor.wires || (actor.layer === Layer.STATIONARY && tile.wires === 0))
+		if (
+			actor.wires ||
+			(actor.layer === Layer.STATIONARY &&
+				tile.wires === 0 &&
+				tile.wireTunnels === 0)
+		)
 			return actor
 	return tile
+}
+
+function getMatchingTunnel(tile: Tile, direction: Direction): Wirable | null {
+	let depth = 0
+	const wires = dirToWire(direction)
+	const oppositeWires = dirToWire((direction + 2) % 4)
+	for (
+		let newTile = tile.getNeighbor(direction, false);
+		newTile !== null;
+		newTile = newTile.getNeighbor(direction, false)
+	) {
+		const tileWirable = getTileWirable(newTile)
+		if (tileWirable.wireTunnels & wires) depth++
+		if (tileWirable.wireTunnels & oppositeWires) {
+			if (depth === 0) return tileWirable
+			else depth--
+		}
+	}
+	return null
 }
 
 function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
@@ -96,17 +121,20 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 			circuit.population.set(wirable, registeredWires | direction)
 		else circuit.population.set(wirable, direction)
 		if (!(wirable.wires & direction)) continue
+		if (wirable.wireTunnels & direction) {
+		}
+		let thisTile: Tile
+		if (wirable instanceof Actor) thisTile = wirable.tile
+		else if (wirable instanceof Tile) thisTile = wirable
+		else throw new Error("Um, this shouldn't happen")
 		let newWirable: Wirable | null
-		if (wirable instanceof Actor) {
-			const neigh = wirable.tile.getNeighbor(wireToDir(direction))
+		if (wirable.wireTunnels & direction)
+			newWirable = getMatchingTunnel(thisTile, wireToDir(direction))
+		else {
+			const neigh = thisTile.getNeighbor(wireToDir(direction))
 			if (neigh) newWirable = getTileWirable(neigh)
 			else newWirable = null
-		} else if (wirable instanceof Tile) {
-			const neigh = wirable.getNeighbor(wireToDir(direction))
-			if (neigh) newWirable = getTileWirable(neigh)
-			else newWirable = null
-		} else throw new Error("Um, this shouldn't happen")
-
+		}
 		const entraceWire = dirToWire((wireToDir(direction) + 2) % 4)
 		if (!newWirable) continue
 		if (
@@ -117,7 +145,9 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 		)
 			circuit.outputs.push(newWirable)
 		if (!(newWirable.wires & entraceWire)) {
+			if (newWirable.requiresFullConnect) continue
 			const newRegisteredWires = circuit.population.get(newWirable)
+
 			// Welp, the journey of this no-wire wirable ends here,
 			// but we still record it because clone machines
 			// and stuff use wires as input even when they
@@ -160,16 +190,18 @@ export function buildCircuits(this: LevelState): void {
 			}
 		}
 	}
+	this.circuitInputs = this.actors.filter(val => val.providesPower)
 	this.circuitOutputs = this.circuits
 		.reduce<Wirable[]>((acc, val) => acc.concat(val.outputs), [])
 		.filter((val, i, arr) => arr.indexOf(val) === i)
+	for (const actor of this.actors) actor.wired = isWired(actor)
 }
 
 // TODO Optimize this
 export function wireTick(this: LevelState) {
 	if (!this.circuits.length) return
 	// Step 1. Let all inputs calcuate output
-	for (const actor of this.actors) actor.updateWires?.()
+	for (const actor of this.circuitInputs) actor.updateWires?.()
 	// Also, save all wire states, for pulse detection
 	const wasPowered = new Map<Wirable, boolean>()
 	for (const output of this.circuitOutputs)
@@ -199,6 +231,7 @@ export function wireTick(this: LevelState) {
 
 export function isWired(actor: Actor): boolean {
 	for (let i = 0; i < 4; i++) {
+		if (actor.wireTunnels & dirToWire(i)) continue
 		const neigh = actor.tile.getNeighbor(i)
 		if (!neigh) continue
 		const wirable = getTileWirable(neigh)
@@ -209,7 +242,11 @@ export function isWired(actor: Actor): boolean {
 				!wirable.providesPower)
 		)
 			continue
-		if (wirable.wires & dirToWire((i + 2) % 4)) return true
+		if (
+			wirable.wires & dirToWire((i + 2) % 4) &&
+			!(wirable.wireTunnels & dirToWire((i + 2) % 4))
+		)
+			return true
 	}
 	return false
 }

@@ -183,7 +183,6 @@ export class LevelState {
 			for (const actor of Array.from(this.actors)) {
 				actor.levelStarted?.()
 				actor.onCreation?.()
-				actor.wired = isWired(actor)
 			}
 			onLevelStart.forEach(val => val(this))
 		}
@@ -407,6 +406,7 @@ export class LevelState {
 			yield this.field[pos % this.width][Math.floor(pos / this.width)]
 	}
 	circuits: CircuitCity[] = []
+	circuitInputs: Actor[] = []
 	circuitOutputs: Wirable[] = []
 }
 
@@ -434,7 +434,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 					if (actor[3]) {
 						const tile = level.field[x][y]
 						tile.wires = actor[3] & 0x0f
-						tile.wireTunnels = actor[3] & 0xf0
+						tile.wireTunnels = (actor[3] & 0xf0) >> 4
 					}
 					continue
 				}

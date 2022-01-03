@@ -619,6 +619,12 @@ const cc2ImageFormat: CC2ImageFormat = {
 		ghost: { up: [12, 18], right: [13, 18], down: [14, 18], left: [15, 18] },
 		toggleSwitch: { wireBase: [14, 21], off: [12, 21], on: [13, 21] },
 		wire: { true: [15, 26], false: [13, 26] },
+		wireTunnel: {
+			0: [14, 11],
+			1: [14.75, 11],
+			2: [14, 11.75],
+			3: [14, 11],
+		},
 	},
 }
 
