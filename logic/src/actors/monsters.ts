@@ -317,9 +317,11 @@ export class RollingBowlingBall extends Monster {
 		return [this.direction]
 	}
 	bumpedActor(other: Actor, direction: Direction): void {
-		if (other._internalBlocks(this, direction) && !this.slidingState) {
-			if (other.layer === Layer.MOVABLE) other.destroy(this)
-			this.destroy(this)
+		if (other._internalBlocks(this, direction)) {
+			if (other.layer === Layer.MOVABLE) {
+				other.destroy(this)
+				this.destroy(this)
+			} else if (!this.slidingState) this.destroy(this)
 		}
 	}
 	bumpedEdge(): void {

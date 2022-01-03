@@ -271,7 +271,7 @@ export class BowlingBall extends Item {
 	onDrop(dropper: Actor): void {
 		dropper.tile.removeActors(dropper)
 		const rollingGuy = this.replaceWith(RollingBowlingBall)
-		rollingGuy._internalStep(dropper.direction)
+		if (rollingGuy._internalStep(dropper.direction)) rollingGuy.cooldown--
 		// Hello animation from rolling bowling ball movement failure, please die so my dropper can go back
 		for (const movable of dropper.tile[Layer.MOVABLE])
 			if (movable instanceof Explosion) movable.destroy(null, null)

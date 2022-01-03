@@ -6,11 +6,10 @@ import { Item, ItemDestination } from "./items"
 import { iterableFind } from "../iterableHelpers"
 import { WireOverlapMode } from "../wires"
 
-// TODO Use LevelState.tiles() for this
-function findNextTeleport<T extends Actor>(
+function findNextTeleport<T extends Teleport>(
 	this: T,
 	other: Actor,
-	goInRRO = true,
+	rro = true,
 	validateDestination: (other: Actor, newTeleport: T) => boolean = (
 		other,
 		teleport
@@ -19,28 +18,15 @@ function findNextTeleport<T extends Actor>(
 		this.level.checkCollisionFromTile(other, teleport.tile, other.direction)
 ): T {
 	const thisConstructor = Object.getPrototypeOf(this).constructor
-	let x = this.tile.x + (goInRRO ? -1 : 1)
-	for (
-		let y = this.tile.y;
-		// If we reached this tile, stop
-		// eslint-disable-next-line no-constant-condition
-		true;
-		// This is used for valid level wrapping
-		y = (y + this.level.height + (goInRRO ? -1 : 1)) % this.level.height,
-			x = (this.level.width + x) % this.level.width
-	)
-		for (; x >= 0 && x < this.level.width; goInRRO ? x-- : x++) {
-			const newTeleport = iterableFind(
-				this.level.field[x][y].allActors,
-				val => val instanceof thisConstructor
-			)
-			if (newTeleport === this) return this
-			if (
-				newTeleport &&
-				validateDestination.call(this, other, newTeleport as T)
-			)
-				return newTeleport as T
-		}
+	for (const tile of this.level.tiles(rro, this.tile.position)) {
+		const newTeleport = iterableFind(
+			tile[this.layer],
+			val => val instanceof thisConstructor
+		)
+		if (newTeleport && validateDestination.call(this, other, newTeleport as T))
+			return newTeleport as T
+	}
+	return this
 }
 
 export abstract class Teleport extends Actor {
@@ -66,12 +52,14 @@ export class BlueTeleport extends Teleport {
 	id = "teleportBlue"
 
 	onTeleport(other: Actor): void {
+		other.slidingState = SlidingState.STRONG
 		other.oldTile = other.tile
 		other.tile = findNextTeleport.call(this, other).tile
 		other._internalUpdateTileStates()
-		other.slidingState = SlidingState.STRONG
+
 		if (!other.pendingDecision) other.pendingDecision = other.direction + 1
 	}
+
 	wireOverlapMode = WireOverlapMode.OVERLAP
 }
 
@@ -80,6 +68,7 @@ actorDB["teleportBlue"] = BlueTeleport
 export class RedTeleport extends Teleport {
 	id = "teleportRed"
 	onTeleport(other: Actor): void {
+		other.slidingState = SlidingState.WEAK
 		other.oldTile = other.tile
 		other.tile = findNextTeleport.call(
 			this,
@@ -107,6 +96,7 @@ export class RedTeleport extends Teleport {
 		other.slidingState = SlidingState.WEAK
 		if (other instanceof Playable) other.hasOverride = true
 	}
+
 	wireOverlapMode = WireOverlapMode.NONE
 }
 
@@ -116,6 +106,7 @@ export class GreenTeleport extends Teleport {
 	id = "teleportGreen"
 
 	onTeleport(other: Actor): void {
+		other.slidingState = SlidingState.STRONG
 		// All green TPs
 		const allTeleports: this[] = [this]
 		// TPs which do not have an actor on them
@@ -186,14 +177,16 @@ export class YellowTeleport extends Teleport implements Item {
 			findNextTeleport.call(this, this, false, () => true) !== this
 	}
 	onTeleport(other: Actor): void {
+		other.slidingState = SlidingState.WEAK
 		const newTP = findNextTeleport.call(this, other)
-		if (this.shouldPickup && newTP === this)
+
+		if (this.shouldPickup && newTP === this) {
+			other.slidingState = SlidingState.NONE
 			Item.prototype.actorCompletelyJoined.call(this, other)
-		else {
+		} else {
 			other.oldTile = other.tile
 			other.tile = newTP.tile
 			other._internalUpdateTileStates()
-			other.slidingState = SlidingState.WEAK
 			if (other instanceof Playable) other.hasOverride = true
 		}
 	}

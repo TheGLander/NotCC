@@ -213,11 +213,9 @@ export class Exit extends Actor {
 	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
-			this.level.selectedPlayable =
-				this.level.playables[
-					(this.level.playables.indexOf(other) + 1) %
-						this.level.playables.length
-				]
+			this.level.selectedPlayable = this.level.playables[
+				(this.level.playables.indexOf(other) + 1) % this.level.playables.length
+			]
 			other.destroy(this, null)
 			this.level.gameState = GameState.PLAYING
 			this.level.playablesLeft--
@@ -375,10 +373,6 @@ export class CloneMachine extends Actor {
 	tags = ["machinery"]
 	// Always block boomer actors
 	blockTags = ["cc1block", "normal-monster", "playable"]
-	// Block actors when this already has a source
-	blocks(): boolean {
-		return this.tile.hasLayer(Layer.MOVABLE)
-	}
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}

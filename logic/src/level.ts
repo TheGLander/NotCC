@@ -343,8 +343,7 @@ export class LevelState {
 				return false
 			}
 			if (pushBlocks) {
-				pushable._internalStep(direction)
-				pushable.cooldown--
+				if (pushable._internalStep(direction)) pushable.cooldown--
 			}
 		}
 		this.resolvedCollisionCheckDirection = direction
@@ -391,7 +390,6 @@ export class LevelState {
 		rro = true,
 		relativeTo: [number, number] = [0, 0]
 	): Generator<Tile, void> {
-		yield this.field[relativeTo[0]][relativeTo[1]]
 		const stopAt = relativeTo[0] + relativeTo[1] * this.width
 		for (
 			let pos =
@@ -404,6 +402,7 @@ export class LevelState {
 				: (pos = (pos + 1) % (this.width * this.height))
 		)
 			yield this.field[pos % this.width][Math.floor(pos / this.width)]
+		yield this.field[relativeTo[0]][relativeTo[1]]
 	}
 	circuits: CircuitCity[] = []
 	circuitInputs: Actor[] = []
