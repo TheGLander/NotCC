@@ -508,4 +508,8 @@ export abstract class Actor implements Wirable {
 	onCreation?(): void
 	providesPower?: boolean
 	wired: boolean = false
+	/**
+	 * If true, this will be actually checked on exit-only collision checks
+	 */
+	persistOnExitOnlyCollision?: boolean
 }

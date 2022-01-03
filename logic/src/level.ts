@@ -275,6 +275,7 @@ export class LevelState {
 
 		for (const exitActor of fromTile.allActorsReverse)
 			if (exitActor._internalExitBlocks(actor, direction)) {
+				if (exitOnly && !exitActor.persistOnExitOnlyCollision) continue
 				exitActor.bumped?.(actor, direction)
 				actor.bumpedActor?.(exitActor, direction)
 				return false

@@ -351,6 +351,7 @@ export class Trap extends Actor {
 	}
 
 	listensWires = true
+	persistOnExitOnlyCollision = true
 }
 
 actorDB["trap"] = Trap
