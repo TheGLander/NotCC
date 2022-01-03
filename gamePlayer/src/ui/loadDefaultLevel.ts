@@ -1,4 +1,17 @@
 import { startNewLevelSet } from "./loadLevel"
+import { unzlib, AsyncUnzlibOptions } from "fflate"
+
+function unzlibActuallyAsync(
+	buffer: ArrayBuffer,
+	options: AsyncUnzlibOptions = { consume: true }
+): Promise<ArrayBuffer> {
+	return new Promise((res, rej) =>
+		unzlib(new Uint8Array(buffer), options, (err, data) => {
+			if (err) rej(err)
+			else res(data.buffer)
+		})
+	)
+}
 
 // Kinda like new TextEncoder().encode, but without UTF-8 in mind
 // BTW, I didn't know that ArrayConstructor.from could be used like this, thanks eevee!
@@ -10,16 +23,16 @@ function decodeRawStringToArrayBuffer(str: string): ArrayBuffer {
 	let customLevelLoaded = false
 	try {
 		const params = new URLSearchParams(location.search)
-		const levelData = params.get("level")
+		const stringLevelData = params.get("level")
 
-		if (levelData) {
-			await startNewLevelSet(
-				decodeRawStringToArrayBuffer(
-					// This is some weird "base64 url safe" data
-					atob(levelData.replace(/_/g, "/").replace(/-/g, "+"))
-				),
-				"unknown.c2m"
+		if (stringLevelData) {
+			let levelData = decodeRawStringToArrayBuffer(
+				// This is some weird "base64 url safe" data
+				atob(stringLevelData.replace(/_/g, "/").replace(/-/g, "+"))
 			)
+			if (new Uint8Array(levelData)[0] === 0x78)
+				levelData = await unzlibActuallyAsync(levelData)
+			await startNewLevelSet(levelData, "unknown.?")
 			customLevelLoaded = true
 		}
 	} catch (err) {

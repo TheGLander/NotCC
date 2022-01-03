@@ -163,7 +163,7 @@ actorDB["teethBlue"] = TeethBlue
 export class FloorMimic extends Monster {
 	id = "floorMimic"
 	decideMovement(): Direction[] {
-		if (!this.level.selectedPlayable || (this.level.currentTick + 13) % 16 >= 4)
+		if (!this.level.selectedPlayable || (this.level.currentTick + 5) % 16 >= 4)
 			return []
 		return getPursuitCoords(this, this.level.selectedPlayable)
 	}
@@ -184,7 +184,7 @@ export class TankBlue extends Monster {
 	}
 	caresButtonColors = ["blue"]
 	buttonPressed(): void {
-		this.turnPending = true
+		this.turnPending = !this.turnPending
 	}
 }
 
@@ -194,7 +194,7 @@ export class BlobMonster extends Monster {
 	id = "blob"
 	immuneTags = ["slime"]
 	moveSpeed = 8
-	get transmogrifierTarget(): string {
+	transmogrifierTarget(): string {
 		return [
 			"glider",
 			"centipede",
@@ -267,7 +267,7 @@ export class LitTNT extends Monster {
 					movableDied = true
 			}
 		// Create a memorial fire if a movable got blown up (if we can)
-		if (tileHadMovable && movableDied && !tile.hasLayer(Layer.MOVABLE))
+		if (tileHadMovable && movableDied && !tile.hasLayer(Layer.STATIONARY))
 			new Fire(this.level, tile.position)
 	}
 	onEachDecision(): void {
@@ -289,6 +289,7 @@ actorDB["tntLit"] = LitTNT
 
 export class TankYellow extends Monster {
 	id = "tankYellow"
+	tags = ["normal-monster", "movable"]
 	pushTags = ["block"]
 	transmogrifierTarget = "tankBlue"
 	movePending: Decision = Decision.NONE
@@ -317,8 +318,10 @@ export class RollingBowlingBall extends Monster {
 	}
 	bumpedActor(other: Actor, direction: Direction): void {
 		if (other._internalBlocks(this, direction)) {
-			if (other.layer === Layer.MOVABLE) other.destroy(this)
-			this.destroy(this)
+			if (other.layer === Layer.MOVABLE) {
+				other.destroy(this)
+				this.destroy(this)
+			} else if (!this.slidingState) this.destroy(this)
 		}
 	}
 	bumpedEdge(): void {
@@ -368,8 +371,9 @@ export class Ghost extends Monster {
 	id = "ghost"
 	tags = ["autonomous-monster", "can-pickup-items", "movable", "ghost"]
 	blockedByTags = ["blocks-ghost", "water-ish"]
-	nonIgnoredTags = ["machinery", "button", "movable"]
+	nonIgnoredTags = ["machinery", "button", "door", "echip-gate", "jet"]
 	ignoreTags = ["bonusFlag"]
+	collisionIgnoreTags = ["door", "echip-gate"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
@@ -378,8 +382,11 @@ export class Ghost extends Monster {
 		return (
 			!other
 				.getCompleteTags("tags")
-				.some(val => this.blockedByTags.includes(val)) &&
-			other.layer !== Layer.MOVABLE
+				.some(
+					val =>
+						this.blockedByTags.includes(val) ||
+						this.nonIgnoredTags.includes(val)
+				) && other.layer !== Layer.MOVABLE
 		)
 	}
 	ignores(other: Actor): boolean {
@@ -387,7 +394,8 @@ export class Ghost extends Monster {
 			!other
 				.getCompleteTags("tags")
 				.some(val => this.nonIgnoredTags.includes(val)) &&
-			other.layer !== Layer.ITEM
+			other.layer !== Layer.ITEM &&
+			other.layer !== Layer.MOVABLE
 		)
 	}
 }

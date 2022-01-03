@@ -51,12 +51,24 @@ export abstract class Playable extends Actor {
 
 	_internalDecide(forcedOnly: boolean): void {
 		this.moveDecision = Decision.NONE
+		if (
+			this.level.selectedPlayable === this &&
+			(this.slidingState || !this.cooldown) &&
+			this.level.gameInput.switchPlayable &&
+			this.level.debouncedInputs.switchPlayable <= 0
+		) {
+			this.level.playablesToSwap = true
+			this.level.debounceInput("switchPlayable")
+		}
+		// TODO Split screen
+
 		if (this.cooldown) return
 
 		let canMove =
 			this.level.selectedPlayable === this &&
 			(!this.slidingState ||
-				(this.slidingState === SlidingState.WEAK && this.hasOverride))
+				(this.slidingState === SlidingState.WEAK && this.hasOverride)) &&
+			!forcedOnly
 		if (canMove) {
 			if (
 				this.level.gameInput.rotateInv &&
@@ -70,16 +82,8 @@ export abstract class Playable extends Actor {
 				this.dropItem()
 				this.level.debounceInput("drop")
 			}
-			// TODO Split screen
-			if (
-				this.level.gameInput.switchPlayable &&
-				this.level.debouncedInputs.switchPlayable <= 0
-			) {
-				this.level.playablesToSwap = true
-				this.level.debounceInput("switchPlayable")
-			}
 		}
-		canMove &&= !forcedOnly
+
 		let [vert, horiz] = getMovementDirections(this.level.gameInput)
 		if (
 			this.slidingState &&
@@ -95,24 +99,28 @@ export abstract class Playable extends Actor {
 			// We have a direction we certanly wanna move to
 			if (vert === undefined || horiz === undefined) {
 				// @ts-expect-error We ruled out the possibility of no directions earlier, so if any of them is undefined, the other one is not
-				bonked = !this.level.checkCollision(this, vert ?? horiz, true)
+				bonked = !this.level.checkCollision(this, vert ?? horiz)
 				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
 			} else {
 				// We have two directions
-				const canHoriz = this.level.checkCollision(this, horiz, true)
+				const canHoriz = this.level.checkCollision(this, horiz)
 				horiz = this.level.resolvedCollisionCheckDirection
-				const canVert = this.level.checkCollision(this, vert, true)
+				const canVert = this.level.checkCollision(this, vert)
 				vert = this.level.resolvedCollisionCheckDirection
 				if (canHoriz && !canVert) this.moveDecision = horiz + 1
 				else if (canVert && !canHoriz) this.moveDecision = vert + 1
 				else {
-					bonked = !canHoriz
 					// We can move in both / none directions, crap
-					// We first try to be biased towards current direction
-					if (horiz === this.direction) this.moveDecision = horiz + 1
-					else if (vert === this.direction) this.moveDecision = vert + 1
-					// As a last resort, we always pick horiz over vert
-					else this.moveDecision = horiz + 1
+					bonked = !canHoriz
+					// Just discovered: When both dirs are blocked, always choose horiz
+					if (!canHoriz) this.moveDecision = horiz + 1
+					else {
+						// We first try to be biased towards current direction
+						if (horiz === this.direction) this.moveDecision = horiz + 1
+						else if (vert === this.direction) this.moveDecision = vert + 1
+						// As a last resort, we always pick horiz over vert
+						else this.moveDecision = horiz + 1
+					}
 				}
 			}
 			this.hasOverride = bonked

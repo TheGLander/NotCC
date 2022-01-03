@@ -3,7 +3,7 @@ import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { Direction } from "../helpers"
 import { Playable } from "./playables"
-import { LevelState } from "../level"
+import { WireOverlapMode } from "../wires"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall"]
@@ -28,6 +28,7 @@ export class SteelWall extends Actor {
 	blocks(): boolean {
 		return true
 	}
+	wireOverlapMode = WireOverlapMode.CROSS
 }
 
 actorDB["steelWall"] = SteelWall
@@ -174,11 +175,32 @@ export class ToggleWall extends Actor {
 	buttonPressed(): void {
 		this.customData = this.customData === "on" ? "off" : "on"
 	}
+	pulse(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
+	}
 }
 
 actorDB["toggleWall"] = ToggleWall
 
-export class SwivelRotatingPart extends Actor {
+export class HoldWall extends Actor {
+	id = "holdWall"
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	blocks(): boolean {
+		return this.customData === "on"
+	}
+	pulse(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
+	}
+	unpulse(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
+	}
+}
+
+actorDB["holdWall"] = HoldWall
+
+/* export class SwivelRotatingPart extends Actor {
 	id = "swivelRotatingPart"
 	immuneTags = ["tnt"]
 	getLayer(): Layer {
@@ -195,24 +217,39 @@ export class SwivelRotatingPart extends Actor {
 		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
 		this.direction %= 4
 	}
-}
+} */
 
 export class Swivel extends Actor {
 	id = "swivel"
-	rotatingPart?: SwivelRotatingPart
+	// rotatingPart?: SwivelRotatingPart
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	levelStarted(): void {
+	/* levelStarted(): void {
 		this.rotatingPart = new SwivelRotatingPart(this.level, this.tile.position)
 		this.rotatingPart.direction = this.direction
-	}
-	destroy(killer?: Actor | null, animType?: string | null): boolean {
+	} */
+	/* destroy(killer?: Actor | null, animType?: string | null): boolean {
 		if (super.destroy(killer, animType)) {
 			this.rotatingPart?.destroy(null, null)
 			return true
 		}
 		return false
+	}*/
+	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
+		return (
+			otherMoveDirection === (this.direction + 2) % 4 ||
+			otherMoveDirection === (this.direction + 3) % 4
+		)
+	}
+	actorLeft(actor: Actor): void {
+		if (actor.direction === this.direction) this.direction++
+		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
+		this.direction %= 4
+	}
+	pulse(): void {
+		this.direction += 1
+		this.direction %= 4
 	}
 }
 

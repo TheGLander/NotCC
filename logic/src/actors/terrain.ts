@@ -11,6 +11,7 @@ import {
 	onLevelDecisionTick,
 } from "../level"
 import { Direction, hasOwnProperty } from "../helpers"
+import { isWired } from "../wires"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
@@ -93,18 +94,18 @@ export class ForceFloor extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorCompletelyJoined(other: Actor): void {
+	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
 	}
-	newActorOnTile = this.actorCompletelyJoined
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.WEAK
-		other.direction = this.direction
-	}
+	onMemberSlideBonked = this.actorOnTile
 	speedMod(): 2 {
 		return 2
+	}
+	pulse(): void {
+		this.direction += 2
+		this.direction %= 4
 	}
 }
 
@@ -116,20 +117,14 @@ export class ForceFloorRandom extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorCompletelyJoined(other: Actor): void {
+	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		crossLevelData.RFFDirection ??= 0
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
 	}
-	newActorOnTile = this.actorCompletelyJoined
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.WEAK
-		crossLevelData.RFFDirection ??= 0
-		other.direction = crossLevelData.RFFDirection++
-		crossLevelData.RFFDirection %= 4
-	}
+	onMemberSlideBonked = this.actorOnTile
 	speedMod(): 2 {
 		return 2
 	}
@@ -151,8 +146,7 @@ export class RecessedWall extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	// Funny how recessed walls have the exact same collision as monsters
-	blockTags = ["!playable"]
+	blockTags = ["cc1block", "normal-monster"]
 	actorLeft(): void {
 		this.destroy(this, null)
 		new Wall(this.level, this.tile.position)
@@ -219,10 +213,13 @@ export class Exit extends Actor {
 	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
+			this.level.selectedPlayable = this.level.playables[
+				(this.level.playables.indexOf(other) + 1) % this.level.playables.length
+			]
 			other.destroy(this, null)
 			this.level.gameState = GameState.PLAYING
 			this.level.playablesLeft--
-			this.level.playablesToSwap = true
+
 			if (this.level.playablesLeft <= 0) this.level.gameState = GameState.WON
 		}
 	}
@@ -232,6 +229,7 @@ actorDB["exit"] = Exit
 
 export class EChipGate extends Actor {
 	id = "echipGate"
+	tags = ["echip-gate"]
 	immuneTags = ["tnt"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
@@ -317,35 +315,56 @@ actorDB["thiefKey"] = ThiefKey
 
 export class Trap extends Actor {
 	id = "trap"
-	tags = ["machinery"]
 	// The amount of buttons current pressed and linked to this trap
-	openRequests = 0
+	openRequests = this.customData === "open" ? 1 : 0
+	isOpen = this.customData === "open"
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	exitBlocks(): boolean {
-		return this.openRequests === 0
+		return !this.isOpen
 	}
-	newActorOnTile(actor: Actor): void {
-		if (this.openRequests === 0) actor.slidingState = SlidingState.WEAK
+	actorOnTile(actor: Actor): void {
+		if (!this.isOpen && actor.layer === Layer.MOVABLE)
+			actor.slidingState = SlidingState.WEAK
 	}
-	actorCompletelyJoined = this.newActorOnTile
 	caresButtonColors = ["brown"]
 	buttonPressed(): void {
-		this.openRequests++
+		if (this.customData === "open") this.customData = ""
+		else this.openRequests++
+		this.isOpen = true
 		if (this.openRequests === 1)
-			for (const movable of this.tile[Layer.MOVABLE])
+			for (const movable of this.tile[Layer.MOVABLE]) {
 				if (movable._internalStep(movable.direction)) movable.cooldown--
+				movable.slidingState = SlidingState.NONE
+			}
 	}
 	buttonUnpressed(): void {
 		this.openRequests = Math.max(0, this.openRequests - 1)
-		if (this.openRequests === 0)
+		if (this.openRequests === 0) {
+			this.isOpen = false
 			for (const movable of this.tile[Layer.MOVABLE])
-				this.newActorOnTile(movable)
+				movable.slidingState = SlidingState.WEAK
+		}
 	}
+
+	listensWires = true
+	persistOnExitOnlyCollision = true
 }
 
 actorDB["trap"] = Trap
+
+onLevelDecisionTick.push(level => {
+	for (const tile of level.tiles())
+		for (const trap of tile[Layer.STATIONARY]) {
+			if (!(trap instanceof Trap)) continue
+			if (!trap.circuits) continue
+			trap.isOpen = !!trap.poweredWires
+			if (trap.isOpen)
+				for (const movable of trap.tile[Layer.MOVABLE])
+					movable.slidingState = SlidingState.NONE
+		}
+})
 
 // TODO CC1 clone machines, direction arrows on clone machine
 export class CloneMachine extends Actor {
@@ -354,10 +373,6 @@ export class CloneMachine extends Actor {
 	tags = ["machinery"]
 	// Always block boomer actors
 	blockTags = ["cc1block", "normal-monster", "playable"]
-	// Block actors when this already has a source
-	blocks(): boolean {
-		return this.tile.hasLayer(Layer.MOVABLE)
-	}
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -365,26 +380,40 @@ export class CloneMachine extends Actor {
 	exitBlocks(): boolean {
 		return !this.isCloning
 	}
-	newActorOnTile(actor: Actor): void {
+	actorOnTile(actor: Actor): void {
 		actor.slidingState = SlidingState.STRONG
 	}
-	actorCompletelyJoined = this.newActorOnTile
+
 	caresButtonColors = ["red"]
-	buttonPressed(): boolean {
+	clone(attemptToRotate: boolean): void {
 		this.isCloning = true
 		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
-			const direction = clonee.direction
-
-			if (clonee._internalStep(direction)) clonee.cooldown--
-			else continue
-			new actorDB[clonee.id](
+			if (clonee._internalStep(clonee.direction)) clonee.cooldown--
+			else {
+				if (attemptToRotate)
+					for (let i = 1; i <= 3; i++)
+						if (clonee._internalStep((clonee.direction + i) % 4)) {
+							clonee.cooldown--
+							break
+						}
+				if (clonee.cooldown === 0) continue
+			}
+			const newClone = new actorDB[clonee.id](
 				this.level,
 				this.tile.position,
 				clonee.customData
-			).direction = direction
+			)
+			newClone.direction = clonee.direction
+			newClone.slidingState = SlidingState.STRONG
 		}
 		this.isCloning = false
+	}
+	buttonPressed(): boolean {
+		this.clone(false)
 		return true
+	}
+	pulse(): void {
+		this.clone(true)
 	}
 }
 
@@ -396,12 +425,11 @@ export class Bomb extends Actor {
 	getLayer(): Layer {
 		return Layer.ITEM // Yes
 	}
-	actorCompletelyJoined(other: Actor): void {
+	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.destroy(this, null)
 		this.destroy(other)
 	}
-	newActorOnTile = this.actorCompletelyJoined
 }
 
 actorDB["bomb"] = Bomb
@@ -449,6 +477,18 @@ export class GreenBomb extends Actor {
 	caresButtonColors = ["green"]
 	buttonPressed(): void {
 		this.customData = this.customData === "bomb" ? "echip" : "bomb"
+		if (this.customData === "echip") this.tags.push("item")
+		else this.tags.splice(this.tags.indexOf("item"))
+	}
+	blocks(other: Actor): boolean {
+		return (
+			this.customData === "echip" &&
+			!matchTags(other.getCompleteTags("tags"), [
+				"can-pickup-items",
+				"can-stand-on-items",
+				"playable",
+			])
+		)
 	}
 }
 
@@ -475,7 +515,7 @@ actorDB["slime"] = Slime
 
 export class FlameJet extends Actor {
 	id = "flameJet"
-	tags = this.customData === "on" ? ["fire"] : []
+	tags = this.customData === "on" ? ["fire", "jet"] : ["jet"]
 	immuneTags = ["meltable-block"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
@@ -486,7 +526,7 @@ export class FlameJet extends Actor {
 		else if (this.customData === "off" && this.tags.includes("fire"))
 			this.tags.splice(this.tags.indexOf("fire"))
 	}
-	continuousActorCompletelyJoined(other: Actor): void {
+	actorOnTile(other: Actor): void {
 		if (this.customData === "on" && other.layer === Layer.MOVABLE)
 			other.destroy(this)
 	}
@@ -496,6 +536,7 @@ export class FlameJet extends Actor {
 		this.updateTags()
 	}
 	buttonUnpressed = this.buttonPressed
+	pulse = this.buttonPressed
 }
 
 actorDB["flameJet"] = FlameJet
@@ -535,13 +576,19 @@ export class Transmogrifier extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
+	wired = false
+	isActive(): boolean {
+		return !this.wired || !!this.poweredWires
+	}
 	actorCompletelyJoined(other: Actor): void {
-		if (
-			!hasOwnProperty(other, "transmogrifierTarget") ||
-			typeof other.transmogrifierTarget !== "string"
-		)
-			return
-		other.replaceWith(actorDB[other.transmogrifierTarget])
+		if (!this.isActive()) return
+		let transmogValue: string | undefined
+		if (hasOwnProperty(other, "transmogrifierTarget"))
+			if (typeof other.transmogrifierTarget === "string")
+				transmogValue = other.transmogrifierTarget
+			else if (typeof other.transmogrifierTarget === "function")
+				transmogValue = other.transmogrifierTarget()
+		if (transmogValue) other.replaceWith(actorDB[transmogValue])
 	}
 }
 
@@ -581,8 +628,9 @@ export class Railroad extends Actor {
 		other: Actor,
 		direction: Direction
 	): Direction | null {
-		if (other.getCompleteTags("tags").includes("ignores-railroad-redirect"))
-			return direction
+		const otherTags = other.getCompleteTags("tags")
+		if (otherTags.includes("ignores-railroad-redirect")) return direction
+
 		const directionString =
 			directionStrings[(this.lastEnteredDirection + 2) % 4]
 		const legalRedirects = this.legalRedirects
@@ -590,6 +638,8 @@ export class Railroad extends Actor {
 			.map(val =>
 				directionStrings.indexOf(val[1 - val.indexOf(directionString)])
 			)
+		if (otherTags.includes("reverse-on-railroad"))
+			legalRedirects.push((this.lastEnteredDirection + 2) % 4)
 		// Search for a valid (relative) direction in this order: Forward, right, left, backward
 		for (const offset of [0, 1, -1, 2])
 			if (legalRedirects.includes((direction + offset + 4) % 4))
@@ -598,7 +648,7 @@ export class Railroad extends Actor {
 		return null
 	}
 	actorLeft(other: Actor): void {
-		if (!this.isSwitch) return
+		if (!this.isSwitch || this.wired) return
 		const enterDirection =
 				directionStrings[(this.lastEnteredDirection + 2) % 4],
 			// Note that it doesn't have to make a move which makes sense, you just have to enter and exit in directions which are valid in a vacuum
@@ -619,6 +669,18 @@ export class Railroad extends Actor {
 					break
 				}
 		}
+	}
+	pulse(): void {
+		const exActiveTrack = this.allRRRedirects.indexOf(this.activeTrack)
+		for (
+			let redirectID = (exActiveTrack + 1) % 6;
+			redirectID !== exActiveTrack;
+			redirectID = (redirectID + 1) % 6
+		)
+			if (this.baseRedirects.includes(this.allRRRedirects[redirectID])) {
+				this.activeTrack = this.allRRRedirects[redirectID]
+				break
+			}
 	}
 }
 

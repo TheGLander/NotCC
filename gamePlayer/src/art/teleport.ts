@@ -1,10 +1,8 @@
 import { artDB } from "../const"
-import { genericAnimatedArt } from "../visuals"
+import { genericAnimatedArt, genericWiredTerrainArt } from "../visuals"
 
-for (const color of ["red", "blue", "yellow", "green"])
-	artDB[
-		`teleport${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-	] = genericAnimatedArt(
-		`teleport${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`,
-		4
-	)
+artDB["teleportBlue"] = genericWiredTerrainArt("teleportBlue", "default", 4)
+artDB["teleportRed"] = genericWiredTerrainArt("teleportRed", "default", 4)
+
+artDB["teleportGreen"] = genericAnimatedArt("teleportGreen", 4)
+artDB["teleportYellow"] = genericAnimatedArt("teleportYellow", 4)

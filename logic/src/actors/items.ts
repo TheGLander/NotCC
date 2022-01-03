@@ -1,10 +1,10 @@
 import { Layer } from "../tile"
-import { Actor, matchTags } from "../actor"
+import { Actor, matchTags, SlidingState } from "../actor"
 import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
 import { Playable } from "./playables"
 import { LitTNT, RollingBowlingBall } from "./monsters"
-import { Animation } from "./animation"
+import { Explosion } from "./animation"
 
 export const enum ItemDestination {
 	NONE,
@@ -29,6 +29,9 @@ export abstract class Item extends Actor {
 			])
 		)
 	}
+	ignores(): boolean {
+		return this.tile.hasLayer(Layer.ITEM_SUFFIX)
+	}
 	getLayer(): Layer {
 		return Layer.ITEM
 	}
@@ -45,6 +48,7 @@ export abstract class Item extends Actor {
 				if (!other.inventory.keys[this.id])
 					other.inventory.keys[this.id] = { amount: 0, type: this as Key }
 				other.inventory.keys[this.id].amount++
+				other.inventory.keys[this.id].amount %= 256
 				break
 			case ItemDestination.ITEM:
 				other.inventory.items.unshift(this)
@@ -126,8 +130,9 @@ keyNameList.push("keyBlue")
 
 export class KeyYellow extends Key {
 	id = "keyYellow"
-	keyUsed(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("can-reuse-key-yellow")
+	keyUsed(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("can-reuse-key-yellow"))
+			other.inventory.keys[this.id].amount++
 	}
 }
 
@@ -149,7 +154,7 @@ keyNameList.push("keyGreen")
 
 export class BootWater extends Item {
 	id = "bootWater"
-	carrierTags = { ignoreTags: ["water"] }
+	carrierTags = { ignoreTags: ["water"], collisionIgnoreTags: ["water"] }
 	destination = ItemDestination.ITEM
 }
 
@@ -167,6 +172,14 @@ export class BootIce extends Item {
 	id = "bootIce"
 	carrierTags = { ignoreTags: ["ice"] }
 	destination = ItemDestination.ITEM
+	/* onPickup(other: Actor): void {
+		// Indeed, a hack, but I really don't want to ever calculate the sliding state automatically
+		if (
+			other.getCompleteTags("ignoreTags").includes("ice") &&
+			!other.getCompleteTags("ignoreTags", this).includes("ice")
+		)
+			other.slidingState = SlidingState.NONE
+	} */
 }
 
 actorDB["bootIce"] = BootIce
@@ -258,10 +271,10 @@ export class BowlingBall extends Item {
 	onDrop(dropper: Actor): void {
 		dropper.tile.removeActors(dropper)
 		const rollingGuy = this.replaceWith(RollingBowlingBall)
-		rollingGuy._internalStep(dropper.direction)
+		if (rollingGuy._internalStep(dropper.direction)) rollingGuy.cooldown--
 		// Hello animation from rolling bowling ball movement failure, please die so my dropper can go back
 		for (const movable of dropper.tile[Layer.MOVABLE])
-			if (movable instanceof Animation) movable.destroy(null, null)
+			if (movable instanceof Explosion) movable.destroy(null, null)
 		dropper.tile.addActors(dropper)
 	}
 }

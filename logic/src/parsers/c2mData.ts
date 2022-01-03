@@ -66,7 +66,7 @@ const cc2Tiles = [
 	[["bootWater"], null],
 	[["thiefTool"]],
 	[["bomb"], null],
-	[["trap"]],
+	[["trap", 0, "open"]],
 	[["trap"]],
 	[["cloneMachine", 0, "cc1"]],
 	[["cloneMachine"]],
@@ -115,8 +115,8 @@ const cc2Tiles = [
 	[["railroadSign"], null],
 	[["customWall", 0, null]],
 	[["letterTile", 0, null]],
-	[["outlineContinuos", 0, "on"]],
-	[["outlineContinuos", 0, "off"]],
+	[["holdWall", 0, "off"]],
+	[["holdWall", 0, "on"]],
 	[["unknown"]],
 	[["unknown"]],
 	[["modifier8", 0, null]],
@@ -154,8 +154,6 @@ export type cc2TileNames =
 	| Exclude<typeof cc2Tiles[number][0], undefined>[0]
 	// Indirect tile additions
 	| "canopy"
-	| "wire"
-	| "wireTunnel"
 	| "andGate"
 	| "orGate"
 	| "xorGate"
@@ -165,6 +163,8 @@ export type cc2TileNames =
 	| "latchGateMirror"
 	| "combinationTile"
 	| "voodooTile"
-export type cc2Tile = [cc2TileNames, Direction?, string?]
+	// Yep, used for floor wires
+	| null
+export type cc2Tile = [cc2TileNames, Direction?, string?, number?]
 
 export default cc2Tiles as unknown as cc2Tile[][]

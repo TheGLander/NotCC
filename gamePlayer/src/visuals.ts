@@ -1,16 +1,28 @@
 import { Direction } from "./logic/helpers"
-import { LevelState } from "./logic/level"
+import { LevelState, crossLevelData } from "./logic/level"
 import ogData from "./cc2ImageFormat"
 import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
 import { keyNameList } from "./logic/const"
 import { Actor } from "./logic/actor"
 import { artDB } from "./const"
 import { Layer } from "./logic"
+import { Wirable, WireOverlapMode, Wires } from "./logic/wires"
+import Tile from "./logic/tile"
 
 function getArt(actor: Actor): ActorArt[] {
 	let art = artDB[actor.id]
 	if (!art) return [{ actorName: "unknown" }]
 	if (typeof art === "function") art = art(actor)
+	if (art instanceof Array)
+		return art.filter<ActorArt>((art): art is ActorArt => !!art)
+	else return [art]
+}
+
+function getFloorArt(tile: Tile): ActorArt[] {
+	let art = artDB["floor"]
+	if (!art) return [{ actorName: "unknown" }]
+	// Hack, as the floor art code takes any wirable, not onlt actors
+	if (typeof art === "function") art = art(tile as Wirable as Actor)
 	if (art instanceof Array)
 		return art.filter<ActorArt>((art): art is ActorArt => !!art)
 	else return [art]
@@ -282,19 +294,54 @@ export default class Renderer {
 				cameraPos[1] * tileSize,
 			]
 		}
-		/*renderer.drawImage(
-			this.backgroundFiller.texture,
-			this.backgroundFiller.width,
-			this.backgroundFiller.height,
-			0,
-			0,
-			this.backgroundFiller.width,
-			this.backgroundFiller.height,
-			renderer.cameraPosition[0] - (renderer.cameraPosition[0] % tileSize),
-			renderer.cameraPosition[1] - (renderer.cameraPosition[1] % tileSize),
-			this.backgroundFiller.width,
-			this.backgroundFiller.height
-		)*/
+		const drawArt = (
+			arr: ActorArt[],
+			x: number,
+			y: number,
+			colorMult?: [number, number, number, number],
+			desaturate: boolean = false
+		) => {
+			for (const art of arr) {
+				if (!art) continue
+				if (art.actorName === null || art.animation === null) continue
+				const frame =
+					data.actorMapping[art.actorName]?.[art.animation ?? "default"]?.[
+						art.frame ?? 0
+					] ?? data.actorMapping.floor.default[0]
+				const croppedSize = art.cropSize ?? [1, 1]
+				renderer.drawImage(
+					this.renderTexture,
+					frame[0] * tileSize + (art.sourceOffset?.[0] ?? 0) * tileSize,
+					frame[1] * tileSize + (art.sourceOffset?.[1] ?? 0) * tileSize,
+					croppedSize[0] * tileSize,
+					croppedSize[1] * tileSize,
+					(x + (art.imageOffset?.[0] ?? 0)) * tileSize,
+					(y + (art.imageOffset?.[1] ?? 0)) * tileSize,
+					croppedSize[0] * tileSize,
+					croppedSize[1] * tileSize,
+					colorMult,
+					desaturate
+				)
+			}
+		}
+		const drawActor = (
+			actor: Actor,
+			x: number,
+			y: number,
+			colorMult?: [number, number, number, number],
+			desaturate?: boolean
+		) => {
+			const movedPos = [x, y]
+			if (actor.cooldown && actor.currentMoveSpeed) {
+				const mults = convertDirection(actor.direction)
+				const offsetMult =
+					1 -
+					(actor.currentMoveSpeed - actor.cooldown + 1) / actor.currentMoveSpeed
+				movedPos[0] -= offsetMult * mults[0]
+				movedPos[1] -= offsetMult * mults[1]
+			}
+			drawArt(getArt(actor), movedPos[0], movedPos[1], colorMult, desaturate)
+		}
 		for (let layer = Layer.STATIONARY; layer <= Layer.SPECIAL; layer++)
 			for (
 				let x = Math.max(0, Math.floor(cameraPos[0] - 1));
@@ -312,55 +359,14 @@ export default class Renderer {
 						layer === Layer.STATIONARY &&
 						!this.level.field[x][y].hasLayer(Layer.STATIONARY)
 					)
-						renderer.drawImage(
-							this.renderTexture.texture,
-							this.renderTexture.width,
-							this.renderTexture.height,
-							data.actorMapping.floor.default[0][0] * tileSize,
-							data.actorMapping.floor.default[0][1] * tileSize,
-							tileSize,
-							tileSize,
-							x * tileSize,
-							y * tileSize,
-							tileSize,
-							tileSize
-						)
+						drawArt(getFloorArt(this.level.field[x][y]), x, y)
 					else
-						for (const actor of this.level.field[x][y][layer]) {
-							const movedPos = [x, y]
-							if (actor.cooldown && actor.currentMoveSpeed) {
-								const mults = convertDirection(actor.direction)
-								const offsetMult =
-									1 -
-									(actor.currentMoveSpeed - actor.cooldown + 1) /
-										actor.currentMoveSpeed
-								movedPos[0] -= offsetMult * mults[0]
-								movedPos[1] -= offsetMult * mults[1]
-							}
-							for (const art of getArt(actor)) {
-								if (!art) continue
-								if (art.actorName === null || art.animation === null) continue
-								const frame =
-									data.actorMapping[art.actorName]?.[
-										art.animation ?? "default"
-									]?.[art.frame ?? 0] ?? data.actorMapping.floor.default[0]
-								const croppedSize = art.cropSize ?? [1, 1]
-								renderer.drawImage(
-									this.renderTexture.texture,
-									this.renderTexture.width,
-									this.renderTexture.height,
-									frame[0] * tileSize + (art.sourceOffset?.[0] ?? 0) * tileSize,
-									frame[1] * tileSize + (art.sourceOffset?.[1] ?? 0) * tileSize,
-									croppedSize[0] * tileSize,
-									croppedSize[1] * tileSize,
-									(movedPos[0] + (art.imageOffset?.[0] ?? 0)) * tileSize,
-									(movedPos[1] + (art.imageOffset?.[1] ?? 0)) * tileSize,
-									croppedSize[0] * tileSize,
-									croppedSize[1] * tileSize
-								)
-							}
-						}
+						for (const actor of this.level.field[x][y][layer])
+							drawActor(actor, x, y)
 				}
+		if (crossLevelData.despawnedActors)
+			for (const actor of crossLevelData.despawnedActors)
+				drawActor(actor, actor.tile.x, actor.tile.y, [1, 1, 1, 0.75], true)
 		this.updateItems()
 	}
 	destroy(): void {
@@ -420,3 +426,102 @@ export const genericStretchyArt =
 					imageOffset: [actor.direction < 2 ? -offset : offset - 1, 0],
 			  }
 	}
+
+const WIRE_WIDTH = 1 / 32
+
+export const wireBaseArt = (wires: Wires, poweredWires: Wires) => {
+	const toDraw: ActorArt[] = [] // Just draw the four wire corner things
+	// Also, don't do it in a loop, don't want the JITc to unroll the loops weirdly
+	// Up
+	if (wires & 0b0001)
+		toDraw.push({
+			actorName: "wire",
+			animation: poweredWires & 0b0001 ? "true" : "false",
+			cropSize: [2 * WIRE_WIDTH, 0.5 + WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0],
+		})
+	// Right
+	if (wires & 0b0010)
+		toDraw.push({
+			actorName: "wire",
+			animation: poweredWires & 0b0010 ? "true" : "false",
+			cropSize: [0.5 + WIRE_WIDTH, 2 * WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+		})
+	// Down
+	if (wires & 0b0100)
+		toDraw.push({
+			actorName: "wire",
+			animation: poweredWires & 0b0100 ? "true" : "false",
+			cropSize: [2 * WIRE_WIDTH, 0.5 + WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+		})
+	// Left
+	if (wires & 0b1000)
+		toDraw.push({
+			actorName: "wire",
+			animation: poweredWires & 0b1000 ? "true" : "false",
+			cropSize: [0.5 + WIRE_WIDTH, 2 * WIRE_WIDTH],
+			imageOffset: [0, 0.5 - WIRE_WIDTH],
+		})
+	return toDraw
+}
+
+export const wireTunnelArt = (wireTunnels: Wires): ActorArt[] => {
+	const toDraw: ActorArt[] = []
+	if (wireTunnels & 0b0001)
+		toDraw.push({
+			actorName: "wireTunnel",
+			animation: "0",
+			cropSize: [1, 0.25],
+		})
+	if (wireTunnels & 0b0010)
+		toDraw.push({
+			actorName: "wireTunnel",
+			animation: "1",
+			cropSize: [0.25, 1],
+			imageOffset: [0.75, 0],
+		})
+	if (wireTunnels & 0b0100)
+		toDraw.push({
+			actorName: "wireTunnel",
+			animation: "2",
+			cropSize: [1, 0.25],
+			imageOffset: [0, 0.75],
+		})
+	if (wireTunnels & 0b1000)
+		toDraw.push({
+			actorName: "wireTunnel",
+			animation: "3",
+			cropSize: [0.25, 1],
+		})
+	return toDraw
+}
+
+export const wiredTerrainArt = (name: string) => (actor: Wirable) =>
+	[
+		{ actorName: name, animation: "wireBase" },
+		...wireBaseArt(actor.wires, actor.poweredWires),
+		{
+			actorName: name,
+			animation:
+				actor.wires === 0b1111 &&
+				actor.wireOverlapMode === WireOverlapMode.CROSS
+					? "wireOverlapCross"
+					: "wireOverlap",
+		},
+		...wireTunnelArt(actor.wireTunnels),
+	]
+
+export const genericWiredTerrainArt =
+	(name: string, animName?: string, animLength?: number) => (actor: Actor) =>
+		[
+			{ actorName: "floor" },
+			...wireBaseArt(actor.wires, actor.poweredWires),
+			,
+			{
+				actorName: name,
+				animation: animName,
+				frame: animLength && actor.level.currentTick % animLength,
+			},
+		]

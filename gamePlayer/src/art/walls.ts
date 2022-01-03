@@ -2,10 +2,11 @@ import { artDB, setArtForActor } from "../const"
 import { Direction } from "../logic/helpers"
 import { InvisibleWall } from "../logic/actors/walls"
 import { Layer } from "../logic/tile"
+import { wiredTerrainArt } from "../visuals"
 
 artDB["wall"] = { actorName: "wall" }
 
-artDB["steelWall"] = { actorName: "steelWall" }
+artDB["steelWall"] = wiredTerrainArt("steelWall")
 
 artDB["customWall"] = actor => ({
 	actorName: "customWall",
@@ -71,12 +72,21 @@ artDB["toggleWall"] = actor => [
 	actor.customData === "on" && { actorName: "outlineWall" },
 ]
 
-artDB["swivelRotatingPart"] = actor => ({
-	actorName: "swivel",
-	animation: ["ur", "dr", "dl", "ul"][actor.direction],
-})
+artDB["holdWall"] = actor => [
+	{
+		actorName: "outline",
+		animation: "purple",
+	},
+	actor.customData === "on" && { actorName: "outlineWall" },
+]
 
-artDB["swivel"] = { actorName: "swivel", animation: "floor" }
+artDB["swivel"] = actor => [
+	{ actorName: "swivel", animation: "floor" },
+	{
+		actorName: "swivel",
+		animation: ["ur", "dr", "dl", "ul"][actor.direction],
+	},
+]
 
 artDB["greenWall"] = actor => ({
 	actorName: "greenWall",

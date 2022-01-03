@@ -108,7 +108,12 @@ const cc2ImageFormat: CC2ImageFormat = {
 			ul: [14, 1],
 		},
 		cloneMachine: [15, 1],
-		floor: { default: [0, 2], framed: [2, 2] },
+		floor: {
+			default: [0, 2],
+			framed: [2, 2],
+			wireOverlap: [8, 26],
+			wireOverlapCross: [10, 26],
+		},
 		wall: [1, 2],
 		thief: { tool: [3, 2], key: [15, 21] },
 		echipGate: [4, 2],
@@ -215,7 +220,11 @@ const cc2ImageFormat: CC2ImageFormat = {
 			[12, 9],
 			[15, 9],
 		],
-		steelWall: [15, 10],
+		steelWall: {
+			wireBase: [15, 10],
+			wireOverlap: [9, 26],
+			wireOverlapCross: [11, 26],
+		},
 		teethBlue: {
 			vertical: [
 				[0, 17],
@@ -308,10 +317,13 @@ const cc2ImageFormat: CC2ImageFormat = {
 			],
 		},
 		secretEye: [11, 18],
-		teleportRed: [
-			[4, 20],
-			[7, 20],
-		],
+		teleportRed: {
+			default: [
+				[4, 20],
+				[7, 20],
+			],
+			off: [4, 20],
+		},
 		slime: [
 			[8, 20],
 			[15, 20],
@@ -341,7 +353,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			green: [9, 6],
 			red: [10, 6],
 			brown: [11, 6],
-			pink: [12, 6],
+			purple: [12, 6],
 			black: [13, 6],
 			orange: [14, 6],
 			yellow: [15, 6],
@@ -605,6 +617,14 @@ const cc2ImageFormat: CC2ImageFormat = {
 			],
 		},
 		ghost: { up: [12, 18], right: [13, 18], down: [14, 18], left: [15, 18] },
+		toggleSwitch: { wireBase: [14, 21], off: [12, 21], on: [13, 21] },
+		wire: { true: [15, 26], false: [13, 26] },
+		wireTunnel: {
+			0: [14, 11],
+			1: [14.75, 11],
+			2: [14, 11.75],
+			3: [14, 11],
+		},
 	},
 }
 

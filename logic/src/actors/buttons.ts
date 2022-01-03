@@ -3,6 +3,7 @@ import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { LevelState } from "../level"
 import Tile from "../tile"
+import { WireOverlapMode } from "../wires"
 
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
@@ -151,3 +152,68 @@ export function diamondConnectedButtonFactory(color: string) {
 }
 
 actorDB["buttonOrange"] = diamondConnectedButtonFactory("orange")
+
+export class ButtonPurple extends Actor {
+	id = "buttonPurple"
+	tags = ["button"]
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	wireOverlapMode = WireOverlapMode.NONE
+	updateWires() {
+		for (const movable of this.tile[Layer.MOVABLE]) {
+			if (movable.cooldown <= 0) {
+				this.poweringWires = 0b1111
+				return
+			}
+		}
+		this.poweringWires = 0
+	}
+	providesPower = true
+	requiresFullConnect = true
+}
+
+actorDB["buttonPurple"] = ButtonPurple
+
+export class ButtonBlack extends Actor {
+	id = "buttonBlack"
+	tags = ["button"]
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	wireOverlapMode = WireOverlapMode.CROSS
+	processOutput() {
+		for (const movable of this.tile[Layer.MOVABLE]) {
+			if (movable.cooldown <= 0) {
+				this.poweringWires = 0
+				return
+			}
+		}
+		this.poweringWires = 0b1111
+	}
+	providesPower = true
+	requiresFullConnect = true
+}
+
+actorDB["buttonBlack"] = ButtonBlack
+
+export class ToggleSwitch extends Actor {
+	id = "toggleSwitch"
+	tags = ["button"]
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+
+	actorCompletelyJoined(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
+	}
+	wireOverlapMode = WireOverlapMode.NONE
+	// This is no error, this is how CC2 does it, too
+	processOutput() {
+		this.poweringWires = this.customData === "on" ? 0b1111 : 0
+	}
+	providesPower = true
+	requiresFullConnect = true
+}
+
+actorDB["toggleSwitch"] = ToggleSwitch

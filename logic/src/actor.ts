@@ -4,6 +4,7 @@ import { Direction } from "./helpers"
 import { Layer } from "./tile"
 import Tile from "./tile"
 import { Item, Key } from "./actors/items"
+import { CircuitCity, isWired, Wirable, WireOverlapMode, Wires } from "./wires"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -45,7 +46,7 @@ export interface Inventory {
 	itemMax: number
 }
 
-export abstract class Actor {
+export abstract class Actor implements Wirable {
 	moveDecision = Decision.NONE
 	currentMoveSpeed: number | null = null
 	oldTile: Tile | null = null
@@ -90,7 +91,7 @@ export abstract class Actor {
 	immuneTags?: string[]
 
 	nonIgnoredSlideBonkTags?: string[]
-	getCompleteTags<T extends keyof this>(id: T): string[] {
+	getCompleteTags<T extends keyof this>(id: T, toIgnore?: Actor): string[] {
 		return [
 			...((this[id] as unknown as string[])
 				? (this[id] as unknown as string[])
@@ -98,7 +99,9 @@ export abstract class Actor {
 			...this.inventory.items.reduce(
 				(acc, val) => [
 					...acc, // @ts-expect-error Typescript dumb
-					...(val.carrierTags?.[id] ? val.carrierTags[id] : []),
+					...(val.carrierTags?.[id] && val !== toIgnore // @ts-expect-error Typescript dumb
+						? val.carrierTags[id]
+						: []),
 				],
 				new Array<string>()
 			),
@@ -155,10 +158,6 @@ export abstract class Actor {
 		level.actors.unshift(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors(this)
-		if (level.levelStarted)
-			for (const actor of this.tile.allActors)
-				if (actor.newActorOnTile && !actor._internalIgnores(this))
-					actor.newActorOnTile(this)
 		this.isDeciding = !!(
 			this.layer === Layer.MOVABLE ||
 			this.onEachDecision ||
@@ -166,13 +165,16 @@ export abstract class Actor {
 		)
 		if (this.isDeciding) level.decidingActors.unshift(this)
 		this.createdN = this.level.createdN++
+		if (this.level.levelStarted) {
+			this.onCreation?.()
+			this.wired = isWired(this)
+		}
 	}
 	/**
 	 * Decides the movements the actor will attempt to do
 	 * Must return an array of absolute directions
 	 */
 	decideMovement?(): Direction[]
-	onBlocked?(blocker?: Actor): void
 	onEachDecision?(forcedOnly: boolean): void
 	_internalDecide(forcedOnly = false): void {
 		this.moveDecision = Decision.NONE
@@ -191,31 +193,32 @@ export abstract class Actor {
 		if (forcedOnly) return
 		const directions = this.decideMovement?.()
 
-		if (!directions) return
+		if (!directions || directions.length === 0) return
 
 		for (const direction of directions)
-			if (this.level.checkCollision(this, direction)) {
+			if (this.level.checkCollision(this, direction, false)) {
 				// Yeah, we can go here
 				this.moveDecision = direction + 1
 				return
 			}
 
 		// Force last decision if all other fail
-		if (directions.length > 0)
-			this.moveDecision = directions[directions.length - 1] + 1
+
+		this.moveDecision = directions[directions.length - 1] + 1
 	}
 
 	_internalStep(direction: Direction): boolean {
 		if (this.cooldown || !this.moveSpeed) return false
 		this.direction = direction
-		const canMove = this.level.checkCollision(this, direction, true)
+		const canMove = this.level.checkCollision(this, direction)
 		this.direction = this.level.resolvedCollisionCheckDirection
 		// Welp, something stole our spot, too bad
 		if (!canMove) return false
 		if (!this.isDeciding) this.level.decidingActors.push(this)
 		this.isDeciding = true
 		const newTile = this.tile.getNeighbor(
-			this.level.resolvedCollisionCheckDirection
+			this.level.resolvedCollisionCheckDirection,
+			false
 		)
 		// This is purely a defensive programming thing, shouldn't happen normally (checkCollision should check for going OOB)
 		if (!newTile) return false
@@ -228,6 +231,7 @@ export abstract class Actor {
 		return true
 	}
 	_internalMove(): void {
+		if (this.cooldown > 0) return
 		// If the thing has a decision queued up, do it forcefully
 		// (Currently only used for blocks pushed while sliding)
 		if (this.pendingDecision) {
@@ -235,7 +239,7 @@ export abstract class Actor {
 			this.pendingDecision = Decision.NONE
 		}
 
-		if (this.cooldown > 0 || !this.moveDecision) return
+		if (!this.moveDecision) return
 		const ogDirection = this.moveDecision - 1
 		const bonked = !this._internalStep(ogDirection)
 		if (this.exists && bonked && this.slidingState) {
@@ -271,10 +275,6 @@ export abstract class Actor {
 	 * Called when this actor stops walking to a new tile
 	 */
 	newTileCompletelyJoined?(): void
-	/**
-	 * Called when a new actor was born on the same tile as this
-	 */
-	newActorOnTile?(actor: Actor): void
 
 	shouldDie?(killer: Actor): boolean
 
@@ -291,46 +291,51 @@ export abstract class Actor {
 
 	_internalBlocks(other: Actor, moveDirection: Direction): boolean {
 		return (
-			!matchTags(
-				this.getCompleteTags("tags"),
-				other.getCompleteTags("collisionIgnoreTags")
-			) &&
-			!other.collisionIgnores?.(this, moveDirection) &&
-			(this.blocks?.(other, moveDirection) ||
-				other.blockedBy?.(this, moveDirection) ||
-				matchTags(
-					other.getCompleteTags("tags"),
-					this.getCompleteTags("blockTags")
-				) ||
-				matchTags(
+			// A hack for teleports, but it's not that dumb of a limitation, so maybe it's fine?
+			other !== this &&
+			// FIXME A hack for blocks, really shouldn't be a forced limitation
+			(!!this.cooldown ||
+				(!matchTags(
 					this.getCompleteTags("tags"),
-					other.getCompleteTags("blockedByTags")
-				))
+					other.getCompleteTags("collisionIgnoreTags")
+				) &&
+					!other.collisionIgnores?.(this, moveDirection) &&
+					(this.blocks?.(other, moveDirection) ||
+						other.blockedBy?.(this, moveDirection) ||
+						matchTags(
+							other.getCompleteTags("tags"),
+							this.getCompleteTags("blockTags")
+						) ||
+						matchTags(
+							this.getCompleteTags("tags"),
+							other.getCompleteTags("blockedByTags")
+						))))
 		)
 	}
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
 			this.cooldown--
-			for (const actor of [...this.tile.allActorsReverse])
-				if (
-					actor !== this &&
-					actor.actorCompletelyJoined &&
-					!this._internalIgnores(actor)
-				) {
+			this.slidingState = SlidingState.NONE
+			for (const actor of [...this.tile.allActorsReverse]) {
+				if (actor === this) continue
+				const notIgnores = !this._internalIgnores(actor)
+
+				if (!this.exists) return
+				if (notIgnores && actor.actorCompletelyJoined)
 					actor.actorCompletelyJoined(this)
-					if (!this.exists) return
-				}
+				if (notIgnores && actor.actorOnTile) actor.actorOnTile(this)
+				if (!this.exists) return
+			}
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
-		if (!this.cooldown) {
+		else
 			for (const actor of [...this.tile.allActors])
 				if (
 					actor !== this &&
-					actor.continuousActorCompletelyJoined &&
+					actor.actorOnTile &&
 					!this._internalIgnores(actor)
 				)
-					actor.continuousActorCompletelyJoined(this)
-		}
+					actor.actorOnTile(this)
 	}
 	/**
 	 * Updates tile states and calls hooks
@@ -339,7 +344,7 @@ export abstract class Actor {
 		if (this.despawned) {
 			// We moved! That means this is no longer despawned and we are no longer omni-present
 			this.despawned = false
-			if (crossLevelData.despawnedActors?.includes(this))
+			if (crossLevelData.despawnedActors.includes(this))
 				crossLevelData.despawnedActors.splice(
 					crossLevelData.despawnedActors.indexOf(this),
 					1
@@ -352,7 +357,7 @@ export abstract class Actor {
 				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
 
 		this.tile.addActors(this)
-		this.slidingState = SlidingState.NONE
+
 		for (const actor of [...this.tile.allActorsReverse])
 			if (actor !== this && !this._internalIgnores(actor))
 				actor.actorJoined?.(this)
@@ -370,6 +375,13 @@ export abstract class Actor {
 				this.level.decidingActors.indexOf(this),
 				1
 			)
+		if (this.despawned) {
+			if (crossLevelData.despawnedActors.includes(this))
+				crossLevelData.despawnedActors.splice(
+					crossLevelData.despawnedActors.indexOf(this),
+					1
+				)
+		}
 		this.tile.removeActors(this)
 		this.exists = false
 		if (
@@ -398,15 +410,16 @@ export abstract class Actor {
 	 */
 	bumpedActor?(other: Actor, bumpDirection: Direction): void
 	_internalCanPush(other: Actor, direction: Direction): boolean {
-		return (
-			!other.cooldown &&
-			!this._internalIgnores(other) &&
-			matchTags(
+		if (other.pendingDecision) return false
+		if (
+			!matchTags(
 				other.getCompleteTags("tags"),
 				this.getCompleteTags("pushTags")
-			) &&
-			(other.canBePushed?.(this, direction) ?? true)
+			) ||
+			!(other.canBePushed?.(this, direction) ?? true)
 		)
+			return false
+		return this.level.checkCollision(other, direction, true, true)
 	}
 	/**
 	 * Called when a new actor enters the tile, must return the number to divide the speed by
@@ -452,7 +465,7 @@ export abstract class Actor {
 	/**
 	 * Called each subtick if anything is on this (called at cooldown time (move time))
 	 */
-	continuousActorCompletelyJoined?(other: Actor): void
+	actorOnTile?(other: Actor): void
 	replaceWith(other: typeof actorDB[string]): Actor {
 		this.destroy(null, null)
 		const newActor = new other(this.level, this.tile.position, this.customData)
@@ -473,4 +486,30 @@ export abstract class Actor {
 		direction: Direction
 	): Direction | null
 	bumpedEdge?(fromTile: Tile, direction: Direction): void
+	wires: number = 0
+	/**
+	 * The currently powered wires, either by it's own abilities of via neighbors
+	 */
+	poweredWires: number = 0
+	/**
+	 * The wires this actor is powering itself
+	 */
+	poweringWires: number = 0
+	wireTunnels: number = 0
+	circuits?: [CircuitCity?, CircuitCity?, CircuitCity?, CircuitCity?]
+	wireOverlapMode: WireOverlapMode = WireOverlapMode.NONE
+	/**
+	 * Called at the start of wire phase, usually used to update powered wires.
+	 */
+	updateWires?(): void
+	pulse?(): void
+	unpulse?(): void
+	listensWires?: boolean
+	onCreation?(): void
+	providesPower?: boolean
+	wired: boolean = false
+	/**
+	 * If true, this will be actually checked on exit-only collision checks
+	 */
+	persistOnExitOnlyCollision?: boolean
 }

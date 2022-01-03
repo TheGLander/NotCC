@@ -13,6 +13,7 @@ import {
 import { actorDB } from "./const"
 import { hasSteps } from "./encoder"
 import { iterableIndexOf } from "./iterableHelpers"
+import { buildCircuits, CircuitCity, isWired, Wirable, wireTick } from "./wires"
 
 export enum GameState {
 	PLAYING,
@@ -34,14 +35,13 @@ export type InputType = keyof KeyInputs
 
 // TODO Blue teleport gate madness
 export interface CrossLevelDataInterface {
-	despawnedActors?: Actor[]
+	despawnedActors: Actor[]
 }
 
 export const crossLevelData: CrossLevelDataInterface = { despawnedActors: [] }
 
 export const onLevelStart: ((level: LevelState) => void)[] = [
 	level => {
-		if (!crossLevelData.despawnedActors) return
 		let undefinedBehaviorWarningGiven = false
 		for (const actor of crossLevelData.despawnedActors) {
 			if (
@@ -179,13 +179,12 @@ export class LevelState {
 	tick(): void {
 		if (!this.levelStarted) {
 			this.levelStarted = true
-			for (const actor of Array.from(this.actors)) actor.levelStarted?.()
+			buildCircuits.apply(this)
+			for (const actor of Array.from(this.actors)) {
+				actor.levelStarted?.()
+				actor.onCreation?.()
+			}
 			onLevelStart.forEach(val => val(this))
-			for (const actor of Array.from(this.actors))
-				if (actor.newActorOnTile)
-					for (const actorNeigh of actor.tile.allActors)
-						if (actorNeigh !== actor && !actor._internalIgnores(actorNeigh))
-							actor.newActorOnTile(actorNeigh)
 		}
 		if (this.solutionSubticksLeft >= 0 && this.currentSolution) {
 			let step = this.currentSolution.steps[0][this.solutionStep]
@@ -199,6 +198,7 @@ export class LevelState {
 		}
 		this.decisionTick(this.subtick !== 2)
 		this.moveTick()
+		wireTick.apply(this)
 		//	if (this.playables.length === 0) this.lost = true
 		if (this.subtick === 2) {
 			this.currentTick++
@@ -240,9 +240,16 @@ export class LevelState {
 	checkCollision(
 		actor: Actor,
 		direction: Direction,
-		pushBlocks = false
+		pushBlocks = true,
+		exitOnly = false
 	): boolean {
-		return this.checkCollisionFromTile(actor, actor.tile, direction, pushBlocks)
+		return this.checkCollisionFromTile(
+			actor,
+			actor.tile,
+			direction,
+			pushBlocks,
+			exitOnly
+		)
 	}
 	resolvedCollisionCheckDirection: Direction = Direction.UP
 	/**
@@ -257,7 +264,8 @@ export class LevelState {
 		actor: Actor,
 		fromTile: Tile,
 		direction: Direction,
-		pushBlocks = false
+		pushBlocks = true,
+		exitOnly = false
 	): boolean {
 		// This is a pass by reference-esque thing, please don't die of cring
 		this.resolvedCollisionCheckDirection = direction
@@ -266,19 +274,25 @@ export class LevelState {
 
 		for (const exitActor of fromTile.allActorsReverse)
 			if (exitActor._internalExitBlocks(actor, direction)) {
-				actor.onBlocked?.(exitActor)
+				if (exitOnly && !exitActor.persistOnExitOnlyCollision) continue
+				exitActor.bumped?.(actor, direction)
+				actor.bumpedActor?.(exitActor, direction)
 				return false
 			} else {
-				if (actor._internalIgnores(exitActor)) continue
-				const redirection = exitActor.redirectTileMemberDirection?.(
+				if (
+					!exitActor.redirectTileMemberDirection ||
+					actor._internalIgnores(exitActor)
+				)
+					continue
+				const redirection = exitActor.redirectTileMemberDirection(
 					actor,
 					direction
 				)
-				if (redirection === undefined) continue
 				if (redirection === null) return false
 				this.resolvedCollisionCheckDirection = direction = redirection
 			}
-		const newTile = fromTile.getNeighbor(direction)
+		if (exitOnly) return true
+		const newTile = fromTile.getNeighbor(direction, false)
 		if (newTile === null) {
 			actor.bumpedEdge?.(fromTile, direction)
 			return false
@@ -300,7 +314,10 @@ export class LevelState {
 				if (blockActor._internalBlocks(actor, direction))
 					if (actor._internalCanPush(blockActor, direction))
 						toPush.push(blockActor)
-					else return false
+					else {
+						this.resolvedCollisionCheckDirection = direction
+						return false
+					}
 				if (
 					layer === Layer.MOVABLE &&
 					iterableIndexOf(newTile[layer], blockActor) ===
@@ -314,14 +331,22 @@ export class LevelState {
 			if (pushable.slidingState) {
 				pushable.pendingDecision = direction + 1
 				// We did not move, shame, but we did queue this block push
+				this.resolvedCollisionCheckDirection = direction
 				return false
 			}
-			if (!this.checkCollision(pushable, direction, pushBlocks)) return false
+
+			if (
+				pushable.cooldown ||
+				!this.checkCollision(pushable, direction, pushBlocks)
+			) {
+				this.resolvedCollisionCheckDirection = direction
+				return false
+			}
 			if (pushBlocks) {
-				pushable._internalStep(direction)
-				pushable.cooldown--
+				if (pushable._internalStep(direction)) pushable.cooldown--
 			}
 		}
+		this.resolvedCollisionCheckDirection = direction
 		// TODO Decision time hooking
 		return true
 	}
@@ -361,6 +386,27 @@ export class LevelState {
 		if (solution.rffDirection !== undefined)
 			crossLevelData.RFFDirection = solution.rffDirection
 	}
+	*tiles(
+		rro = true,
+		relativeTo: [number, number] = [0, 0]
+	): Generator<Tile, void> {
+		const stopAt = relativeTo[0] + relativeTo[1] * this.width
+		for (
+			let pos =
+				(stopAt + (rro ? this.width * this.height - 1 : +1)) %
+				(this.width * this.height);
+			pos !== stopAt;
+			rro
+				? (pos =
+						(pos + this.width * this.height - 1) % (this.width * this.height))
+				: (pos = (pos + 1) % (this.width * this.height))
+		)
+			yield this.field[pos % this.width][Math.floor(pos / this.width)]
+		yield this.field[relativeTo[0]][relativeTo[1]]
+	}
+	circuits: CircuitCity[] = []
+	circuitInputs: Actor[] = []
+	circuitOutputs: Wirable[] = []
 }
 
 export function createLevelFromData(data: LevelData): LevelState {
@@ -383,6 +429,14 @@ export function createLevelFromData(data: LevelData): LevelState {
 	for (let y = 0; y < level.height; y++)
 		for (let x = 0; x < level.width; x++)
 			for (const actor of data.field[x][y]) {
+				if (!actor[0]) {
+					if (actor[3]) {
+						const tile = level.field[x][y]
+						tile.wires = actor[3] & 0x0f
+						tile.wireTunnels = (actor[3] & 0xf0) >> 4
+					}
+					continue
+				}
 				if (!actorDB[actor[0]])
 					throw new Error(`Cannot find actor with id "${actor[0]}"!`)
 				const actorInstance: Actor = new actorDB[actor[0]](
@@ -391,6 +445,11 @@ export function createLevelFromData(data: LevelData): LevelState {
 					actor[2]
 				)
 				if (actor[1]) actorInstance.direction = actor[1]
+				if (actor[3]) {
+					actorInstance.wires = actor[3] & 0x0f
+					actorInstance.wireTunnels = actor[3] & 0xf0
+				}
 			}
+
 	return level
 }

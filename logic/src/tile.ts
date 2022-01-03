@@ -1,6 +1,7 @@
 import { Actor } from "./actor"
-import { LevelState } from "./level"
+import { LevelState, crossLevelData } from "./level"
 import { Direction } from "./helpers"
+import { CircuitCity, Wirable, WireOverlapMode, Wires } from "./wires"
 
 export enum Layer {
 	STATIONARY, // Terrain, etc.
@@ -10,7 +11,7 @@ export enum Layer {
 	SPECIAL, // Thin walls, canopies, etc.
 }
 
-class Tile {
+class Tile implements Wirable {
 	optimizedState: Partial<Record<Layer, Actor | Actor[]>> = {}
 	protected *getAllLayers(): IterableIterator<Actor> {
 		for (let i = 0; i <= Layer.SPECIAL; i++) yield* this.getLayer(i)
@@ -100,8 +101,14 @@ class Tile {
 					this.optimizedState[actor.layer] = [theLayer, actor]
 				else theLayer.push(actor)
 			} else {
-				if (theLayer instanceof Actor) theLayer.despawned = true
-				else theLayer.forEach(val => (val.despawned = true))
+				if (theLayer instanceof Actor) {
+					theLayer.despawned = true
+					crossLevelData.despawnedActors.push(theLayer)
+				} else
+					theLayer.forEach(val => {
+						val.despawned = true
+						crossLevelData.despawnedActors.push(val)
+					})
 				this.optimizedState[actor.layer] = actor
 				console.warn("A despawn has happened.")
 			}
@@ -125,20 +132,30 @@ class Tile {
 			} else {
 				if (theLayer !== actor) {
 					console.warn("A despawn has happened.")
-					if (theLayer instanceof Actor) theLayer.despawned = true
-					else theLayer.forEach(val => val !== actor && (val.despawned = true))
+					if (theLayer instanceof Actor) {
+						theLayer.despawned = true
+						crossLevelData.despawnedActors.push(theLayer)
+					} else
+						theLayer.forEach(val => {
+							if (val !== actor) {
+								val.despawned = true
+								crossLevelData.despawnedActors.push(val)
+							}
+						})
 				}
 				delete this.optimizedState[actor.layer]
 			}
 		}
 	}
-	getNeighbor(direction: Direction): Tile | null {
+	getNeighbor(direction: Direction, wrap: boolean = true): Tile | null {
 		switch (direction) {
 			case Direction.UP:
 				return (
 					this.level.field[this.position[0]]?.[this.position[1] - 1] ?? null
 				)
 			case Direction.LEFT:
+				if (this.x === 0 && wrap)
+					return this.level.field[this.level.width - 1]?.[this.y - 1] ?? null
 				return (
 					this.level.field[this.position[0] - 1]?.[this.position[1]] ?? null
 				)
@@ -147,6 +164,8 @@ class Tile {
 					this.level.field[this.position[0]]?.[this.position[1] + 1] ?? null
 				)
 			case Direction.RIGHT:
+				if (this.x === this.level.width - 1 && wrap)
+					return this.level.field[0]?.[this.y + 1] ?? null
 				return (
 					this.level.field[this.position[0] + 1]?.[this.position[1]] ?? null
 				)
@@ -190,6 +209,12 @@ class Tile {
 			if (tile) yield tile
 		}
 	}
+	wires: number = 0
+	poweredWires: number = 0
+	wireTunnels: number = 0
+	circuits?: [CircuitCity?, CircuitCity?, CircuitCity?, CircuitCity?]
+	wireOverlapMode: WireOverlapMode = WireOverlapMode.CROSS
+	poweringWires: number = 0
 }
 
 export default Tile

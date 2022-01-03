@@ -1,15 +1,57 @@
-import { levelAsSet, parseC2M, parseDAT } from "../logic"
+import { parseC2M } from "../logic/parsers/c2m"
+import { parseDAT } from "../logic/parsers/dat"
+import { levelAsSet, LevelSetData } from "../logic/encoder"
 import { levelList } from "./levelList"
 import { setPlayer } from "./setPlayer"
+import { unzip, Unzipped, UnzipOptions } from "fflate"
+
+function decompresssActuallyAsync(
+	buffer: ArrayBuffer,
+	options: UnzipOptions = {}
+): Promise<Unzipped> {
+	return new Promise((res, rej) =>
+		unzip(new Uint8Array(buffer), options, (err, data) => {
+			if (err) rej(err)
+			else res(data)
+		})
+	)
+}
 
 export async function startNewLevelSet(
 	buffer: ArrayBuffer,
 	filename: string
 ): Promise<void> {
 	await setPlayer.ready
-	const levelData = filename.toLowerCase().endsWith(".c2m")
-		? levelAsSet(parseC2M(buffer, filename))
-		: parseDAT(buffer, filename)
+	// TIL Emojis (eg. ✨) aren't legal JS variable names
+	const magicValue = new DataView(buffer).getUint32(0)
+	let levelData: LevelSetData
+	switch (magicValue) {
+		case 0x4343324d:
+			levelData = levelAsSet(parseC2M(buffer, filename))
+			break
+		case 0xacaa0200:
+		case 0xacaa0201:
+		case 0xacaa0300:
+			levelData = parseDAT(buffer, filename)
+			break
+		case 0x504b0304:
+			// TODO Handle C2Gs in this thing
+			const unzipValue = await decompresssActuallyAsync(buffer, {
+				filter(file) {
+					return file.name.endsWith(".c2m")
+				},
+			})
+			levelData = { name: filename, levels: {} }
+			let n = 1
+			for (const fileName of Object.keys(unzipValue)) {
+				const level = parseC2M(unzipValue[fileName].buffer, fileName)
+				levelData.levels[n] = level
+				n++
+			}
+			break
+		default:
+			throw new Error("Pls give good file format")
+	}
 	setPlayer.setNewLevelSet(levelData)
 	setPlayer.restartLevel()
 	if (levelList) {
@@ -49,7 +91,7 @@ const levelInputButton =
 	document.querySelector<HTMLElement>("#levelInputButton")
 
 levelInput.type = "file"
-levelInput.accept = ".c2m,.dat,.ccl"
+levelInput.accept = ".c2m,.dat,.ccl,.zip"
 levelInput.addEventListener("input", async () => {
 	const files = levelInput.files
 	if (!files) return console.log("Didn't find file list")

@@ -41,37 +41,46 @@ export class WebGLRenderer {
 		this.canvas.classList.add("renderer")
 		this.canvas.addEventListener("resize", () => this.updateSize())
 		this.gl = getWebGLContext(this.canvas, {
+			// Meh
 			alpha: true,
-			antialias: true,
+			// Ew blurry pixel art
+			antialias: false,
+			// Emulates a dumb CC2 tearing effect with some weird tiles
+			preserveDrawingBuffer: true,
 		})
 		this.gl.enable(this.gl.BLEND)
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA)
 		this.programInfo = createProgramInfo(this.gl, [
 			`// we will always pass a 0 to 1 unit quad
 // and then use matrices to manipulate it
-attribute vec4 position;   
+attribute vec4 aPosition;   
 
-uniform mat4 matrix;
-uniform mat4 textureMatrix;
+uniform mat4 uMatrix;
+uniform mat4 uTextureMatrix;
 
-varying vec2 texcoord;
+varying vec2 vTexcoord;
 
 void main () {
-  gl_Position = matrix * position;
-  texcoord = (textureMatrix * position).xy;
+  gl_Position = uMatrix * aPosition;
+  vTexcoord = (uTextureMatrix * aPosition).xy;
 }`,
 			`precision mediump float;
 
-varying vec2 texcoord;
-uniform bool isWrap;
-uniform vec2 wrapLen;
-uniform sampler2D texture;
+varying vec2 vTexcoord;
+uniform vec4 uColorMult;
+uniform bool uDesaturate;
+uniform sampler2D uTexture;
 
 void main() {
-	gl_FragColor = texture2D(texture, texcoord);
+	gl_FragColor = texture2D(uTexture, vTexcoord) * uColorMult;
+	if (uDesaturate) gl_FragColor.rgb = vec3((gl_FragColor.r + gl_FragColor.g + gl_FragColor.b) / 3.0);
 }`,
 		])
 		this.bufferInfo = primitives.createXYQuadBufferInfo(this.gl, 1, 0.5, 0.5)
+		if (this.bufferInfo.attribs) {
+			this.bufferInfo.attribs.aPosition = this.bufferInfo.attribs.position
+			delete this.bufferInfo.attribs.position
+		}
 		this.gl.useProgram(this.programInfo.program)
 		// calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
 		setBuffersAndAttributes(this.gl, this.programInfo, this.bufferInfo)
@@ -114,6 +123,7 @@ void main() {
 					}
 				)
 			})
+		// Fun fact: "instant" loading from elements just doesn't call the callback, so do an emulation of that here in case of an element
 		else
 			return Promise.resolve({
 				height: source.height,
@@ -124,9 +134,7 @@ void main() {
 			})
 	}
 	drawImage(
-		tex: WebGLTexture,
-		texWidth: number,
-		texHeight: number,
+		tex: SizedWebGLTexture,
 		srcX: number,
 		srcY: number,
 		srcWidth: number,
@@ -134,20 +142,24 @@ void main() {
 		dstX: number,
 		dstY: number,
 		dstWidth: number,
-		dstHeight: number
+		dstHeight: number,
+		colorMult: [number, number, number, number] = [1, 1, 1, 1],
+		desaturate: boolean = false
 	): void {
 		const mat = m4.identity()
 		const tmat = m4.identity()
 		const uniforms = {
-			matrix: mat,
-			textureMatrix: tmat,
-			texture: tex,
+			uMatrix: mat,
+			uTextureMatrix: tmat,
+			uTexture: tex.texture,
+			uColorMult: colorMult,
+			uDesaturate: desaturate,
 		}
 
 		// these adjust the unit quad to generate texture coordinates
 		// to select part of the src texture
-		m4.translate(tmat, [srcX / texWidth, srcY / texHeight, 0], tmat)
-		m4.scale(tmat, [srcWidth / texWidth, srcHeight / texHeight, 1], tmat)
+		m4.translate(tmat, [srcX / tex.width, srcY / tex.height, 0], tmat)
+		m4.scale(tmat, [srcWidth / tex.width, srcHeight / tex.height, 1], tmat)
 
 		// these convert from pixels to clip space
 		m4.translate(mat, [-1, 1, 0], mat)
