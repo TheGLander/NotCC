@@ -355,9 +355,9 @@ export class LevelState {
 	random(): number {
 		let n = (this.prngValue1 >> 2) - this.prngValue1
 		if (!(this.prngValue1 & 0x02)) n--
-		this.prngValue1 = (this.prngValue1 >> 1) | (this.prngValue2 & 0x80)
-		this.prngValue2 = (this.prngValue2 << 1) | (n & 0x01)
-		return (this.prngValue1 ^ this.prngValue2) & 0xff
+		this.prngValue1 = ((this.prngValue1 >> 1) | (this.prngValue2 & 0x80)) & 0xff
+		this.prngValue2 = ((this.prngValue2 << 1) | (n & 0x01)) & 0xff
+		return this.prngValue1 ^ this.prngValue2
 	}
 	blobPrngValue = 0x55
 	blob4PatternsMode = false
