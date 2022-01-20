@@ -412,8 +412,8 @@ export class CloneMachine extends Actor {
 		this.clone(false)
 		return true
 	}
-	pulse(): void {
-		this.clone(true)
+	pulse(actual: boolean): void {
+		this.clone(actual)
 	}
 }
 

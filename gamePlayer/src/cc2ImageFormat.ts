@@ -357,6 +357,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			black: [13, 6],
 			orange: [14, 6],
 			yellow: [15, 6],
+			gray: [11, 9],
 		},
 		teethRed: {
 			vertical: [

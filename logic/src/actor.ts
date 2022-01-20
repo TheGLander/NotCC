@@ -93,8 +93,8 @@ export abstract class Actor implements Wirable {
 	nonIgnoredSlideBonkTags?: string[]
 	getCompleteTags<T extends keyof this>(id: T, toIgnore?: Actor): string[] {
 		return [
-			...((this[id] as unknown as string[])
-				? (this[id] as unknown as string[])
+			...(((this[id] as unknown) as string[])
+				? ((this[id] as unknown) as string[])
 				: []),
 			...this.inventory.items.reduce(
 				(acc, val) => [
@@ -502,7 +502,7 @@ export abstract class Actor implements Wirable {
 	 * Called at the start of wire phase, usually used to update powered wires.
 	 */
 	updateWires?(): void
-	pulse?(): void
+	pulse?(actual: boolean): void
 	unpulse?(): void
 	listensWires?: boolean
 	onCreation?(): void

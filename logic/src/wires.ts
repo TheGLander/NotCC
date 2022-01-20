@@ -11,7 +11,7 @@ export interface Wirable {
 	circuits?: [CircuitCity?, CircuitCity?, CircuitCity?, CircuitCity?]
 	wireOverlapMode: WireOverlapMode
 	poweringWires: number
-	pulse?(): void
+	pulse?(actual: boolean): void
 	unpulse?(): void
 	processOutput?(): void
 	listensWires?: boolean
@@ -56,7 +56,7 @@ export interface CircuitCity {
 	outputs: Wirable[]
 }
 
-function getTileWirable(tile: Tile): Wirable {
+export function getTileWirable(tile: Tile): Wirable {
 	for (const actor of tile.allActors)
 		if (
 			actor.wires ||
@@ -225,7 +225,7 @@ export function wireTick(this: LevelState) {
 		if (wasPowered.get(output) && !output.poweredWires && output.unpulse)
 			output.unpulse()
 		else if (!wasPowered.get(output) && output.poweredWires && output.pulse)
-			output.pulse()
+			output.pulse(true)
 	}
 }
 
