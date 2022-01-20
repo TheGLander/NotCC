@@ -252,7 +252,7 @@ export class LitTNT extends Monster {
 		let movableDied = false
 		// TODO Canopies
 		if (tileHadMovable) protectedLayer = Layer.STATIONARY + 1 // Protect stationary only
-		for (const actor of Array.from(tile.allActors))
+		for (const actor of Array.from(tile.allActorsReverse))
 			if (actor.layer >= protectedLayer) {
 				actor.bumped?.(
 					this,
