@@ -4,6 +4,7 @@ import { actorDB } from "../const"
 import { LevelState } from "../level"
 import Tile from "../tile"
 import { getTileWirable, WireOverlapMode } from "../wires"
+import { crossLevelData, onLevelStart } from "../level"
 
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
@@ -47,7 +48,21 @@ export function globalComplexButtonFactory(color: string) {
 	}
 }
 
-actorDB["buttonGreen"] = globalButtonFactory("green")
+declare module "../level" {
+	export interface CrossLevelDataInterface {
+		greenButtonPressed: boolean
+	}
+}
+class ButtonGreen extends globalButtonFactory("green") {
+	actorCompletelyJoined(): void {
+		super.actorCompletelyJoined()
+		crossLevelData.greenButtonPressed = !crossLevelData.greenButtonPressed
+	}
+}
+
+onLevelStart.push(() => (crossLevelData.greenButtonPressed = false))
+
+actorDB["buttonGreen"] = ButtonGreen
 
 actorDB["buttonBlue"] = globalButtonFactory("blue")
 

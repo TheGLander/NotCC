@@ -38,7 +38,11 @@ export interface CrossLevelDataInterface {
 	despawnedActors: Actor[]
 }
 
-export const crossLevelData: CrossLevelDataInterface = { despawnedActors: [] }
+export const crossLevelData: CrossLevelDataInterface = {
+	despawnedActors: [],
+	RFFDirection: 0,
+	greenButtonPressed: false,
+}
 
 export const onLevelStart: ((level: LevelState) => void)[] = [
 	level => {
@@ -362,15 +366,17 @@ export class LevelState {
 	blobPrngValue = 0x55
 	blob4PatternsMode = false
 	blobMod(): number {
+		let mod = this.blobPrngValue
 		if (this.blob4PatternsMode) {
-			this.blobPrngValue++
-			this.blobPrngValue %= 4
+			mod++
+			mod %= 4
 		} else {
-			this.blobPrngValue *= 2
-			if (this.blobPrngValue < 255) this.blobPrngValue ^= 0x1d
-			this.blobPrngValue &= 255
+			mod *= 2
+			if (mod < 255) mod ^= 0x1d
+			mod &= 0xff
 		}
-		return this.blobPrngValue
+		this.blobPrngValue = mod
+		return mod
 	}
 	currentSolution?: SolutionDataWithSteps
 	solutionStep = 0

@@ -120,7 +120,6 @@ export class ForceFloorRandom extends Actor {
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
-		crossLevelData.RFFDirection ??= 0
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
 	}
@@ -131,7 +130,7 @@ export class ForceFloorRandom extends Actor {
 }
 declare module "../level" {
 	export interface CrossLevelDataInterface {
-		RFFDirection?: Direction
+		RFFDirection: Direction
 	}
 }
 
@@ -474,11 +473,10 @@ export class GreenBomb extends Actor {
 			this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
 		}
 	}
-	caresButtonColors = ["green"]
-	buttonPressed(): void {
+	greenToggle(): void {
 		this.customData = this.customData === "bomb" ? "echip" : "bomb"
 		if (this.customData === "echip") this.tags.push("item")
-		else this.tags.splice(this.tags.indexOf("item"))
+		else this.tags.splice(this.tags.indexOf("item"), 1)
 	}
 	blocks(other: Actor): boolean {
 		return (

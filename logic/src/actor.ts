@@ -467,10 +467,18 @@ export abstract class Actor implements Wirable {
 	 */
 	actorOnTile?(other: Actor): void
 	replaceWith(other: typeof actorDB[string]): Actor {
+		const decidingPos = this.level.decidingActors.indexOf(this)
 		this.destroy(null, null)
 		const newActor = new other(this.level, this.tile.position, this.customData)
 		newActor.direction = this.direction
 		newActor.inventory = this.inventory
+		if (newActor.isDeciding && decidingPos !== -1) {
+			this.level.decidingActors.splice(
+				this.level.decidingActors.indexOf(newActor),
+				1
+			)
+			this.level.decidingActors.splice(decidingPos, 0, newActor)
+		}
 		return newActor
 	}
 	/**

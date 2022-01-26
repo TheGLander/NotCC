@@ -94,18 +94,6 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 	const baseWireMask = getWireMask(base, dirToWire(direction))
 	for (let i = Wires.UP; i <= Wires.LEFT; i *= 2)
 		if (baseWireMask & i) TODOstack.push([base, i])
-	if (
-		base.wireOverlapMode === WireOverlapMode.CROSS ||
-		base.wireOverlapMode === WireOverlapMode.OVERLAP
-	)
-		TODOstack.push([base, dirToWire((direction + 2) % 4)])
-	if (
-		base.wireOverlapMode === WireOverlapMode.OVERLAP ||
-		(base.wires !== 0b111 && base.wireOverlapMode === WireOverlapMode.CROSS)
-	) {
-		TODOstack.push([base, dirToWire((direction + 1) % 4)])
-		TODOstack.push([base, dirToWire((direction + 3) % 4)])
-	}
 
 	const circuit: CircuitCity = {
 		outputs: [],
