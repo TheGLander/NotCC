@@ -49,6 +49,7 @@ export abstract class Teleport extends Actor {
 		this.shouldProcessThing = false
 		this.onTeleport(other)
 	}
+
 	onMemberSlideBonked(other: Actor): void {
 		other.slidingState = SlidingState.NONE
 	}
@@ -57,9 +58,10 @@ export abstract class Teleport extends Actor {
 }
 export class BlueTeleport extends Teleport {
 	id = "teleportBlue"
-
-	onTeleport(other: Actor): void {
+	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
+	}
+	onTeleport(other: Actor): void {
 		other.oldTile = other.tile
 		const isWired = !!this.circuits
 		other.tile = findNextTeleport.call(
@@ -77,8 +79,7 @@ export class BlueTeleport extends Teleport {
 				this.level.checkCollisionFromTile(other, teleport.tile, other.direction)
 		).tile
 		other._internalUpdateTileStates()
-
-		if (!other.pendingDecision) other.pendingDecision = other.direction + 1
+		other.slidingState = SlidingState.STRONG
 	}
 
 	wireOverlapMode = WireOverlapMode.OVERLAP
@@ -87,6 +88,9 @@ export class BlueTeleport extends Teleport {
 actorDB["teleportBlue"] = BlueTeleport
 
 export class RedTeleport extends Teleport {
+	actorJoined(other: Actor): void {
+		other.slidingState = SlidingState.WEAK
+	}
 	id = "teleportRed"
 	onTeleport(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
@@ -130,7 +134,9 @@ actorDB["teleportRed"] = RedTeleport
 
 export class GreenTeleport extends Teleport {
 	id = "teleportGreen"
-
+	actorJoined(other: Actor): void {
+		other.slidingState = SlidingState.STRONG
+	}
 	onTeleport(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 		// All green TPs
@@ -189,6 +195,9 @@ export class GreenTeleport extends Teleport {
 actorDB["teleportGreen"] = GreenTeleport
 
 export class YellowTeleport extends Teleport implements Item {
+	actorJoined(other: Actor): void {
+		other.slidingState = SlidingState.WEAK
+	}
 	tags = ["machinery"]
 	id = "teleportYellow"
 	destination = ItemDestination.ITEM

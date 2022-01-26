@@ -315,7 +315,6 @@ export abstract class Actor implements Wirable {
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
 			this.cooldown--
-			this.slidingState = SlidingState.NONE
 			for (const actor of [...this.tile.allActorsReverse]) {
 				if (actor === this) continue
 				const notIgnores = !this._internalIgnores(actor)
@@ -351,6 +350,7 @@ export abstract class Actor implements Wirable {
 				)
 		}
 		this.oldTile?.removeActors(this)
+		this.slidingState = SlidingState.NONE
 		// Spread from and to to not have actors which create new actors instantly be interacted with
 		if (this.oldTile)
 			for (const actor of [...this.oldTile.allActors])

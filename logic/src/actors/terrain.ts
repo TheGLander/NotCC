@@ -38,7 +38,7 @@ export class Ice extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorCompletelyJoined(other: Actor): void {
+	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 	}
 	onMemberSlideBonked(other: Actor): void {
@@ -58,7 +58,7 @@ export class IceCorner extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	actorCompletelyJoined(other: Actor): void {
+	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 		other.direction += (this.direction - other.direction) * 2 + 3
 		other.direction %= 4
