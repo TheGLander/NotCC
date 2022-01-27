@@ -1,9 +1,10 @@
 import { Actor, matchTags } from "../actor"
 import { Layer } from "../tile"
 import { actorDB } from "../const"
-import { Direction } from "../helpers"
+import { Direction, hasOwnProperty } from "../helpers"
 import { Playable } from "./playables"
 import { WireOverlapMode } from "../wires"
+import { crossLevelData, onLevelAfterTick } from "../level"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall"]
@@ -165,20 +166,33 @@ actorDB["blueWall"] = BlueWall
 
 export class ToggleWall extends Actor {
 	id = "toggleWall"
+
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(): boolean {
 		return this.customData === "on"
 	}
-	caresButtonColors = ["green"]
-	buttonPressed(): void {
-		this.customData = this.customData === "on" ? "off" : "on"
-	}
 	pulse(): void {
 		this.customData = this.customData === "on" ? "off" : "on"
 	}
+	greenToggle(): void {
+		this.customData = this.customData === "on" ? "off" : "on"
+	}
 }
+
+onLevelAfterTick.push(level => {
+	if (crossLevelData.greenButtonPressed) {
+		for (const terrain of level.actors) {
+			if (
+				hasOwnProperty(terrain, "greenToggle") &&
+				typeof terrain.greenToggle === "function"
+			)
+				terrain.greenToggle()
+		}
+		crossLevelData.greenButtonPressed = false
+	}
+})
 
 actorDB["toggleWall"] = ToggleWall
 

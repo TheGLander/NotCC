@@ -3,7 +3,8 @@ import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { LevelState } from "../level"
 import Tile from "../tile"
-import { WireOverlapMode } from "../wires"
+import { getTileWirable, WireOverlapMode } from "../wires"
+import { crossLevelData, onLevelStart } from "../level"
 
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
@@ -47,7 +48,21 @@ export function globalComplexButtonFactory(color: string) {
 	}
 }
 
-actorDB["buttonGreen"] = globalButtonFactory("green")
+declare module "../level" {
+	export interface CrossLevelDataInterface {
+		greenButtonPressed: boolean
+	}
+}
+class ButtonGreen extends globalButtonFactory("green") {
+	actorCompletelyJoined(): void {
+		super.actorCompletelyJoined()
+		crossLevelData.greenButtonPressed = !crossLevelData.greenButtonPressed
+	}
+}
+
+onLevelStart.push(() => (crossLevelData.greenButtonPressed = false))
+
+actorDB["buttonGreen"] = ButtonGreen
 
 actorDB["buttonBlue"] = globalButtonFactory("blue")
 
@@ -72,8 +87,9 @@ export function ROConnectedButtonFactory(
 					connection[0][0] === this.tile.x &&
 					connection[0][1] === this.tile.y
 				)
-					this.explicitlyConnectedTile =
-						this.level.field[connection[1][0]]?.[connection[1][1]]
+					this.explicitlyConnectedTile = this.level.field[connection[1][0]]?.[
+						connection[1][1]
+					]
 			const thisIndex = this.level.actors.indexOf(this)
 			const foundActor = [
 				// TODO This relies that actor order is in RRO, maybe this should do it more like teleports?
@@ -117,8 +133,9 @@ export function diamondConnectedButtonFactory(color: string) {
 					connection[0][0] === this.tile.x &&
 					connection[0][1] === this.tile.y
 				)
-					this.explicitlyConnectedTile =
-						this.level.field[connection[1][0]]?.[connection[1][1]]
+					this.explicitlyConnectedTile = this.level.field[connection[1][0]]?.[
+						connection[1][1]
+					]
 			if (this.explicitlyConnectedTile) {
 				for (const actor of this.explicitlyConnectedTile.allActors)
 					if (actor.caresButtonColors.includes(color))
@@ -217,3 +234,22 @@ export class ToggleSwitch extends Actor {
 }
 
 actorDB["toggleSwitch"] = ToggleSwitch
+
+export class ButtonGray extends Actor {
+	id = "buttonGray"
+	tags = ["button"]
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	actorCompletelyJoined(): void {
+		for (let y = -2; y <= 2; y++) {
+			for (let x = -2; x <= 2; x++) {
+				const tile = this.level.field[this.tile.x + x]?.[this.tile.y + y]
+				if (!tile) continue
+				getTileWirable(tile).pulse?.(false)
+			}
+		}
+	}
+}
+
+actorDB["buttonGray"] = ButtonGray

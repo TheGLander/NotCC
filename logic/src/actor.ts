@@ -93,8 +93,8 @@ export abstract class Actor implements Wirable {
 	nonIgnoredSlideBonkTags?: string[]
 	getCompleteTags<T extends keyof this>(id: T, toIgnore?: Actor): string[] {
 		return [
-			...((this[id] as unknown as string[])
-				? (this[id] as unknown as string[])
+			...(((this[id] as unknown) as string[])
+				? ((this[id] as unknown) as string[])
 				: []),
 			...this.inventory.items.reduce(
 				(acc, val) => [
@@ -315,16 +315,13 @@ export abstract class Actor implements Wirable {
 	_internalDoCooldown(): void {
 		if (this.cooldown === 1) {
 			this.cooldown--
-			this.slidingState = SlidingState.NONE
 			for (const actor of [...this.tile.allActorsReverse]) {
 				if (actor === this) continue
 				const notIgnores = !this._internalIgnores(actor)
 
-				if (!this.exists) return
 				if (notIgnores && actor.actorCompletelyJoined)
 					actor.actorCompletelyJoined(this)
 				if (notIgnores && actor.actorOnTile) actor.actorOnTile(this)
-				if (!this.exists) return
 			}
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
@@ -351,6 +348,7 @@ export abstract class Actor implements Wirable {
 				)
 		}
 		this.oldTile?.removeActors(this)
+		this.slidingState = SlidingState.NONE
 		// Spread from and to to not have actors which create new actors instantly be interacted with
 		if (this.oldTile)
 			for (const actor of [...this.oldTile.allActors])
@@ -467,10 +465,18 @@ export abstract class Actor implements Wirable {
 	 */
 	actorOnTile?(other: Actor): void
 	replaceWith(other: typeof actorDB[string]): Actor {
+		const decidingPos = this.level.decidingActors.indexOf(this)
 		this.destroy(null, null)
 		const newActor = new other(this.level, this.tile.position, this.customData)
 		newActor.direction = this.direction
 		newActor.inventory = this.inventory
+		if (newActor.isDeciding && decidingPos !== -1) {
+			this.level.decidingActors.splice(
+				this.level.decidingActors.indexOf(newActor),
+				1
+			)
+			this.level.decidingActors.splice(decidingPos, 0, newActor)
+		}
 		return newActor
 	}
 	/**
@@ -502,7 +508,7 @@ export abstract class Actor implements Wirable {
 	 * Called at the start of wire phase, usually used to update powered wires.
 	 */
 	updateWires?(): void
-	pulse?(): void
+	pulse?(actual: boolean): void
 	unpulse?(): void
 	listensWires?: boolean
 	onCreation?(): void
