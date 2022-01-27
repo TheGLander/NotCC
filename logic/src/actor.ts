@@ -319,11 +319,9 @@ export abstract class Actor implements Wirable {
 				if (actor === this) continue
 				const notIgnores = !this._internalIgnores(actor)
 
-				if (!this.exists) return
 				if (notIgnores && actor.actorCompletelyJoined)
 					actor.actorCompletelyJoined(this)
 				if (notIgnores && actor.actorOnTile) actor.actorOnTile(this)
-				if (!this.exists) return
 			}
 			this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
