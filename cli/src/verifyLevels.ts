@@ -1,22 +1,47 @@
 import { exit } from "process"
 import { resolveLevelPath, errorAndExit } from "./helpers"
 import { CLIArguments } from "./index"
-import { Worker } from "worker_threads"
-import { join } from "path"
-import Ora from "ora"
+import { MessageChannel, Worker } from "worker_threads"
+import { join, dirname } from "path"
 import os from "os"
-export interface LevelsMessage {
-	levels: string[]
-	onlyError: boolean
-	ping: boolean
-}
+import chalk, { Chalk } from "chalk"
+
+type LevelOutcome = "success" | "no_input" | "bad_input" | "error"
 
 export interface WorkerMessage {
-	levelName?: string
-	progress?: number
-	outcome?: "success" | "no_input" | "bad_input" | "error"
-	done?: boolean
-	getLevel?: boolean
+	levelName: string
+	outcome: LevelOutcome
+	desc?: string
+}
+
+function createByteArray(arr: string[]): SharedArrayBuffer {
+	const buffer = new SharedArrayBuffer(
+		arr.reduce<number>((acc, val) => acc + val.length + 1, 0)
+	)
+	const byteArr = new Uint8Array(buffer)
+	let position = 0
+	for (const str of arr) {
+		byteArr.set(
+			Array.from(str).map(val => val.codePointAt(0) || 0),
+			position
+		)
+		position += str.length + 1
+	}
+
+	return buffer
+}
+
+interface OutcomeStyle {
+	color: "red" | "green" | "redBright"
+	desc: string
+	failure?: boolean
+}
+
+const outcomeStyles: Record<LevelOutcome, OutcomeStyle> = {
+	success: { color: "green", desc: "Success" },
+	bad_input: { color: "red", desc: "Solution killed player", failure: true },
+	no_input: { color: "red", desc: "Ran out of input", failure: true },
+	error: { color: "redBright", desc: "Failed to run level" },
 }
 
 export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
@@ -24,90 +49,60 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 	const files = resolveLevelPath(args.pos[1]).filter(val =>
 		val.toLowerCase().endsWith(".c2m")
 	)
-	const spinner = Ora({ discardStdin: false, hideCursor: false })
-	spinner.start()
-	let levelsKilledBySolution = 0,
-		levelsRanOutOfInput = 0,
-		levelsThrewError = 0
 
-	const workers: Worker[] = [],
-		workerPromises: Promise<number>[] = [],
-		workerProgresses: [string, number][] = []
+	const byteFiles = createByteArray(files)
 
+	const stats: Record<LevelOutcome, number> = {
+		no_input: 0,
+		error: 0,
+		bad_input: 0,
+		success: 0,
+	}
+
+	const workers: Worker[] = []
+
+	let endWait: () => void = () => {}
+
+	const stillWaiting = new Promise<void>(res => (endWait = res))
+	console.log(`Creating ${os.cpus().length} workers...`)
 	for (let i = 0; i < os.cpus().length; i++) {
+		const { port1, port2 } = new MessageChannel()
 		const worker = new Worker(join(__dirname, "./levelVerifyThread.js"))
 		workers.push(worker)
-		worker.postMessage({
-			levels: files.slice(
-				(i * files.length) / os.cpus().length,
-				((i + 1) * files.length) / os.cpus().length
-			),
-			onlyError: args.options.onlyError,
-			ping: false,
-		} as LevelsMessage)
-		let lastLevel = ""
-		workerPromises.push(
-			new Promise<number>(res => {
-				worker.on("message", (ev: WorkerMessage) => {
-					if (ev.done) {
-						const id = workers.indexOf(worker)
-						delete workers[id]
-						delete workerProgresses[id]
-						return res(worker.terminate())
-					}
-					if (ev.progress)
-						workerProgresses[workers.indexOf(worker)] = [lastLevel, ev.progress]
-					switch (ev.outcome) {
-						case "bad_input":
-							levelsKilledBySolution++
-							spinner.fail(`${lastLevel} - Solution killed the player`)
-							break
-						case "error":
-							levelsThrewError++
-							spinner.fail(`${lastLevel} - Failed to run`)
-							break
-						case "no_input":
-							levelsRanOutOfInput++
-							spinner.fail(`${lastLevel} - Solution ran out of steps`)
-							break
-						case "success":
-							spinner.succeed(`${lastLevel} - Success`)
-							break
-					}
-					if (ev.levelName !== lastLevel && ev.levelName)
-						lastLevel = ev.levelName
-
-					spinner.text = workerProgresses.reduce(
-						(acc, val) => `${acc} ${val[0]} (${val[1]}%)`,
-						"Verifying "
+		worker.postMessage({ byteFiles, port: port1 }, [port1])
+		port2.on("message", (msg: WorkerMessage) => {
+			stats[msg.outcome]++
+			const style = outcomeStyles[msg.outcome]
+			if (!args.options["onlyError"] || style.failure)
+				console.log(
+					chalk[style.color](
+						`${msg.levelName} - ${style.desc}${
+							msg.desc ? ` (${msg.desc})` : ""
+						}`
 					)
-					spinner.render()
-				})
-			})
-		)
+				)
+			if (
+				Atomics.load(new Uint8Array(byteFiles), byteFiles.byteLength - 2) === 0
+			)
+				endWait()
+		})
 	}
-	await Promise.all(workerPromises)
-	spinner.clear()
-	const totalWins =
-		files.length -
-		levelsKilledBySolution -
-		levelsRanOutOfInput -
-		levelsThrewError
+	await stillWaiting
 
 	console.log(
-		`Success rate: ${(totalWins / files.length) * 100}% (${totalWins}/${
+		`Success rate: ${(stats.success / files.length) * 100}% (${stats.success}/${
 			files.length
 		})
-Levels which failed to run: ${levelsThrewError} (${
-			(levelsThrewError / files.length) * 100
+Levels which failed to run: ${stats.error} (${
+			(stats.error / files.length) * 100
 		}%)
-Levels whose solutions killed a player: ${levelsKilledBySolution} (${
-			(levelsKilledBySolution / files.length) * 100
+Levels whose solutions killed a player: ${stats.bad_input} (${
+			(stats.bad_input / files.length) * 100
 		}%)
-Levels whose solutions did not lead to an exit: ${levelsRanOutOfInput} (${
-			(levelsRanOutOfInput / files.length) * 100
+Levels whose solutions ran out: ${stats.no_input} (${
+			(stats.no_input / files.length) * 100
 		}%)`
 	)
 
-	exit(files.length - totalWins)
+	exit(files.length - stats.success)
 }

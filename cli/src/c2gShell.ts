@@ -1,6 +1,7 @@
 import { C2GRunner, tokenizeC2G, C2G_NOTCC_VERSION } from "../../logic"
 import { errorAndExit } from "./helpers"
-import { prompt } from "prompts"
+import prompts from "prompts"
+const { prompt } = prompts
 import fs from "fs"
 import { resolve } from "path"
 import chalk from "chalk"
