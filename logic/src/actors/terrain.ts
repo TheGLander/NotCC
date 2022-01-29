@@ -119,11 +119,17 @@ export class ForceFloorRandom extends Actor {
 	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
+		if (other.slidingState) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
 	}
-	onMemberSlideBonked = this.actorOnTile
+	onMemberSlideBonked(other: Actor): void {
+		if (other.layer !== Layer.MOVABLE) return
+		other.slidingState = SlidingState.WEAK
+		other.direction = crossLevelData.RFFDirection++
+		crossLevelData.RFFDirection %= 4
+	}
 	speedMod(): 2 {
 		return 2
 	}
