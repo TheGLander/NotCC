@@ -46,7 +46,7 @@ const outcomeStyles: Record<LevelOutcome, OutcomeStyle> = {
 
 export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 	if (!args.pos[1]) errorAndExit("Supply a level path!")
-	const files = resolveLevelPath(args.pos[1]).filter(val =>
+	const files = resolveLevelPath(...args.pos.slice(1)).filter(val =>
 		val.toLowerCase().endsWith(".c2m")
 	)
 

@@ -13,13 +13,19 @@ export function getFilesRecursive(dir: string): string[] {
 	return files
 }
 
-export function resolveLevelPath(levelPath: string): string[] {
-	const inputPath = path.resolve(process.cwd(), levelPath)
-	if (fs.statSync(inputPath).isDirectory())
-		return getFilesRecursive(inputPath).map(levelPath =>
-			path.resolve(inputPath, levelPath)
-		)
-	else return [inputPath]
+export function resolveLevelPath(...levelPaths: string[]): string[] {
+	const values: string[] = []
+	for (const levelPath of levelPaths) {
+		const inputPath = path.resolve(process.cwd(), levelPath)
+		if (fs.statSync(inputPath).isDirectory())
+			values.push(
+				...getFilesRecursive(inputPath).map(levelPath =>
+					path.resolve(inputPath, levelPath)
+				)
+			)
+		else values.push(inputPath)
+	}
+	return values
 }
 
 export function errorAndExit(errorName = "", errorCode = 1): void {
