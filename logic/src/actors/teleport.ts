@@ -229,6 +229,7 @@ export class YellowTeleport extends Teleport implements Item {
 			other.oldTile = other.tile
 			other.tile = newTP.tile
 			other._internalUpdateTileStates()
+			other.slidingState = SlidingState.WEAK
 			if (other instanceof Playable) other.hasOverride = true
 		}
 	}

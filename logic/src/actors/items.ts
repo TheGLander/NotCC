@@ -172,14 +172,16 @@ export class BootIce extends Item {
 	id = "bootIce"
 	carrierTags = { ignoreTags: ["ice"] }
 	destination = ItemDestination.ITEM
-	/* onPickup(other: Actor): void {
+	onPickup(other: Actor): void {
 		// Indeed, a hack, but I really don't want to ever calculate the sliding state automatically
-		if (
+		if (other.slidingState === SlidingState.STRONG)
+			other.slidingState = SlidingState.NONE
+		/* if (
 			other.getCompleteTags("ignoreTags").includes("ice") &&
 			!other.getCompleteTags("ignoreTags", this).includes("ice")
 		)
-			other.slidingState = SlidingState.NONE
-	} */
+			other.slidingState = SlidingState.NONE */
+	}
 }
 
 actorDB["bootIce"] = BootIce

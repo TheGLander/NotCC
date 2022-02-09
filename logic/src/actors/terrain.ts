@@ -60,6 +60,10 @@ export class IceCorner extends Actor {
 	}
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
+	}
+	actorOnTile(other: Actor): void {
+		if (other.layer !== Layer.MOVABLE) return
+
 		other.direction += (this.direction - other.direction) * 2 + 3
 		other.direction %= 4
 	}
@@ -340,8 +344,8 @@ export class Trap extends Actor {
 		this.isOpen = true
 		if (this.openRequests === 1)
 			for (const movable of this.tile[Layer.MOVABLE]) {
-				if (movable._internalStep(movable.direction)) movable.cooldown--
 				movable.slidingState = SlidingState.NONE
+				if (movable._internalStep(movable.direction)) movable.cooldown--
 			}
 	}
 	buttonUnpressed(): void {
