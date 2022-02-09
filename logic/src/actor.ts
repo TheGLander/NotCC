@@ -518,4 +518,5 @@ export abstract class Actor implements Wirable {
 	 * If true, this will be actually checked on exit-only collision checks
 	 */
 	persistOnExitOnlyCollision?: boolean
+	onRedirect?(delta: number): void
 }

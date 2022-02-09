@@ -144,6 +144,11 @@ export class DirectionalBlock extends Actor {
 	canBePushed(_other: Actor, direction: Direction): boolean {
 		return this.legalDirections.includes(direction)
 	}
+	onRedirect(delta: number): void {
+		for (let i = 0; i < this.legalDirections.length; i++) {
+			this.legalDirections[i] = (this.legalDirections[i] - delta + 4) % 4
+		}
+	}
 }
 
 actorDB["directionalBlock"] = DirectionalBlock

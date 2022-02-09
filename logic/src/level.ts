@@ -293,6 +293,7 @@ export class LevelState {
 					direction
 				)
 				if (redirection === null) return false
+				actor.onRedirect?.((redirection - direction + 4) % 4)
 				this.resolvedCollisionCheckDirection = direction = redirection
 			}
 		if (exitOnly) return true
