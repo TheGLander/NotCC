@@ -399,13 +399,17 @@ export class CloneMachine extends Actor {
 		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
 			if (clonee._internalStep(clonee.direction)) clonee.cooldown--
 			else {
+				const ogDir = clonee.direction
 				if (attemptToRotate)
 					for (let i = 1; i <= 3; i++)
-						if (clonee._internalStep((clonee.direction + i) % 4)) {
+						if (clonee._internalStep((ogDir + i) % 4)) {
 							clonee.cooldown--
 							break
 						}
-				if (clonee.cooldown === 0) continue
+				if (clonee.cooldown === 0) {
+					clonee.direction = ogDir
+					continue
+				}
 			}
 			const newClone = new actorDB[clonee.id](
 				this.level,
