@@ -189,6 +189,11 @@ export class LevelState {
 				actor.onCreation?.()
 			}
 			onLevelStart.forEach(val => val(this))
+		} else {
+			if (this.subtick === 2) {
+				this.currentTick++
+				this.subtick = 0
+			} else this.subtick++
 		}
 		if (this.solutionSubticksLeft >= 0 && this.currentSolution) {
 			let step = this.currentSolution.steps[0][this.solutionStep]
@@ -204,10 +209,7 @@ export class LevelState {
 		this.moveTick()
 		wireTick.apply(this)
 		//	if (this.playables.length === 0) this.lost = true
-		if (this.subtick === 2) {
-			this.currentTick++
-			this.subtick = 0
-		} else this.subtick++
+
 		if (this.timeLeft !== 0) {
 			this.timeLeft--
 			if (this.timeLeft <= 0) this.gameState = GameState.LOST
