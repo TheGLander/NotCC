@@ -211,6 +211,7 @@ export abstract class Actor implements Wirable {
 		if (this.cooldown || !this.moveSpeed) return false
 		this.direction = direction
 		const canMove = this.level.checkCollision(this, direction)
+		this.bonked = !canMove
 		this.direction = this.level.resolvedCollisionCheckDirection
 		// Welp, something stole our spot, too bad
 		if (!canMove) return false
@@ -241,20 +242,14 @@ export abstract class Actor implements Wirable {
 
 		if (!this.moveDecision) return
 		const ogDirection = this.moveDecision - 1
-		const bonked = !this._internalStep(ogDirection)
-		if (this.exists && bonked && this.slidingState) {
-			for (const bonkListener of this.tile.allActors)
-				if (!this._internalIgnores(bonkListener))
-					bonkListener.onMemberSlideBonked?.(this)
-			if (ogDirection !== this.direction) this._internalStep(this.direction)
-		}
+		this._internalStep(ogDirection)
 	}
+	/**
+	 * True if the last move failed
+	 */
+	bonked: boolean = false
 	blocks?(other: Actor, otherMoveDirection: Direction): boolean
 	blockedBy?(other: Actor, thisMoveDirection: Direction): boolean
-	/**
-	 * Called when another actor on the tile was bonked while sliding
-	 */
-	onMemberSlideBonked?(other: Actor): void
 	/**
 	 * Called when another actor leaves the current tile
 	 */

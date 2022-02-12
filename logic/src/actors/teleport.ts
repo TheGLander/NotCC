@@ -46,13 +46,11 @@ export abstract class Teleport extends Actor {
 	}
 	actorOnTile(other: Actor): void {
 		if (!this.shouldProcessThing) return
+		if (other.slidingState) other.slidingState = SlidingState.NONE
 		this.shouldProcessThing = false
 		this.onTeleport(other)
 	}
 
-	onMemberSlideBonked(other: Actor): void {
-		other.slidingState = SlidingState.NONE
-	}
 	abstract onTeleport(other: Actor): void
 	requiresFullConnect = true
 }
@@ -123,9 +121,15 @@ export class RedTeleport extends Teleport {
 		other.slidingState = SlidingState.WEAK
 		if (other instanceof Playable) other.hasOverride = true
 	}
-	onMemberSlideBonked(other: Actor) {
-		if (this.wired && !this.poweredWires) other.slidingState = SlidingState.WEAK
-		else other.slidingState = SlidingState.NONE
+	actorOnTile(other: Actor): void {
+		if (!this.shouldProcessThing) return
+		if (other.slidingState) {
+			if (this.wired && !this.poweredWires)
+				other.slidingState = SlidingState.WEAK
+			else other.slidingState = SlidingState.NONE
+		}
+		this.shouldProcessThing = false
+		this.onTeleport(other)
 	}
 	wireOverlapMode = WireOverlapMode.NONE
 }

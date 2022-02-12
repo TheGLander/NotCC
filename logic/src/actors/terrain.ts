@@ -41,10 +41,12 @@ export class Ice extends Actor {
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 	}
-	onMemberSlideBonked(other: Actor): void {
+	actorOnTile(other: Actor): void {
+		if (!other.bonked || !other.slidingState) return
 		// Turn the other way
 		other.direction += 2
 		other.direction %= 4
+		if (other._internalStep(other.direction)) other.cooldown--
 	}
 	speedMod(): 2 {
 		return 2
@@ -62,16 +64,10 @@ export class IceCorner extends Actor {
 		other.slidingState = SlidingState.STRONG
 	}
 	actorOnTile(other: Actor): void {
-		if (other.layer !== Layer.MOVABLE) return
-
-		other.direction += (this.direction - other.direction) * 2 + 3
+		if (other.bonked) other.direction += 2
+		other.direction += (this.direction - other.direction) * 2 - 1 + 8
 		other.direction %= 4
-	}
-	onMemberSlideBonked(other: Actor): void {
-		other.direction += 2
-		if (!other._internalIgnores(this))
-			other.direction += (other.direction - this.direction) * 2 + 3
-		other.direction %= 4
+		if (other.bonked && other._internalStep(other.direction)) other.cooldown--
 	}
 	speedMod(): 2 {
 		return 2
@@ -102,8 +98,8 @@ export class ForceFloor extends Actor {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = this.direction
+		if (other.bonked && other._internalStep(other.direction)) other.cooldown--
 	}
-	onMemberSlideBonked = this.actorOnTile
 	speedMod(): 2 {
 		return 2
 	}
@@ -123,16 +119,10 @@ export class ForceFloorRandom extends Actor {
 	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
-		if (other.slidingState) return
 		other.slidingState = SlidingState.WEAK
 		other.direction = crossLevelData.RFFDirection++
 		crossLevelData.RFFDirection %= 4
-	}
-	onMemberSlideBonked(other: Actor): void {
-		if (other.layer !== Layer.MOVABLE) return
-		other.slidingState = SlidingState.WEAK
-		other.direction = crossLevelData.RFFDirection++
-		crossLevelData.RFFDirection %= 4
+		if (other.bonked && other._internalStep(other.direction)) other.cooldown--
 	}
 	speedMod(): 2 {
 		return 2
