@@ -320,7 +320,7 @@ export abstract class Actor implements Wirable {
 			}
 			if (this.exists) this.newTileCompletelyJoined?.()
 		} else if (this.cooldown > 0) this.cooldown--
-		else
+		else if (this.exists)
 			for (const actor of [...this.tile.allActors])
 				if (
 					actor !== this &&

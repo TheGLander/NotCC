@@ -1,4 +1,5 @@
 import { artDB, setArtForActor } from "../const"
+import { Direction } from "../logic"
 import { LitTNT, Rover } from "../logic/actors/monsters"
 import {
 	genericAnimatedArt,
@@ -10,7 +11,21 @@ artDB["centipede"] = genericDirectionableArt("centipede", 3)
 artDB["ant"] = genericDirectionableArt("ant", 4)
 artDB["glider"] = genericDirectionableArt("glider", 2)
 artDB["fireball"] = genericAnimatedArt("fireball", 4)
-artDB["ball"] = genericAnimatedArt("ball", 4)
+artDB["ball"] = actor => [
+	genericAnimatedArt("ball", 4)(actor),
+	{
+		actorName: "directionalBlock",
+		animation: "arrow" + ["Up", "Right", "Down", "Left"][actor.direction],
+		cropSize: [
+			((actor.direction + 1) % 2) * 0.75 + 0.25,
+			(actor.direction % 2) * 0.75 + 0.25,
+		],
+		imageOffset: [
+			actor.direction === Direction.RIGHT ? 0.75 : 0,
+			actor.direction === Direction.DOWN ? 0.75 : 0,
+		],
+	},
+]
 artDB["teethRed"] = actor => ({
 	actorName: "teethRed",
 	animation:

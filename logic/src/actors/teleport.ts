@@ -45,8 +45,8 @@ export abstract class Teleport extends Actor {
 		this.shouldProcessThing = true
 	}
 	actorOnTile(other: Actor): void {
+		if (other.bonked) other.slidingState = SlidingState.NONE
 		if (!this.shouldProcessThing) return
-		if (other.slidingState) other.slidingState = SlidingState.NONE
 		this.shouldProcessThing = false
 		this.onTeleport(other)
 	}
@@ -122,12 +122,12 @@ export class RedTeleport extends Teleport {
 		if (other instanceof Playable) other.hasOverride = true
 	}
 	actorOnTile(other: Actor): void {
-		if (!this.shouldProcessThing) return
-		if (other.slidingState) {
+		if (other.bonked && other.slidingState) {
 			if (this.wired && !this.poweredWires)
 				other.slidingState = SlidingState.WEAK
 			else other.slidingState = SlidingState.NONE
 		}
+		if (!this.shouldProcessThing) return
 		this.shouldProcessThing = false
 		this.onTeleport(other)
 	}
