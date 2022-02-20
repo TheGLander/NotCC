@@ -10,9 +10,21 @@ import chalk from "chalk"
 import path from "path"
 import { WorkerMessage } from "./verifyLevels"
 
+let levelName = "???"
+
 // TODO Refactor hint tile to not use alerts
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 globalThis.alert = () => {}
+
+const ogConsoleLog = console.log
+
+console.log = (arg1: any, ...args: any[]) =>
+	ogConsoleLog(`[${levelName}] ${arg1}`, ...args)
+
+const ogConsoleWarn = console.warn
+
+console.warn = (arg1: any, ...args: any[]) =>
+	ogConsoleWarn(`[${levelName}] ${arg1}`, ...args)
 
 if (!parentPort) throw new Error()
 
@@ -58,7 +70,6 @@ function connectToParent(): Promise<ParentResponse> {
 	let levelPath: string | null
 
 	while ((levelPath = getNextFilename())) {
-		let levelName: string | undefined
 		try {
 			const levelBuffer = fs.readFileSync(levelPath, null)
 
