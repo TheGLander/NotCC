@@ -201,7 +201,7 @@ actorDB["teleportGreen"] = GreenTeleport
 export class YellowTeleport extends Teleport implements Item {
 	carrierTags?: Record<string, string[]> | undefined
 	hasItemMod(): boolean {
-		return Item.prototype.hasItemMod()
+		return Item.prototype.hasItemMod.call(this)
 	}
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
