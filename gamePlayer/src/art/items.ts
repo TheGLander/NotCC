@@ -37,3 +37,9 @@ artDB["railroadSign"] = { actorName: "railroadSign" }
 artDB["bowlingBall"] = { actorName: "bowlingBall" }
 
 artDB["helmet"] = { actorName: "helmet" }
+
+artDB["timeBonus"] = { actorName: "timeBonus" }
+
+artDB["timePenalty"] = { actorName: "timePenalty" }
+
+artDB["timeToggle"] = { actorName: "timeToggle" }

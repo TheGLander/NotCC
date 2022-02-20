@@ -19,9 +19,14 @@ export abstract class Item extends Actor {
 	 * Tags to add to the carrier of the item
 	 */
 	carrierTags?: Record<string, string[]> = {}
+	hasItemMod(): boolean {
+		for (const mod of this.tile[Layer.ITEM_SUFFIX])
+			if (mod.tags?.includes("ignoreItem")) return true
+		return false
+	}
 	blocks?(other: Actor): boolean {
 		return (
-			!this.tile.hasLayer(Layer.ITEM_SUFFIX) &&
+			!this.hasItemMod() &&
 			!matchTags(other.getCompleteTags("tags"), [
 				"can-pickup-items",
 				"can-stand-on-items",
@@ -30,7 +35,7 @@ export abstract class Item extends Actor {
 		)
 	}
 	ignores(): boolean {
-		return this.tile.hasLayer(Layer.ITEM_SUFFIX)
+		return this.hasItemMod()
 	}
 	getLayer(): Layer {
 		return Layer.ITEM
@@ -39,7 +44,7 @@ export abstract class Item extends Actor {
 		if (
 			other.getCompleteTags("tags").includes("can-stand-on-items") ||
 			(this.shouldBePickedUp && !this.shouldBePickedUp(other)) ||
-			this.tile.hasLayer(Layer.ITEM_SUFFIX)
+			this.hasItemMod()
 		)
 			return
 		this.destroy(other, null)
@@ -66,6 +71,9 @@ export abstract class Item extends Actor {
 export class EChipPlus extends Item {
 	id = "echipPlus"
 	destination = ItemDestination.NONE
+	hasItemMod(): boolean {
+		return false
+	}
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		level.chipsTotal++
@@ -82,6 +90,7 @@ actorDB["echipPlus"] = EChipPlus
 
 export class EChip extends EChipPlus {
 	id = "echip"
+
 	constructor(level: LevelState, position: [number, number]) {
 		super(level, position)
 		level.chipsLeft++
@@ -219,6 +228,9 @@ export class Helmet extends Item {
 actorDB["helmet"] = Helmet
 
 export class BonusFlag extends Item {
+	hasItemMod(): boolean {
+		return false
+	}
 	id = "bonusFlag"
 	tags = ["bonusFlag"]
 	destination = ItemDestination.NONE
@@ -282,3 +294,52 @@ export class BowlingBall extends Item {
 }
 
 actorDB["bowlingBall"] = BowlingBall
+
+export class TimeBonus extends Item {
+	id = "timeBonus"
+	hasItemMod(): boolean {
+		return false
+	}
+	destination = ItemDestination.NONE
+	shouldBePickedUp(other: Actor): boolean {
+		return other instanceof Playable
+	}
+	onPickup(): void {
+		this.level.timeLeft += 60 * 10
+	}
+}
+
+actorDB["timeBonus"] = TimeBonus
+
+export class TimePenalty extends Item {
+	id = "timePenalty"
+	hasItemMod(): boolean {
+		return false
+	}
+	destination = ItemDestination.NONE
+	shouldBePickedUp(other: Actor): boolean {
+		return other instanceof Playable
+	}
+	onPickup(): void {
+		this.level.timeLeft -= 60 * 10
+		if (this.level.timeLeft < 1) this.level.timeLeft = 1
+	}
+}
+
+actorDB["timePenalty"] = TimePenalty
+
+export class TimeToggle extends Item {
+	id = "timeToggle"
+	hasItemMod(): boolean {
+		return false
+	}
+	destination = ItemDestination.NONE
+	shouldBePickedUp(): boolean {
+		return false
+	}
+	actorCompletelyJoined(other: Actor): void {
+		this.level.timeFrozen = !this.level.timeFrozen
+	}
+}
+
+actorDB["timeToggle"] = TimeToggle

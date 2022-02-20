@@ -626,6 +626,9 @@ const cc2ImageFormat: CC2ImageFormat = {
 			2: [14, 11.75],
 			3: [14, 11],
 		},
+		timePenalty: [15, 11],
+		timeBonus: [15, 14],
+		timeToggle: [14, 14],
 	},
 }
 

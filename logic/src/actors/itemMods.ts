@@ -6,6 +6,7 @@ import { actorDB } from "../const"
 
 export class NoSign extends Actor {
 	id = "noSign"
+	tags = ["ignoreItem"]
 	getLayer(): Layer {
 		return Layer.ITEM_SUFFIX
 	}

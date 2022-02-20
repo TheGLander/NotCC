@@ -165,6 +165,7 @@ export class LevelState {
 	 * Connections of 2 tiles, used for CC1-style clone machine and trap connections
 	 */
 	connections: [[number, number], [number, number]][] = []
+	timeFrozen = false
 	protected decisionTick(forcedOnly = false): void {
 		onLevelDecisionTick.forEach(val => val(this))
 		for (const actor of Array.from(this.decidingActors))
@@ -215,7 +216,7 @@ export class LevelState {
 		wireTick.apply(this)
 		//	if (this.playables.length === 0) this.lost = true
 
-		if (this.timeLeft !== 0) {
+		if (this.timeLeft !== 0 && !this.timeFrozen) {
 			this.timeLeft--
 			if (this.timeLeft <= 0) this.gameState = GameState.LOST
 		}

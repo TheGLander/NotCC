@@ -78,7 +78,7 @@ const cc2Tiles = [
 	[["swivel"]],
 	[["swivel", 1]],
 	[["timeBonus"], null],
-	[["stopwatch"], null],
+	[["timeToggle"], null],
 	[["transmogrifier"]],
 	[["railroad"]], // Oh no
 	[["steelWall"]],
@@ -107,7 +107,7 @@ const cc2Tiles = [
 	[["unknown"]],
 	[["bowlingBall"], null],
 	[["rover", null], null],
-	[["timeBonus", 0, "minus"], null],
+	[["timePenalty"], null],
 	[["customFloor", 0, null]],
 	[["unknown"]],
 	[["thinWall", 0, null], null],
@@ -167,4 +167,4 @@ export type cc2TileNames =
 	| null
 export type cc2Tile = [cc2TileNames, Direction?, string?, number?]
 
-export default cc2Tiles as unknown as cc2Tile[][]
+export default (cc2Tiles as unknown) as cc2Tile[][]
