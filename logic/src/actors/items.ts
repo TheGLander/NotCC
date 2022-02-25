@@ -19,6 +19,7 @@ export abstract class Item extends Actor {
 	 * Tags to add to the carrier of the item
 	 */
 	carrierTags?: Record<string, string[]> = {}
+	carrierSpeedMod?: number
 	hasItemMod(): boolean {
 		for (const mod of this.tile[Layer.ITEM_SUFFIX])
 			if (mod.tags?.includes("ignoreItem")) return true
@@ -337,9 +338,16 @@ export class TimeToggle extends Item {
 	shouldBePickedUp(): boolean {
 		return false
 	}
-	actorCompletelyJoined(other: Actor): void {
+	actorCompletelyJoined(): void {
 		this.level.timeFrozen = !this.level.timeFrozen
 	}
 }
 
 actorDB["timeToggle"] = TimeToggle
+
+export class SpeedBoots extends Item {
+	id = "bootSpeed"
+	carrierSpeedMod = 2
+}
+
+actorDB["bootSpeed"] = SpeedBoots

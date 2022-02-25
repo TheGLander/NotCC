@@ -21,8 +21,6 @@ for (const element of ["water", "fire", "ice", "forceFloor", "dirt"])
 
 artDB["goronBraslet"] = { actorName: "chip", animation: "bumpRight" }
 
-artDB["helmet"] = { actorName: "placeholder" }
-
 artDB["tnt"] = { actorName: "tnt" }
 
 artDB["bonusFlag"] = actor => ({
@@ -43,3 +41,5 @@ artDB["timeBonus"] = { actorName: "timeBonus" }
 artDB["timePenalty"] = { actorName: "timePenalty" }
 
 artDB["timeToggle"] = { actorName: "timeToggle" }
+
+artDB["bootSpeed"] = { actorName: "boot", animation: "speed" }

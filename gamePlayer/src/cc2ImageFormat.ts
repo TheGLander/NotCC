@@ -334,6 +334,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			ice: [2, 6],
 			forceFloor: [3, 6],
 			dirt: [4, 6],
+			speed: [13, 3],
 		},
 		outline: {
 			green: [
@@ -629,6 +630,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 		timePenalty: [15, 11],
 		timeBonus: [15, 14],
 		timeToggle: [14, 14],
+		bribe: [12, 4],
 	},
 }
 

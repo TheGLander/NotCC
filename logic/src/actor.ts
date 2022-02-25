@@ -206,7 +206,12 @@ export abstract class Actor implements Wirable {
 
 		this.moveDecision = directions[directions.length - 1] + 1
 	}
-
+	selfSpeedMod(): number {
+		let mult = 1
+		for (const item of this.inventory.items)
+			if (item.carrierSpeedMod) mult *= item.carrierSpeedMod
+		return mult
+	}
 	_internalStep(direction: Direction): boolean {
 		if (this.cooldown || !this.moveSpeed) return false
 		this.direction = direction
@@ -223,7 +228,8 @@ export abstract class Actor implements Wirable {
 		)
 		// This is purely a defensive programming thing, shouldn't happen normally (checkCollision should check for going OOB)
 		if (!newTile) return false
-		const moveLength = (this.moveSpeed * 3) / newTile.getSpeedMod(this)
+		const moveLength =
+			(this.moveSpeed * 3) / newTile.getSpeedMod(this) / this.selfSpeedMod()
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
 		this.tile = newTile
@@ -308,8 +314,8 @@ export abstract class Actor implements Wirable {
 		)
 	}
 	_internalDoCooldown(): void {
-		if (this.cooldown === 1) {
-			this.cooldown--
+		if (this.cooldown > 0 && this.cooldown <= 1) {
+			this.cooldown = 0
 			for (const actor of [...this.tile.allActorsReverse]) {
 				if (actor === this) continue
 				const notIgnores = !this._internalIgnores(actor)
