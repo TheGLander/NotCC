@@ -93,8 +93,8 @@ export abstract class Actor implements Wirable {
 	nonIgnoredSlideBonkTags?: string[]
 	getCompleteTags<T extends keyof this>(id: T, toIgnore?: Actor): string[] {
 		return [
-			...(((this[id] as unknown) as string[])
-				? ((this[id] as unknown) as string[])
+			...((this[id] as unknown as string[])
+				? (this[id] as unknown as string[])
 				: []),
 			...this.inventory.items.reduce(
 				(acc, val) => [
@@ -206,10 +206,10 @@ export abstract class Actor implements Wirable {
 
 		this.moveDecision = directions[directions.length - 1] + 1
 	}
-	selfSpeedMod(): number {
-		let mult = 1
-		for (const item of this.inventory.items)
-			if (item.carrierSpeedMod) mult *= item.carrierSpeedMod
+	selfSpeedMod(mult: number): number {
+		for (const item of this.inventory.items) {
+			if (item.carrierSpeedMod) mult *= item.carrierSpeedMod(this, mult)
+		}
 		return mult
 	}
 	_internalStep(direction: Direction): boolean {
@@ -228,8 +228,10 @@ export abstract class Actor implements Wirable {
 		)
 		// This is purely a defensive programming thing, shouldn't happen normally (checkCollision should check for going OOB)
 		if (!newTile) return false
-		const moveLength =
-			(this.moveSpeed * 3) / newTile.getSpeedMod(this) / this.selfSpeedMod()
+		let speedMult = 1
+		speedMult = newTile.getSpeedMod(this)
+		speedMult = this.selfSpeedMod(speedMult)
+		const moveLength = (this.moveSpeed * 3) / speedMult
 		this.currentMoveSpeed = this.cooldown = moveLength
 		this.oldTile = this.tile
 		this.tile = newTile

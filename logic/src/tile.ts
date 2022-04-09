@@ -171,7 +171,6 @@ class Tile implements Wirable {
 				)
 		}
 	}
-	// TODO Speed boots
 	getSpeedMod(other: Actor): number {
 		let speedMod = 1
 		for (const actor of this.getAllLayers())
