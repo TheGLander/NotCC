@@ -67,6 +67,8 @@ export abstract class Item extends Actor {
 	onPickup?(other: Actor): void
 	onDrop?(other: Actor): void
 	shouldBePickedUp?(other: Actor): boolean
+	onCarrierCompleteJoin?(carrier: Actor): void
+	onCarrierJoin?(carrier: Actor): void
 }
 
 export class EChipPlus extends Item {
@@ -353,3 +355,18 @@ export class SpeedBoots extends Item {
 }
 
 actorDB["bootSpeed"] = SpeedBoots
+
+export class LightningBolt extends Item {
+	id = "lightningBolt"
+	onCarrierJoin(carrier: Actor): void {
+		if (carrier.oldTile) carrier.oldTile.poweringWires = 0
+	}
+	onCarrierCompleteJoin(carrier: Actor): void {
+		carrier.tile.poweringWires = carrier.tile.wires
+	}
+	onDrop(carrier: Actor): void {
+		carrier.tile.poweringWires = 0
+	}
+}
+
+actorDB["lightningBolt"] = LightningBolt

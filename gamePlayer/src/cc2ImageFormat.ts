@@ -336,6 +336,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			dirt: [4, 6],
 			speed: [13, 3],
 		},
+		lightningBolt: [5, 6],
 		outline: {
 			green: [
 				[0, 9],

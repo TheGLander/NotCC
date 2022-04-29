@@ -326,7 +326,11 @@ export abstract class Actor implements Wirable {
 					actor.actorCompletelyJoined(this)
 				if (notIgnores && actor.actorOnTile) actor.actorOnTile(this)
 			}
-			if (this.exists) this.newTileCompletelyJoined?.()
+			if (this.exists) {
+				this.newTileCompletelyJoined?.()
+				for (const item of this.inventory.items)
+					item.onCarrierCompleteJoin?.(this)
+			}
 		} else if (this.cooldown > 0) this.cooldown--
 		else if (this.exists)
 			for (const actor of [...this.tile.allActors])
@@ -363,6 +367,7 @@ export abstract class Actor implements Wirable {
 			if (actor !== this && !this._internalIgnores(actor))
 				actor.actorJoined?.(this)
 		this.newTileJoined?.()
+		for (const item of this.inventory.items) item.onCarrierJoin?.(this)
 	}
 	destroy(
 		killer?: Actor | null,
