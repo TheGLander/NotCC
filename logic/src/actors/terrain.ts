@@ -94,6 +94,10 @@ export class ForceFloor extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
+	actorJoined(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("block"))
+			other.slidingState = SlidingState.WEAK
+	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
 		other.slidingState = SlidingState.WEAK
@@ -116,6 +120,11 @@ export class ForceFloorRandom extends Actor {
 	tags = ["force-floor"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
+	}
+	actorJoined(other: Actor): void {
+		// Kinda a bad hack, but makes pushing sliding blocks work
+		if (other.getCompleteTags("tags").includes("block"))
+			other.slidingState = SlidingState.WEAK
 	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
@@ -212,9 +221,11 @@ export class Exit extends Actor {
 	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
-			this.level.selectedPlayable = this.level.playables[
-				(this.level.playables.indexOf(other) + 1) % this.level.playables.length
-			]
+			this.level.selectedPlayable =
+				this.level.playables[
+					(this.level.playables.indexOf(other) + 1) %
+						this.level.playables.length
+				]
 			other.destroy(this, null)
 			this.level.gameState = GameState.PLAYING
 			this.level.playablesLeft--

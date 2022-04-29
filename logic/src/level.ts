@@ -126,6 +126,7 @@ export class LevelState {
 	decidingActors: Actor[] = []
 	subtick: 0 | 1 | 2 = 0
 	currentTick = 0
+	tickStage: "decision" | "move" | "wire" | "start" = "start"
 	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
 	levelData?: LevelData
 	chipsLeft = 0
@@ -177,6 +178,9 @@ export class LevelState {
 			actor._internalDoCooldown()
 		}
 	}
+	getTime(): string {
+		return `${this.currentTick}:${this.subtick} (${this.tickStage})`
+	}
 	/**
 	 * Ticks the whole level by one subtick
 	 * (Since there are 3 subticks in a tick, and 20 ticks in a second, this should be run 60 times a second)
@@ -206,8 +210,11 @@ export class LevelState {
 			}
 			if (step) this.gameInput = decodeSolutionStep(step)
 		}
+		this.tickStage = "decision"
 		this.decisionTick(this.subtick !== 2)
+		this.tickStage = "move"
 		this.moveTick()
+		this.tickStage = "wire"
 		wireTick.apply(this)
 		//	if (this.playables.length === 0) this.lost = true
 
