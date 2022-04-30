@@ -69,6 +69,7 @@ export abstract class Item extends Actor {
 	shouldBePickedUp?(other: Actor): boolean
 	onCarrierCompleteJoin?(carrier: Actor): void
 	onCarrierJoin?(carrier: Actor): void
+	canBeDropped?(carrier: Actor): boolean
 }
 
 export class EChipPlus extends Item {

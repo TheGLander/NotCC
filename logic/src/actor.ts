@@ -132,13 +132,15 @@ export abstract class Actor implements Wirable {
 		itemMax: 4,
 	}
 	dropItem(): void {
-		if (this.tile.hasLayer(Layer.ITEM)) return
-		const itemToDrop = this.inventory.items.pop()
+		const itemToDrop = this.inventory.items[this.inventory.items.length - 1]
 		if (!itemToDrop) return
 		if (this.despawned)
 			alert(
 				"At this state, the game really should crash, so this is really undefined behavior"
 			)
+		if (this.tile.hasLayer(itemToDrop.layer)) return
+		if (itemToDrop.canBeDropped && !itemToDrop.canBeDropped(this)) return
+		this.inventory.items.pop()
 		itemToDrop.oldTile = null
 		itemToDrop.tile = this.tile
 		this.level.actors.push(itemToDrop)
