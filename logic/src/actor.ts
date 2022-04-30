@@ -91,32 +91,28 @@ export abstract class Actor implements Wirable {
 	immuneTags?: string[]
 
 	nonIgnoredSlideBonkTags?: string[]
-	getCompleteTags<T extends keyof this>(id: T, toIgnore?: Actor): string[] {
-		return [
-			...((this[id] as unknown as string[])
-				? (this[id] as unknown as string[])
-				: []),
-			...this.inventory.items.reduce(
-				(acc, val) => [
-					...acc, // @ts-expect-error Typescript dumb
-					...(val.carrierTags?.[id] && val !== toIgnore // @ts-expect-error Typescript dumb
-						? val.carrierTags[id]
-						: []),
-				],
-				new Array<string>()
-			),
-		]
+	getCompleteTags<T extends keyof this>(id: T, noItems?: boolean): string[] {
+		let tags: string[]
+		if (this[id]) tags = Array.from(this[id] as unknown as string[])
+		else tags = []
+		if (noItems) return tags
+		for (const item of this.inventory.items) {
+			//@ts-expect-error T is typeof string, it can index Record<string, string[]>
+			const itemTags = item.carrierTags?.[id]
+			if (itemTags) tags.push(...itemTags)
+		}
+		return tags
 	}
 	ignores?(other: Actor): boolean
-	_internalIgnores(other: Actor): boolean {
+	_internalIgnores(other: Actor, noItems?: boolean): boolean {
 		return (
 			(matchTags(
-				this.getCompleteTags("tags"),
-				other.getCompleteTags("ignoreTags")
+				this.getCompleteTags("tags", noItems),
+				other.getCompleteTags("ignoreTags", noItems)
 			) ||
 				matchTags(
-					other.getCompleteTags("tags"),
-					this.getCompleteTags("ignoreTags")
+					other.getCompleteTags("tags", noItems),
+					this.getCompleteTags("ignoreTags", noItems)
 				) ||
 				this.ignores?.(other) ||
 				other.ignores?.(this)) ??

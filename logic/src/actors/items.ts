@@ -176,6 +176,17 @@ export class BootFire extends Item {
 	id = "bootFire"
 	carrierTags = { ignoreTags: ["fire"] }
 	destination = ItemDestination.ITEM
+	// Double-ignore thing for the ghost
+	onCarrierCompleteJoin(carrier: Actor): void {
+		for (const actor of carrier.tile.allActors) {
+			if (
+				carrier._internalIgnores(actor, true) &&
+				actor.getCompleteTags("tags").includes("fire")
+			) {
+				actor.destroy(null, null)
+			}
+		}
+	}
 }
 
 actorDB["bootFire"] = BootFire
@@ -210,6 +221,17 @@ export class BootDirt extends Item {
 	id = "bootDirt"
 	carrierTags = { collisionIgnoreTags: ["filth"] }
 	destination = ItemDestination.ITEM
+	// Double-ignore thing for the ghost
+	onCarrierCompleteJoin(carrier: Actor): void {
+		for (const actor of carrier.tile.allActors) {
+			if (
+				carrier._internalIgnores(actor, true) &&
+				actor.getCompleteTags("tags").includes("filth")
+			) {
+				actor.destroy(null, null)
+			}
+		}
+	}
 }
 
 actorDB["bootDirt"] = BootDirt
