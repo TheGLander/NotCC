@@ -295,7 +295,7 @@ export abstract class Actor implements Wirable {
 			// A hack for teleports, but it's not that dumb of a limitation, so maybe it's fine?
 			other !== this &&
 			// FIXME A hack for blocks, really shouldn't be a forced limitation
-			(!!this.cooldown ||
+			(!!(this.cooldown && this.moveSpeed) ||
 				(!matchTags(
 					this.getCompleteTags("tags"),
 					other.getCompleteTags("collisionIgnoreTags")

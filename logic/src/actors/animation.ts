@@ -5,6 +5,7 @@ import { LevelState } from "../level"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16
+	moveSpeed: number = 0
 	blockTags = ["playable"]
 	ignoreTags = ["!playable"]
 	getLayer(): Layer {

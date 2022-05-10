@@ -9,9 +9,10 @@ import {
 import Renderer from "./visuals"
 import { SolutionStep } from "./logic/encoder"
 
-const isSmartTV = /smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
-	navigator.userAgent.toLowerCase()
-)
+const isSmartTV =
+	/smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
+		navigator.userAgent.toLowerCase()
+	)
 
 function stabilizeFactory(bufferLength = 60): (val: number) => number {
 	const buffer: number[] = []
@@ -116,6 +117,11 @@ export class PulseManager {
 	}
 	async setNewLevel(level: LevelState): Promise<void> {
 		this.renderer.level = this.level = level
+		this.level.cameraType = {
+			height: this.level.height,
+			screens: 1,
+			width: this.level.width,
+		}
 		this.keysPressed = {
 			up: false,
 			down: false,

@@ -92,7 +92,8 @@ export class IceBlock extends Actor {
 				this.tile[Layer.STATIONARY].next().value.id === "water")
 		) {
 			this.destroy(this, "splash")
-			new Water(this.level, this.tile.position)
+			if (!this.tile.hasLayer(Layer.STATIONARY))
+				new Water(this.level, this.tile.position)
 		}
 	}
 	canBePushed(other: Actor): boolean {
