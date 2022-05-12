@@ -36,7 +36,7 @@ function findNextTeleport<T extends Teleport>(
 }
 
 export abstract class Teleport extends Actor {
-	tags = ["machinery"]
+	tags = ["machinery", "teleport"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -206,7 +206,7 @@ export class YellowTeleport extends Teleport implements Item {
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
 	}
-	tags = ["machinery"]
+	tags = ["machinery", "teleport"]
 	id = "teleportYellow"
 	destination = ItemDestination.ITEM
 	blocks(): false {

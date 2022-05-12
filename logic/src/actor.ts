@@ -60,6 +60,7 @@ export abstract class Actor implements Wirable {
 	exists = true
 	isDeciding = false
 	createdN: number
+	newActor?: Actor
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
 	 */
@@ -316,13 +317,17 @@ export abstract class Actor implements Wirable {
 	_internalDoCooldown(): void {
 		if (this.cooldown > 0 && this.cooldown <= 1) {
 			this.cooldown = 0
-			for (const actor of [...this.tile.allActorsReverse]) {
-				if (actor === this) continue
-				const notIgnores = !this._internalIgnores(actor)
+			let thisActor: Actor = this
+			for (const actor of [...thisActor.tile.allActorsReverse]) {
+				if (actor === thisActor) continue
+				const notIgnores = !thisActor._internalIgnores(actor)
 
 				if (notIgnores && actor.actorCompletelyJoined)
-					actor.actorCompletelyJoined(this)
-				if (notIgnores && actor.actorOnTile) actor.actorOnTile(this)
+					actor.actorCompletelyJoined(thisActor)
+				if (notIgnores && actor.actorOnTile) {
+					actor.actorOnTile(thisActor)
+				}
+				if (actor.newActor) thisActor = actor.newActor
 			}
 			if (this.exists) {
 				this.newTileCompletelyJoined?.()
@@ -330,14 +335,19 @@ export abstract class Actor implements Wirable {
 					item.onCarrierCompleteJoin?.(this)
 			}
 		} else if (this.cooldown > 0) this.cooldown--
-		else if (this.exists)
+		else if (this.exists) {
+			let thisActor: Actor = this
 			for (const actor of [...this.tile.allActors])
 				if (
-					actor !== this &&
+					actor !== thisActor &&
 					actor.actorOnTile &&
-					!this._internalIgnores(actor)
-				)
-					actor.actorOnTile(this)
+					!thisActor._internalIgnores(actor)
+				) {
+					console.log("a")
+					actor.actorOnTile(thisActor)
+					if (thisActor.newActor) thisActor = thisActor.newActor
+				}
+		}
 	}
 	/**
 	 * Updates tile states and calls hooks
@@ -400,6 +410,7 @@ export abstract class Actor implements Wirable {
 			anim.direction = this.direction
 			anim.currentMoveSpeed = this.currentMoveSpeed
 			anim.cooldown = this.cooldown
+			this.newActor = anim
 		}
 		return true
 	}
