@@ -110,7 +110,9 @@ class Tile implements Wirable {
 						crossLevelData.despawnedActors.push(val)
 					})
 				this.optimizedState[actor.layer] = actor
-				console.warn("A despawn has happened.")
+				console.warn(
+					`A despawn has happened at (${this.x}, ${this.y}). (Overwritten)`
+				)
 			}
 		}
 	}
@@ -131,7 +133,9 @@ class Tile implements Wirable {
 				}
 			} else {
 				if (theLayer !== actor) {
-					console.warn("A despawn has happened.")
+					console.warn(
+						`A despawn has happened at (${this.x}, ${this.y}). (Deleted)`
+					)
 					if (theLayer instanceof Actor) {
 						theLayer.despawned = true
 						crossLevelData.despawnedActors.push(theLayer)
