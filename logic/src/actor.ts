@@ -343,7 +343,6 @@ export abstract class Actor implements Wirable {
 					actor.actorOnTile &&
 					!thisActor._internalIgnores(actor)
 				) {
-					console.log("a")
 					actor.actorOnTile(thisActor)
 					if (thisActor.newActor) thisActor = thisActor.newActor
 				}

@@ -7,10 +7,6 @@ export abstract class Animation extends Actor {
 	animationCooldown = 16
 	moveSpeed: number = 0
 	blockTags = ["playable"]
-	ignores(other: Actor): boolean {
-		const tags = other.getCompleteTags("tags")
-		return !tags.includes("playable") && !tags.includes("teleport")
-	}
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
