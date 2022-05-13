@@ -1,7 +1,7 @@
 import { Actor, SlidingState } from "../actor"
 import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
-import { GameState, KeyInputs, LevelState } from "../level"
+import { GameState, KeyInputs, LevelState, onLevelAfterTick } from "../level"
 import { Decision, actorDB } from "../const"
 import { Item } from "./items"
 
@@ -55,10 +55,10 @@ export abstract class Playable extends Actor {
 			this.level.selectedPlayable === this &&
 			(this.slidingState || !this.cooldown) &&
 			this.level.gameInput.switchPlayable &&
-			this.level.debouncedInputs.switchPlayable <= 0
+			!this.level.releasedKeys.switchPlayable
 		) {
 			this.level.playablesToSwap = true
-			this.level.debounceInput("switchPlayable")
+			this.level.releasedKeys.switchPlayable = true
 		}
 		// TODO Split screen
 
@@ -72,15 +72,15 @@ export abstract class Playable extends Actor {
 		if (canMove) {
 			if (
 				this.level.gameInput.rotateInv &&
-				this.level.debouncedInputs.rotateInv <= 0
+				!this.level.releasedKeys.rotateInv &&
+				this.inventory.items.length > 0
 			) {
-				if (this.inventory.items.length > 0)
-					this.inventory.items.unshift(this.inventory.items.pop() as Item)
-				this.level.debounceInput("rotateInv")
+				this.inventory.items.unshift(this.inventory.items.pop() as Item)
+				this.level.releasedKeys.rotateInv = true
 			}
-			if (this.level.gameInput.drop && this.level.debouncedInputs.drop <= 0) {
+			if (this.level.gameInput.drop && !this.level.releasedKeys.drop) {
 				this.dropItem()
-				this.level.debounceInput("drop")
+				this.level.releasedKeys.drop = true
 			}
 		}
 

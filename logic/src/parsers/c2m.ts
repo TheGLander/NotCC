@@ -123,14 +123,16 @@ function createFieldFromArrayBuffer(
 								break
 							case "notGate": {
 								if (options < 0x18) {
-									modTiles[0][0] = ([
-										"notGate",
-										"andGate",
-										"orGate",
-										"xorGate",
-										"latchGate",
-										"nandGate",
-									] as const)[(4 & ~0x3) / 0x4]
+									modTiles[0][0] = (
+										[
+											"notGate",
+											"andGate",
+											"orGate",
+											"xorGate",
+											"latchGate",
+											"nandGate",
+										] as const
+									)[(4 & ~0x3) / 0x4]
 									modTiles[0][1] = 4 & 0x3
 								} else if (options >= 0x40 && options < 0x44) {
 									modTiles[0][0] = "latchGateMirror"
@@ -423,7 +425,8 @@ export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 							data.hints.push(noteSectionData)
 							break
 						case "COM": // TODO C2M Inline code
-							throw new Error("[COM] not supported (yet)!")
+							break
+						//throw new Error("[COM] not supported (yet)!")
 						case "JETLIFE":
 							data.customData ??= {}
 							if (!isNaN(parseInt(noteSectionData, 10)))

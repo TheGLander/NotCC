@@ -85,8 +85,8 @@ export const onLevelAfterTick: ((level: LevelState) => void)[] = [
 	},
 ]
 
-export const debouncedInputs = ["drop", "rotateInv", "switchPlayable"] as const
-export const debouncePeriod = 50 // Debounce period in subticks
+export const releasableKeys = ["drop", "rotateInv", "switchPlayable"] as const
+type ReleasableKeys = typeof releasableKeys[number]
 
 export function decodeSolutionStep(step: SolutionStep): KeyInputs {
 	return {
@@ -154,14 +154,19 @@ export class LevelState {
 		rotateInv: false,
 		switchPlayable: false,
 	}
+	releasedKeys: Record<ReleasableKeys, boolean> = {
+		drop: false,
+		rotateInv: false,
+		switchPlayable: false,
+	}
 	/**
 	 * Inputs which should not be counted
 	 */
-	debouncedInputs: Record<typeof debouncedInputs[number], number> = {
+	/*debouncedInputs: Record<typeof debouncedInputs[number], number> = {
 		drop: 0,
 		rotateInv: 0,
 		switchPlayable: 0,
-	}
+	} */
 	/**
 	 * Connections of 2 tiles, used for CC1-style clone machine and trap connections
 	 */
@@ -169,11 +174,14 @@ export class LevelState {
 	timeFrozen = false
 	protected decisionTick(forcedOnly = false): void {
 		onLevelDecisionTick.forEach(val => val(this))
-		for (const actor of Array.from(this.decidingActors))
+		for (const actor of Array.from(this.decidingActors)) {
+			if (!actor.exists) continue
 			actor._internalDecide(forcedOnly)
+		}
 	}
 	protected moveTick(): void {
 		for (const actor of Array.from(this.decidingActors)) {
+			if (!actor.exists) continue
 			actor._internalMove()
 			actor._internalDoCooldown()
 		}
@@ -222,19 +230,23 @@ export class LevelState {
 			this.timeLeft--
 			if (this.timeLeft <= 0) this.gameState = GameState.LOST
 		}
-		for (const debouncedKey of debouncedInputs)
+		/*for (const debouncedKey of debouncedInputs)
 			if (!this.gameInput[debouncedKey]) this.debouncedInputs[debouncedKey] = 0
 			else if (this.debouncedInputs[debouncedKey] > 0) {
 				if (this.debouncedInputs[debouncedKey] === 1)
 					this.debouncedInputs[debouncedKey]--
 				this.debouncedInputs[debouncedKey]--
-			}
+			} */
+		for (const releasable of releasableKeys) {
+			if (!this.gameInput[releasable]) this.releasedKeys[releasable] = false
+		}
 		onLevelAfterTick.forEach(val => val(this))
 	}
+	/*
 	debounceInput(inputType: typeof debouncedInputs[number]): void {
 		if (this.debouncedInputs[inputType] !== -1)
 			this.debouncedInputs[inputType] = debouncePeriod
-	}
+	} */
 	constructor(public width: number, public height: number) {
 		//Init field
 		this.field = []
@@ -290,7 +302,7 @@ export class LevelState {
 			if (exitActor._internalExitBlocks(actor, direction)) {
 				if (exitOnly && !exitActor.persistOnExitOnlyCollision) continue
 				exitActor.bumped?.(actor, direction)
-				actor.bumpedActor?.(exitActor, direction)
+				actor.bumpedActor?.(exitActor, direction, true)
 				return false
 			} else {
 				if (
@@ -325,7 +337,7 @@ export class LevelState {
 		])
 			for (const blockActor of newTile[layer]) {
 				blockActor.bumped?.(actor, direction)
-				actor.bumpedActor?.(blockActor, direction)
+				actor.bumpedActor?.(blockActor, direction, false)
 				if (blockActor._internalBlocks(actor, direction))
 					if (actor._internalCanPush(blockActor, direction))
 						toPush.push(blockActor)

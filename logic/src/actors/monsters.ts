@@ -26,7 +26,11 @@ export abstract class Monster extends Actor {
 			other.destroy(this)
 	}
 	// Monsters kill players which they bump into
-	bumpedActor(other: Actor, _bumpedDirection: Direction): void {
+	bumpedActor(
+		other: Actor,
+		_bumpedDirection: Direction,
+		_exiting: boolean
+	): void {
 		// Monsters kill players which bump into them if they can move into them
 		if (
 			other instanceof Playable &&
@@ -316,8 +320,15 @@ export class RollingBowlingBall extends Monster {
 	decideMovement(): [Direction] {
 		return [this.direction]
 	}
-	bumpedActor(other: Actor, direction: Direction): void {
-		if (other._internalBlocks(this, direction)) {
+	bumped(other: Actor, direction: Direction): void {
+		this.bumpedActor(other, direction, false)
+	}
+	bumpedActor(other: Actor, direction: Direction, exiting: boolean): void {
+		if (!this.exists) return
+		if (
+			(!exiting && other._internalBlocks(this, direction)) ||
+			(exiting && other._internalExitBlocks(this, direction))
+		) {
 			if (other.layer === Layer.MOVABLE) {
 				other.destroy(this)
 				this.destroy(this)

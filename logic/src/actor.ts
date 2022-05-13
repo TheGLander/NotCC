@@ -422,7 +422,7 @@ export abstract class Actor implements Wirable {
 	 * Called when this actor bumps into another actor
 	 * @param other The actor which this actor bumped into
 	 */
-	bumpedActor?(other: Actor, bumpDirection: Direction): void
+	bumpedActor?(other: Actor, bumpDirection: Direction, onExit: boolean): void
 	_internalCanPush(other: Actor, direction: Direction): boolean {
 		if (other.pendingDecision) return false
 		if (

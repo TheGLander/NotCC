@@ -42,7 +42,9 @@ export class Ice extends Actor {
 		other.slidingState = SlidingState.STRONG
 	}
 	actorOnTile(other: Actor): void {
-		if (!other.bonked || !other.slidingState) return
+		if (!other.bonked) return
+
+		other.slidingState = SlidingState.STRONG
 		// Turn the other way
 		other.direction += 2
 		other.direction %= 4
