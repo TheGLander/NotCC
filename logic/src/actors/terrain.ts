@@ -341,15 +341,16 @@ export class Trap extends Actor {
 			actor.slidingState = SlidingState.WEAK
 	}
 	caresButtonColors = ["brown"]
-	buttonPressed(): void {
+	buttonPressed(_type: string, data?: string): void {
 		if (this.customData === "open") this.customData = ""
 		else this.openRequests++
 		this.isOpen = true
-		if (this.openRequests === 1)
+		if (this.openRequests === 1 && data !== "init") {
 			for (const movable of this.tile[Layer.MOVABLE]) {
 				movable.slidingState = SlidingState.NONE
 				if (movable._internalStep(movable.direction)) movable.cooldown--
 			}
+		}
 	}
 	buttonUnpressed(): void {
 		this.openRequests = Math.max(0, this.openRequests - 1)

@@ -87,9 +87,8 @@ export function ROConnectedButtonFactory(
 					connection[0][0] === this.tile.x &&
 					connection[0][1] === this.tile.y
 				)
-					this.explicitlyConnectedTile = this.level.field[connection[1][0]]?.[
-						connection[1][1]
-					]
+					this.explicitlyConnectedTile =
+						this.level.field[connection[1][0]]?.[connection[1][1]]
 			const thisIndex = this.level.actors.indexOf(this)
 			const foundActor = [
 				// TODO This relies that actor order is in RRO, maybe this should do it more like teleports?
@@ -101,8 +100,8 @@ export function ROConnectedButtonFactory(
 				.find(actor => actor.caresButtonColors.includes(color))
 			if (foundActor) this.connectedActor = foundActor
 
-			if (shouldActivateOnLevelStart)
-				if (this.tile.hasLayer(Layer.MOVABLE)) this.actorCompletelyJoined()
+			if (shouldActivateOnLevelStart && this.tile.hasLayer(Layer.MOVABLE))
+				this.connectedActor?.buttonPressed?.(color, "init")
 		}
 		actorCompletelyJoined(): void {
 			this.connectedActor?.buttonPressed?.(color)
@@ -133,9 +132,8 @@ export function diamondConnectedButtonFactory(color: string) {
 					connection[0][0] === this.tile.x &&
 					connection[0][1] === this.tile.y
 				)
-					this.explicitlyConnectedTile = this.level.field[connection[1][0]]?.[
-						connection[1][1]
-					]
+					this.explicitlyConnectedTile =
+						this.level.field[connection[1][0]]?.[connection[1][1]]
 			if (this.explicitlyConnectedTile) {
 				for (const actor of this.explicitlyConnectedTile.allActors)
 					if (actor.caresButtonColors.includes(color))

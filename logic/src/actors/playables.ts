@@ -50,6 +50,7 @@ export abstract class Playable extends Actor {
 	}
 
 	_internalDecide(forcedOnly: boolean): void {
+		this.bonked = false
 		this.moveDecision = Decision.NONE
 		if (
 			this.level.selectedPlayable === this &&

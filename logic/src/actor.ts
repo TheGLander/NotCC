@@ -176,6 +176,7 @@ export abstract class Actor implements Wirable {
 	decideMovement?(): Direction[]
 	onEachDecision?(forcedOnly: boolean): void
 	_internalDecide(forcedOnly = false): void {
+		this.bonked = false
 		this.moveDecision = Decision.NONE
 		if (this.cooldown) return
 		// If we have a pending decision, don't do anything, doing decisions may cause a state change, otherwise
