@@ -81,6 +81,7 @@ export const onLevelAfterTick: ((level: LevelState) => void)[] = [
 						level.playables.length
 				]
 			level.playablesToSwap = false
+			level.releasedKeys.drop = level.releasedKeys.rotateInv = false
 		}
 	},
 ]

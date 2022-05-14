@@ -52,25 +52,25 @@ export abstract class Playable extends Actor {
 	_internalDecide(forcedOnly: boolean): void {
 		this.bonked = false
 		this.moveDecision = Decision.NONE
-		if (
-			this.level.selectedPlayable === this &&
-			(this.slidingState || !this.cooldown) &&
-			this.level.gameInput.switchPlayable &&
-			!this.level.releasedKeys.switchPlayable
-		) {
-			this.level.playablesToSwap = true
-			this.level.releasedKeys.switchPlayable = true
-		}
-		// TODO Split screen
 
 		if (this.cooldown) return
+
+		// TODO Split screen
 
 		let canMove =
 			this.level.selectedPlayable === this &&
 			(!this.slidingState ||
 				(this.slidingState === SlidingState.WEAK && this.hasOverride)) &&
 			!forcedOnly
-		if (canMove) {
+
+		if (this.level.selectedPlayable === this) {
+			if (
+				this.level.gameInput.switchPlayable &&
+				!this.level.releasedKeys.switchPlayable
+			) {
+				this.level.playablesToSwap = true
+				this.level.releasedKeys.switchPlayable = true
+			}
 			if (
 				this.level.gameInput.rotateInv &&
 				!this.level.releasedKeys.rotateInv &&
@@ -79,7 +79,11 @@ export abstract class Playable extends Actor {
 				this.inventory.items.unshift(this.inventory.items.pop() as Item)
 				this.level.releasedKeys.rotateInv = true
 			}
-			if (this.level.gameInput.drop && !this.level.releasedKeys.drop) {
+			if (
+				this.level.gameInput.drop &&
+				!this.level.releasedKeys.drop &&
+				canMove
+			) {
 				this.dropItem()
 				this.level.releasedKeys.drop = true
 			}
