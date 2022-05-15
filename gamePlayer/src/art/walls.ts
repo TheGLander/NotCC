@@ -23,15 +23,26 @@ const shortDirNames = ["u", "r", "d", "l"]
 
 artDB["thinWall"] = actor =>
 	actor.customData.split("").map(val => {
-		const direction = shortDirNames.indexOf(val)
-		return {
-			actorName: "thinWall",
-			animation: ["up", "right", "down", "left"][direction],
-			cropSize: [(((direction + 1) % 2) + 1) / 2, ((direction % 2) + 1) / 2],
-			imageOffset: [
-				direction === Direction.RIGHT ? 0.5 : 0,
-				direction === Direction.DOWN ? 0.5 : 0,
-			],
+		if (val === "c") {
+			return {
+				actorName: "canopy",
+				animation: actor.level.selectedPlayable
+					?.getCompleteTags("tags")
+					.includes("can-see-secrets")
+					? "seeThrough"
+					: "default",
+			}
+		} else {
+			const direction = shortDirNames.indexOf(val)
+			return {
+				actorName: "thinWall",
+				animation: ["up", "right", "down", "left"][direction],
+				cropSize: [(((direction + 1) % 2) + 1) / 2, ((direction % 2) + 1) / 2],
+				imageOffset: [
+					direction === Direction.RIGHT ? 0.5 : 0,
+					direction === Direction.DOWN ? 0.5 : 0,
+				],
+			}
 		}
 	})
 

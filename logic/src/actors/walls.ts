@@ -81,7 +81,7 @@ const shortDirNames = ["u", "r", "d", "l"]
 
 export class ThinWall extends Actor {
 	id = "thinWall"
-	tags = ["thinWall"]
+	tags = ["thinWall"].concat(this.customData.includes("c") ? ["canopy"] : [])
 	allowedDirections = Array.from(this.customData)
 		.map(val =>
 			shortDirNames.includes(val) ? 2 ** shortDirNames.indexOf(val) : 0

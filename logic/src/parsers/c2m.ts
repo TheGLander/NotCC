@@ -48,11 +48,11 @@ function createFieldFromArrayBuffer(
 							additions.unshift([
 								"thinWall",
 								0,
-								["u", "r", "d", "l"]
+								["u", "r", "d", "l", "c"]
 									.filter((_val, i) => !!((2 ** i) & options))
 									.join(),
 							])
-						// if (getBit(options, 4)) additions.unshift(["canopy"])
+
 						tiles.splice(tiles.indexOf(tile), 1, ...additions)
 						break
 					}

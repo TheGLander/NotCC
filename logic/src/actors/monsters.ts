@@ -5,7 +5,11 @@ import { Playable } from "./playables"
 import { actorDB, Decision } from "../const"
 import { Fire } from "./terrain"
 import Tile from "../tile"
-import { iterableFind, iterableIncludes } from "../iterableHelpers"
+import {
+	iterableFind,
+	iterableIncludes,
+	iterableSome,
+} from "../iterableHelpers"
 
 export abstract class Monster extends Actor {
 	blocks(): true {
@@ -56,6 +60,8 @@ actorDB["centipede"] = Centipede
 export class Ant extends Monster {
 	id = "ant"
 	transmogrifierTarget = "glider"
+	//
+	blockedByTags = ["canopy"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.LEFT, dir.FORWARD, dir.RIGHT, dir.BACKWARD]
@@ -229,6 +235,14 @@ export class BlobMonster extends Monster {
 		this.moveDecision = ((this.level.random() + this.level.blobMod()) % 4) + 1
 		return []
 	}
+	blockedBy(other: Actor) {
+		return (
+			other.getCompleteTags("tags").includes("canopy") &&
+			iterableSome(this.tile[Layer.SPECIAL], val =>
+				val.getCompleteTags("tags").includes("canopy")
+			)
+		)
+	}
 }
 
 actorDB["blob"] = BlobMonster
@@ -357,6 +371,7 @@ export class Rover extends Monster {
 	id = "rover"
 	tags = ["autonomous-monster", "can-pickup-items", "movable"]
 	pushTags = ["block"]
+	blockedByTags = ["canopy"]
 	moveSpeed = 8
 	emulatedMonster: typeof roverMimicOrder[number] = roverMimicOrder[0]
 	decisionsUntilNext = 32

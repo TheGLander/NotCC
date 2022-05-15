@@ -336,6 +336,10 @@ const cc2ImageFormat: CC2ImageFormat = {
 			dirt: [4, 6],
 			speed: [13, 3],
 		},
+		canopy: {
+			default: [14, 3],
+			seeThrough: [15, 3],
+		},
 		lightningBolt: [5, 6],
 		outline: {
 			green: [

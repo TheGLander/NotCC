@@ -62,3 +62,12 @@ export function iterableIndexOf<T>(
 	}
 	return -1
 }
+
+export function iterableSome<T>(
+	iterable: Iterable<T>,
+	func: (val: T, i: number) => boolean
+): boolean {
+	let i = 0
+	for (const value of iterable) if (func(value, i++)) return true
+	return false
+}
