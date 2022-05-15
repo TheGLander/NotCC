@@ -29,6 +29,7 @@ export enum Wires {
 export enum WireOverlapMode {
 	OVERLAP,
 	CROSS,
+	ALWAYS_CROSS,
 	NONE,
 }
 
@@ -39,7 +40,11 @@ export function getWireMask(wirable: Wirable, dir: Wires): Wires {
 		case WireOverlapMode.NONE:
 			return dir
 		case WireOverlapMode.CROSS:
-			if (wirable.wires === 0b1111)
+		case WireOverlapMode.ALWAYS_CROSS:
+			if (
+				wirable.wires === 0b1111 ||
+				wirable.wireOverlapMode === WireOverlapMode.ALWAYS_CROSS
+			)
 				return dir >= 0b0100 ? dir | (dir >> 2) : dir | (dir << 2)
 
 		/* fallthrough */

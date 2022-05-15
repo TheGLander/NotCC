@@ -196,7 +196,7 @@ export class ButtonBlack extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	wireOverlapMode = WireOverlapMode.CROSS
+	wireOverlapMode = WireOverlapMode.ALWAYS_CROSS
 	processOutput() {
 		for (const movable of this.tile[Layer.MOVABLE]) {
 			if (movable.cooldown <= 0) {
