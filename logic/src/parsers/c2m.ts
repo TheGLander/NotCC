@@ -267,10 +267,6 @@ export function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
 			}
 		}
 	}
-	if (newView.offset < totalLength)
-		console.warn(
-			"Ran out of data while unpackaging data, returning the data gotten from the existing data"
-		)
 	return newBuff
 }
 
