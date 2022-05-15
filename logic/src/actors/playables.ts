@@ -63,7 +63,7 @@ export abstract class Playable extends Actor {
 				(this.slidingState === SlidingState.WEAK && this.hasOverride)) &&
 			!forcedOnly
 
-		if (this.level.selectedPlayable === this) {
+		if (this.level.selectedPlayable === this && !forcedOnly) {
 			if (
 				this.level.gameInput.switchPlayable &&
 				!this.level.releasedKeys.switchPlayable
