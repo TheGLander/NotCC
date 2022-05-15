@@ -5,6 +5,7 @@ import { MessageChannel, Worker } from "worker_threads"
 import { join, dirname } from "path"
 import os from "os"
 import chalk, { Chalk } from "chalk"
+import ProgressBar from "progress"
 
 type LevelOutcome = "success" | "no_input" | "bad_input" | "error"
 
@@ -12,13 +13,22 @@ interface WorkerLevelMessage {
 	levelName: string
 	outcome: LevelOutcome
 	desc?: string
+	type: "level"
 }
 
 interface WorkerExitMessage {
-	final: true
+	type: "final"
 }
 
-export type WorkerMessage = WorkerLevelMessage | WorkerExitMessage
+interface WorkerLogMessage {
+	type: "log"
+	message: string
+}
+
+export type WorkerMessage =
+	| WorkerLevelMessage
+	| WorkerExitMessage
+	| WorkerLogMessage
 
 function createByteArray(arr: string[]): SharedArrayBuffer {
 	const buffer = new SharedArrayBuffer(
@@ -72,7 +82,12 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 
 	const workers: WorkerData[] = []
 
-	const workersN = os.cpus().length
+	const bar = new ProgressBar(
+		":bar :current/:total (:percent) :rate lvl/s",
+		files.length
+	)
+
+	const workersN = Math.min(files.length, os.cpus().length)
 
 	console.log(`Creating ${workersN} workers...`)
 	for (let i = 0; i < workersN; i++) {
@@ -82,11 +97,16 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 		const promise = new Promise<void>(res => {
 			endWait = res
 		})
+
 		workers.push({ worker, promise })
 		worker.postMessage({ byteFiles, port: port1 }, [port1])
 		port2.on("message", (msg: WorkerMessage) => {
-			if ("final" in msg) {
+			if (msg.type === "final") {
 				endWait()
+				return
+			}
+			if (msg.type === "log") {
+				bar.interrupt(msg.message)
 				return
 			}
 			/*console.log(
@@ -96,14 +116,16 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 			)*/
 			stats[msg.outcome]++
 			const style = outcomeStyles[msg.outcome]
-			if (!args.options["onlyError"] || style.failure)
-				console.log(
+			if (!args.options["onlyError"] || style.failure) {
+				bar.interrupt(
 					chalk[style.color](
 						`${msg.levelName} - ${style.desc}${
 							msg.desc ? ` (${msg.desc})` : ""
 						}`
 					)
 				)
+			}
+			bar.tick()
 		})
 	}
 

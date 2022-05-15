@@ -4,25 +4,13 @@ import {
 	GameState,
 	parseC2M,
 } from "../../logic"
-import { parentPort, isMainThread, MessagePort } from "worker_threads"
+import { parentPort, MessagePort } from "worker_threads"
 import fs from "fs"
 import { WorkerMessage } from "./verifyLevels"
-
-let levelName = "???"
 
 // TODO Refactor hint tile to not use alerts
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 globalThis.alert = () => {}
-
-const ogConsoleLog = console.log
-
-console.log = (arg1: any, ...args: any[]) =>
-	ogConsoleLog(`[${levelName}] ${arg1}`, ...args)
-
-const ogConsoleWarn = console.warn
-
-console.warn = (arg1: any, ...args: any[]) =>
-	ogConsoleWarn(`[${levelName}] ${arg1}`, ...args)
 
 if (!parentPort) throw new Error()
 
@@ -45,6 +33,11 @@ function connectToParent(): Promise<ParentResponse> {
 	const sendMessage = (message: WorkerMessage) =>
 		response.port.postMessage(message)
 	const byteFiles = new Uint8Array(response.byteFiles)
+	let levelName: string = "???"
+
+	console.log = console.warn = (arg1: any, ...args: any[]) => {
+		sendMessage({ type: "log", message: `[${levelName}] ${arg1}` })
+	}
 
 	let bytePos = 0
 
@@ -89,6 +82,7 @@ function connectToParent(): Promise<ParentResponse> {
 				if (level.solutionSubticksLeft === Infinity) bonusTicks--
 			}
 			sendMessage({
+				type: "level",
 				levelName,
 				outcome:
 					level.gameState === GameState.WON
@@ -99,12 +93,13 @@ function connectToParent(): Promise<ParentResponse> {
 			})
 		} catch (err) {
 			sendMessage({
+				type: "level",
 				levelName: levelName || levelPath,
 				outcome: "error",
 				desc: (err as Error).message,
 			})
 		}
 	}
-	sendMessage({ final: true })
+	sendMessage({ type: "final" })
 	process.exit(0)
 })()
