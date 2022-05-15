@@ -8,11 +8,17 @@ import chalk, { Chalk } from "chalk"
 
 type LevelOutcome = "success" | "no_input" | "bad_input" | "error"
 
-export interface WorkerMessage {
+interface WorkerLevelMessage {
 	levelName: string
 	outcome: LevelOutcome
 	desc?: string
 }
+
+interface WorkerExitMessage {
+	final: true
+}
+
+export type WorkerMessage = WorkerLevelMessage | WorkerExitMessage
 
 function createByteArray(arr: string[]): SharedArrayBuffer {
 	const buffer = new SharedArrayBuffer(
@@ -37,6 +43,11 @@ interface OutcomeStyle {
 	failure?: boolean
 }
 
+interface WorkerData {
+	worker: Worker
+	promise: Promise<void>
+}
+
 const outcomeStyles: Record<LevelOutcome, OutcomeStyle> = {
 	success: { color: "green", desc: "Success" },
 	bad_input: { color: "red", desc: "Solution killed player", failure: true },
@@ -59,18 +70,30 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 		success: 0,
 	}
 
-	const workers: Worker[] = []
+	const workers: WorkerData[] = []
 
-	let endWait: () => void = () => {}
+	const workersN = os.cpus().length
 
-	const stillWaiting = new Promise<void>(res => (endWait = res))
-	console.log(`Creating ${os.cpus().length} workers...`)
-	for (let i = 0; i < os.cpus().length; i++) {
+	console.log(`Creating ${workersN} workers...`)
+	for (let i = 0; i < workersN; i++) {
 		const { port1, port2 } = new MessageChannel()
 		const worker = new Worker(join(__dirname, "./levelVerifyThread.js"))
-		workers.push(worker)
+		let endWait = () => {}
+		const promise = new Promise<void>(res => {
+			endWait = res
+		})
+		workers.push({ worker, promise })
 		worker.postMessage({ byteFiles, port: port1 }, [port1])
 		port2.on("message", (msg: WorkerMessage) => {
+			if ("final" in msg) {
+				endWait()
+				return
+			}
+			/*console.log(
+				Array.from(new Uint8Array(byteFiles))
+					.map(val => (val === 0 ? "NULL" : String.fromCharCode(val)))
+					.join("")
+			)*/
 			stats[msg.outcome]++
 			const style = outcomeStyles[msg.outcome]
 			if (!args.options["onlyError"] || style.failure)
@@ -81,12 +104,11 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 						}`
 					)
 				)
-			if (
-				Atomics.load(new Uint8Array(byteFiles), byteFiles.byteLength - 2) === 0
-			)
-				endWait()
 		})
 	}
+
+	const stillWaiting = Promise.all(workers.map(val => val.promise))
+
 	await stillWaiting
 
 	console.log(

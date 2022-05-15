@@ -6,8 +6,6 @@ import {
 } from "../../logic"
 import { parentPort, isMainThread, MessagePort } from "worker_threads"
 import fs from "fs"
-import chalk from "chalk"
-import path from "path"
 import { WorkerMessage } from "./verifyLevels"
 
 let levelName = "???"
@@ -107,4 +105,6 @@ function connectToParent(): Promise<ParentResponse> {
 			})
 		}
 	}
+	sendMessage({ final: true })
+	process.exit(0)
 })()
