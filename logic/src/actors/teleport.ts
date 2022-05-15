@@ -8,13 +8,8 @@ import { WireOverlapMode } from "../wires"
 
 function findNextTeleport<T extends Teleport>(
 	this: T,
-	other: Actor,
 	rro: boolean,
-	validateDestination: (
-		other: Actor,
-		newTeleport: T,
-		rolledOver: boolean
-	) => boolean
+	validateDestination?: (newTeleport: T, rolledOver: boolean) => boolean
 ): T {
 	const thisConstructor = Object.getPrototypeOf(this).constructor
 	let lastY = this.tile.y
@@ -28,7 +23,8 @@ function findNextTeleport<T extends Teleport>(
 		)
 		if (
 			newTeleport &&
-			validateDestination.call(this, other, newTeleport as T, rolledOver)
+			(!validateDestination ||
+				validateDestination.call(this, newTeleport as T, rolledOver))
 		)
 			return newTeleport as T
 	}
@@ -64,10 +60,9 @@ export class BlueTeleport extends Teleport {
 		const isWired = !!this.circuits
 		other.tile = findNextTeleport.call(
 			this,
-			other,
 			true,
 			// TODO Logic gates
-			(other, teleport, rolledOver) =>
+			(teleport, rolledOver) =>
 				((!isWired && rolledOver) || isWired === teleport.wired) &&
 				(!isWired ||
 					!!teleport.circuits?.some(
@@ -94,29 +89,24 @@ export class RedTeleport extends Teleport {
 		other.slidingState = SlidingState.WEAK
 		other.oldTile = other.tile
 		if (!this.wired || this.poweredWires)
-			other.tile = findNextTeleport.call(
-				this,
-				other,
-				false,
-				(other: Actor, teleport: Actor) => {
-					if (teleport.tile.hasLayer(Layer.MOVABLE)) return false
-					if (teleport.wired && !teleport.poweredWires) return false
-					for (let offset = 0; offset < 4; offset++)
-						if (
-							this.level.checkCollisionFromTile(
-								other,
-								teleport.tile,
-								(other.direction + offset) % 4
-							)
-						) {
-							other.direction += offset
-							other.direction %= 4
-							return true
-						}
+			other.tile = findNextTeleport.call(this, false, (teleport: Actor) => {
+				if (teleport.tile.hasLayer(Layer.MOVABLE)) return false
+				if (teleport.wired && !teleport.poweredWires) return false
+				for (let offset = 0; offset < 4; offset++)
+					if (
+						this.level.checkCollisionFromTile(
+							other,
+							teleport.tile,
+							(other.direction + offset) % 4
+						)
+					) {
+						other.direction += offset
+						other.direction %= 4
+						return true
+					}
 
-					return false
-				}
-			).tile
+				return false
+			}).tile
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.WEAK
 		if (other instanceof Playable) other.hasOverride = true
@@ -144,51 +134,54 @@ export class GreenTeleport extends Teleport {
 	onTeleport(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 		// All green TPs
-		const allTeleports: this[] = [this]
+		const allTeleports: this[] = []
 		// TPs which do not have an actor on them
-		let validTeleports: this[] = [this]
+		let validTeleports: this[] = []
 		let targetTeleport: this | undefined
 		for (
-			let teleport = findNextTeleport.call(this, other, false, () => true);
+			let teleport = findNextTeleport.call(this, false);
 			teleport !== this;
-			teleport = findNextTeleport.call(teleport, other, false, () => true)
+			teleport = findNextTeleport.call(teleport, false)
 		) {
 			allTeleports.push(teleport as this)
 			if (!teleport.tile.hasLayer(Layer.MOVABLE))
 				validTeleports.push(teleport as this)
 		}
+		allTeleports.push(this)
+		validTeleports.push(this)
 		// We have only 1 teleport in level, do not even try anything
-		if (allTeleports.length === 1) targetTeleport = this
-		else {
+		if (allTeleports.length === 1) {
+			targetTeleport = this
+		} else {
 			// This is a wack CC2 bug, I guess, (Props to magical and eevee from CCBBCDS for figuring it out)
 			const targetIndex =
 				(this.level.random() % (allTeleports.length - 1)) %
 				validTeleports.length
-			validTeleports = [
-				...validTeleports.slice(targetIndex + 1),
-				...validTeleports.slice(0, targetIndex + 1),
-			]
-			other.direction = this.level.random() % 4
-			mainLoop: for (const teleport of validTeleports) {
-				for (let offset = 0; offset < 4; offset++)
+
+			const dir = this.level.random() % 4
+
+			mainLoop: for (let i = 0; i < validTeleports.length; i++) {
+				let index = i + targetIndex
+				const teleport = validTeleports[index]
+				if (teleport === this) continue
+				if (index >= validTeleports.length) break
+
+				for (let offset = 0; offset < 4; offset++) {
 					if (
 						this.level.checkCollisionFromTile(
 							other,
 							teleport.tile,
-							(other.direction + offset) % 4
+							(dir + offset) % 4
 						)
 					) {
-						other.direction += offset
-						other.direction %= 4
+						other.direction = (dir + offset) % 4
 						targetTeleport = teleport
 						break mainLoop
 					}
+				}
 			}
 		}
-		if (!targetTeleport)
-			throw new Error(
-				"This state should never happen, please report if this happens"
-			)
+		if (!targetTeleport) targetTeleport = this
 		other.oldTile = other.tile
 		other.tile = targetTeleport.tile
 		other._internalUpdateTileStates()
@@ -216,16 +209,14 @@ export class YellowTeleport extends Teleport implements Item {
 	shouldPickup = true
 	levelStarted(): void {
 		// If this is the only yellow teleport at yellow start, never pick up
-		this.shouldPickup =
-			findNextTeleport.call(this, this, false, () => true) !== this
+		this.shouldPickup = findNextTeleport.call(this, false) !== this
 	}
 	onTeleport(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
 		const newTP = findNextTeleport.call(
 			this,
-			other,
 			true,
-			(other, teleport) =>
+			teleport =>
 				!teleport.tile.hasLayer(Layer.MOVABLE) &&
 				this.level.checkCollisionFromTile(other, teleport.tile, other.direction)
 		)
