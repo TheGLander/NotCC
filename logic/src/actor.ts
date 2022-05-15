@@ -379,7 +379,8 @@ export abstract class Actor implements Wirable {
 	}
 	destroy(
 		killer?: Actor | null,
-		animType: string | null = "explosion"
+		animType: string | null = "explosion",
+		extendedAnim: boolean = false
 	): boolean {
 		if (killer && !this._internalShouldDie(killer)) return false
 		if (this.level.actors.includes(this))
@@ -405,7 +406,8 @@ export abstract class Actor implements Wirable {
 		) {
 			const anim = new actorDB[`${animType}Anim`](
 				this.level,
-				this.tile.position
+				this.tile.position,
+				extendedAnim ? "extended" : ""
 			)
 			anim.direction = this.direction
 			anim.currentMoveSpeed = this.currentMoveSpeed

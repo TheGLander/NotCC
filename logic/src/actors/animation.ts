@@ -5,13 +5,19 @@ import { LevelState } from "../level"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16
+	animationLength = 16
 	moveSpeed: number = 0
 	blockTags = ["playable"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
-	constructor(level: LevelState, position: [number, number]) {
-		super(level, position)
+	constructor(level: LevelState, position: [number, number], customData = "") {
+		super(level, position, customData)
+		if (customData === "extended") {
+			this.animationCooldown += 3
+			this.animationLength += 3
+		}
+		this.animationCooldown--
 	}
 	_internalDecide(): void {
 		this.pendingDecision = this.moveDecision = Decision.NONE

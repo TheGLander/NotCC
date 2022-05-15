@@ -279,7 +279,7 @@ export class LitTNT extends Monster {
 						: 1 + Math.sign(tile.y - this.tile.y)
 				)
 				if (
-					(!actor.exists || actor.destroy(this)) &&
+					(!actor.exists || actor.destroy(this, "explosion", true)) &&
 					actor.layer === Layer.MOVABLE
 				)
 					movableDied = true

@@ -459,7 +459,7 @@ export class Turtle extends Actor {
 	}
 	blockTags = ["melting"]
 	actorLeft(): void {
-		this.destroy(null, "splash")
+		this.destroy(null, "splash", true)
 		new Water(this.level, this.tile.position)
 	}
 }
