@@ -472,9 +472,10 @@ export function createLevelFromData(data: LevelData): LevelState {
 				const actorInstance: Actor = new actorDB[actor[0]](
 					level,
 					[x, y],
-					actor[2]
+					actor[2],
+					actor[1]
 				)
-				if (actor[1]) actorInstance.direction = actor[1]
+
 				if (actor[3]) {
 					actorInstance.wires = actor[3] & 0x0f
 					actorInstance.wireTunnels = actor[3] & 0xf0

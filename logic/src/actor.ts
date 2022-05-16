@@ -126,7 +126,6 @@ export abstract class Actor implements Wirable {
 	 */
 	moveSpeed = 4
 	tile: Tile
-	direction = Direction.UP
 	inventory: Inventory = {
 		items: [],
 		keys: {},
@@ -151,7 +150,8 @@ export abstract class Actor implements Wirable {
 	constructor(
 		public level: LevelState,
 		position: [number, number],
-		public customData = ""
+		public customData = "",
+		public direction: Direction = Direction.UP
 	) {
 		this.layer = this.getLayer()
 		level.actors.unshift(this)

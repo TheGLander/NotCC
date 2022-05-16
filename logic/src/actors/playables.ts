@@ -32,8 +32,13 @@ export abstract class Playable extends Actor {
 	}
 	pushTags = ["block"]
 	hasOverride = false
-	constructor(level: LevelState, position: [number, number]) {
-		super(level, position)
+	constructor(
+		level: LevelState,
+		position: [number, number],
+		customData?: string,
+		direction?: Direction
+	) {
+		super(level, position, customData, direction)
 		level.playables.unshift(this)
 		if (!this.level.selectedPlayable) this.level.selectedPlayable = this
 	}

@@ -158,7 +158,7 @@ export type cc2TileNames =
 	| "orGate"
 	| "xorGate"
 	| "latchGate"
-	| "countGate"
+	| "counterGate"
 	| "nandGate"
 	| "latchGateMirror"
 	| "combinationTile"
@@ -167,4 +167,4 @@ export type cc2TileNames =
 	| null
 export type cc2Tile = [cc2TileNames, Direction?, string?, number?]
 
-export default (cc2Tiles as unknown) as cc2Tile[][]
+export default cc2Tiles as unknown as cc2Tile[][]

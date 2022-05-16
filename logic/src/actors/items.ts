@@ -5,6 +5,7 @@ import { LevelState } from "../level"
 import { Playable } from "./playables"
 import { LitTNT, RollingBowlingBall } from "./monsters"
 import { Explosion } from "./animation"
+import { Direction } from "../helpers"
 
 export const enum ItemDestination {
 	NONE,
@@ -78,8 +79,13 @@ export class EChipPlus extends Item {
 	hasItemMod(): boolean {
 		return false
 	}
-	constructor(level: LevelState, position: [number, number]) {
-		super(level, position)
+	constructor(
+		level: LevelState,
+		position: [number, number],
+		customData?: string,
+		direction?: Direction
+	) {
+		super(level, position, customData, direction)
 		level.chipsTotal++
 	}
 	shouldBePickedUp(other: Actor): boolean {
@@ -95,8 +101,13 @@ actorDB["echipPlus"] = EChipPlus
 export class EChip extends EChipPlus {
 	id = "echip"
 
-	constructor(level: LevelState, position: [number, number]) {
-		super(level, position)
+	constructor(
+		level: LevelState,
+		position: [number, number],
+		customData?: string,
+		direction?: Direction
+	) {
+		super(level, position, customData, direction)
 		level.chipsLeft++
 		level.chipsRequired++
 	}
@@ -382,13 +393,15 @@ actorDB["bootSpeed"] = SpeedBoots
 export class LightningBolt extends Item {
 	id = "lightningBolt"
 	onCarrierJoin(carrier: Actor): void {
-		if (carrier.oldTile) carrier.oldTile.poweringWires = 0
+		if (carrier.oldTile && !carrier.oldTile.hasLayer(Layer.STATIONARY))
+			carrier.oldTile.poweringWires = 0
 	}
 	onCarrierCompleteJoin(carrier: Actor): void {
-		carrier.tile.poweringWires = carrier.tile.wires
+		if (!carrier.tile.hasLayer(Layer.STATIONARY))
+			carrier.tile.poweringWires = carrier.tile.wires
 	}
 	onDrop(carrier: Actor): void {
-		carrier.tile.poweringWires = 0
+		if (!carrier.tile.hasLayer(Layer.STATIONARY)) carrier.tile.poweringWires = 0
 	}
 }
 

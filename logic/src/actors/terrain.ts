@@ -11,7 +11,7 @@ import {
 	onLevelDecisionTick,
 } from "../level"
 import { Direction, hasOwnProperty } from "../helpers"
-import { isWired } from "../wires"
+import { isWired, WireOverlapMode, Wires } from "../wires"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
@@ -260,8 +260,13 @@ actorDB["echipGate"] = EChipGate
 export class Hint extends Actor {
 	id = "hint"
 	hint?: string
-	constructor(level: LevelState, position: [number, number]) {
-		super(level, position)
+	constructor(
+		level: LevelState,
+		position: [number, number],
+		customData?: string,
+		direction?: Direction
+	) {
+		super(level, position, customData, direction)
 		if (this.level.hintsLeft.length > 0)
 			this.hint = this.level.hintsLeft.shift()
 		else this.hint = this.level.defaultHint
@@ -472,9 +477,10 @@ export class GreenBomb extends Actor {
 	constructor(
 		level: LevelState,
 		position: [number, number],
-		customData?: string
+		customData?: string,
+		direction?: Direction
 	) {
-		super(level, position, customData)
+		super(level, position, customData, direction)
 		level.chipsTotal++
 		level.chipsLeft++
 		level.chipsRequired++
@@ -701,3 +707,171 @@ export class Railroad extends Actor {
 }
 
 actorDB["railroad"] = Railroad
+
+export abstract class LogicGate extends Actor {
+	immuneTags = ["tnt"]
+	getLayer(): Layer {
+		return Layer.STATIONARY
+	}
+	abstract getDefaultWires(): Wires
+	constructor(
+		level: LevelState,
+		position: [number, number],
+		customData?: string,
+		direction?: Direction
+	) {
+		super(level, position, customData, direction)
+
+		this.wires = this.getDefaultWires()
+		// Shift bits with wrap
+		this.wires =
+			((this.wires << this.direction) & 0b1111) |
+			(this.wires >> (4 - this.direction))
+	}
+	abstract processWires(wires: Wires): Wires
+	updateWires() {
+		const poweredWires =
+			((this.poweredWires << (4 - this.direction)) & 0b1111) |
+			(this.poweredWires >> this.direction)
+		this.poweringWires = this.processWires(poweredWires)
+		this.poweringWires =
+			((this.poweringWires << this.direction) & 0b1111) |
+			(this.poweringWires >> (4 - this.direction))
+	}
+	providesPower = true
+	wireOverlapMode = WireOverlapMode.NONE
+}
+
+export class NotGate extends LogicGate {
+	id = "notGate"
+	getDefaultWires(): Wires {
+		return Wires.UP | Wires.DOWN
+	}
+	processWires(wires: Wires): Wires {
+		if (!(wires & Wires.DOWN)) return Wires.UP
+		return 0
+	}
+}
+
+actorDB["notGate"] = NotGate
+
+export class AndGate extends LogicGate {
+	id = "andGate"
+	getDefaultWires(): Wires {
+		return Wires.UP | Wires.RIGHT | Wires.LEFT
+	}
+	processWires(wires: Wires): Wires {
+		if ((wires & (Wires.RIGHT | Wires.LEFT)) === (Wires.RIGHT | Wires.LEFT))
+			return Wires.UP
+		return 0
+	}
+}
+
+actorDB["andGate"] = AndGate
+
+export class NandGate extends LogicGate {
+	id = "nandGate"
+	getDefaultWires(): Wires {
+		return Wires.UP | Wires.RIGHT | Wires.LEFT
+	}
+	processWires(wires: Wires): Wires {
+		if ((wires & (Wires.RIGHT | Wires.LEFT)) !== (Wires.RIGHT | Wires.LEFT))
+			return Wires.UP
+		return 0
+	}
+}
+
+actorDB["nandGate"] = NandGate
+
+export class OrGate extends LogicGate {
+	id = "orGate"
+	getDefaultWires(): Wires {
+		return Wires.UP | Wires.RIGHT | Wires.LEFT
+	}
+	processWires(wires: Wires): Wires {
+		if ((wires & (Wires.RIGHT | Wires.LEFT)) !== 0) return Wires.UP
+		return 0
+	}
+}
+
+actorDB["orGate"] = OrGate
+
+export class XorGate extends LogicGate {
+	id = "xorGate"
+	getDefaultWires(): Wires {
+		return Wires.UP | Wires.RIGHT | Wires.LEFT
+	}
+	processWires(wires: Wires): Wires {
+		if (!!(wires & Wires.RIGHT) !== !!(wires & Wires.LEFT)) return Wires.UP
+		return 0
+	}
+}
+
+actorDB["xorGate"] = XorGate
+
+export class LatchGate extends LogicGate {
+	id = "latchGate"
+	getDefaultWires(): Wires {
+		return Wires.UP | Wires.RIGHT | Wires.LEFT
+	}
+	memory = false
+	processWires(wires: Wires): Wires {
+		if (wires & Wires.RIGHT) this.memory = !!(wires & Wires.LEFT)
+		return this.memory ? Wires.UP : 0
+	}
+}
+
+actorDB["latchGate"] = LatchGate
+
+export class LatchGateMirror extends LogicGate {
+	id = "latchGateMirror"
+	getDefaultWires(): Wires {
+		return Wires.UP | Wires.RIGHT | Wires.LEFT
+	}
+	memory = false
+	processWires(wires: Wires): Wires {
+		if (wires & Wires.LEFT) this.memory = !!(wires & Wires.RIGHT)
+		return this.memory ? Wires.UP : 0
+	}
+}
+
+actorDB["latchGateMirror"] = LatchGateMirror
+
+export class CounterGate extends LogicGate {
+	id = "counterGate"
+	getDefaultWires(): Wires {
+		return Wires.UP | Wires.RIGHT | Wires.LEFT | Wires.DOWN
+	}
+	memory = parseInt(this.customData || "0")
+	underflowing = false
+	lastPowered: Wires = 0
+	// This is kinda forgettable, but
+	// Up - Underflow, Right - Increment, Down - Decrement, Left - Overflow
+	processWires(wires: Wires): Wires {
+		const nextPowered = wires
+		wires &= ~this.lastPowered
+		this.lastPowered = nextPowered
+		if (wires & (Wires.RIGHT | Wires.DOWN)) {
+			this.underflowing = false
+		}
+		if ((wires & (Wires.RIGHT | Wires.DOWN)) === (Wires.RIGHT | Wires.DOWN))
+			return 0
+		if (wires & Wires.RIGHT) {
+			this.memory++
+			if (this.memory === 10) {
+				this.memory = 0
+				return Wires.LEFT
+			}
+		}
+		if (wires & Wires.DOWN) {
+			this.memory--
+			if (this.memory === -1) {
+				this.memory = 9
+				this.underflowing = true
+			}
+		}
+		return this.underflowing ? Wires.UP : 0
+	}
+}
+
+actorDB["counterGate"] = CounterGate

@@ -1,6 +1,12 @@
 import { artDB, setArtForActor } from "../const"
-import { ActorArt, genericAnimatedArt, wiredTerrainArt } from "../visuals"
-import { Railroad, Trap } from "../logic/actors/terrain"
+import {
+	ActorArt,
+	genericAnimatedArt,
+	genericWiredTerrainArt,
+	wireBaseExtendedCornersArt,
+	wiredTerrainArt,
+} from "../visuals"
+import { Railroad, Trap, CounterGate } from "../logic/actors/terrain"
 import { Actor } from "../logic"
 
 artDB["floor"] = wiredTerrainArt("floor")
@@ -145,3 +151,38 @@ setArtForActor<Railroad>("railroad", actor => {
 		railArt.push({ actorName: "railroad", animation: "toggleMark" })
 	return [{ actorName: "gravel" }, ...railArt]
 })
+
+export const logicGateArt = (actor: Actor): ActorArt[] => [
+	{ actorName: "wire", animation: "false" },
+	...wireBaseExtendedCornersArt(
+		actor.wires,
+		actor.poweredWires,
+		actor.direction
+	),
+	{ actorName: actor.id, animation: actor.direction.toString() },
+]
+
+artDB["notGate"] =
+	artDB["andGate"] =
+	artDB["nandGate"] =
+	artDB["orGate"] =
+	artDB["xorGate"] =
+	artDB["latchGate"] =
+	artDB["latchGateMirror"] =
+		logicGateArt
+
+setArtForActor<CounterGate>("counterGate", actor => [
+	{ actorName: "wire", animation: "false" },
+	...wireBaseExtendedCornersArt(
+		actor.wires,
+		actor.poweredWires,
+		actor.direction
+	),
+	{ actorName: actor.id },
+	{
+		actorName: "counter",
+		animation: actor.memory.toString(),
+		cropSize: [0.75, 1],
+		imageOffset: [0.25 / 2, 0],
+	},
+])

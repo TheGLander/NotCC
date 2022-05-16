@@ -1,4 +1,5 @@
 import { Actor } from "./actor"
+import { Direction } from "./helpers"
 import { LevelState } from "./level"
 
 /**
@@ -9,7 +10,8 @@ export const actorDB: Record<
 	new (
 		level: LevelState,
 		position: [number, number],
-		customData?: string
+		customData?: string,
+		direction?: Direction
 	) => Actor
 > = {}
 

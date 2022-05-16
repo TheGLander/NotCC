@@ -2,6 +2,7 @@ import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { actorDB, Decision } from "../const"
 import { LevelState } from "../level"
+import { Direction } from "../helpers"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16
@@ -11,8 +12,13 @@ export abstract class Animation extends Actor {
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
-	constructor(level: LevelState, position: [number, number], customData = "") {
-		super(level, position, customData)
+	constructor(
+		level: LevelState,
+		position: [number, number],
+		customData = "",
+		direction?: Direction
+	) {
+		super(level, position, customData, direction)
 		if (customData === "extended") {
 			this.animationCooldown += 3
 			this.animationLength += 3

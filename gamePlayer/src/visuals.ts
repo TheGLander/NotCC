@@ -433,37 +433,141 @@ export const wireBaseArt = (wires: Wires, poweredWires: Wires) => {
 	const toDraw: ActorArt[] = [] // Just draw the four wire corner things
 	// Also, don't do it in a loop, don't want the JITc to unroll the loops weirdly
 	// Up
-	if (wires & 0b0001)
+	if (wires & 0b0001) {
 		toDraw.push({
 			actorName: "wire",
 			animation: poweredWires & 0b0001 ? "true" : "false",
 			cropSize: [2 * WIRE_WIDTH, 0.5 + WIRE_WIDTH],
 			imageOffset: [0.5 - WIRE_WIDTH, 0],
 		})
+	}
 	// Right
-	if (wires & 0b0010)
+	if (wires & 0b0010) {
 		toDraw.push({
 			actorName: "wire",
 			animation: poweredWires & 0b0010 ? "true" : "false",
 			cropSize: [0.5 + WIRE_WIDTH, 2 * WIRE_WIDTH],
 			imageOffset: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
 		})
+	}
 	// Down
-	if (wires & 0b0100)
+	if (wires & 0b0100) {
 		toDraw.push({
 			actorName: "wire",
 			animation: poweredWires & 0b0100 ? "true" : "false",
 			cropSize: [2 * WIRE_WIDTH, 0.5 + WIRE_WIDTH],
 			imageOffset: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
 		})
+	}
 	// Left
-	if (wires & 0b1000)
+	if (wires & 0b1000) {
 		toDraw.push({
 			actorName: "wire",
 			animation: poweredWires & 0b1000 ? "true" : "false",
 			cropSize: [0.5 + WIRE_WIDTH, 2 * WIRE_WIDTH],
 			imageOffset: [0, 0.5 - WIRE_WIDTH],
 		})
+	}
+	return toDraw
+}
+
+export const wireBaseExtendedCornersArt = (
+	wires: Wires,
+	poweredWires: Wires,
+	longerCorners: Direction
+) => {
+	const toDraw: ActorArt[] = [] // Just draw the four wire corner things
+	// Also, don't do it in a loop, don't want the JITc to unroll the loops weirdly
+	// Up
+	if (wires & 0b0001) {
+		if (longerCorners === 1 && poweredWires & 0b0001)
+			toDraw.push({
+				actorName: "wire",
+				animation: "true",
+				cropSize: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+			})
+		if (longerCorners === 3 && poweredWires & 0b0001)
+			toDraw.push({
+				actorName: "wire",
+				animation: "true",
+				cropSize: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+				imageOffset: [0.5 + WIRE_WIDTH, 0],
+			})
+		toDraw.push({
+			actorName: "wire",
+			animation: poweredWires & 0b0001 ? "true" : "false",
+			cropSize: [2 * WIRE_WIDTH, 0.5 + WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0],
+		})
+	}
+	// Right
+	if (wires & 0b0010) {
+		if (longerCorners === 0 && poweredWires & 0b0010)
+			toDraw.push({
+				actorName: "wire",
+				animation: "true",
+				cropSize: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+				imageOffset: [0.5 + WIRE_WIDTH, 0.5 + WIRE_WIDTH],
+			})
+		if (longerCorners === 2 && poweredWires & 0b0010)
+			toDraw.push({
+				actorName: "wire",
+				animation: "true",
+				cropSize: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+				imageOffset: [0.5 + WIRE_WIDTH, 0],
+			})
+		toDraw.push({
+			actorName: "wire",
+			animation: poweredWires & 0b0010 ? "true" : "false",
+			cropSize: [0.5 + WIRE_WIDTH, 2 * WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+		})
+	}
+	// Down
+	if (wires & 0b0100) {
+		if (longerCorners === 1 && poweredWires & 0b0100)
+			toDraw.push({
+				actorName: "wire",
+				animation: "true",
+				cropSize: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+				imageOffset: [0, 0.5 + WIRE_WIDTH],
+			})
+		if (longerCorners === 3 && poweredWires & 0b0100)
+			toDraw.push({
+				actorName: "wire",
+				animation: "true",
+				cropSize: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+				imageOffset: [0.5 + WIRE_WIDTH, 0.5 + WIRE_WIDTH],
+			})
+		toDraw.push({
+			actorName: "wire",
+			animation: poweredWires & 0b0100 ? "true" : "false",
+			cropSize: [2 * WIRE_WIDTH, 0.5 + WIRE_WIDTH],
+			imageOffset: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+		})
+	}
+	// Left
+	if (wires & 0b1000) {
+		if (longerCorners === 0 && poweredWires & 0b1000)
+			toDraw.push({
+				actorName: "wire",
+				animation: "true",
+				cropSize: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+				imageOffset: [0, 0.5 + WIRE_WIDTH],
+			})
+		if (longerCorners === 2 && poweredWires & 0b1000)
+			toDraw.push({
+				actorName: "wire",
+				animation: "true",
+				cropSize: [0.5 - WIRE_WIDTH, 0.5 - WIRE_WIDTH],
+			})
+		toDraw.push({
+			actorName: "wire",
+			animation: poweredWires & 0b1000 ? "true" : "false",
+			cropSize: [0.5 + WIRE_WIDTH, 2 * WIRE_WIDTH],
+			imageOffset: [0, 0.5 - WIRE_WIDTH],
+		})
+	}
 	return toDraw
 }
 

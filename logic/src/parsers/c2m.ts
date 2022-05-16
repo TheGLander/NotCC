@@ -132,13 +132,13 @@ function createFieldFromArrayBuffer(
 											"latchGate",
 											"nandGate",
 										] as const
-									)[(4 & ~0x3) / 0x4]
-									modTiles[0][1] = 4 & 0x3
+									)[(options & ~0b11) >> 2]
+									modTiles[0][1] = options & 0x3
 								} else if (options >= 0x40 && options < 0x44) {
 									modTiles[0][0] = "latchGateMirror"
 									modTiles[0][1] = options - 0x40
 								} else if (options >= 0x1e && options <= 0x27) {
-									modTiles[0][0] = "countGate"
+									modTiles[0][0] = "counterGate"
 									modTiles[0][2] = (options - 0x1e).toString()
 								} else if (options >= 0x18 && options <= 0x1d)
 									modTiles[0][0] = "combinationTile"
