@@ -114,8 +114,6 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 			circuit.population.set(wirable, registeredWires | direction)
 		else circuit.population.set(wirable, direction)
 		if (!(wirable.wires & direction)) continue
-		if (wirable.wireTunnels & direction) {
-		}
 		let thisTile: Tile
 		if (wirable instanceof Actor) thisTile = wirable.tile
 		else if (wirable instanceof Tile) thisTile = wirable
@@ -126,7 +124,9 @@ function traceCircuit(base: Wirable, direction: Direction): CircuitCity {
 		else {
 			const neigh = thisTile.getNeighbor(wireToDir(direction))
 			if (neigh) newWirable = getTileWirable(neigh)
-			else newWirable = null
+			else continue
+			const entraceWire = dirToWire((wireToDir(direction) + 2) % 4)
+			if (newWirable.wireTunnels & entraceWire) continue
 		}
 		const entraceWire = dirToWire((wireToDir(direction) + 2) % 4)
 		if (!newWirable) continue

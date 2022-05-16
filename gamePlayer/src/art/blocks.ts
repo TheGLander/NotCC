@@ -17,7 +17,7 @@ artDB["dirtBlock"] = actor => ({
 		actor.level.selectedPlayable
 			?.getCompleteTags("tags")
 			.includes("can-see-secrets") &&
-		layersToSearch.some(val => actor.tile.hasLayer(val))
+		(!!actor.tile.wires || layersToSearch.some(val => actor.tile.hasLayer(val)))
 			? "seeThrough"
 			: "default",
 })
@@ -28,7 +28,7 @@ artDB["iceBlock"] = actor => ({
 		actor.level.selectedPlayable
 			?.getCompleteTags("tags")
 			.includes("can-see-secrets") &&
-		layersToSearch.some(val => actor.tile.hasLayer(val))
+		(!!actor.tile.wires || layersToSearch.some(val => actor.tile.hasLayer(val)))
 			? "seeThrough"
 			: "default",
 })
