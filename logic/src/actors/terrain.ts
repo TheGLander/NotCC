@@ -292,7 +292,8 @@ export class Fire extends Actor {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		other.destroy(this)
+		if (!other.getCompleteTags("tags").includes("meltable-block"))
+			other.destroy(this)
 	}
 }
 

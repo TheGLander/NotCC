@@ -397,6 +397,15 @@ export abstract class Actor implements Wirable {
 					1
 				)
 		}
+		if (this.level.circuitInputs.includes(this)) {
+			this.level.circuitInputs.splice(this.level.circuitInputs.indexOf(this), 1)
+		}
+		if (this.level.circuitOutputs.includes(this)) {
+			this.level.circuitOutputs.splice(
+				this.level.circuitOutputs.indexOf(this),
+				1
+			)
+		}
 		this.tile.removeActors(this)
 		this.exists = false
 		if (

@@ -51,7 +51,7 @@ export class IceBlock extends Actor {
 		"meltable-block",
 		"reverse-on-railroad",
 	]
-	ignoreTags = ["water", "melting"]
+	ignoreTags = ["water"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}

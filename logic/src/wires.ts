@@ -194,7 +194,12 @@ export function buildCircuits(this: LevelState): void {
 export function wireTick(this: LevelState) {
 	if (!this.circuits.length) return
 	// Step 1. Let all inputs calcuate output
-	for (const actor of this.circuitInputs) actor.updateWires?.()
+	for (const actor of Array.from(this.circuitInputs)) {
+		if (!actor.exists) {
+			this.circuitInputs.splice(this.circuitInputs.indexOf(actor), 1)
+		}
+		actor.updateWires?.()
+	}
 	// Also, save all wire states, for pulse detection
 	const wasPowered = new Map<Wirable, boolean>()
 	for (const output of this.circuitOutputs)

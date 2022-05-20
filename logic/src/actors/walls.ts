@@ -18,7 +18,6 @@ export class Wall extends Actor {
 
 actorDB["wall"] = Wall
 
-// TODO Ghost blockage
 export class SteelWall extends Actor {
 	id = "steelWall"
 	tags = ["blocks-ghost"]
@@ -81,13 +80,23 @@ const shortDirNames = ["u", "r", "d", "l"]
 
 export class ThinWall extends Actor {
 	id = "thinWall"
-	tags = ["thinWall"].concat(this.customData.includes("c") ? ["canopy"] : [])
+	tags = ["thinWall"].concat(
+		this.customData.includes("c") ? ["canopy", "blocks-tnt"] : []
+	)
 	allowedDirections = Array.from(this.customData)
 		.map(val =>
 			shortDirNames.includes(val) ? 2 ** shortDirNames.indexOf(val) : 0
 		)
 		.reduce((acc, val) => acc + val, 0)
-
+	shouldDie(): boolean {
+		if (this.tags.includes("canopy")) {
+			// Remove all traces of the canopy
+			this.tags = ["thinWall"]
+			this.customData = this.customData.split("c").join("")
+			return false
+		}
+		return true
+	}
 	getLayer(): Layer {
 		return Layer.SPECIAL
 	}

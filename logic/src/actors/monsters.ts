@@ -270,6 +270,10 @@ export class LitTNT extends Monster {
 		let movableDied = false
 		// TODO Canopies
 		if (tileHadMovable) protectedLayer = Layer.STATIONARY + 1 // Protect stationary only
+		const protector = iterableFind(tile.allActors, val =>
+			val.getCompleteTags("tags").includes("blocks-tnt")
+		)
+		if (protector) protectedLayer = protector.layer
 		for (const actor of Array.from(tile.allActorsReverse))
 			if (actor.layer >= protectedLayer) {
 				actor.bumped?.(
@@ -279,7 +283,14 @@ export class LitTNT extends Monster {
 						: 1 + Math.sign(tile.y - this.tile.y)
 				)
 				if (
-					(!actor.exists || actor.destroy(this, "explosion", true)) &&
+					(!actor.exists ||
+						actor.destroy(
+							this,
+							actor.layer === Layer.STATIONARY || actor.layer === Layer.MOVABLE
+								? "explosion"
+								: null,
+							true
+						)) &&
 					actor.layer === Layer.MOVABLE
 				)
 					movableDied = true
