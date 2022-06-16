@@ -1,7 +1,7 @@
 import { artDB, setArtForActor } from "../const"
-import { Direction } from "../logic/helpers"
-import { InvisibleWall } from "../logic/actors/walls"
-import { Layer } from "../logic/tile"
+import { Direction } from "@notcc/logic"
+import { InvisibleWall } from "@notcc/logic"
+import { Layer } from "@notcc/logic"
 import { wiredTerrainArt } from "../visuals"
 
 artDB["wall"] = { actorName: "wall" }

@@ -5,20 +5,20 @@ import {
 	createLevelFromData,
 	onLevelAfterTick,
 	onLevelStart,
-} from "./logic/level"
-import { Direction } from "./logic/helpers"
+} from "@notcc/logic"
+import { Direction } from "@notcc/logic"
 import "./base.css"
-import { parseC2M } from "./logic/parsers/c2m"
-import { actorDB, keyNameList } from "./logic/const"
-import { parseDAT } from "./logic/parsers/dat"
+import { parseC2M } from "@notcc/logic"
+import { actorDB, keyNameList } from "@notcc/logic"
+import { parseDAT } from "@notcc/logic"
 import { artDB } from "./const"
-import { parseNCCS, writeNCCS } from "./logic/parsers/nccs"
-import { tokenizeC2G, C2GRunner } from "./logic/parsers/c2g"
-import { Actor } from "./logic/actor"
-import { Item } from "./logic/actors/items"
+import { parseNCCS, writeNCCS } from "@notcc/logic"
+import { tokenizeC2G, C2GRunner } from "@notcc/logic"
+import { Actor } from "@notcc/logic"
+import { Item } from "@notcc/logic"
 import { setPlayer } from "./ui/setPlayer"
 
-import "./logic/actors"
+import "@notcc/logic"
 
 import "./visuals"
 import "./art"

@@ -2,7 +2,7 @@ import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { actorDB } from "../const"
 import { LevelState } from "../level"
-import Tile from "../tile"
+import { Tile } from "../tile"
 import { getTileWirable, WireOverlapMode } from "../wires"
 import { crossLevelData, onLevelStart } from "../level"
 

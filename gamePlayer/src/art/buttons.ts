@@ -1,5 +1,5 @@
 import { artDB } from "../const"
-import { Actor } from "../logic"
+import { Actor } from "@notcc/logic"
 import { genericWiredTerrainArt, wireBaseArt } from "../visuals"
 
 for (const color of ["green", "blue", "brown", "red", "orange", "gray"])

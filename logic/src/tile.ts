@@ -11,7 +11,7 @@ export enum Layer {
 	SPECIAL, // Thin walls, canopies, etc.
 }
 
-class Tile implements Wirable {
+export class Tile implements Wirable {
 	optimizedState: Partial<Record<Layer, Actor | Actor[]>> = {}
 	protected *getAllLayers(): IterableIterator<Actor> {
 		for (let i = 0; i <= Layer.SPECIAL; i++) yield* this.getLayer(i)
@@ -219,5 +219,3 @@ class Tile implements Wirable {
 	wireOverlapMode: WireOverlapMode = WireOverlapMode.CROSS
 	poweringWires: number = 0
 }
-
-export default Tile

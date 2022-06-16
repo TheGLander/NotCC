@@ -4,7 +4,7 @@ import { Direction, relativeToAbsolute } from "../helpers"
 import { Playable } from "./playables"
 import { actorDB, Decision } from "../const"
 import { Fire } from "./terrain"
-import Tile from "../tile"
+import { Tile } from "../tile"
 import {
 	iterableFind,
 	iterableIncludes,

@@ -1,7 +1,7 @@
 import { Direction } from "./helpers"
 import { Actor } from "./actor"
 import { LevelState } from "./level"
-import Tile, { Layer } from "./tile"
+import { Tile, Layer } from "./tile"
 import { iterableFindIndex } from "./iterableHelpers"
 
 export interface Wirable {

@@ -6,8 +6,8 @@ import {
 	wireBaseExtendedCornersArt,
 	wiredTerrainArt,
 } from "../visuals"
-import { Railroad, Trap, CounterGate } from "../logic/actors/terrain"
-import { Actor } from "../logic"
+import { Railroad, Trap, CounterGate } from "@notcc/logic"
+import { Actor } from "@notcc/logic"
 
 artDB["floor"] = wiredTerrainArt("floor")
 

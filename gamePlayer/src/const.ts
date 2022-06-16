@@ -1,5 +1,5 @@
 import { ActorArt } from "./visuals"
-import { Actor } from "./logic/actor"
+import { Actor } from "@notcc/logic"
 
 export type Falsy = false | undefined | 0 | null | ""
 

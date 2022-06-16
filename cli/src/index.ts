@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 import { verifyLevelFiles } from "./verifyLevels"
 import { errorAndExit } from "./helpers"
 import { startC2GShell } from "./c2gShell"

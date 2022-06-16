@@ -1,4 +1,4 @@
-import { parseNCCS } from "../logic"
+import { parseNCCS } from "@notcc/logic"
 import { setPlayer } from "./setPlayer"
 
 const customSolutionButton = document.querySelector<HTMLButtonElement>(

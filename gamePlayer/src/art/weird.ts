@@ -1,5 +1,5 @@
 import { artDB, setArtForActor } from "../const"
-import { CombinationTile, VoodooTile } from "../logic/actors/weird"
+import { CombinationTile, VoodooTile } from "@notcc/logic"
 
 setArtForActor<CombinationTile>("combinationTile", actor => [
 	actor.drawOnTop && {

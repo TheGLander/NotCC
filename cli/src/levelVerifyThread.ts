@@ -3,7 +3,7 @@ import {
 	crossLevelData,
 	GameState,
 	parseC2M,
-} from "../../logic"
+} from "@notcc/logic"
 import { parentPort, MessagePort } from "worker_threads"
 import fs from "fs"
 import { WorkerMessage } from "./verifyLevels"

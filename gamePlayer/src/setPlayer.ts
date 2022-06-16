@@ -1,6 +1,6 @@
 import { PulseManager } from "./pulse"
-import { LevelSetData, LevelData } from "./logic/encoder"
-import { createLevelFromData } from "./logic/level"
+import { LevelSetData, LevelData } from "@notcc/logic"
+import { createLevelFromData } from "@notcc/logic"
 // TODO C2G Scripting
 
 export class SetPlayer {

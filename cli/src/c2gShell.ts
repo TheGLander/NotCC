@@ -1,4 +1,4 @@
-import { C2GRunner, tokenizeC2G, C2G_NOTCC_VERSION } from "../../logic"
+import { C2GRunner, tokenizeC2G, C2G_NOTCC_VERSION } from "@notcc/logic"
 import { errorAndExit } from "./helpers"
 import prompts from "prompts"
 const { prompt } = prompts
@@ -8,7 +8,7 @@ import chalk from "chalk"
 
 export async function startC2GShell(): Promise<void> {
 	console.log(
-		chalk`{green NotCC C2G Shell version {bold ${C2G_NOTCC_VERSION}}}`
+		chalk(`{green NotCC C2G Shell version {bold ${C2G_NOTCC_VERSION}}}`)
 	)
 	const runner = new C2GRunner(tokenizeC2G('game "NotCC shell"'))
 	runner.stepLine()

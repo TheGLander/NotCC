@@ -1,4 +1,4 @@
-import { LevelState } from "../logic"
+import { LevelState } from "@notcc/logic"
 import { PulseManager } from "../pulse"
 import { SetPlayer } from "../setPlayer"
 

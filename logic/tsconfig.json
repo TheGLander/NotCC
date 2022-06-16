@@ -2,9 +2,17 @@
 	"compilerOptions": {
 		"esModuleInterop": true,
 		"target": "ES2016",
+		"module": "CommonJS",
 		"moduleResolution": "node",
 		"resolveJsonModule": true,
 		"sourceMap": true,
-		"strict": true
-	}
+		"strict": true,
+		"outDir": "dist"
+	},
+	"buildOptions": {
+		"incremental": true
+	},
+	"include": [
+		"./src/*"
+	]
 }

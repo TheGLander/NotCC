@@ -1,5 +1,5 @@
 import { setArtForActor } from "../const"
-import { Animation as Anim } from "../logic/actors/animation"
+import { Animation as Anim } from "@notcc/logic"
 
 setArtForActor("splashAnim", (actor: Anim) => ({
 	actorName: "splash",

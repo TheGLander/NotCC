@@ -1,14 +1,14 @@
 {
-	"name": "notcc-cli",
+	"name": "@notcc/cli",
 	"version": "0.1.0",
 	"description": "A CLI for verifying NotCC solutions!",
-	"main": "./lib/index.js",
+	"main": "./dist/index.js",
 	"author": {
 		"name": "G lander"
 	},
 	"license": "MIT",
-	"private": true,
 	"dependencies": {
+		"@notcc/logic": "^0.2.0",
 		"@types/progress": "^2.0.5",
 		"chalk": "^2.4.2",
 		"progress": "^2.0.3",
@@ -22,6 +22,9 @@
 	"devDependencies": {
 		"@types/node": "^15.3.0",
 		"@types/prompts": "^2.0.12",
-		"typescript": "^4.2.4"
+		"typescript": "^4.7.3"
+	},
+	"bin": {
+		"notcc": "./dist/index.js"
 	}
 }

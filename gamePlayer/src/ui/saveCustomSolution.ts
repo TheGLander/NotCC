@@ -1,4 +1,4 @@
-import { crossLevelData, Direction, SolutionData, writeNCCS } from "../logic"
+import { crossLevelData, Direction, SolutionData, writeNCCS } from "@notcc/logic"
 import { setPlayer } from "./setPlayer"
 
 const downloadSolutionButton = document.querySelector<HTMLButtonElement>(

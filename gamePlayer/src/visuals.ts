@@ -1,13 +1,13 @@
-import { Direction } from "./logic/helpers"
-import { LevelState, crossLevelData } from "./logic/level"
+import { Direction } from "@notcc/logic"
+import { LevelState, crossLevelData } from "@notcc/logic"
 import ogData from "./cc2ImageFormat"
 import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
-import { keyNameList } from "./logic/const"
-import { Actor } from "./logic/actor"
+import { keyNameList } from "@notcc/logic"
+import { Actor } from "@notcc/logic"
 import { artDB } from "./const"
-import { Layer } from "./logic"
-import { Wirable, WireOverlapMode, Wires } from "./logic/wires"
-import Tile from "./logic/tile"
+import { Layer } from "@notcc/logic"
+import { Wirable, WireOverlapMode, Wires } from "@notcc/logic"
+import { Tile } from "@notcc/logic"
 
 function getArt(actor: Actor): ActorArt[] {
 	let art = artDB[actor.id]

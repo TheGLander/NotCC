@@ -1,6 +1,6 @@
 import { artDB, setArtForActor } from "../const"
-import { Direction } from "../logic"
-import { LitTNT, Rover } from "../logic/actors/monsters"
+import { Direction } from "@notcc/logic"
+import { LitTNT, Rover } from "@notcc/logic"
 import {
 	genericAnimatedArt,
 	genericStretchyArt,

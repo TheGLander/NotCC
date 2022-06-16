@@ -5,9 +5,9 @@ import {
 	KeyInputs,
 	decodeSolutionStep,
 	encodeSolutionStep,
-} from "./logic/level"
+} from "@notcc/logic"
 import Renderer from "./visuals"
-import { SolutionStep } from "./logic/encoder"
+import { SolutionStep } from "@notcc/logic"
 
 const isSmartTV =
 	/smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(

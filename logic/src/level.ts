@@ -1,7 +1,7 @@
 import { Actor } from "./actor"
 import { Field, Direction } from "./helpers"
 import { Playable } from "./actors/playables"
-import Tile from "./tile"
+import { Tile } from "./tile"
 import { Layer } from "./tile"
 import {
 	LevelData,

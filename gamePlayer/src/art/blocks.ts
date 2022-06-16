@@ -1,8 +1,8 @@
 import { artDB, setArtForActor } from "../const"
-import { DirectionalBlock } from "../logic/actors/blocks"
+import { DirectionalBlock } from "@notcc/logic"
 import { ActorArt } from "../visuals"
-import { Direction } from "../logic/helpers"
-import { Layer } from "../logic"
+import { Direction } from "@notcc/logic"
+import { Layer } from "@notcc/logic"
 
 const layersToSearch = [
 	Layer.ITEM,

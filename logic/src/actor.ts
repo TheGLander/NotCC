@@ -1,8 +1,7 @@
 import { LevelState, crossLevelData } from "./level"
 import { Decision, actorDB } from "./const"
 import { Direction } from "./helpers"
-import { Layer } from "./tile"
-import Tile from "./tile"
+import { Layer, Tile } from "./tile"
 import { Item, Key } from "./actors/items"
 import { CircuitCity, isWired, Wirable, WireOverlapMode, Wires } from "./wires"
 

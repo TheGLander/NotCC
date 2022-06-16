@@ -1,7 +1,7 @@
-import { CLIArguments } from "."
+import { CLIArguments } from "./index"
 import { errorAndExit } from "./helpers"
 import fs from "fs"
-import { parseC2M, parseDAT } from "../../logic"
+import { parseC2M, parseDAT } from "@notcc/logic"
 
 class DataType<T> {
 	constructor(

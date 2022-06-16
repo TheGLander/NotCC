@@ -1,20 +1,22 @@
 import { terser } from "rollup-plugin-terser"
-import typescript from "rollup-plugin-typescript2"
+import typescript from "@rollup/plugin-typescript"
 import resolve from "@rollup/plugin-node-resolve"
 import commonjs from "@rollup/plugin-commonjs"
-import nodePolyfills from "rollup-plugin-node-polyfills"
+import nodePolyfills from "rollup-plugin-polyfill-node"
 import copy from "rollup-plugin-copy"
+import sourceMaps from "rollup-plugin-sourcemaps"
 import css from "rollup-plugin-css-porter"
 
 const production = process.env.NODE_ENV === "production"
 
 const plugins = [
-	resolve({ browser: true, preferBuiltins: false }),
-	commonjs(),
-	nodePolyfills(),
 	typescript({
 		tsconfig: "./tsconfig.json",
 	}),
+	nodePolyfills(),
+	resolve({ browser: true, preferBuiltins: true }),
+	sourceMaps(),
+	commonjs(),
 	css({ minify: false }),
 	production ? terser() : undefined,
 	copy({
