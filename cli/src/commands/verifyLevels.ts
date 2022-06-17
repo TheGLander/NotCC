@@ -1,13 +1,15 @@
 import { exit } from "process"
-import { resolveLevelPath, errorAndExit } from "./helpers"
-import { CLIArguments } from "./index"
+import { resolveLevelPath } from "../helpers"
 import { MessageChannel, Worker } from "worker_threads"
-import { join, dirname } from "path"
+import { join } from "path"
 import os from "os"
-import chalk, { Chalk } from "chalk"
+import chalk from "chalk"
 import ProgressBar from "progress"
+import { ArgumentsCamelCase, Argv } from "yargs"
 
-type LevelOutcome = "success" | "no_input" | "bad_input" | "error"
+const levelOutcomes = ["success", "noInput", "badInput", "error"] as const
+
+type LevelOutcome = typeof levelOutcomes[number]
 
 interface WorkerLevelMessage {
 	levelName: string
@@ -60,23 +62,34 @@ interface WorkerData {
 
 const outcomeStyles: Record<LevelOutcome, OutcomeStyle> = {
 	success: { color: "green", desc: "Success" },
-	bad_input: { color: "red", desc: "Solution killed player", failure: true },
-	no_input: { color: "red", desc: "Ran out of input", failure: true },
+	badInput: { color: "red", desc: "Solution killed player", failure: true },
+	noInput: { color: "red", desc: "Ran out of input", failure: true },
 	error: { color: "redBright", desc: "Failed to run level" },
 }
 
-export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
-	if (!args.pos[1]) errorAndExit("Supply a level path!")
-	const files = resolveLevelPath(...args.pos.slice(1)).filter(val =>
+interface Options {
+	show?: LevelOutcome[]
+	hide?: LevelOutcome[]
+	files: string[]
+}
+
+export async function verifyLevelFiles(
+	args: ArgumentsCamelCase<Options>
+): Promise<void> {
+	const files = resolveLevelPath(...args.files).filter(val =>
 		val.toLowerCase().endsWith(".c2m")
 	)
+	let toShow: LevelOutcome[]
+	if (args.hide) toShow = levelOutcomes.filter(val => !args.hide!.includes(val))
+	else if (args.show) toShow = args.show
+	else toShow = Array.from(levelOutcomes)
 
 	const byteFiles = createByteArray(files)
 
 	const stats: Record<LevelOutcome, number> = {
-		no_input: 0,
+		noInput: 0,
 		error: 0,
-		bad_input: 0,
+		badInput: 0,
 		success: 0,
 	}
 
@@ -92,7 +105,7 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 	console.log(`Creating ${workersN} workers...`)
 	for (let i = 0; i < workersN; i++) {
 		const { port1, port2 } = new MessageChannel()
-		const worker = new Worker(join(__dirname, "./levelVerifyThread.js"))
+		const worker = new Worker(join(__dirname, "./verifyLevelsThread.js"))
 		let endWait = () => {}
 		const promise = new Promise<void>(res => {
 			endWait = res
@@ -115,8 +128,8 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 					.join("")
 			)*/
 			stats[msg.outcome]++
-			const style = outcomeStyles[msg.outcome]
-			if (!args.options["onlyError"] || style.failure) {
+			if (toShow.includes(msg.outcome)) {
+				const style = outcomeStyles[msg.outcome]
 				bar.interrupt(
 					chalk[style.color](
 						`${msg.levelName} - ${style.desc}${
@@ -140,13 +153,34 @@ export async function verifyLevelFiles(args: CLIArguments): Promise<void> {
 Levels which failed to run: ${stats.error} (${
 			(stats.error / files.length) * 100
 		}%)
-Levels whose solutions killed a player: ${stats.bad_input} (${
-			(stats.bad_input / files.length) * 100
+Levels whose solutions killed a player: ${stats.badInput} (${
+			(stats.badInput / files.length) * 100
 		}%)
-Levels whose solutions ran out: ${stats.no_input} (${
-			(stats.no_input / files.length) * 100
+Levels whose solutions ran out: ${stats.noInput} (${
+			(stats.noInput / files.length) * 100
 		}%)`
 	)
 
 	exit(files.length - stats.success)
 }
+
+export default (yargs: Argv) =>
+	yargs.command<Options>(
+		"verify <files>",
+		"Verifies that a level's solution works",
+		yargs =>
+			yargs
+				.positional("files", {
+					describe: "The files to be tested",
+					type: "string",
+					coerce: files => (files instanceof Array ? files : [files]),
+				})
+				.demandOption("files")
+				.option("show", { describe: "The result types to show" })
+				.conflicts("show", "hide")
+				.choices("show", levelOutcomes)
+				.option("hide", { describe: "The result types to hide" })
+				.choices("hide", levelOutcomes)
+				.usage("notcc verify <files>"),
+		verifyLevelFiles
+	)

@@ -1,7 +1,6 @@
-import { CLIArguments } from "./index"
-import { errorAndExit } from "./helpers"
 import fs from "fs"
 import { parseC2M, parseDAT } from "@notcc/logic"
+import { ArgumentsCamelCase, Argv } from "yargs"
 
 class DataType<T> {
 	constructor(
@@ -36,18 +35,35 @@ CC1 level set, named ${data.name}, has ${
 	}),
 ]
 
-export function statFile(args: CLIArguments): void {
-	if (!args.pos[1]) errorAndExit("Supply a file path!")
+interface Options {
+	files: string[]
+}
 
-	for (const filePath of args.pos.slice(1)) {
+export function statFile(args: ArgumentsCamelCase<Options>): void {
+	for (const filePath of args.files) {
 		// This weird uint8 loop is because node is dumb
 		const dataBuffer = new Uint8Array(fs.readFileSync(filePath, null)).buffer
 		for (const dataType of dataTypes)
 			try {
-				const data = dataType.validator(dataBuffer, filePath)
-				dataType.logger(data, filePath)
+				const data = dataType.validator(dataBuffer, filePath.toString())
+				dataType.logger(data, filePath.toString())
 				break
 				// eslint-disable-next-line no-empty
 			} catch {}
 	}
 }
+
+export default (yargs: Argv): Argv =>
+	yargs.command<Options>(
+		"stat <files>",
+		"Gets stats about a level",
+		yargs =>
+			yargs
+				.usage("Usage: $0 stat <files>")
+				.positional("files", {
+					describe: "The files to read",
+					coerce: files => (files instanceof Array ? files : [files]),
+				})
+				.demandOption("files"),
+		statFile
+	)

@@ -8,11 +8,13 @@
 	},
 	"license": "MIT",
 	"dependencies": {
+		"@glander/ph-ack": "^1.0.0",
 		"@notcc/logic": "^0.2.0",
 		"@types/progress": "^2.0.5",
 		"chalk": "^2.4.2",
 		"progress": "^2.0.3",
-		"prompts": "^2.4.1"
+		"prompts": "^2.4.1",
+		"yargs": "^17.5.1"
 	},
 	"typings": "./lib/index.d.ts",
 	"scripts": {
@@ -22,6 +24,7 @@
 	"devDependencies": {
 		"@types/node": "^15.3.0",
 		"@types/prompts": "^2.0.12",
+		"@types/yargs": "^17.0.10",
 		"typescript": "^4.7.3"
 	},
 	"bin": {

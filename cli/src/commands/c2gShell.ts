@@ -1,12 +1,12 @@
 import { C2GRunner, tokenizeC2G, C2G_NOTCC_VERSION } from "@notcc/logic"
-import { errorAndExit } from "./helpers"
+import { errorAndExit } from "../helpers"
 import prompts from "prompts"
 const { prompt } = prompts
 import fs from "fs"
 import { resolve } from "path"
 import chalk from "chalk"
-
-export async function startC2GShell(): Promise<void> {
+import { Argv } from "yargs"
+async function startC2GShell(): Promise<void> {
 	console.log(
 		chalk(`{green NotCC C2G Shell version {bold ${C2G_NOTCC_VERSION}}}`)
 	)
@@ -73,3 +73,6 @@ export async function startC2GShell(): Promise<void> {
 		console.log(latestValue)
 	}
 }
+
+export default (yargs: Argv): Argv =>
+	yargs.command("c2g", "Launches a C2G shell", startC2GShell)

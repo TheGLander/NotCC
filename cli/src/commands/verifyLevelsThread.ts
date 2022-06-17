@@ -88,8 +88,8 @@ function connectToParent(): Promise<ParentResponse> {
 					level.gameState === GameState.WON
 						? "success"
 						: level.gameState === GameState.LOST
-						? "bad_input"
-						: "no_input",
+						? "badInput"
+						: "noInput",
 			})
 		} catch (err) {
 			sendMessage({
