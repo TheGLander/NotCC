@@ -73,8 +73,12 @@ export abstract class Playable extends Actor {
 				this.level.gameInput.switchPlayable &&
 				!this.level.releasedKeys.switchPlayable
 			) {
-				this.level.playablesToSwap = true
 				this.level.releasedKeys.switchPlayable = true
+				this.level.selectedPlayable =
+					this.level.playables[
+						(this.level.playables.indexOf(this.level.selectedPlayable) + 1) %
+							this.level.playables.length
+					]
 			}
 			if (
 				this.level.gameInput.rotateInv &&

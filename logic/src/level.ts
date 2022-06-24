@@ -72,19 +72,7 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 	},
 ]
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
-export const onLevelAfterTick: ((level: LevelState) => void)[] = [
-	level => {
-		if (level.playablesToSwap && level.selectedPlayable) {
-			level.selectedPlayable =
-				level.playables[
-					(level.playables.indexOf(level.selectedPlayable) + 1) %
-						level.playables.length
-				]
-			level.playablesToSwap = false
-			level.releasedKeys.drop = level.releasedKeys.rotateInv = false
-		}
-	},
-]
+export const onLevelAfterTick: ((level: LevelState) => void)[] = []
 
 export const releasableKeys = ["drop", "rotateInv", "switchPlayable"] as const
 type ReleasableKeys = typeof releasableKeys[number]
