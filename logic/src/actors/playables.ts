@@ -105,7 +105,8 @@ export abstract class Playable extends Actor {
 		) {
 			// We are forced to move, or we *wanted* to be forced-moved
 			this.moveDecision = this.direction + 1
-			if (this.slidingState === SlidingState.WEAK) this.hasOverride = true
+			if (this.slidingState === SlidingState.WEAK && !forcedOnly)
+				this.hasOverride = true
 		} else if (!canMove || (vert === undefined && horiz === undefined)) {
 			// We don't wanna move or we can't
 		} else {
