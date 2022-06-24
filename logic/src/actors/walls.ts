@@ -52,7 +52,7 @@ function doorFactory(color: string) {
 	return class extends Actor {
 		id = `door${sentenceCaseName}`
 		tags = ["door"]
-		blockTags = ["normal-monster", "cc1-block"]
+		blockTags = ["normal-monster", "cc1block"]
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
