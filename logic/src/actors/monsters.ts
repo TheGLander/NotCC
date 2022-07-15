@@ -408,7 +408,14 @@ export class Ghost extends Monster {
 	id = "ghost"
 	tags = ["autonomous-monster", "can-pickup-items", "movable", "ghost"]
 	blockedByTags = ["blocks-ghost", "water-ish"]
-	nonIgnoredTags = ["machinery", "button", "door", "echip-gate", "jet"]
+	nonIgnoredTags = [
+		"machinery",
+		"button",
+		"door",
+		"echip-gate",
+		"jet",
+		"no-sign",
+	]
 	ignoreTags = ["bonusFlag"]
 	collisionIgnoreTags = ["door", "echip-gate"]
 	decideMovement(): Direction[] {
