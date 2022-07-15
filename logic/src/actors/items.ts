@@ -406,3 +406,11 @@ export class LightningBolt extends Item {
 }
 
 actorDB["lightningBolt"] = LightningBolt
+
+export class Hook extends Item {
+	id = "hook"
+	carrierTags = { tags: ["pulling"] }
+	destination = ItemDestination.ITEM
+}
+
+actorDB["hook"] = Hook

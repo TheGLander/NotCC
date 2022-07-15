@@ -53,7 +53,10 @@ export abstract class Playable extends Actor {
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
-
+	shouldDie(other: Actor) {
+		// Can't be killed by a block we're pulling
+		return !other.isPulled
+	}
 	_internalDecide(forcedOnly: boolean): void {
 		this.bonked = false
 		this.moveDecision = Decision.NONE

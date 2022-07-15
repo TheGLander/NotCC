@@ -363,7 +363,22 @@ export class LevelState {
 			}
 		}
 		this.resolvedCollisionCheckDirection = direction
-		// TODO Decision time hooking
+		if (actor.getCompleteTags("tags").includes("pulling")) {
+			const backTile = actor.tile.getNeighbor((direction + 2) % 4)
+			if (!backTile) return true
+			for (const pulledActor of backTile[Layer.MOVABLE]) {
+				if (pulledActor.cooldown && pulledActor.moveSpeed) return false
+				if (
+					!pushBlocks ||
+					!pulledActor.getCompleteTags("tags").includes("block") ||
+					(pulledActor.canBePushed &&
+						!pulledActor.canBePushed(actor, direction))
+				)
+					continue
+				pulledActor.pendingDecision = direction + 1
+				pulledActor.isPulled = true
+			}
+		}
 		return true
 	}
 	prngValue1 = 0

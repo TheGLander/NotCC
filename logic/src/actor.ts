@@ -58,6 +58,7 @@ export abstract class Actor implements Wirable {
 	despawned = false
 	exists = true
 	isDeciding = false
+	isPulled = false
 	createdN: number
 	newActor?: Actor
 	/**
@@ -177,6 +178,7 @@ export abstract class Actor implements Wirable {
 	_internalDecide(forcedOnly = false): void {
 		this.bonked = false
 		this.moveDecision = Decision.NONE
+		this.isPulled = false
 		if (this.cooldown) return
 		// If we have a pending decision, don't do anything, doing decisions may cause a state change, otherwise
 		if (this.pendingDecision) return
@@ -316,7 +318,6 @@ export abstract class Actor implements Wirable {
 	}
 	_internalDoCooldown(): void {
 		if (this.cooldown > 0 && this.cooldown <= 1) {
-			this.cooldown = 0
 			let thisActor: Actor = this
 			for (const actor of [...thisActor.tile.allActorsReverse]) {
 				if (actor === thisActor) continue
@@ -334,6 +335,7 @@ export abstract class Actor implements Wirable {
 				for (const item of this.inventory.items)
 					item.onCarrierCompleteJoin?.(this)
 			}
+			this.cooldown = 0
 		} else if (this.cooldown > 0) this.cooldown--
 		else if (this.exists) {
 			let thisActor: Actor = this

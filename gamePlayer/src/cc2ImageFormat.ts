@@ -514,6 +514,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 		voodooTileStart: [0, 21],
 		noMelindaSign: [5, 31],
 		noChipSign: [6, 31],
+		hook: [7, 31],
 		railroad: {
 			woodUR: [0, 30],
 			woodDR: [1, 30],
