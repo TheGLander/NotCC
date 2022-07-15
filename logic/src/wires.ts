@@ -19,6 +19,20 @@ export interface Wirable {
 	requiresFullConnect?: boolean
 }
 
+function getWireableTile(wirable: Wirable) {
+	if (wirable instanceof Actor) return wirable.tile
+	else if (wirable instanceof Tile) return wirable
+	throw new Error("")
+}
+
+const sortRRO = (level: LevelState) => (a: Wirable, b: Wirable) =>
+	-(
+		getWireableTile(a).x +
+		getWireableTile(a).y * level.width -
+		getWireableTile(b).x -
+		getWireableTile(b).y * level.width
+	)
+
 export enum Wires {
 	UP = 1,
 	RIGHT = 2,
@@ -187,6 +201,8 @@ export function buildCircuits(this: LevelState): void {
 	this.circuitOutputs = this.circuits
 		.reduce<Wirable[]>((acc, val) => acc.concat(val.outputs), [])
 		.filter((val, i, arr) => arr.indexOf(val) === i)
+		.sort(sortRRO(this))
+
 	for (const actor of this.actors) actor.wired = isWired(actor)
 }
 
