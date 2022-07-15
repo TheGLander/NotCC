@@ -342,10 +342,6 @@ export class Trap extends Actor {
 	exitBlocks(): boolean {
 		return !this.isOpen
 	}
-	actorOnTile(actor: Actor): void {
-		if (!this.isOpen && actor.layer === Layer.MOVABLE)
-			actor.slidingState = SlidingState.WEAK
-	}
 	caresButtonColors = ["brown"]
 	buttonPressed(_type: string, data?: string): void {
 		if (this.customData === "open") this.customData = ""
@@ -377,11 +373,11 @@ onLevelDecisionTick.push(level => {
 	for (const tile of level.tiles())
 		for (const trap of tile[Layer.STATIONARY]) {
 			if (!(trap instanceof Trap)) continue
-			if (!trap.circuits) continue
-			trap.isOpen = !!trap.poweredWires
-			if (trap.isOpen)
-				for (const movable of trap.tile[Layer.MOVABLE])
-					movable.slidingState = SlidingState.NONE
+			if (trap.circuits) trap.isOpen = !!trap.poweredWires
+			for (const movable of trap.tile[Layer.MOVABLE])
+				movable.slidingState = trap.isOpen
+					? SlidingState.NONE
+					: SlidingState.WEAK
 		}
 })
 
