@@ -446,6 +446,7 @@ export class LevelState {
 	circuits: CircuitCity[] = []
 	circuitInputs: Actor[] = []
 	circuitOutputs: Wirable[] = []
+	circuitOutputStates: Map<Wirable, boolean> = new Map()
 }
 
 export function createLevelFromData(data: LevelData): LevelState {

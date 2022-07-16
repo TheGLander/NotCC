@@ -202,6 +202,7 @@ export function buildCircuits(this: LevelState): void {
 		.reduce<Wirable[]>((acc, val) => acc.concat(val.outputs), [])
 		.filter((val, i, arr) => arr.indexOf(val) === i)
 		.sort(sortRRO(this))
+	this.circuitOutputStates = new Map()
 
 	for (const actor of this.actors) actor.wired = isWired(actor)
 }
@@ -209,6 +210,12 @@ export function buildCircuits(this: LevelState): void {
 // TODO Optimize this
 export function wireTick(this: LevelState) {
 	if (!this.circuits.length) return
+	// Step 3 (of last wire tick). Notify outputs for pulses/unpulses
+	for (const [output, wasPowered] of this.circuitOutputStates) {
+		if (wasPowered && !output.poweredWires && output.unpulse) output.unpulse()
+		else if (!wasPowered && output.poweredWires && output.pulse)
+			output.pulse(true)
+	}
 	// Step 1. Let all inputs calcuate output
 	for (const actor of Array.from(this.circuitInputs)) {
 		if (!actor.exists) {
@@ -217,9 +224,8 @@ export function wireTick(this: LevelState) {
 		actor.updateWires?.()
 	}
 	// Also, save all wire states, for pulse detection
-	const wasPowered = new Map<Wirable, boolean>()
 	for (const output of this.circuitOutputs)
-		wasPowered.set(output, !!output.poweredWires)
+		this.circuitOutputStates.set(output, !!output.poweredWires)
 	// Step 2. Update circuits to be powered, based on the powering population
 	for (const circuit of this.circuits) {
 		let circuitPowered = false
@@ -233,14 +239,7 @@ export function wireTick(this: LevelState) {
 			if (circuitPowered) actor[0].poweredWires |= actor[1]
 			else actor[0].poweredWires &= ~actor[1]
 	}
-	// Step 3. Notify outputs for pulses/unpulses
-	for (const output of this.circuitOutputs) {
-		output.processOutput?.()
-		if (wasPowered.get(output) && !output.poweredWires && output.unpulse)
-			output.unpulse()
-		else if (!wasPowered.get(output) && output.poweredWires && output.pulse)
-			output.pulse(true)
-	}
+	for (const output of this.circuitOutputs) output.processOutput?.()
 }
 
 export function isWired(actor: Actor): boolean {
