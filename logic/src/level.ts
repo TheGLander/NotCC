@@ -256,14 +256,16 @@ export class LevelState {
 		actor: Actor,
 		direction: Direction,
 		pushBlocks = true,
-		exitOnly = false
+		exitOnly = false,
+		pull = true
 	): boolean {
 		return this.checkCollisionFromTile(
 			actor,
 			actor.tile,
 			direction,
 			pushBlocks,
-			exitOnly
+			exitOnly,
+			pull
 		)
 	}
 	resolvedCollisionCheckDirection: Direction = Direction.UP
@@ -280,7 +282,8 @@ export class LevelState {
 		fromTile: Tile,
 		direction: Direction,
 		pushBlocks = true,
-		exitOnly = false
+		exitOnly = false,
+		pull = true
 	): boolean {
 		// This is a pass by reference-esque thing, please don't die of cring
 		this.resolvedCollisionCheckDirection = direction
@@ -363,7 +366,7 @@ export class LevelState {
 			}
 		}
 		this.resolvedCollisionCheckDirection = direction
-		if (actor.getCompleteTags("tags").includes("pulling")) {
+		if (pull && actor.getCompleteTags("tags").includes("pulling")) {
 			const backTile = actor.tile.getNeighbor((direction + 2) % 4)
 			if (!backTile) return true
 			for (const pulledActor of backTile[Layer.MOVABLE]) {

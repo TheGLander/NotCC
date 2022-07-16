@@ -69,7 +69,14 @@ export class BlueTeleport extends Teleport {
 						val => val && iterableIncludes(val.population.keys(), this)
 					)) &&
 				!teleport.tile.hasLayer(Layer.MOVABLE) &&
-				this.level.checkCollisionFromTile(other, teleport.tile, other.direction)
+				this.level.checkCollisionFromTile(
+					other,
+					teleport.tile,
+					other.direction,
+					true,
+					false,
+					false
+				)
 		).tile
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.STRONG
@@ -97,7 +104,10 @@ export class RedTeleport extends Teleport {
 						this.level.checkCollisionFromTile(
 							other,
 							teleport.tile,
-							(other.direction + offset) % 4
+							(other.direction + offset) % 4,
+							true,
+							false,
+							false
 						)
 					) {
 						other.direction += offset
@@ -171,7 +181,10 @@ export class GreenTeleport extends Teleport {
 						this.level.checkCollisionFromTile(
 							other,
 							teleport.tile,
-							(dir + offset) % 4
+							(dir + offset) % 4,
+							true,
+							false,
+							false
 						)
 					) {
 						other.direction = (dir + offset) % 4
@@ -218,7 +231,14 @@ export class YellowTeleport extends Teleport implements Item {
 			true,
 			teleport =>
 				!teleport.tile.hasLayer(Layer.MOVABLE) &&
-				this.level.checkCollisionFromTile(other, teleport.tile, other.direction)
+				this.level.checkCollisionFromTile(
+					other,
+					teleport.tile,
+					other.direction,
+					true,
+					false,
+					false
+				)
 		)
 
 		if (this.shouldPickup && newTP === this) {
