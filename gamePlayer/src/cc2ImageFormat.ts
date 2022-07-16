@@ -194,6 +194,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 				[11, 12],
 			],
 		},
+		foil: [12, 12],
 		turtle: [
 			[13, 12],
 			[15, 12],

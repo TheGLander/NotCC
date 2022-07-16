@@ -47,3 +47,5 @@ artDB["bootSpeed"] = { actorName: "boot", animation: "speed" }
 artDB["lightningBolt"] = { actorName: "lightningBolt" }
 
 artDB["hook"] = { actorName: "hook" }
+
+artDB["foil"] = { actorName: "foil" }

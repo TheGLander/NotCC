@@ -506,6 +506,7 @@ export abstract class Actor implements Wirable {
 			)
 			this.level.decidingActors.splice(decidingPos, 0, newActor)
 		}
+		this.newActor = newActor
 		return newActor
 	}
 	/**

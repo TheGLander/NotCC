@@ -7,7 +7,7 @@ import { WireOverlapMode } from "../wires"
 import { crossLevelData, onLevelAfterTick } from "../level"
 export class Wall extends Actor {
 	id = "wall"
-	tags = ["wall"]
+	tags = ["wall", "tinnable"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -163,6 +163,7 @@ export class BlueWall extends Actor {
 	}
 	bumped(other: Actor): void {
 		if (
+			this._internalIgnores(other) ||
 			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
 		)
 			return

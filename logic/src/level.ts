@@ -327,7 +327,10 @@ export class LevelState {
 			Layer.MOVABLE,
 			Layer.ITEM,
 		])
-			for (const blockActor of newTile[layer]) {
+			for (let blockActor of newTile[layer]) {
+				for (const item of actor.inventory.items)
+					item.onCarrierBump?.(actor, blockActor, direction)
+				if (blockActor.newActor) blockActor = blockActor.newActor
 				blockActor.bumped?.(actor, direction)
 				actor.bumpedActor?.(blockActor, direction, false)
 				if (blockActor._internalBlocks(actor, direction))

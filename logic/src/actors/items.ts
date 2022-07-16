@@ -6,6 +6,7 @@ import { Playable } from "./playables"
 import { LitTNT, RollingBowlingBall } from "./monsters"
 import { Explosion } from "./animation"
 import { Direction } from "../helpers"
+import { SteelWall } from "./walls"
 
 export const enum ItemDestination {
 	NONE,
@@ -74,6 +75,7 @@ export abstract class Item extends Actor {
 	shouldBePickedUp?(other: Actor): boolean
 	onCarrierCompleteJoin?(carrier: Actor): void
 	onCarrierJoin?(carrier: Actor): void
+	onCarrierBump?(carrier: Actor, bumpee: Actor, direction: Direction): void
 	canBeDropped?(carrier: Actor): boolean
 }
 
@@ -418,3 +420,13 @@ export class Hook extends Item {
 }
 
 actorDB["hook"] = Hook
+
+export class Foil extends Item {
+	id = "foil"
+	onCarrierBump(carrier: Actor, bumpee: Actor): void {
+		if (!bumpee.getCompleteTags("tags").includes("tinnable")) return
+		bumpee.replaceWith(SteelWall)
+	}
+}
+
+actorDB["foil"] = Foil
