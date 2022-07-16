@@ -42,13 +42,13 @@ export abstract class Item extends Actor {
 	getLayer(): Layer {
 		return Layer.ITEM
 	}
-	actorCompletelyJoined(other: Actor): void {
+	pickup(other: Actor): boolean {
 		if (
 			other.getCompleteTags("tags").includes("can-stand-on-items") ||
 			(this.shouldBePickedUp && !this.shouldBePickedUp(other)) ||
 			this.hasItemMod()
 		)
-			return
+			return false
 		this.destroy(other, null)
 		switch (this.destination) {
 			case ItemDestination.KEY:
@@ -64,6 +64,10 @@ export abstract class Item extends Actor {
 				break
 		}
 		this.onPickup?.(other)
+		return true
+	}
+	actorCompletelyJoined(other: Actor): void {
+		this.pickup(other)
 	}
 	onPickup?(other: Actor): void
 	onDrop?(other: Actor): void

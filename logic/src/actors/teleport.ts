@@ -205,6 +205,7 @@ export class GreenTeleport extends Teleport {
 actorDB["teleportGreen"] = GreenTeleport
 
 export class YellowTeleport extends Teleport implements Item {
+	pickup = Item.prototype.pickup
 	carrierTags?: Record<string, string[]> | undefined
 	hasItemMod(): boolean {
 		return Item.prototype.hasItemMod.call(this)
@@ -240,11 +241,12 @@ export class YellowTeleport extends Teleport implements Item {
 					false
 				)
 		)
-
-		if (this.shouldPickup && newTP === this) {
+		let shouldTP = !(this.shouldPickup && newTP === this)
+		if (!shouldTP) {
 			other.slidingState = SlidingState.NONE
-			Item.prototype.actorCompletelyJoined.call(this, other)
-		} else {
+			shouldTP = !this.pickup(other)
+		}
+		if (shouldTP) {
 			other.oldTile = other.tile
 			other.tile = newTP.tile
 			other._internalUpdateTileStates()
