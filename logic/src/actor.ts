@@ -197,7 +197,7 @@ export abstract class Actor implements Wirable {
 		if (!directions || directions.length === 0) return
 
 		for (const direction of directions)
-			if (this.level.checkCollision(this, direction, false)) {
+			if (this.level.checkCollision(this, direction, true)) {
 				// Yeah, we can go here
 				this.moveDecision = direction + 1
 				return
