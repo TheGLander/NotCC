@@ -316,26 +316,29 @@ export abstract class Actor implements Wirable {
 						))))
 		)
 	}
+	enterTile(noOnTile = false): void {
+		let thisActor: Actor = this
+		for (const actor of [...thisActor.tile.allActorsReverse]) {
+			if (actor === thisActor) continue
+			const notIgnores = !thisActor._internalIgnores(actor)
+
+			if (notIgnores && actor.actorCompletelyJoined)
+				actor.actorCompletelyJoined(thisActor)
+			if (!noOnTile && notIgnores && actor.actorOnTile) {
+				actor.actorOnTile(thisActor)
+			}
+			if (actor.newActor) thisActor = actor.newActor
+		}
+		if (this.exists) {
+			this.newTileCompletelyJoined?.()
+			for (const item of this.inventory.items)
+				item.onCarrierCompleteJoin?.(this)
+		}
+		this.cooldown = 0
+	}
 	_internalDoCooldown(): void {
 		if (this.cooldown > 0 && this.cooldown <= 1) {
-			let thisActor: Actor = this
-			for (const actor of [...thisActor.tile.allActorsReverse]) {
-				if (actor === thisActor) continue
-				const notIgnores = !thisActor._internalIgnores(actor)
-
-				if (notIgnores && actor.actorCompletelyJoined)
-					actor.actorCompletelyJoined(thisActor)
-				if (notIgnores && actor.actorOnTile) {
-					actor.actorOnTile(thisActor)
-				}
-				if (actor.newActor) thisActor = actor.newActor
-			}
-			if (this.exists) {
-				this.newTileCompletelyJoined?.()
-				for (const item of this.inventory.items)
-					item.onCarrierCompleteJoin?.(this)
-			}
-			this.cooldown = 0
+			this.enterTile()
 		} else if (this.cooldown > 0) this.cooldown--
 		else if (this.exists) {
 			let thisActor: Actor = this
