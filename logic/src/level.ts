@@ -170,13 +170,15 @@ export class LevelState {
 	timeFrozen = false
 	protected decisionTick(forcedOnly = false): void {
 		onLevelDecisionTick.forEach(val => val(this))
-		for (const actor of Array.from(this.decidingActors)) {
+		for (let actor of Array.from(this.decidingActors)) {
+			while (actor.newActor) actor = actor.newActor
 			if (!actor.exists) continue
 			actor._internalDecide(forcedOnly)
 		}
 	}
 	protected moveTick(): void {
-		for (const actor of Array.from(this.decidingActors)) {
+		for (let actor of Array.from(this.decidingActors)) {
+			while (actor.newActor) actor = actor.newActor
 			if (!actor.exists) continue
 			actor._internalMove()
 			actor._internalDoCooldown()

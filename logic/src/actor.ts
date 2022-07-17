@@ -386,6 +386,7 @@ export abstract class Actor implements Wirable {
 		if (killer && !this._internalShouldDie(killer)) return false
 		if (this.level.actors.includes(this))
 			this.level.actors.splice(this.level.actors.indexOf(this), 1)
+		const decidingPos = this.level.decidingActors.indexOf(this)
 		if (this.level.decidingActors.includes(this))
 			this.level.decidingActors.splice(
 				this.level.decidingActors.indexOf(this),
@@ -419,6 +420,13 @@ export abstract class Actor implements Wirable {
 				this.tile.position,
 				extendedAnim ? "extended" : ""
 			)
+			if (decidingPos !== -1) {
+				this.level.decidingActors.splice(
+					this.level.decidingActors.indexOf(anim),
+					1
+				)
+				this.level.decidingActors.splice(decidingPos, 0, anim)
+			}
 			anim.direction = this.direction
 			anim.currentMoveSpeed = this.currentMoveSpeed
 			anim.cooldown = this.cooldown
@@ -493,10 +501,14 @@ export abstract class Actor implements Wirable {
 	 * Called each subtick if anything is on this (called at cooldown time (move time))
 	 */
 	actorOnTile?(other: Actor): void
-	replaceWith(other: typeof actorDB[string]): Actor {
+	replaceWith(other: typeof actorDB[string], customData?: string): Actor {
 		const decidingPos = this.level.decidingActors.indexOf(this)
 		this.destroy(null, null)
-		const newActor = new other(this.level, this.tile.position, this.customData)
+		const newActor = new other(
+			this.level,
+			this.tile.position,
+			customData ?? this.customData
+		)
 		newActor.direction = this.direction
 		newActor.inventory = this.inventory
 		if (newActor.isDeciding && decidingPos !== -1) {
