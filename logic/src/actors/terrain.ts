@@ -405,12 +405,14 @@ export class CloneMachine extends Actor {
 		this.isCloning = true
 		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
 			if (clonee._internalStep(clonee.direction)) {
-				if (!attemptToRotate) clonee.cooldown--
+				clonee.cooldown--
 			} else {
 				const ogDir = clonee.direction
 				if (attemptToRotate) {
 					for (let i = 1; i <= 3; i++)
 						if (clonee._internalStep((ogDir + i) % 4)) {
+							clonee.cooldown--
+							//a
 							break
 						}
 				}
