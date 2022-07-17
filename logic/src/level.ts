@@ -13,7 +13,14 @@ import {
 import { actorDB } from "./const"
 import { hasSteps } from "./encoder"
 import { iterableIndexOf } from "./iterableHelpers"
-import { buildCircuits, CircuitCity, isWired, Wirable, wireTick } from "./wires"
+import {
+	buildCircuits,
+	CircuitCity,
+	isWired,
+	Wirable,
+	wirePretick,
+	wireTick,
+} from "./wires"
 
 export enum GameState {
 	PLAYING,
@@ -207,6 +214,7 @@ export class LevelState {
 			}
 			if (step) this.gameInput = decodeSolutionStep(step)
 		}
+		wirePretick.apply(this)
 		this.tickStage = "decision"
 		this.decisionTick(this.subtick !== 2)
 		this.tickStage = "move"

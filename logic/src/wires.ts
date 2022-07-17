@@ -207,8 +207,7 @@ export function buildCircuits(this: LevelState): void {
 	for (const actor of this.actors) actor.wired = isWired(actor)
 }
 
-// TODO Optimize this
-export function wireTick(this: LevelState) {
+export function wirePretick(this: LevelState): void {
 	if (!this.circuits.length) return
 	// Step 3 (of last wire tick). Notify outputs for pulses/unpulses
 	for (const [output, wasPowered] of this.circuitOutputStates) {
@@ -216,6 +215,11 @@ export function wireTick(this: LevelState) {
 		else if (!wasPowered && output.poweredWires && output.pulse)
 			output.pulse(true)
 	}
+}
+
+// TODO Optimize this
+export function wireTick(this: LevelState): void {
+	if (!this.circuits.length) return
 	// Step 1. Let all inputs calcuate output
 	for (const actor of Array.from(this.circuitInputs)) {
 		if (!actor.exists) {

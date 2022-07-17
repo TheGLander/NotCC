@@ -175,7 +175,7 @@ export class ButtonPurple extends Actor {
 		return Layer.STATIONARY
 	}
 	wireOverlapMode = WireOverlapMode.NONE
-	updateWires() {
+	updateWires(): void {
 		for (const movable of this.tile[Layer.MOVABLE]) {
 			if (movable.cooldown <= 0) {
 				this.poweringWires = 0b1111
