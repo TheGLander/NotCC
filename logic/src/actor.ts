@@ -146,6 +146,7 @@ export abstract class Actor implements Wirable {
 		this.level.actors.push(itemToDrop)
 		itemToDrop._internalUpdateTileStates()
 		itemToDrop.onDrop?.(this)
+		itemToDrop.exists = true
 	}
 	constructor(
 		public level: LevelState,
