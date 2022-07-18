@@ -1,5 +1,6 @@
 import { startNewLevelSet } from "./loadLevel"
 import { unzlib, AsyncUnzlibOptions } from "fflate"
+import { toByteArray } from "base64-js"
 
 function unzlibActuallyAsync(
 	buffer: ArrayBuffer,
@@ -13,12 +14,6 @@ function unzlibActuallyAsync(
 	)
 }
 
-// Kinda like new TextEncoder().encode, but without UTF-8 in mind
-// BTW, I didn't know that ArrayConstructor.from could be used like this, thanks eevee!
-function decodeRawStringToArrayBuffer(str: string): ArrayBuffer {
-	return Uint8Array.from(str, char => char.codePointAt(0) ?? 0).buffer
-}
-
 ;(async () => {
 	let customLevelLoaded = false
 	try {
@@ -26,10 +21,10 @@ function decodeRawStringToArrayBuffer(str: string): ArrayBuffer {
 		const stringLevelData = params.get("level")
 
 		if (stringLevelData) {
-			let levelData = decodeRawStringToArrayBuffer(
+			let levelData = toByteArray(
 				// This is some weird "base64 url safe" data
-				atob(stringLevelData.replace(/_/g, "/").replace(/-/g, "+"))
-			)
+				stringLevelData.replace(/_/g, "/").replace(/-/g, "+")
+			).buffer
 			if (new Uint8Array(levelData)[0] === 0x78)
 				levelData = await unzlibActuallyAsync(levelData)
 			await startNewLevelSet(levelData, "unknown.?")

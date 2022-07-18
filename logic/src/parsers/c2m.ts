@@ -253,17 +253,21 @@ export function unpackagePackedData(buff: ArrayBuffer): ArrayBuffer {
 			const amount = length - 0x80
 			const offset = view.getUint8()
 			if (offset > newView.offset) throw new Error("Invalid compressed buffer!")
-
-			for (let copied = 0; copied < amount; ) {
-				const copyAmount = Math.min(amount - copied, offset)
-				// Go back ~~in time~~
-				newView.skipBytes(-offset - copied)
-				// Get the bytes
-				const bytes = newView.getUint8(copyAmount)
-				// Return
-				newView.skipBytes(offset - copyAmount + copied)
-				newView.pushUint8(...bytes)
-				copied += copyAmount
+			if (offset === 0) {
+				// Let's just skip these bytes, since it's all 0 anyways
+				newView.skipBytes(amount)
+			} else {
+				for (let copied = 0; copied < amount; ) {
+					const copyAmount = Math.min(amount - copied, offset)
+					// Go back ~~in time~~
+					newView.skipBytes(-offset - copied)
+					// Get the bytes
+					const bytes = newView.getUint8(copyAmount)
+					// Return
+					newView.skipBytes(offset - copyAmount + copied)
+					newView.pushUint8(...bytes)
+					copied += copyAmount
+				}
 			}
 		}
 	}
