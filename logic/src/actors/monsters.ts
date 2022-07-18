@@ -406,7 +406,13 @@ actorDB["rover"] = Rover
 
 export class Ghost extends Monster {
 	id = "ghost"
-	tags = ["autonomous-monster", "can-pickup-items", "movable", "ghost"]
+	tags = [
+		"autonomous-monster",
+		"can-pickup-items",
+		"movable",
+		"ghost",
+		"weirdly-ignores-ice",
+	]
 	blockedByTags = ["blocks-ghost", "water-ish"]
 	nonIgnoredTags = [
 		"machinery",
@@ -415,9 +421,10 @@ export class Ghost extends Monster {
 		"echip-gate",
 		"jet",
 		"no-sign",
+		"ice",
 	]
 	ignoreTags = ["bonusFlag"]
-	collisionIgnoreTags = ["door", "echip-gate"]
+	collisionIgnoreTags = ["door", "echip-gate", "ice"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]

@@ -50,7 +50,8 @@ export class Ice extends Actor {
 		other.direction %= 4
 		if (other._internalStep(other.direction)) other.cooldown--
 	}
-	speedMod(): 2 {
+	speedMod(other: Actor): 1 | 2 {
+		if (other.getCompleteTags("tags").includes("weirdly-ignores-ice")) return 1
 		return 2
 	}
 }
@@ -67,11 +68,14 @@ export class IceCorner extends Actor {
 	}
 	actorOnTile(other: Actor): void {
 		if (other.bonked) other.direction += 2
-		other.direction += (this.direction - other.direction) * 2 - 1 + 8
+		if (!other.getCompleteTags("tags").includes("weirdly-ignores-ice")) {
+			other.direction += (this.direction - other.direction) * 2 - 1 + 8
+		}
 		other.direction %= 4
 		if (other.bonked && other._internalStep(other.direction)) other.cooldown--
 	}
-	speedMod(): 2 {
+	speedMod(other: Actor): 1 | 2 {
+		if (other.getCompleteTags("tags").includes("weirdly-ignores-ice")) return 1
 		return 2
 	}
 	blocks(_other: Actor, otherMoveDirection: Direction): boolean {
