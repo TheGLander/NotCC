@@ -94,7 +94,7 @@ export class EChipPlus extends Item {
 		level.chipsTotal++
 	}
 	shouldBePickedUp(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("")
+		return other.getCompleteTags("tags").includes("real-playable")
 	}
 	onPickup(): void {
 		this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
