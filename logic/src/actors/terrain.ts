@@ -426,6 +426,9 @@ export class CloneMachine extends Actor {
 	actorOnTile(actor: Actor): void {
 		actor.slidingState = SlidingState.STRONG
 	}
+	blocks(): boolean {
+		return this.tile.hasLayer(Layer.MOVABLE)
+	}
 
 	caresButtonColors = ["red"]
 	// Cloning with rotation happens at the start of the tick (pre-wire tick), so the extra cooldown is not needed
