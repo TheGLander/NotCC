@@ -59,8 +59,9 @@ export abstract class Item extends Actor {
 				break
 			case ItemDestination.ITEM:
 				other.inventory.items.unshift(this)
-				if (other.inventory.items.length > other.inventory.itemMax)
-					other.dropItem()
+				if (other.inventory.items.length > other.inventory.itemMax) {
+					if (!other.dropItem()) other.dropItemN(0, true)
+				}
 				break
 		}
 		this.onPickup?.(other)
@@ -198,7 +199,8 @@ export class BootFire extends Item {
 		for (const actor of carrier.tile.allActors) {
 			if (
 				carrier._internalIgnores(actor, true) &&
-				actor.getCompleteTags("tags").includes("fire")
+				actor.getCompleteTags("tags").includes("fire") &&
+				actor.getCompleteTags("tags").includes("boot-removable")
 			) {
 				actor.destroy(null, null)
 			}
@@ -248,7 +250,8 @@ export class BootDirt extends Item {
 		for (const actor of carrier.tile.allActors) {
 			if (
 				carrier._internalIgnores(actor, true) &&
-				actor.getCompleteTags("tags").includes("filth")
+				actor.getCompleteTags("tags").includes("filth") &&
+				actor.getCompleteTags("tags").includes("boot-removable")
 			) {
 				actor.destroy(null, null)
 			}

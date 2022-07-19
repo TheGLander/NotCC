@@ -210,7 +210,7 @@ actorDB["water"] = Water
 
 export class Dirt extends Actor {
 	id = "dirt"
-	tags = ["filth"]
+	tags = ["filth", "boot-removable"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -304,7 +304,7 @@ actorDB["hint"] = Hint
 
 export class Fire extends Actor {
 	id = "fire"
-	tags = ["fire", "melting"]
+	tags = ["fire", "melting", "boot-removable"]
 	blockTags = ["autonomous-monster"]
 	getLayer(): Layer {
 		return Layer.STATIONARY

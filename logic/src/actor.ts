@@ -131,22 +131,26 @@ export abstract class Actor implements Wirable {
 		keys: {},
 		itemMax: 4,
 	}
-	dropItem(): void {
-		const itemToDrop = this.inventory.items[this.inventory.items.length - 1]
-		if (!itemToDrop) return
+	dropItemN(id: number, noSideEffect = false): boolean {
+		const itemToDrop = this.inventory.items[id]
+		if (!itemToDrop) return false
 		if (this.despawned)
 			alert(
 				"At this state, the game really should crash, so this is really undefined behavior"
 			)
-		if (this.tile.hasLayer(itemToDrop.layer)) return
-		if (itemToDrop.canBeDropped && !itemToDrop.canBeDropped(this)) return
-		this.inventory.items.pop()
+		if (this.tile.hasLayer(itemToDrop.layer)) return false
+		if (itemToDrop.canBeDropped && !itemToDrop.canBeDropped(this)) return false
+		this.inventory.items.splice(id, 1)
 		itemToDrop.oldTile = null
 		itemToDrop.tile = this.tile
 		this.level.actors.push(itemToDrop)
 		itemToDrop._internalUpdateTileStates()
-		itemToDrop.onDrop?.(this)
+		if (!noSideEffect) itemToDrop.onDrop?.(this)
 		itemToDrop.exists = true
+		return true
+	}
+	dropItem(): boolean {
+		return this.dropItemN(this.inventory.items.length - 1)
 	}
 	constructor(
 		public level: LevelState,
@@ -322,7 +326,7 @@ export abstract class Actor implements Wirable {
 	}
 	enterTile(noOnTile = false): void {
 		let thisActor: Actor = this
-		for (const actor of [...thisActor.tile.allActorsReverse]) {
+		for (const actor of thisActor.tile.allActorsReverse) {
 			if (actor === thisActor) continue
 			const notIgnores = !thisActor._internalIgnores(actor)
 
