@@ -1,4 +1,4 @@
-import { Actor } from "../actor"
+import { Actor, matchTags } from "../actor"
 import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
 import { actorDB, Decision } from "../const"
@@ -405,14 +405,8 @@ actorDB["rover"] = Rover
 
 export class Ghost extends Monster {
 	id = "ghost"
-	tags = [
-		"autonomous-monster",
-		"can-pickup-items",
-		"movable",
-		"ghost",
-		"weirdly-ignores-ice",
-	]
-	blockedByTags = ["blocks-ghost", "water-ish"]
+	tags = ["can-pickup-items", "movable", "ghost", "weirdly-ignores-ice"]
+	ghostBlockedByTags = ["blocks-ghost", "water-ish"]
 	nonIgnoredTags = [
 		"machinery",
 		"button",
@@ -421,22 +415,29 @@ export class Ghost extends Monster {
 		"jet",
 		"no-sign",
 		"ice",
+		"water-ish",
 	]
 	ignoreTags = ["bonusFlag"]
-	collisionIgnoreTags = ["door", "echip-gate", "ice"]
+	ghostCollisionIgnoreTags = ["door", "echip-gate", "ice"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
 	}
+	blockedBy(other: Actor): boolean {
+		if (other.tile.hasLayer(Layer.ITEM_SUFFIX)) return false
+		return matchTags(other.getCompleteTags("tags"), this.ghostBlockedByTags)
+	}
 	collisionIgnores(other: Actor): boolean {
+		if (other.tile.hasLayer(Layer.ITEM_SUFFIX)) return false
+		const otherTags = other.getCompleteTags("tags")
 		return (
-			!other
-				.getCompleteTags("tags")
-				.some(
-					val =>
-						this.blockedByTags.includes(val) ||
-						this.nonIgnoredTags.includes(val)
-				) && other.layer !== Layer.MOVABLE
+			otherTags.some(val => this.ghostCollisionIgnoreTags.includes(val)) ||
+			(!otherTags.some(
+				val =>
+					this.ghostBlockedByTags.includes(val) ||
+					this.nonIgnoredTags.includes(val)
+			) &&
+				other.layer !== Layer.MOVABLE)
 		)
 	}
 	ignores(other: Actor): boolean {
@@ -447,6 +448,15 @@ export class Ghost extends Monster {
 			other.layer !== Layer.ITEM &&
 			other.layer !== Layer.MOVABLE
 		)
+	}
+	newTileJoined(): void {
+		if (this.tile.hasLayer(Layer.ITEM_SUFFIX)) {
+			this.blockedByTags = []
+			this.collisionIgnoreTags = []
+		} else {
+			this.blockedByTags = ["blocks-ghost", "water-ish"]
+			this.collisionIgnoreTags = ["door", "echip-gate", "ice"]
+		}
 	}
 }
 

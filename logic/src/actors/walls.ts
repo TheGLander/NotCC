@@ -119,9 +119,13 @@ export class InvisibleWall extends Actor {
 	blocks(): true {
 		return true
 	}
-	bumped(other: Actor): void {
-		// TODO Dupes and rovers also mark this as visible
-		if (other instanceof Playable) this.animationLeft = 36
+	bumped(other: Actor, direction: Direction): void {
+		if (
+			this._internalCollisionIgnores(other, direction) ||
+			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+		)
+			return
+		this.animationLeft = 36
 	}
 	onEachDecision(): void {
 		if (this.animationLeft) this.animationLeft--
@@ -138,12 +142,14 @@ export class AppearingWall extends Actor {
 	blocks(): true {
 		return true
 	}
-	bumped(other: Actor): void {
-		// TODO Dupes and rovers also mark this as visible
-		if (other instanceof Playable) {
-			this.destroy(other, null)
-			new Wall(this.level, this.tile.position)
-		}
+	bumped(other: Actor, direction: Direction): void {
+		if (
+			this._internalCollisionIgnores(other, direction) ||
+			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+		)
+			return
+		this.destroy(null, null)
+		new Wall(this.level, this.tile.position)
 	}
 }
 
@@ -161,13 +167,13 @@ export class BlueWall extends Actor {
 			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
 		)
 	}
-	bumped(other: Actor): void {
+	bumped(other: Actor, direction: Direction): void {
 		if (
-			this._internalIgnores(other) ||
+			this._internalCollisionIgnores(other, direction) ||
 			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
 		)
 			return
-		this.destroy(other, null)
+		this.destroy(null, null)
 		if (this.customData === "real") new Wall(this.level, this.tile.position)
 	}
 }

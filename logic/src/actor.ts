@@ -293,18 +293,21 @@ export abstract class Actor implements Wirable {
 			(this.shouldDie && !this.shouldDie(killer))
 		)
 	}
-
+	_internalCollisionIgnores(other: Actor, direction: Direction): boolean {
+		return !!(
+			matchTags(
+				this.getCompleteTags("tags"),
+				other.getCompleteTags("collisionIgnoreTags")
+			) || other.collisionIgnores?.(this, direction)
+		)
+	}
 	_internalBlocks(other: Actor, moveDirection: Direction): boolean {
 		return (
 			// A hack for teleports, but it's not that dumb of a limitation, so maybe it's fine?
 			other !== this &&
 			// FIXME A hack for blocks, really shouldn't be a forced limitation
 			(!!(this.cooldown && this.moveSpeed) ||
-				(!matchTags(
-					this.getCompleteTags("tags"),
-					other.getCompleteTags("collisionIgnoreTags")
-				) &&
-					!other.collisionIgnores?.(this, moveDirection) &&
+				(!this._internalCollisionIgnores(other, moveDirection) &&
 					(this.blocks?.(other, moveDirection) ||
 						other.blockedBy?.(this, moveDirection) ||
 						matchTags(
