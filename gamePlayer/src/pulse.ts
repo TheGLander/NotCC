@@ -75,6 +75,7 @@ export class PulseManager {
 
 	protected countFps = stabilizeFactory()
 	protected countDelay = stabilizeFactory()
+	protected countTps = stabilizeFactory()
 	protected keyDownFunc(ev: KeyboardEvent): void {
 		const key = ev.code
 		if (!checkIfRelevant(key)) return
@@ -150,7 +151,9 @@ Bonus: ${this.level.bonusPoints}pts`
 				: ""
 		}`
 	}
+	lastTick = 0
 	tickLevel(): void {
+		setTimeout(this.tickLevel, 1000 / this.ticksPerSecond)
 		const oldTime = Date.now()
 		this.level.gameInput = this.keysPressed
 		let ticksProcessed = 0
@@ -187,16 +190,14 @@ Bonus: ${this.level.bonusPoints}pts`
 		if (delayCounter)
 			delayCounter.innerText = `Calculation delay: ${
 				Math.round(this.countDelay(Date.now() - oldTime) * 1000) / 1000
-			}ms`
+			}ms
+			TPS: ${this.countTps(1000 / (Date.now() - this.lastTick))}` //a
+		this.lastTick = Date.now()
 		/*if (
 			this.level.currentTick >= 300 &&
 			this.level.currentTick % 300 === 0 &&
 			this.level.subtick === 2
 		)
 			this.oldLevelStates.push(clone(this.level))*/
-		setTimeout(
-			this.tickLevel,
-			1000 / (this.ticksPerSecond / ticksProcessed) - (Date.now() - oldTime)
-		)
 	}
 }
