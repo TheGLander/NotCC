@@ -259,7 +259,7 @@ export class Walker extends Monster {
 actorDB["walker"] = Walker
 
 export class LitTNT extends Monster {
-	lifeLeft = 250
+	lifeLeft = 253
 	tags = ["normal-monster", "movable", "cc1block", "tnt"]
 	explosionStage: 0 | 1 | 2 | 3 = 0
 	id = "tntLit"
