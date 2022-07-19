@@ -321,7 +321,12 @@ export class ThiefTool extends Actor {
 	}
 	actorCompletelyJoined(other: Actor): void {
 		if (!(other instanceof Playable)) return
-		// TODO Bribes
+		for (const [key, item] of other.inventory.items.entries()) {
+			if (item.getCompleteTags("tags").includes("bribe")) {
+				other.inventory.items.splice(key, 1)
+				return
+			}
+		}
 		other.inventory.items = []
 		this.level.bonusPoints = Math.floor(this.level.bonusPoints / 2)
 	}
@@ -337,7 +342,12 @@ export class ThiefKey extends Actor {
 	}
 	actorCompletelyJoined(other: Actor): void {
 		if (!(other instanceof Playable)) return
-		// TODO Bribes
+		for (const [key, item] of other.inventory.items.entries()) {
+			if (item.getCompleteTags("tags").includes("bribe")) {
+				other.inventory.items.splice(key, 1)
+				return
+			}
+		}
 		other.inventory.keys = {}
 		this.level.bonusPoints = Math.floor(this.level.bonusPoints / 2)
 	}

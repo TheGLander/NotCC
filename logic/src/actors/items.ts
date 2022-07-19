@@ -430,3 +430,10 @@ export class Foil extends Item {
 }
 
 actorDB["foil"] = Foil
+
+export class Bribe extends Item {
+	id = "bribe"
+	tags = ["item", "bribe"]
+}
+
+actorDB["bribe"] = Bribe

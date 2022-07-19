@@ -337,6 +337,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 			dirt: [4, 6],
 			speed: [13, 3],
 		},
+		bribe: [12, 3],
 		canopy: {
 			default: [14, 3],
 			seeThrough: [15, 3],
@@ -637,7 +638,6 @@ const cc2ImageFormat: CC2ImageFormat = {
 		timePenalty: [15, 11],
 		timeBonus: [15, 14],
 		timeToggle: [14, 14],
-		bribe: [12, 4],
 		counter: {
 			0: [0, 3],
 			1: [0.75, 3],

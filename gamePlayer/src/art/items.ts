@@ -49,3 +49,5 @@ artDB["lightningBolt"] = { actorName: "lightningBolt" }
 artDB["hook"] = { actorName: "hook" }
 
 artDB["foil"] = { actorName: "foil" }
+
+artDB["bribe"] = { actorName: "bribe" }
