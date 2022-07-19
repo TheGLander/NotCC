@@ -566,7 +566,7 @@ actorDB["slime"] = Slime
 
 export class FlameJet extends Actor {
 	id = "flameJet"
-	tags = this.customData === "on" ? ["fire", "jet"] : ["jet"]
+	tags: string[]
 	immuneTags = ["meltable-block"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
@@ -575,7 +575,7 @@ export class FlameJet extends Actor {
 		if (this.customData === "on" && !this.tags.includes("fire"))
 			this.tags.push("fire")
 		else if (this.customData === "off" && this.tags.includes("fire"))
-			this.tags.splice(this.tags.indexOf("fire"))
+			this.tags.splice(this.tags.indexOf("fire"), 1)
 	}
 	actorOnTile(other: Actor): void {
 		if (this.customData === "on" && other.layer === Layer.MOVABLE)
@@ -588,6 +588,10 @@ export class FlameJet extends Actor {
 	}
 	buttonUnpressed = this.buttonPressed
 	pulse = this.buttonPressed
+	constructor(level: LevelState, pos: [number, number], customData?: string) {
+		super(level, pos, customData)
+		this.tags = this.customData === "on" ? ["fire", "jet"] : ["jet"]
+	}
 }
 
 actorDB["flameJet"] = FlameJet

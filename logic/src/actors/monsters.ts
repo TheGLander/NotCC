@@ -417,7 +417,7 @@ export class Ghost extends Monster {
 		"ice",
 		"water-ish",
 	]
-	ignoreTags = ["bonusFlag"]
+	ignoreTags = ["bonusFlag", "bomb"]
 	ghostCollisionIgnoreTags = ["door", "echip-gate", "ice"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
