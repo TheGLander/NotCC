@@ -103,7 +103,9 @@ export class ThinWall extends Actor {
 	blocks(_actor: Actor, otherMoveDirection: Direction): boolean {
 		return !!((2 ** ((otherMoveDirection + 2) % 4)) & this.allowedDirections)
 	}
-	exitBlocks(_actor: Actor, otherMoveDirection: Direction): boolean {
+	exitBlocks(actor: Actor, otherMoveDirection: Direction): boolean {
+		if (actor.getCompleteTags("tags").includes("ignores-exit-block"))
+			return false
 		return !!((2 ** otherMoveDirection) & this.allowedDirections)
 	}
 }

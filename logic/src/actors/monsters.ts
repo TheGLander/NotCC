@@ -405,7 +405,13 @@ actorDB["rover"] = Rover
 
 export class Ghost extends Monster {
 	id = "ghost"
-	tags = ["can-pickup-items", "movable", "ghost", "weirdly-ignores-ice"]
+	tags = [
+		"can-pickup-items",
+		"movable",
+		"ghost",
+		"weirdly-ignores-ice",
+		"ignores-exit-block",
+	]
 	ghostBlockedByTags = ["blocks-ghost", "water-ish"]
 	nonIgnoredTags = [
 		"machinery",
