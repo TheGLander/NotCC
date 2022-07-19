@@ -43,8 +43,10 @@ export class Ice extends Actor {
 	}
 	actorOnTile(other: Actor): void {
 		if (!other.bonked) return
-
 		other.slidingState = SlidingState.STRONG
+		const tags = other.getCompleteTags("tags")
+		if (tags.includes("super-weirdly-ignores-ice")) return
+
 		// Turn the other way
 		other.direction += 2
 		other.direction %= 4
@@ -67,8 +69,10 @@ export class IceCorner extends Actor {
 		other.slidingState = SlidingState.STRONG
 	}
 	actorOnTile(other: Actor): void {
+		const tags = other.getCompleteTags("tags")
+		if (tags.includes("super-weirdly-ignores-ice")) return
 		if (other.bonked) other.direction += 2
-		if (!other.getCompleteTags("tags").includes("weirdly-ignores-ice")) {
+		if (!tags.includes("weirdly-ignores-ice")) {
 			other.direction += (this.direction - other.direction) * 2 - 1 + 8
 		}
 		other.direction %= 4

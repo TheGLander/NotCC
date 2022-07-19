@@ -211,12 +211,17 @@ actorDB["bootFire"] = BootFire
 
 export class BootIce extends Item {
 	id = "bootIce"
-	carrierTags = { ignoreTags: ["ice"] }
+	carrierTags: Record<string, string[]> = { ignoreTags: ["ice"] }
 	destination = ItemDestination.ITEM
 	onPickup(other: Actor): void {
-		// Indeed, a hack, but I really don't want to ever calculate the sliding state automatically
-		if (other.slidingState === SlidingState.STRONG)
-			other.slidingState = SlidingState.NONE
+		if (other.getCompleteTags("tags").includes("weirdly-ignores-ice")) {
+			this.carrierTags = { tags: ["super-weirdly-ignores-ice"] }
+		} else {
+			this.carrierTags = { ignoreTags: ["ice"] }
+			// Indeed, a hack, but I really don't want to ever calculate the sliding state automatically
+			if (other.slidingState === SlidingState.STRONG)
+				other.slidingState = SlidingState.NONE
+		}
 		/* if (
 			other.getCompleteTags("ignoreTags").includes("ice") &&
 			!other.getCompleteTags("ignoreTags", this).includes("ice")
