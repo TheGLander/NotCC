@@ -2,7 +2,6 @@ import { Layer } from "../tile"
 import { Actor, matchTags, SlidingState } from "../actor"
 import { actorDB, keyNameList } from "../const"
 import { LevelState } from "../level"
-import { Playable } from "./playables"
 import { LitTNT, RollingBowlingBall } from "./monsters"
 import { Explosion } from "./animation"
 import { Direction } from "../helpers"
@@ -95,7 +94,7 @@ export class EChipPlus extends Item {
 		level.chipsTotal++
 	}
 	shouldBePickedUp(other: Actor): boolean {
-		return other instanceof Playable
+		return other.getCompleteTags("tags").includes("")
 	}
 	onPickup(): void {
 		this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
@@ -283,7 +282,7 @@ export class BonusFlag extends Item {
 	tags = ["bonusFlag"]
 	destination = ItemDestination.NONE
 	onPickup(carrier: Actor): void {
-		if (carrier instanceof Playable)
+		if (carrier.getCompleteTags("tags").includes("real-playable"))
 			if (this.customData.startsWith("*"))
 				this.level.bonusPoints *= parseInt(this.customData.substr(1))
 			else this.level.bonusPoints += parseInt(this.customData)
@@ -296,7 +295,7 @@ export class TNT extends Item {
 	id = "tnt"
 	destination = ItemDestination.ITEM
 	actorLeft(other: Actor): void {
-		if (!(other instanceof Playable)) return
+		if (!other.getCompleteTags("tags").includes("real-playable")) return
 		this.destroy(null, null)
 		const lit = new LitTNT(this.level, this.tile.position)
 		lit.inventory.itemMax = other.inventory.itemMax
@@ -350,7 +349,7 @@ export class TimeBonus extends Item {
 	}
 	destination = ItemDestination.NONE
 	shouldBePickedUp(other: Actor): boolean {
-		return other instanceof Playable
+		return other.getCompleteTags("tags").includes("real-playable")
 	}
 	onPickup(): void {
 		this.level.timeLeft += 60 * 10
@@ -366,7 +365,7 @@ export class TimePenalty extends Item {
 	}
 	destination = ItemDestination.NONE
 	shouldBePickedUp(other: Actor): boolean {
-		return other instanceof Playable
+		return other.getCompleteTags("tags").includes("real-playable")
 	}
 	onPickup(): void {
 		this.level.timeLeft -= 60 * 10
@@ -385,7 +384,8 @@ export class TimeToggle extends Item {
 	shouldBePickedUp(): boolean {
 		return false
 	}
-	actorCompletelyJoined(): void {
+	actorCompletelyJoined(other: Actor): void {
+		if (!other.getCompleteTags("tags").includes("playable")) return
 		this.level.timeFrozen = !this.level.timeFrozen
 	}
 }

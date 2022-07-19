@@ -1,7 +1,6 @@
 import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { Direction, relativeToAbsolute } from "../helpers"
-import { Playable } from "./playables"
 import { actorDB, Decision } from "../const"
 import { Fire } from "./terrain"
 import { Tile } from "../tile"
@@ -22,7 +21,7 @@ export abstract class Monster extends Actor {
 	bumped(other: Actor, _bumpedDirection: Direction): void {
 		// Monsters kill players which bump into
 		if (
-			other instanceof Playable &&
+			other.getCompleteTags("tags").includes("real-playable") &&
 			!this.getCompleteTags("tags")
 				.concat(other.getCompleteTags("tags"))
 				.includes("ignore-default-monster-kill")
@@ -37,7 +36,7 @@ export abstract class Monster extends Actor {
 	): void {
 		// Monsters kill players which bump into them if they can move into them
 		if (
-			other instanceof Playable &&
+			other.getCompleteTags("tags").includes("real-playable") &&
 			!this.getCompleteTags("tags")
 				.concat(other.getCompleteTags("tags"))
 				.includes("ignore-default-monster-kill")

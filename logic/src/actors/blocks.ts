@@ -1,7 +1,6 @@
 import { Actor } from "../actor"
 import { Layer } from "../tile"
 import { actorDB } from "../const"
-import { Playable } from "./playables"
 import { Water, Dirt, Ice } from "./terrain"
 import { Direction } from "../helpers"
 
@@ -18,7 +17,7 @@ export class DirtBlock extends Actor {
 	}
 	bumpedActor(other: Actor): void {
 		if (
-			other instanceof Playable &&
+			other.getCompleteTags("tags").includes("real-playable") &&
 			!this.getCompleteTags("tags")
 				.concat(other.getCompleteTags("tags"))
 				.includes("ignore-default-monster-kill")
@@ -60,7 +59,7 @@ export class IceBlock extends Actor {
 	}
 	bumpedActor(other: Actor): void {
 		if (
-			other instanceof Playable &&
+			other.getCompleteTags("tags").includes("real-playable") &&
 			!this.getCompleteTags("tags")
 				.concat(other.getCompleteTags("tags"))
 				.includes("ignore-default-monster-kill")
@@ -126,7 +125,7 @@ export class DirectionalBlock extends Actor {
 	]
 	bumpedActor(other: Actor): void {
 		if (
-			other instanceof Playable &&
+			other.getCompleteTags("tags").includes("real-playable") &&
 			!this.getCompleteTags("tags")
 				.concat(other.getCompleteTags("tags"))
 				.includes("ignore-default-monster-kill")

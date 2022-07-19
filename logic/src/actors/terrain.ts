@@ -294,7 +294,7 @@ export class Hint extends Actor {
 	}
 	actorCompletelyJoined(other: Actor): void {
 		// Sorry
-		if (other instanceof Playable && this.hint)
+		if (other === this.level.selectedPlayable && this.hint)
 			(globalThis.alert ?? console.log)(this.hint)
 	}
 	blockTags = ["normal-monster", "cc1block"]
@@ -324,7 +324,7 @@ export class ThiefTool extends Actor {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (!(other instanceof Playable)) return
+		if (!other.getCompleteTags("tags").includes("real-playable")) return
 		for (const [key, item] of other.inventory.items.entries()) {
 			if (item.getCompleteTags("tags").includes("bribe")) {
 				other.inventory.items.splice(key, 1)
@@ -345,7 +345,7 @@ export class ThiefKey extends Actor {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (!(other instanceof Playable)) return
+		if (!other.getCompleteTags("tags").includes("real-playable")) return
 		for (const [key, item] of other.inventory.items.entries()) {
 			if (item.getCompleteTags("tags").includes("bribe")) {
 				other.inventory.items.splice(key, 1)
@@ -415,7 +415,7 @@ export class CloneMachine extends Actor {
 	isCloning = false
 	tags = ["machinery"]
 	// Always block boomer actors
-	blockTags = ["cc1block", "normal-monster", "playable"]
+	blockTags = ["cc1block", "normal-monster", "real-playable"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -521,7 +521,7 @@ export class GreenBomb extends Actor {
 		if (this.customData === "bomb") {
 			other.destroy(this, null)
 			this.destroy(other)
-		} else if (other instanceof Playable) {
+		} else if (other.getCompleteTags("tags").includes("real-playable")) {
 			this.destroy(null, null)
 			this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
 		}

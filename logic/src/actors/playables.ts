@@ -25,7 +25,7 @@ export function getMovementDirections(
 }
 
 export abstract class Playable extends Actor {
-	tags = ["playable"]
+	tags = ["playable", "real-playable"]
 	// Players actually block everything, they just die if non-players bump into them
 	blocks(): true {
 		return true
@@ -161,7 +161,13 @@ export abstract class Playable extends Actor {
 }
 
 export class Chip extends Playable {
-	tags = ["playable", "chip", "can-reuse-key-green", "scares-teeth-blue"]
+	tags = [
+		"playable",
+		"real-playable",
+		"chip",
+		"can-reuse-key-green",
+		"scares-teeth-blue",
+	]
 	transmogrifierTarget = "melinda"
 	id = "chip"
 }
@@ -169,7 +175,13 @@ export class Chip extends Playable {
 actorDB["chip"] = Chip
 
 export class Melinda extends Playable {
-	tags = ["playable", "melinda", "can-reuse-key-yellow", "scares-teeth-red"]
+	tags = [
+		"playable",
+		"real-playable",
+		"melinda",
+		"can-reuse-key-yellow",
+		"scares-teeth-red",
+	]
 	transmogrifierTarget = "chip"
 	id = "melinda"
 	ignoreTags = ["ice"]
