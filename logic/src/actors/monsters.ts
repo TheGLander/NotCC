@@ -340,7 +340,7 @@ actorDB["tankYellow"] = TankYellow
 
 export class RollingBowlingBall extends Monster {
 	id = "bowlingBallRolling"
-	tags = ["can-pickup-items", "movable"]
+	tags = ["can-pickup-items", "movable", "interacts-with-closed-clone-machine"]
 	decideMovement(): [Direction] {
 		return [this.direction]
 	}

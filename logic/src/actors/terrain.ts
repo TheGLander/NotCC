@@ -426,8 +426,13 @@ export class CloneMachine extends Actor {
 	actorOnTile(actor: Actor): void {
 		actor.slidingState = SlidingState.STRONG
 	}
-	blocks(): boolean {
-		return this.tile.hasLayer(Layer.MOVABLE)
+	blocks(other: Actor): boolean {
+		return (
+			!other
+				.getCompleteTags("tags")
+				.includes("interacts-with-closed-clone-machine") &&
+			this.tile.hasLayer(Layer.MOVABLE)
+		)
 	}
 
 	caresButtonColors = ["red"]
@@ -435,6 +440,7 @@ export class CloneMachine extends Actor {
 	clone(attemptToRotate: boolean): void {
 		this.isCloning = true
 		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
+			if (clonee.cooldown) continue
 			if (clonee._internalStep(clonee.direction)) {
 				clonee.cooldown--
 			} else {
