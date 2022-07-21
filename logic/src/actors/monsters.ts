@@ -288,7 +288,9 @@ export class LitTNT extends Monster {
 							this,
 							actor.layer === Layer.STATIONARY || actor.layer === Layer.MOVABLE
 								? "explosion"
-								: null
+								: null,
+							false,
+							true
 						)) &&
 					actor.layer === Layer.MOVABLE
 				)

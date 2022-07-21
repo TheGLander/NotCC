@@ -287,9 +287,9 @@ export abstract class Actor implements Wirable {
 
 	shouldDie?(killer: Actor): boolean
 
-	_internalShouldDie(killer: Actor): boolean {
+	_internalShouldDie(killer: Actor, noItems = false): boolean {
 		return !(
-			this._internalIgnores(killer) ||
+			this._internalIgnores(killer, noItems) ||
 			matchTags(
 				killer.getCompleteTags("tags"),
 				this.getCompleteTags("immuneTags")
@@ -392,9 +392,11 @@ export abstract class Actor implements Wirable {
 	destroy(
 		killer?: Actor | null,
 		animType: string | null = "explosion",
-		extendedAnim: boolean = false
+		extendedAnim: boolean = false,
+		shouldDieNoItems = false
 	): boolean {
-		if (killer && !this._internalShouldDie(killer)) return false
+		if (killer && !this._internalShouldDie(killer, shouldDieNoItems))
+			return false
 		if (this.level.actors.includes(this))
 			this.level.actors.splice(this.level.actors.indexOf(this), 1)
 		const decidingPos = this.level.decidingActors.indexOf(this)
