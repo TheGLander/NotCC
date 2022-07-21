@@ -130,6 +130,14 @@ export abstract class Playable extends Actor {
 				else {
 					// We can move in both / none directions, crap
 					bonked = !canHoriz
+					// This can break if railroads make both directions horizontal/verticaal, so let's prioritize the lower direction??
+					if (horiz % 2 === vert % 2) {
+						if (horiz > vert) {
+							const temp = horiz
+							horiz = vert
+							vert = temp
+						}
+					}
 					// Just discovered: When both dirs are blocked, always choose horiz
 					if (!canHoriz) this.moveDecision = horiz + 1
 					else {
