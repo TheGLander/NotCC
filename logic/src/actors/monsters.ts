@@ -260,7 +260,7 @@ actorDB["walker"] = Walker
 
 export class LitTNT extends Monster {
 	lifeLeft = 253
-	tags = ["normal-monster", "movable", "cc1block", "tnt"]
+	tags = ["movable", "cc1block", "tnt"]
 	explosionStage: 0 | 1 | 2 | 3 = 0
 	id = "tntLit"
 	nukeTile(tile: Tile): void {
