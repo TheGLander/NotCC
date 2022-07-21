@@ -242,11 +242,12 @@ export class Exit extends Actor {
 	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
-			this.level.selectedPlayable =
-				this.level.playables[
-					(this.level.playables.indexOf(other) + 1) %
-						this.level.playables.length
-				]
+			if (other === this.level.selectedPlayable)
+				this.level.selectedPlayable =
+					this.level.playables[
+						(this.level.playables.indexOf(other) + 1) %
+							this.level.playables.length
+					]
 			other.destroy(this, null)
 			this.level.gameState = GameState.PLAYING
 			this.level.playablesLeft--
