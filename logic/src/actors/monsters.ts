@@ -273,6 +273,7 @@ export class LitTNT extends Monster {
 			val.getCompleteTags("tags").includes("blocks-tnt")
 		)
 		if (protector) protectedLayer = protector.layer
+		//a
 		for (const actor of Array.from(tile.allActorsReverse))
 			if (actor.layer >= protectedLayer) {
 				actor.bumped?.(
@@ -287,8 +288,7 @@ export class LitTNT extends Monster {
 							this,
 							actor.layer === Layer.STATIONARY || actor.layer === Layer.MOVABLE
 								? "explosion"
-								: null,
-							true
+								: null
 						)) &&
 					actor.layer === Layer.MOVABLE
 				)
