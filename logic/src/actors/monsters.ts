@@ -261,6 +261,7 @@ actorDB["walker"] = Walker
 export class LitTNT extends Monster {
 	lifeLeft = 253
 	tags = ["movable", "cc1block", "tnt"]
+	immuneTags: string[] = []
 	explosionStage: 0 | 1 | 2 | 3 = 0
 	id = "tntLit"
 	nukeTile(tile: Tile): void {
@@ -305,6 +306,7 @@ export class LitTNT extends Monster {
 		else this.explosionStage++
 		if (!this.explosionStage) return
 		this.tags.push("melting") // For ice blocks
+		this.immuneTags.push("bowling-ball")
 		for (const tile of this.tile.getDiamondSearch(this.explosionStage))
 			if (
 				Math.abs(tile.x - this.tile.x) < 3 &&
@@ -313,6 +315,7 @@ export class LitTNT extends Monster {
 				this.nukeTile(tile)
 		if (this.explosionStage >= 3) this.nukeTile(this.tile)
 		this.tags.pop()
+		this.immuneTags.pop()
 	}
 }
 actorDB["tntLit"] = LitTNT
@@ -342,7 +345,12 @@ actorDB["tankYellow"] = TankYellow
 
 export class RollingBowlingBall extends Monster {
 	id = "bowlingBallRolling"
-	tags = ["can-pickup-items", "movable", "interacts-with-closed-clone-machine"]
+	tags = [
+		"can-pickup-items",
+		"movable",
+		"interacts-with-closed-clone-machine",
+		"bowling-ball",
+	]
 	decideMovement(): [Direction] {
 		return [this.direction]
 	}
