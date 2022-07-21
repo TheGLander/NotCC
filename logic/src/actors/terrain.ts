@@ -176,6 +176,7 @@ export class RecessedWall extends Actor {
 	}
 	blockTags = ["cc1block", "normal-monster"]
 	actorLeft(): void {
+		if (this.tile.hasLayer(Layer.MOVABLE)) return
 		this.destroy(this, null)
 		new Wall(this.level, this.tile.position)
 	}
@@ -502,6 +503,7 @@ export class Turtle extends Actor {
 	}
 	blockTags = ["melting"]
 	actorLeft(): void {
+		if (this.tile.hasLayer(Layer.MOVABLE)) return
 		this.destroy(null, "splash", true)
 		new Water(this.level, this.tile.position)
 	}

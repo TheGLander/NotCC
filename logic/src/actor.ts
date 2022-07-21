@@ -384,7 +384,7 @@ export abstract class Actor implements Wirable {
 		this.slidingState = SlidingState.NONE
 		// Spread from and to to not have actors which create new actors instantly be interacted with
 		if (this.oldTile)
-			for (const actor of [...this.oldTile.allActors])
+			for (const actor of [...this.oldTile.allActorsReverse])
 				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
 
 		this.tile.addActors(this)
