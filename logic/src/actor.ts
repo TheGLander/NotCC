@@ -183,7 +183,6 @@ export abstract class Actor implements Wirable {
 	_internalDecide(forcedOnly = false): void {
 		this.bonked = false
 		this.moveDecision = Decision.NONE
-		this.isPulled = false
 		if (this.cooldown) return
 		// If we have a pending decision, don't do anything, doing decisions may cause a state change, otherwise
 		if (this.pendingDecision) return
@@ -246,7 +245,10 @@ export abstract class Actor implements Wirable {
 		return true
 	}
 	_internalMove(): void {
-		if (this.cooldown > 0) return
+		if (this.cooldown > 0) {
+			this.isPulled = false
+			return
+		}
 		// If the thing has a decision queued up, do it forcefully
 		// (Currently only used for blocks pushed while sliding)
 		if (this.pendingDecision) {
@@ -254,9 +256,13 @@ export abstract class Actor implements Wirable {
 			this.pendingDecision = Decision.NONE
 		}
 
-		if (!this.moveDecision) return
+		if (!this.moveDecision) {
+			this.isPulled = false
+			return
+		}
 		const ogDirection = this.moveDecision - 1
 		this._internalStep(ogDirection)
+		this.isPulled = false
 	}
 	/**
 	 * True if the last move failed

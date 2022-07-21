@@ -384,6 +384,8 @@ export class LevelState {
 			if (!backTile) return true
 			for (const pulledActor of backTile[Layer.MOVABLE]) {
 				if (pulledActor.cooldown && pulledActor.moveSpeed) return false
+				pulledActor.isPulled = true
+				//a
 				if (
 					!pushBlocks ||
 					!pulledActor.getCompleteTags("tags").includes("block") ||
@@ -392,7 +394,6 @@ export class LevelState {
 				)
 					continue
 				pulledActor.pendingDecision = direction + 1
-				pulledActor.isPulled = true
 			}
 		}
 		return true
