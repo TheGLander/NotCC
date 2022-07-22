@@ -22,8 +22,8 @@ export abstract class Animation extends Actor {
 		if (customData === "extended") {
 			this.animationCooldown += 3
 			this.animationLength += 3
+			this.animationCooldown--
 		}
-		//this.animationCooldown--
 	}
 	_internalDecide(): void {
 		this.pendingDecision = this.moveDecision = Decision.NONE
