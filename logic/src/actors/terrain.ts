@@ -42,6 +42,7 @@ export class Ice extends Actor {
 		other.slidingState = SlidingState.STRONG
 	}
 	actorOnTile(other: Actor): void {
+		if (other._internalIgnores(this)) return
 		if (!other.bonked) return
 		other.slidingState = SlidingState.STRONG
 		const tags = other.getCompleteTags("tags")
@@ -69,6 +70,7 @@ export class IceCorner extends Actor {
 		other.slidingState = SlidingState.STRONG
 	}
 	actorOnTile(other: Actor): void {
+		if (other._internalIgnores(this)) return
 		const tags = other.getCompleteTags("tags")
 		if (tags.includes("super-weirdly-ignores-ice")) return
 		if (other.bonked) other.direction += 2
@@ -110,13 +112,12 @@ export class ForceFloor extends Actor {
 	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
-		other.slidingState = SlidingState.WEAK
-		other.direction = this.direction
-		if (other.bonked) {
+		if (!other._internalIgnores(this)) {
+			other.slidingState = SlidingState.WEAK
+			other.direction = this.direction
 			if (other._internalStep(other.direction)) other.cooldown--
-			else {
-				other.enterTile(true)
-			}
+		} else {
+			if (other.bonked) other.enterTile(true)
 		}
 	}
 	speedMod(): 2 {
@@ -143,14 +144,13 @@ export class ForceFloorRandom extends Actor {
 	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
-		other.slidingState = SlidingState.WEAK
-		other.direction = crossLevelData.RFFDirection++
-		crossLevelData.RFFDirection %= 4
-		if (other.bonked) {
+		if (!other._internalIgnores(this)) {
+			other.slidingState = SlidingState.WEAK
+			other.direction = crossLevelData.RFFDirection++
+			crossLevelData.RFFDirection %= 4
 			if (other._internalStep(other.direction)) other.cooldown--
-			else {
-				other.enterTile(true)
-			}
+		} else {
+			if (other.bonked) other.enterTile(true)
 		}
 	}
 	speedMod(): 2 {
@@ -488,7 +488,7 @@ export class Bomb extends Actor {
 		return Layer.ITEM // Yes
 	}
 	actorOnTile(other: Actor): void {
-		if (other.layer !== Layer.MOVABLE) return
+		if (other.layer !== Layer.MOVABLE || other._internalIgnores(this)) return
 		other.destroy(this, null)
 		this.destroy(other)
 	}

@@ -338,7 +338,7 @@ export abstract class Actor implements Wirable {
 
 			if (notIgnores && actor.actorCompletelyJoined)
 				actor.actorCompletelyJoined(thisActor)
-			if (!noOnTile && notIgnores && actor.actorOnTile) {
+			if (!noOnTile && actor.actorOnTile) {
 				actor.actorOnTile(thisActor)
 			}
 			if (actor.newActor) thisActor = actor.newActor
@@ -357,11 +357,7 @@ export abstract class Actor implements Wirable {
 		else if (this.exists) {
 			let thisActor: Actor = this
 			for (const actor of [...this.tile.allActors])
-				if (
-					actor !== thisActor &&
-					actor.actorOnTile &&
-					!thisActor._internalIgnores(actor)
-				) {
+				if (actor !== thisActor && actor.actorOnTile) {
 					actor.actorOnTile(thisActor)
 					if (thisActor.newActor) thisActor = thisActor.newActor
 				}
