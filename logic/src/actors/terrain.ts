@@ -514,7 +514,7 @@ actorDB["turtle"] = Turtle
 
 export class GreenBomb extends Actor {
 	id = "greenBomb"
-	tags = ["bomb"]
+	tags = ["bomb"].concat(this.customData === "echip" ? ["item"] : [])
 	constructor(
 		level: LevelState,
 		position: [number, number],
