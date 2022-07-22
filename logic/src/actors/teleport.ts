@@ -4,7 +4,7 @@ import { actorDB } from "../const"
 import { Playable } from "./playables"
 import { Item, ItemDestination } from "./items"
 import { iterableFind, iterableIncludes } from "../iterableHelpers"
-import { WireOverlapMode } from "../wires"
+import { CircuitCity, WireOverlapMode } from "../wires"
 
 function findNextTeleport<T extends Teleport>(
 	this: T,
@@ -57,19 +57,24 @@ export class BlueTeleport extends Teleport {
 	}
 	onTeleport(other: Actor): void {
 		other.oldTile = other.tile
-		const isWired = !!this.circuits
+		const thisNetwork = this.circuits?.find(val => val)
+		const seenNetworks = new Set<CircuitCity>()
 		other.tile = findNextTeleport.call(
 			this,
 			true,
 			// TODO Logic gates
-			(teleport, rolledOver) =>
-				((!isWired && rolledOver) || isWired === teleport.wired) &&
-				(!isWired ||
-					!!teleport.circuits?.some(
-						val => val && iterableIncludes(val.population.keys(), this)
-					)) &&
-				!teleport.tile.hasLayer(Layer.MOVABLE) &&
-				this.level.checkCollisionFromTile(
+			(teleport, rolledOver) => {
+				const tpNetwork = teleport.circuits?.find(val => val)
+				if (thisNetwork && !tpNetwork) return false
+				if (!thisNetwork && tpNetwork && !rolledOver) {
+					seenNetworks.add(tpNetwork)
+					return false
+				}
+				if (!thisNetwork && tpNetwork && seenNetworks.has(tpNetwork))
+					return false
+				if (tpNetwork && thisNetwork && thisNetwork !== tpNetwork) return false
+				if (teleport.tile.hasLayer(Layer.MOVABLE)) return false
+				return this.level.checkCollisionFromTile(
 					other,
 					teleport.tile,
 					other.direction,
@@ -77,6 +82,7 @@ export class BlueTeleport extends Teleport {
 					false,
 					false
 				)
+			}
 		).tile
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.STRONG
