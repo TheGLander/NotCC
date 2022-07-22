@@ -115,7 +115,7 @@ export class ForceFloor extends Actor {
 		if (!other._internalIgnores(this)) {
 			other.slidingState = SlidingState.WEAK
 			other.direction = this.direction
-			if (other._internalStep(other.direction)) other.cooldown--
+			if (other.bonked && other._internalStep(other.direction)) other.cooldown--
 		} else {
 			if (other.bonked) other.enterTile(true)
 		}
@@ -148,7 +148,7 @@ export class ForceFloorRandom extends Actor {
 			other.slidingState = SlidingState.WEAK
 			other.direction = crossLevelData.RFFDirection++
 			crossLevelData.RFFDirection %= 4
-			if (other._internalStep(other.direction)) other.cooldown--
+			if (other.bonked && other._internalStep(other.direction)) other.cooldown--
 		} else {
 			if (other.bonked) other.enterTile(true)
 		}
