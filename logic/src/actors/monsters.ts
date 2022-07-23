@@ -1,6 +1,6 @@
 import { Actor, matchTags } from "../actor"
 import { Layer } from "../tile"
-import { Direction, relativeToAbsolute } from "../helpers"
+import { Direction, hasOwnProperty, relativeToAbsolute } from "../helpers"
 import { actorDB, Decision } from "../const"
 import { Fire } from "./terrain"
 import { Tile } from "../tile"
@@ -9,6 +9,7 @@ import {
 	iterableIncludes,
 	iterableSome,
 } from "../iterableHelpers"
+import { crossLevelData, onLevelAfterTick } from "../level"
 
 export abstract class Monster extends Actor {
 	blocks(): true {
@@ -183,21 +184,35 @@ actorDB["floorMimic"] = FloorMimic
 export class TankBlue extends Monster {
 	id = "tankBlue"
 	transmogrifierTarget = "tankYellow"
-	turnPending = false
+	turnPending = this.customData === "rotating"
 	decideMovement(): Direction[] {
 		if (this.turnPending) {
 			this.turnPending = false
+			this.customData = ""
 			return [(this.direction + 2) % 4]
 		}
 		return [this.direction]
 	}
-	caresButtonColors = ["blue"]
-	buttonPressed(): void {
+	rotateTank(): void {
 		this.turnPending = !this.turnPending
+		this.customData = this.turnPending ? "rotating" : ""
 	}
 }
 
 actorDB["tankBlue"] = TankBlue
+
+onLevelAfterTick.push(level => {
+	if (crossLevelData.blueButtonPressed) {
+		for (const tank of level.decidingActors) {
+			if (
+				hasOwnProperty(tank, "rotateTank") &&
+				typeof tank.rotateTank === "function"
+			)
+				tank.rotateTank()
+		}
+		crossLevelData.blueButtonPressed = false
+	}
+})
 
 export class BlobMonster extends Monster {
 	id = "blob"
@@ -325,9 +340,14 @@ export class TankYellow extends Monster {
 	tags = ["normal-monster", "movable"]
 	pushTags = ["block"]
 	transmogrifierTarget = "tankBlue"
-	movePending: Decision = Decision.NONE
+	movePending: Decision = this.customData === "rotating" ? -1 : Decision.NONE
 	decideMovement(): [] {
 		if (this.movePending) {
+			//@ts-expect-error You literally didn't check if -1 is Decision 3 lines ago, shut up
+			if (this.movePending === -1) {
+				this.movePending = this.direction + 1
+			}
+			this.customData = ""
 			if (this.level.checkCollision(this, this.movePending - 1))
 				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
 			this.direction = this.level.resolvedCollisionCheckDirection
@@ -335,13 +355,26 @@ export class TankYellow extends Monster {
 		}
 		return []
 	}
-	caresButtonColors = ["yellow"]
-	buttonPressed(_type: string, data = "0"): void {
-		this.movePending = parseInt(data) + 1
+	rotateYellowTank(data: Decision): void {
+		this.customData = "rotating"
+		this.movePending = data
 	}
 }
 
 actorDB["tankYellow"] = TankYellow
+
+onLevelAfterTick.push(level => {
+	if (crossLevelData.currentYellowButtonPress) {
+		for (const tank of level.decidingActors) {
+			if (
+				hasOwnProperty(tank, "rotateYellowTank") &&
+				typeof tank.rotateYellowTank === "function"
+			)
+				tank.rotateYellowTank(crossLevelData.currentYellowButtonPress)
+		}
+		crossLevelData.currentYellowButtonPress = Decision.NONE
+	}
+})
 
 export class RollingBowlingBall extends Monster {
 	id = "bowlingBallRolling"

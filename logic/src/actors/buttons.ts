@@ -1,6 +1,6 @@
 import { Actor } from "../actor"
 import { Layer } from "../tile"
-import { actorDB } from "../const"
+import { actorDB, Decision } from "../const"
 import { LevelState } from "../level"
 import { Tile } from "../tile"
 import { getTileWirable, WireOverlapMode } from "../wires"
@@ -64,9 +64,40 @@ onLevelStart.push(() => (crossLevelData.greenButtonPressed = false))
 
 actorDB["buttonGreen"] = ButtonGreen
 
-actorDB["buttonBlue"] = globalButtonFactory("blue")
+declare module "../level" {
+	export interface CrossLevelDataInterface {
+		blueButtonPressed: boolean
+	}
+}
+class ButtonBlue extends globalButtonFactory("blue") {
+	actorCompletelyJoined(): void {
+		super.actorCompletelyJoined()
+		crossLevelData.blueButtonPressed = !crossLevelData.blueButtonPressed
+	}
+}
+
+onLevelStart.push(() => (crossLevelData.blueButtonPressed = false))
+
+actorDB["buttonBlue"] = ButtonBlue
 
 actorDB["complexButtonYellow"] = globalComplexButtonFactory("yellow")
+declare module "../level" {
+	export interface CrossLevelDataInterface {
+		currentYellowButtonPress: Decision
+	}
+}
+class ComplexButtonYellow extends globalComplexButtonFactory("yellow") {
+	actorCompletelyJoined(other: Actor): void {
+		super.actorCompletelyJoined(other)
+		crossLevelData.currentYellowButtonPress = other.direction + 1
+	}
+}
+
+onLevelStart.push(
+	() => (crossLevelData.currentYellowButtonPress = Decision.NONE)
+)
+
+actorDB["complexButtonYellow"] = ComplexButtonYellow
 
 export function ROConnectedButtonFactory(
 	color: string,
