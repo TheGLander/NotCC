@@ -122,6 +122,7 @@ export class DirectionalBlock extends Actor {
 		"movable",
 		"can-stand-on-items",
 		"reverse-on-railroad",
+		"dies-in-slime",
 	]
 	bumpedActor(other: Actor): void {
 		if (
