@@ -49,6 +49,8 @@ export const crossLevelData: CrossLevelDataInterface = {
 	despawnedActors: [],
 	RFFDirection: 0,
 	greenButtonPressed: false,
+	blueButtonPressed: false,
+	currentYellowButtonPress: 0,
 }
 
 export const onLevelStart: ((level: LevelState) => void)[] = [
