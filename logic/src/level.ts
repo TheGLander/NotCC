@@ -10,7 +10,7 @@ import {
 	SolutionStep,
 	SolutionDataWithSteps,
 } from "./encoder"
-import { actorDB } from "./const"
+import { actorDB, Decision } from "./const"
 import { hasSteps } from "./encoder"
 import { iterableIndexOf } from "./iterableHelpers"
 import {
@@ -82,6 +82,18 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 ]
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
 export const onLevelAfterTick: ((level: LevelState) => void)[] = []
+
+onLevelAfterTick.push(level => {
+	if (!level.selectedPlayable) return
+	if (
+		(level.selectedPlayable.bonked || level.selectedPlayable.cooldown > 0) &&
+		level.subtick === 1
+	) {
+		level.selectedPlayable.lastDecision = level.selectedPlayable.direction + 1
+	} else {
+		level.selectedPlayable.lastDecision = Decision.NONE
+	}
+})
 
 export const releasableKeys = ["drop", "rotateInv", "switchPlayable"] as const
 type ReleasableKeys = typeof releasableKeys[number]

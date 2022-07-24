@@ -61,7 +61,6 @@ export abstract class Playable extends Actor {
 	_internalDecide(forcedOnly: boolean): void {
 		this.bonked = false
 		this.moveDecision = Decision.NONE
-		if (!forcedOnly) this.lastDecision = Decision.NONE
 
 		if (this.cooldown) return
 
