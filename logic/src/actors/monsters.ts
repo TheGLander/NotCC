@@ -446,6 +446,42 @@ export class Rover extends Monster {
 
 actorDB["rover"] = Rover
 
+export class MirrorChip extends Monster {
+	tags = ["can-pickup-items", "movable", "chip", "movable"]
+	id = "mirrorChip"
+	fakes = "chip"
+	transmogrifierTarget = "mirrorMelinda"
+	decideMovement(): Direction[] {
+		if (
+			!this.level.selectedPlayable ||
+			this.level.selectedPlayable.id !== this.fakes ||
+			this.level.selectedPlayable.lastDecision === 0
+		)
+			return []
+		return [this.level.selectedPlayable.lastDecision - 1]
+	}
+}
+
+actorDB["mirrorChip"] = MirrorChip
+
+export class MirrorMelinda extends Monster {
+	tags = ["can-pickup-items", "movable", "melinda", "movable"]
+	id = "mirrorMelinda"
+	fakes = "melinda"
+	transmogrifierTarget = "mirrorChip"
+	decideMovement(): Direction[] {
+		if (
+			!this.level.selectedPlayable ||
+			this.level.selectedPlayable.id !== this.fakes ||
+			this.level.selectedPlayable.lastDecision === 0
+		)
+			return []
+		return [this.level.selectedPlayable.lastDecision - 1]
+	}
+}
+
+actorDB["mirrorMelinda"] = MirrorMelinda
+
 export class Ghost extends Monster {
 	id = "ghost"
 	tags = [

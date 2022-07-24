@@ -356,6 +356,7 @@ const cc2ImageFormat: CC2ImageFormat = {
 		outlineWall: [8, 9],
 		trap: { closed: [9, 9], open: [10, 9] },
 		playerAura: [6, 6],
+		fauxAura: [7, 6],
 		button: {
 			blue: [8, 6],
 			green: [9, 6],

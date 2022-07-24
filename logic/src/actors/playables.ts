@@ -32,6 +32,7 @@ export abstract class Playable extends Actor {
 	}
 	pushTags = ["block"]
 	hasOverride = false
+	lastDecision = Decision.NONE
 	constructor(
 		level: LevelState,
 		position: [number, number],
@@ -60,6 +61,7 @@ export abstract class Playable extends Actor {
 	_internalDecide(forcedOnly: boolean): void {
 		this.bonked = false
 		this.moveDecision = Decision.NONE
+		if (!forcedOnly) this.lastDecision = Decision.NONE
 
 		if (this.cooldown) return
 
@@ -150,6 +152,7 @@ export abstract class Playable extends Actor {
 				}
 			}
 			this.hasOverride = bonked
+			this.lastDecision = this.moveDecision
 		}
 	}
 	destroy(other?: Actor | null, anim?: string | null): boolean {
