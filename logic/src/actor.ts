@@ -362,7 +362,6 @@ export abstract class Actor implements Wirable {
 					if (thisActor.newActor) thisActor = thisActor.newActor
 				}
 		}
-		this.bonked = false
 	}
 	/**
 	 * Updates tile states and calls hooks
