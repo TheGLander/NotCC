@@ -149,8 +149,9 @@ export abstract class Playable extends Actor {
 					}
 				}
 			}
+			this.hasOverride = bonked
 		}
-		this.hasOverride = bonked
+
 		this.lastDecision = this.moveDecision
 	}
 	destroy(other?: Actor | null, anim?: string | null): boolean {
