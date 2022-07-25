@@ -90,7 +90,9 @@ export class IceCorner extends Actor {
 			otherMoveDirection === (this.direction + 1) % 4
 		)
 	}
-	exitBlocks(_other: Actor, otherMoveDirection: Direction): boolean {
+	exitBlocks(other: Actor, otherMoveDirection: Direction): boolean {
+		if (other.getCompleteTags("tags").includes("weirdly-ignores-ice"))
+			return false
 		return (
 			otherMoveDirection === this.direction ||
 			otherMoveDirection === (this.direction + 1) % 4
