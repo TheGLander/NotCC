@@ -83,10 +83,13 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
 export const onLevelAfterTick: ((level: LevelState) => void)[] = []
 
-onLevelAfterTick.push(level => {
+onLevelDecisionTick.push(level => {
 	if (!level.selectedPlayable) return
-	if (level.subtick !== 1) return
-	if (level.selectedPlayable.bonked || level.selectedPlayable.cooldown > 0) {
+	if (level.subtick !== 2) return
+	if (
+		level.selectedPlayable.cooldown > 0 ||
+		level.selectedPlayable.playerBonked
+	) {
 		level.selectedPlayable.lastDecision = level.selectedPlayable.direction + 1
 	} else {
 		level.selectedPlayable.lastDecision = Decision.NONE

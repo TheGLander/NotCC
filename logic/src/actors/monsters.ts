@@ -447,7 +447,14 @@ export class Rover extends Monster {
 actorDB["rover"] = Rover
 
 export class MirrorChip extends Monster {
-	tags = ["can-pickup-items", "movable", "chip", "movable"]
+	tags = [
+		"can-pickup-items",
+		"playable",
+		"chip",
+		"movable",
+		"can-reuse-key-green",
+	]
+	pushTags = ["block"]
 	id = "mirrorChip"
 	fakes = "chip"
 	transmogrifierTarget = "mirrorMelinda"
@@ -465,7 +472,14 @@ export class MirrorChip extends Monster {
 actorDB["mirrorChip"] = MirrorChip
 
 export class MirrorMelinda extends Monster {
-	tags = ["can-pickup-items", "movable", "melinda", "movable"]
+	tags = [
+		"can-pickup-items",
+		"playable",
+		"melinda",
+		"movable",
+		"can-reuse-key-yellow",
+	]
+	pushTags = ["block"]
 	id = "mirrorMelinda"
 	fakes = "melinda"
 	transmogrifierTarget = "mirrorChip"

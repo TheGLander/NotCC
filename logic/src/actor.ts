@@ -261,7 +261,12 @@ export abstract class Actor implements Wirable {
 			return
 		}
 		const ogDirection = this.moveDecision - 1
-		this._internalStep(ogDirection)
+		const success = this._internalStep(ogDirection)
+		//@ts-expect-error This is a hack
+		if (this === this.level.selectedPlayable && !success)
+			//@ts-expect-error This is a hack
+			this.playerBonked = true
+
 		this.isPulled = false
 	}
 	/**

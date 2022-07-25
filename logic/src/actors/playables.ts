@@ -33,6 +33,7 @@ export abstract class Playable extends Actor {
 	pushTags = ["block"]
 	hasOverride = false
 	lastDecision = Decision.NONE
+	playerBonked = false
 	constructor(
 		level: LevelState,
 		position: [number, number],
@@ -59,10 +60,9 @@ export abstract class Playable extends Actor {
 		return !other.isPulled
 	}
 	_internalDecide(forcedOnly: boolean): void {
-		if (!forcedOnly) this.bonked = false
 		this.moveDecision = Decision.NONE
-
 		if (this.cooldown) return
+		if (!forcedOnly) this.playerBonked = false
 
 		// TODO Split screen
 
@@ -101,7 +101,7 @@ export abstract class Playable extends Actor {
 				this.level.releasedKeys.drop = true
 			}
 		}
-
+		let bonked = false
 		let [vert, horiz] = getMovementDirections(this.level.gameInput)
 		if (
 			this.slidingState &&
@@ -114,7 +114,6 @@ export abstract class Playable extends Actor {
 		} else if (!canMove || (vert === undefined && horiz === undefined)) {
 			// We don't wanna move or we can't
 		} else {
-			let bonked = false
 			// We have a direction we certanly wanna move to
 			if (vert === undefined || horiz === undefined) {
 				// @ts-expect-error We ruled out the possibility of no directions earlier, so if any of them is undefined, the other one is not
@@ -150,9 +149,9 @@ export abstract class Playable extends Actor {
 					}
 				}
 			}
-			this.hasOverride = bonked
-			this.lastDecision = this.moveDecision
 		}
+		this.hasOverride = bonked
+		this.lastDecision = this.moveDecision
 	}
 	destroy(other?: Actor | null, anim?: string | null): boolean {
 		if (!super.destroy(other, anim)) return false
