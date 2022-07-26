@@ -497,8 +497,8 @@ export class Bomb extends Actor {
 	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE || other._internalIgnores(this)) return
-		other.destroy(this, null)
-		this.destroy(other)
+		other.destroy(this)
+		this.destroy(other, null)
 	}
 }
 

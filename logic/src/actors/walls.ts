@@ -63,7 +63,7 @@ function doorFactory(color: string) {
 			if (!other.inventory.keys[`key${sentenceCaseName}`]?.amount) return
 			other.inventory.keys[`key${sentenceCaseName}`].amount--
 			other.inventory.keys[`key${sentenceCaseName}`].type.keyUsed?.(other)
-			this.destroy(other, null)
+			this.destroy(null, null)
 		}
 	}
 }

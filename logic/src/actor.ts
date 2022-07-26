@@ -451,6 +451,7 @@ export abstract class Actor implements Wirable {
 			anim.direction = this.direction
 			anim.currentMoveSpeed = this.currentMoveSpeed
 			anim.cooldown = this.cooldown
+			anim.inventory = this.inventory
 			this.newActor = anim
 		}
 		return true
