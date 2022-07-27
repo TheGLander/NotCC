@@ -34,6 +34,7 @@ export abstract class Playable extends Actor {
 	hasOverride = false
 	lastDecision = Decision.NONE
 	playerBonked = false
+	lastDecisionWasSliding = false
 	constructor(
 		level: LevelState,
 		position: [number, number],
@@ -101,6 +102,7 @@ export abstract class Playable extends Actor {
 				this.level.releasedKeys.drop = true
 			}
 		}
+		this.lastDecisionWasSliding = false
 		let bonked = false
 		let [vert, horiz] = getMovementDirections(this.level.gameInput)
 		if (
@@ -111,6 +113,7 @@ export abstract class Playable extends Actor {
 			this.moveDecision = this.direction + 1
 			if (this.slidingState === SlidingState.WEAK && !forcedOnly)
 				this.hasOverride = true
+			this.lastDecisionWasSliding = true
 		} else if (!canMove || (vert === undefined && horiz === undefined)) {
 			// We don't wanna move or we can't
 		} else {
@@ -151,8 +154,10 @@ export abstract class Playable extends Actor {
 			}
 			this.hasOverride = bonked
 		}
-
-		this.lastDecision = this.moveDecision
+		this.lastDecision =
+			this.lastDecisionWasSliding && this.noSlidingBonk
+				? Decision.NONE
+				: this.moveDecision
 	}
 	destroy(other?: Actor | null, anim?: string | null): boolean {
 		if (!super.destroy(other, anim)) return false
@@ -167,6 +172,21 @@ export abstract class Playable extends Actor {
 			this.level.selectedPlayable = newActor as Playable
 		this.level.gameState = GameState.PLAYING
 		return newActor
+	}
+	_internalStep(direction: Direction): boolean {
+		const success = super._internalStep(direction)
+		if (
+			!success &&
+			this.lastDecisionWasSliding &&
+			this.slidingState &&
+			this.noSlidingBonk
+		) {
+			this.bonked = false
+		}
+		if (!success && this.bonked && this === this.level.selectedPlayable) {
+			this.playerBonked = true
+		}
+		return success
 	}
 }
 

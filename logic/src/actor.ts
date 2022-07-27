@@ -262,10 +262,6 @@ export abstract class Actor implements Wirable {
 		}
 		const ogDirection = this.moveDecision - 1
 		const success = this._internalStep(ogDirection)
-		//@ts-expect-error This is a hack
-		if (this === this.level.selectedPlayable && !success)
-			//@ts-expect-error This is a hack
-			this.playerBonked = true
 
 		this.isPulled = false
 	}
@@ -340,7 +336,7 @@ export abstract class Actor implements Wirable {
 		for (const actor of thisActor.tile.allActorsReverse) {
 			if (actor === thisActor) continue
 			const notIgnores = !thisActor._internalIgnores(actor)
-
+			this.noSlidingBonk = !notIgnores && !!actor.slidingPlayableShouldntBonk
 			if (notIgnores && actor.actorCompletelyJoined)
 				actor.actorCompletelyJoined(thisActor)
 			if (!noOnTile && actor.actorOnTile) {
@@ -582,5 +578,7 @@ export abstract class Actor implements Wirable {
 	 * If true, this will be actually checked on exit-only collision checks
 	 */
 	persistOnExitOnlyCollision?: boolean
+	slidingPlayableShouldntBonk?: boolean
+	noSlidingBonk = false
 	onRedirect?(delta: number): void
 }

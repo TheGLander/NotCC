@@ -12,7 +12,7 @@ import {
 } from "./encoder"
 import { actorDB, Decision } from "./const"
 import { hasSteps } from "./encoder"
-import { iterableIndexOf } from "./iterableHelpers"
+import { iterableIndexOf, iterableSome } from "./iterableHelpers"
 import {
 	buildCircuits,
 	CircuitCity,
@@ -213,6 +213,10 @@ export class LevelState {
 			for (const actor of Array.from(this.actors)) {
 				actor.levelStarted?.()
 				actor.onCreation?.()
+				actor.noSlidingBonk = iterableSome(
+					actor.tile.allActors,
+					val => !!val.slidingPlayableShouldntBonk
+				)
 			}
 			onLevelStart.forEach(val => val(this))
 		} else {

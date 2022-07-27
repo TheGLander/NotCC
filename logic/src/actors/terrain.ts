@@ -403,6 +403,7 @@ export class Trap extends Actor {
 
 	listensWires = true
 	persistOnExitOnlyCollision = true
+	slidingPlayableShouldntBonk = true
 }
 
 actorDB["trap"] = Trap
@@ -485,6 +486,7 @@ export class CloneMachine extends Actor {
 	pulse(actual: boolean): void {
 		this.clone(actual)
 	}
+	slidingPlayableShouldntBonk = true
 }
 
 actorDB["cloneMachine"] = CloneMachine
