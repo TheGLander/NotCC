@@ -140,6 +140,9 @@ export function ROConnectedButtonFactory(
 		actorLeft(): void {
 			this.connectedActor?.buttonUnpressed?.(color)
 		}
+		actorDestroyed(): void {
+			this.connectedActor?.buttonUnpressed?.(color)
+		}
 	}
 }
 

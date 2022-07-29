@@ -450,8 +450,12 @@ export abstract class Actor implements Wirable {
 			anim.inventory = this.inventory
 			this.newActor = anim
 		}
+		for (const thing of this.tile.allActors) {
+			thing.actorDestroyed?.(this)
+		}
 		return true
 	}
+	actorDestroyed?(actor: Actor): void
 	/**
 	 * Called when another actor bumps into this actor
 	 * @param other The actor which bumped into this actor
