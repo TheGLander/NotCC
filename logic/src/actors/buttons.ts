@@ -260,6 +260,7 @@ export class ToggleSwitch extends Actor {
 	processOutput() {
 		this.poweringWires = this.customData === "on" ? 0b1111 : 0
 	}
+	poweringWires = this.customData === "on" ? 0b1111 : 0
 	providesPower = true
 	requiresFullConnect = true
 }
