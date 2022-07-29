@@ -335,8 +335,7 @@ export default class Renderer {
 			if (actor.cooldown && actor.currentMoveSpeed) {
 				const mults = convertDirection(actor.direction)
 				const offsetMult =
-					1 -
-					(actor.currentMoveSpeed - actor.cooldown + 1) / actor.currentMoveSpeed
+					1 - (actor.currentMoveSpeed - actor.cooldown) / actor.currentMoveSpeed
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
