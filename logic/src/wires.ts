@@ -97,11 +97,11 @@ function getMatchingTunnel(tile: Tile, direction: Direction): Wirable | null {
 		newTile = newTile.getNeighbor(direction, false)
 	) {
 		const tileWirable = getTileWirable(newTile)
-		if (tileWirable.wireTunnels & wires) depth++
 		if (tileWirable.wireTunnels & oppositeWires) {
 			if (depth === 0) return tileWirable
 			else depth--
 		}
+		if (tileWirable.wireTunnels & wires) depth++
 	}
 	return null
 }
