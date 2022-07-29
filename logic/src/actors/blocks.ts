@@ -96,7 +96,7 @@ export class IceBlock extends Actor {
 		}
 	}
 	canBePushed(other: Actor): boolean {
-		// Fun fact: Ice blocks just can't be pushed when they are sliding and a block is pushing them
+		// Fun fact: Ice blocks & dir blocks just can't be pushed when they are sliding and a block is pushing them
 		return !(
 			this.slidingState && other.getCompleteTags("tags").includes("block")
 		)
@@ -142,8 +142,12 @@ export class DirectionalBlock extends Actor {
 			this.destroy(this, "splash")
 		}
 	}
-	canBePushed(_other: Actor, direction: Direction): boolean {
-		return this.legalDirections.includes(direction)
+	canBePushed(other: Actor, direction: Direction): boolean {
+		if (!this.legalDirections.includes(direction)) return false
+		// Fun fact: Ice blocks & dir blocks just can't be pushed when they are sliding and a block is pushing them
+		return !(
+			this.slidingState && other.getCompleteTags("tags").includes("block")
+		)
 	}
 	rebuildCustomData(): void {
 		this.customData = ""
