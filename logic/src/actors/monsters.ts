@@ -481,6 +481,7 @@ export class MirrorMelinda extends Monster {
 		"can-reuse-key-yellow",
 	]
 	pushTags = ["block"]
+	ignoreTags = ["ice"]
 	id = "mirrorMelinda"
 	fakes = "melinda"
 	transmogrifierTarget = "mirrorChip"
