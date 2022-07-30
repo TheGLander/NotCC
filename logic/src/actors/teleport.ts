@@ -9,7 +9,8 @@ import { CircuitCity, WireOverlapMode } from "../wires"
 function findNextTeleport<T extends Teleport>(
 	this: T,
 	rro: boolean,
-	validateDestination?: (newTeleport: T, rolledOver: boolean) => boolean
+	validateDestination?: (newTeleport: T, rolledOver: boolean) => boolean,
+	giveAnything?: boolean
 ): T {
 	const thisConstructor = Object.getPrototypeOf(this).constructor
 	let lastY = this.tile.y
@@ -17,9 +18,8 @@ function findNextTeleport<T extends Teleport>(
 	for (const tile of this.level.tiles(rro, this.tile.position)) {
 		if (!rolledOver && Math.abs(tile.y - lastY) > 1) rolledOver = true
 		lastY = tile.y
-		const newTeleport = iterableFind(
-			tile[this.layer],
-			val => val instanceof thisConstructor
+		const newTeleport = iterableFind(tile[this.layer], val =>
+			giveAnything ? true : val instanceof thisConstructor
 		)
 		if (
 			newTeleport &&
@@ -71,6 +71,7 @@ export class BlueTeleport extends Teleport {
 					seenNetworks.add(tpNetwork)
 					return false
 				}
+				if (teleport.id !== this.id) return false
 				if (!thisNetwork && tpNetwork && seenNetworks.has(tpNetwork))
 					return false
 				if (tpNetwork && thisNetwork && thisNetwork !== tpNetwork) return false
@@ -83,7 +84,8 @@ export class BlueTeleport extends Teleport {
 					false,
 					false
 				)
-			}
+			},
+			true
 		).tile
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.STRONG

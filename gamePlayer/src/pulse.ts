@@ -119,11 +119,11 @@ export class PulseManager {
 	async setNewLevel(level: LevelState): Promise<void> {
 		this.renderer.level = this.level = level
 		// Uncomment for full-level camera
-		/*this.level.cameraType = {
+		this.level.cameraType = {
 			width: this.level.width,
 			height: this.level.height,
 			screens: 1,
-		} */
+		}
 		this.keysPressed = {
 			up: false,
 			down: false,

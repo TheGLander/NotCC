@@ -19,7 +19,7 @@ export function getMovementDirections(
 		const dirType = direction % 2
 		if (directions[dirType] === undefined) directions[dirType] = direction
 		// If we have a counter-direction, reset the direction type
-		else directions[dirType] = undefined
+		else return []
 	}
 	return directions
 }
