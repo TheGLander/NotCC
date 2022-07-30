@@ -334,6 +334,7 @@ export abstract class Actor implements Wirable {
 	}
 	enterTile(noOnTile = false): void {
 		let thisActor: Actor = this
+		this.noSlidingBonk = false
 		for (const actor of thisActor.tile.allActorsReverse) {
 			if (actor === thisActor) continue
 			const notIgnores = !thisActor._internalIgnores(actor)
