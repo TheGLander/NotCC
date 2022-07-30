@@ -217,6 +217,8 @@ export class LevelState {
 					actor.tile.allActors,
 					val => !!val.slidingPlayableShouldntBonk
 				)
+				if (actor.noSlidingBonk && actor instanceof Playable)
+					actor.hasOverride = true
 			}
 			onLevelStart.forEach(val => val(this))
 		} else {

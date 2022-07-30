@@ -1,9 +1,10 @@
 import { LevelState, crossLevelData } from "./level"
 import { Decision, actorDB } from "./const"
-import { Direction } from "./helpers"
+import { Direction, hasOwnProperty } from "./helpers"
 import { Layer, Tile } from "./tile"
 import { Item, Key } from "./actors/items"
 import { CircuitCity, isWired, Wirable, WireOverlapMode, Wires } from "./wires"
+import { Playable } from "./actors"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -337,6 +338,8 @@ export abstract class Actor implements Wirable {
 			if (actor === thisActor) continue
 			const notIgnores = !thisActor._internalIgnores(actor)
 			this.noSlidingBonk = !notIgnores && !!actor.slidingPlayableShouldntBonk
+			if (this.noSlidingBonk && hasOwnProperty(this, "hasOverride"))
+				this.hasOverride = true
 			if (notIgnores && actor.actorCompletelyJoined)
 				actor.actorCompletelyJoined(thisActor)
 			if (!noOnTile && actor.actorOnTile) {
