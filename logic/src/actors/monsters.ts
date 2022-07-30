@@ -465,7 +465,8 @@ export class MirrorChip extends Monster {
 			this.level.selectedPlayable.lastDecision === 0
 		)
 			return []
-		return [this.level.selectedPlayable.lastDecision - 1]
+		this.moveDecision = this.level.selectedPlayable.lastDecision
+		return []
 	}
 }
 
@@ -490,7 +491,8 @@ export class MirrorMelinda extends Monster {
 			this.level.selectedPlayable.lastDecision === 0
 		)
 			return []
-		return [this.level.selectedPlayable.lastDecision - 1]
+		this.moveDecision = this.level.selectedPlayable.lastDecision
+		return []
 	}
 }
 
