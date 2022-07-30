@@ -337,7 +337,8 @@ export abstract class Actor implements Wirable {
 		for (const actor of thisActor.tile.allActorsReverse) {
 			if (actor === thisActor) continue
 			const notIgnores = !thisActor._internalIgnores(actor)
-			this.noSlidingBonk = !notIgnores && !!actor.slidingPlayableShouldntBonk
+			if (actor.slidingPlayableShouldntBonk && notIgnores)
+				this.noSlidingBonk = true
 			if (this.noSlidingBonk && hasOwnProperty(this, "hasOverride"))
 				this.hasOverride = true
 			if (notIgnores && actor.actorCompletelyJoined)
