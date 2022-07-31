@@ -344,10 +344,11 @@ export abstract class Actor implements Wirable {
 				this.hasOverride = true
 			if (notIgnores && actor.actorCompletelyJoined)
 				actor.actorCompletelyJoined(thisActor)
+			if (thisActor.newActor) thisActor = thisActor.newActor
 			if (!noOnTile && actor.actorOnTile) {
 				actor.actorOnTile(thisActor)
 			}
-			if (actor.newActor) thisActor = actor.newActor
+			if (thisActor.newActor) thisActor = thisActor.newActor
 		}
 		if (this.exists) {
 			this.newTileCompletelyJoined?.()
