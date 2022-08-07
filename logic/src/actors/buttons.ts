@@ -135,12 +135,15 @@ export function ROConnectedButtonFactory(
 				this.connectedActor?.buttonPressed?.(color, "init")
 		}
 		actorCompletelyJoined(): void {
+			if (!this.connectedActor?.exists) this.connectedActor = null
 			this.connectedActor?.buttonPressed?.(color)
 		}
 		actorLeft(): void {
+			if (!this.connectedActor?.exists) this.connectedActor = null
 			this.connectedActor?.buttonUnpressed?.(color)
 		}
 		actorDestroyed(): void {
+			if (!this.connectedActor?.exists) this.connectedActor = null
 			this.connectedActor?.buttonUnpressed?.(color)
 		}
 	}
@@ -192,9 +195,11 @@ export function diamondConnectedButtonFactory(color: string) {
 				}
 		}
 		actorCompletelyJoined(): void {
+			if (!this.connectedActor?.exists) this.connectedActor = null
 			this.connectedActor?.buttonPressed?.(color)
 		}
 		actorLeft(): void {
+			if (!this.connectedActor?.exists) this.connectedActor = null
 			this.connectedActor?.buttonUnpressed?.(color)
 		}
 	}
