@@ -44,8 +44,8 @@ artDB["teethBlue"] = actor => ({
 })
 artDB["tankBlue"] = genericDirectionableArt("tankBlue", 2)
 artDB["tankYellow"] = genericDirectionableArt("tankYellow", 2)
-artDB["blob"] = genericStretchyArt("blob", 8)
-artDB["walker"] = genericStretchyArt("walker", 8)
+artDB["blob"] = genericStretchyArt("blob")
+artDB["walker"] = genericStretchyArt("walker")
 setArtForActor<LitTNT>("tntLit", actor => ({
 	actorName: "tnt",
 	frame: Math.floor(actor.lifeLeft / 60),

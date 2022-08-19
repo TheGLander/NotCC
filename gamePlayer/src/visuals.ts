@@ -400,28 +400,30 @@ export const genericAnimatedArt =
 	})
 
 export const genericStretchyArt =
-	(name: string, animLength: number) =>
+	(name: string) =>
 	(actor: Actor): ActorArt => {
+		let frame = Math.floor(
+			(actor.cooldown * (12 / (actor.currentMoveSpeed ?? 1))) / 1.5
+		)
+		if (actor.direction === 1 || actor.direction === 2) {
+			frame = 7 - frame
+		}
 		const offset = 1 - actor.cooldown / (actor.currentMoveSpeed ?? 1)
 		return !actor.cooldown
 			? { actorName: name, animation: "idle" }
 			: actor.direction % 2 === 0
 			? {
 					actorName: name,
-					animation: "vertical",
-					frame: Math.floor(
-						(actor.direction >= 2 ? offset : 1 - offset) * (animLength - 1)
-					),
-					cropSize: [1, 2],
+					animation: frame === 0 ? "idle" : "vertical",
+					frame: frame === 0 ? 0 : frame - 1,
+					cropSize: [1, frame === 0 ? 1 : 2],
 					imageOffset: [0, actor.direction >= 2 ? -offset : offset - 1],
 			  }
 			: {
 					actorName: name,
-					animation: "horizontal",
-					frame: Math.floor(
-						(actor.direction < 2 ? offset : 1 - offset) * (animLength - 1)
-					),
-					cropSize: [2, 1],
+					animation: frame === 0 ? "idle" : "horizontal",
+					frame: frame === 0 ? 0 : frame - 1,
+					cropSize: [frame === 0 ? 1 : 2, 1],
 					imageOffset: [actor.direction < 2 ? -offset : offset - 1, 0],
 			  }
 	}
