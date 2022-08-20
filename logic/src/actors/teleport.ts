@@ -84,6 +84,7 @@ export class BlueTeleport extends Teleport {
 			true,
 			// TODO Logic gates
 			(tile, rolledOver) => {
+				while (other.newActor) other = other.newActor
 				const wirable = getTileWirable(tile)
 				const tpNetwork = wirable.circuits?.find(val => val)
 				if (thisNetwork && !tpNetwork) return false
@@ -108,6 +109,7 @@ export class BlueTeleport extends Teleport {
 				)
 			}
 		)
+		while (other.newActor) other = other.newActor
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.STRONG
 	}
@@ -127,9 +129,10 @@ export class RedTeleport extends Teleport {
 		other.oldTile = other.tile
 		if (!this.wired || this.poweredWires)
 			other.tile = findNextTeleport.call(this, false, (teleport: Actor) => {
+				while (other.newActor) other = other.newActor
 				if (teleport.tile.hasLayer(Layer.MOVABLE)) return false
 				if (teleport.wired && !teleport.poweredWires) return false
-				for (let offset = 0; offset < 4; offset++)
+				for (let offset = 0; offset < 4; offset++) {
 					if (
 						this.level.checkCollisionFromTile(
 							other,
@@ -140,13 +143,16 @@ export class RedTeleport extends Teleport {
 							false
 						)
 					) {
+						while (other.newActor) other = other.newActor
 						other.direction += offset
 						other.direction %= 4
 						return true
 					}
-
+					while (other.newActor) other = other.newActor
+				}
 				return false
 			}).tile
+		while (other.newActor) other = other.newActor
 		other._internalUpdateTileStates()
 		other.slidingState = SlidingState.WEAK
 		if (other instanceof Playable) other.hasOverride = true
@@ -218,13 +224,16 @@ export class GreenTeleport extends Teleport {
 							false
 						)
 					) {
+						while (other.newActor) other = other.newActor
 						other.direction = (dir + offset) % 4
 						targetTeleport = teleport
 						break mainLoop
 					}
+					while (other.newActor) other = other.newActor
 				}
 			}
 		}
+		while (other.newActor) other = other.newActor
 		if (!targetTeleport) targetTeleport = this
 		other.oldTile = other.tile
 		other.tile = targetTeleport.tile
@@ -258,10 +267,9 @@ export class YellowTeleport extends Teleport implements Item {
 	}
 	onTeleport(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
-		const newTP = findNextTeleport.call(
-			this,
-			true,
-			teleport =>
+		const newTP = findNextTeleport.call(this, true, teleport => {
+			while (other.newActor) other = other.newActor
+			return (
 				!teleport.tile.hasLayer(Layer.MOVABLE) &&
 				this.level.checkCollisionFromTile(
 					other,
@@ -271,7 +279,9 @@ export class YellowTeleport extends Teleport implements Item {
 					false,
 					false
 				)
-		)
+			)
+		})
+		while (other.newActor) other = other.newActor
 		let shouldTP = !(this.shouldPickup && newTP === this)
 		if (!shouldTP) {
 			other.slidingState = SlidingState.NONE
