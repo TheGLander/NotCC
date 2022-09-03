@@ -153,6 +153,9 @@ export abstract class Playable extends Actor {
 				}
 			}
 			this.hasOverride = bonked
+			if (bonked && this === this.level.selectedPlayable) {
+				this.playerBonked = true
+			}
 		}
 		this.lastDecision =
 			this.lastDecisionWasSliding && this.noSlidingBonk
