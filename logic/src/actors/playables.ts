@@ -120,13 +120,13 @@ export abstract class Playable extends Actor {
 			// We have a direction we certanly wanna move to
 			if (vert === undefined || horiz === undefined) {
 				// @ts-expect-error We ruled out the possibility of no directions earlier, so if any of them is undefined, the other one is not
-				bonked = !this.level.checkCollision(this, vert ?? horiz)
+				bonked = !this.checkCollision(vert ?? horiz)
 				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
 			} else {
 				// We have two directions
-				const canHoriz = this.level.checkCollision(this, horiz)
+				const canHoriz = this.checkCollision(horiz)
 				horiz = this.level.resolvedCollisionCheckDirection
-				const canVert = this.level.checkCollision(this, vert)
+				const canVert = this.checkCollision(vert)
 				vert = this.level.resolvedCollisionCheckDirection
 				if (canHoriz && !canVert) this.moveDecision = horiz + 1
 				else if (canVert && !canHoriz) this.moveDecision = vert + 1

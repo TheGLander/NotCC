@@ -5,6 +5,7 @@ import { Layer, Tile } from "./tile"
 import { Item, Key } from "./actors/items"
 import { CircuitCity, isWired, Wirable, WireOverlapMode, Wires } from "./wires"
 import { Playable } from "./actors"
+import { iterableIndexOf } from "./iterableHelpers"
 
 /**
  * Current state of sliding, playables can escape weak sliding.
@@ -202,7 +203,7 @@ export abstract class Actor implements Wirable {
 		if (!directions || directions.length === 0) return
 
 		for (const direction of directions)
-			if (this.level.checkCollision(this, direction, true)) {
+			if (this.checkCollision(direction, true)) {
 				// Yeah, we can go here
 				this.moveDecision = direction + 1
 				return
@@ -221,7 +222,7 @@ export abstract class Actor implements Wirable {
 	_internalStep(direction: Direction): boolean {
 		if (this.cooldown || !this.moveSpeed) return false
 		this.direction = direction
-		const canMove = this.level.checkCollision(this, direction)
+		const canMove = this.checkCollision(direction)
 		this.bonked = !canMove
 		this.direction = this.level.resolvedCollisionCheckDirection
 		// Welp, something stole our spot, too bad
@@ -372,6 +373,145 @@ export abstract class Actor implements Wirable {
 		this.bonked = false
 	}
 	/**
+	 * Checks if a specific actor can move in a certain direction
+	 * @param actor The actor to check for
+	 * @param direction The direction the actor wants to move in
+	 * @param pushBlocks If true, it will push blocks
+	 * @returns If the actor *can* move in that direction
+	 */
+	checkCollision(
+		direction: Direction,
+		pushBlocks = true,
+		exitOnly = false,
+		pull = true
+	): boolean {
+		return this.checkCollisionFromTile(
+			this.tile,
+			direction,
+			pushBlocks,
+			exitOnly,
+			pull
+		)
+	}
+	/**
+	 * Checks if a specific actor can move in a certain direction to a certain tile
+	 * @param this The actor to check for
+	 * @param direction The direction the actor wants to enter the tile
+	 * @param fromTile The tile the actor is coming from
+	 * @param pushBlocks If true, it will push blocks
+	 * @returns If the actor *can* move in that direction
+	 */
+	checkCollisionFromTile(
+		this: Actor,
+		fromTile: Tile,
+		direction: Direction,
+		pushBlocks = true,
+		exitOnly = false,
+		pull = true
+	): boolean {
+		// This is a pass by reference-esque thing, please don't die of cring
+		this.level.resolvedCollisionCheckDirection = direction
+
+		// Do stuff on the leaving tile
+
+		for (const exitActor of fromTile.allActorsReverse)
+			if (exitActor._internalExitBlocks(this, direction)) {
+				if (exitOnly && !exitActor.persistOnExitOnlyCollision) continue
+				exitActor.bumped?.(this, direction)
+				this.bumpedActor?.(exitActor, direction, true)
+				return false
+			} else {
+				if (
+					!exitActor.redirectTileMemberDirection ||
+					this._internalIgnores(exitActor)
+				)
+					continue
+				const redirection = exitActor.redirectTileMemberDirection(
+					this,
+					direction
+				)
+				if (redirection === null) return false
+				this.onRedirect?.((redirection - direction + 4) % 4)
+				this.level.resolvedCollisionCheckDirection = direction = redirection
+			}
+		if (exitOnly) return true
+		const newTile = fromTile.getNeighbor(direction, false)
+		if (newTile === null) {
+			this.bumpedEdge?.(fromTile, direction)
+			return false
+		}
+
+		const toPush: Actor[] = []
+
+		// Do stuff on the entering tile
+		loop: for (const layer of [
+			Layer.ITEM_SUFFIX,
+			Layer.SPECIAL,
+			Layer.STATIONARY,
+			Layer.MOVABLE,
+			Layer.ITEM,
+		])
+			for (let blockActor of newTile[layer]) {
+				for (const item of this.inventory.items)
+					item.onCarrierBump?.(this, blockActor, direction)
+				if (blockActor.newActor) blockActor = blockActor.newActor
+				blockActor.bumped?.(this, direction)
+				this.bumpedActor?.(blockActor, direction, false)
+				if (blockActor._internalBlocks(this, direction))
+					if (this._internalCanPush(blockActor, direction))
+						toPush.push(blockActor)
+					else {
+						this.level.resolvedCollisionCheckDirection = direction
+						return false
+					}
+				if (
+					layer === Layer.MOVABLE &&
+					iterableIndexOf(newTile[layer], blockActor) ===
+						newTile.layerLength(layer) - 1
+				)
+					// This is dumb
+					break loop
+			}
+
+		for (const pushable of toPush) {
+			if (pushable.slidingState) {
+				pushable.pendingDecision = direction + 1
+				// We did not move, shame, but we did queue this block push
+				this.level.resolvedCollisionCheckDirection = direction
+				return false
+			}
+
+			if (
+				pushable.cooldown ||
+				!pushable.checkCollision(direction, pushBlocks)
+			) {
+				this.level.resolvedCollisionCheckDirection = direction
+				return false
+			}
+			if (pushBlocks) {
+				if (pushable._internalStep(direction)) pushable.cooldown--
+			}
+		}
+		this.level.resolvedCollisionCheckDirection = direction
+		if (pull && this.getCompleteTags("tags").includes("pulling")) {
+			const backTile = this.tile.getNeighbor((direction + 2) % 4)
+			if (!backTile) return true
+			for (const pulledActor of backTile[Layer.MOVABLE]) {
+				if (pulledActor.cooldown && pulledActor.moveSpeed) return false
+				pulledActor.isPulled = true
+				//a
+				if (
+					!pushBlocks ||
+					!pulledActor.getCompleteTags("tags").includes("block") ||
+					(pulledActor.canBePushed && !pulledActor.canBePushed(this, direction))
+				)
+					continue
+				pulledActor.pendingDecision = direction + 1
+			}
+		}
+		return true
+	}
+	/**
 	 * Updates tile states and calls hooks
 	 */
 	_internalUpdateTileStates(): void {
@@ -482,7 +622,7 @@ export abstract class Actor implements Wirable {
 			!(other.canBePushed?.(this, direction) ?? true)
 		)
 			return false
-		return this.level.checkCollision(other, direction, true, true)
+		return other.checkCollision(direction, true, true)
 	}
 	/**
 	 * Called when a new actor enters the tile, must return the number to divide the speed by

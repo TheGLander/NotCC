@@ -265,7 +265,7 @@ export class Walker extends Monster {
 	id = "walker"
 	transmogrifierTarget = "ball"
 	decideMovement(): [Direction] {
-		if (!this.level.checkCollision(this, this.direction))
+		if (!this.checkCollision(this.direction))
 			return [(this.level.random() + this.direction) % 4]
 		return [this.direction]
 	}
@@ -348,7 +348,7 @@ export class TankYellow extends Monster {
 				this.movePending = this.direction + 1
 			}
 			this.customData = ""
-			if (this.level.checkCollision(this, this.movePending - 1))
+			if (this.checkCollision(this.movePending - 1))
 				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
 			this.direction = this.level.resolvedCollisionCheckDirection
 			this.movePending = Decision.NONE

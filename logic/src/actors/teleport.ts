@@ -99,8 +99,7 @@ export class BlueTeleport extends Teleport {
 					return false
 				if (tpNetwork && thisNetwork && thisNetwork !== tpNetwork) return false
 				if (teleport.tile.hasLayer(Layer.MOVABLE)) return false
-				return this.level.checkCollisionFromTile(
-					other,
+				return other.checkCollisionFromTile(
 					teleport.tile,
 					other.direction,
 					true,
@@ -134,8 +133,7 @@ export class RedTeleport extends Teleport {
 				if (teleport.wired && !teleport.poweredWires) return false
 				for (let offset = 0; offset < 4; offset++) {
 					if (
-						this.level.checkCollisionFromTile(
-							other,
+						other.checkCollisionFromTile(
 							teleport.tile,
 							(other.direction + offset) % 4,
 							true,
@@ -215,8 +213,7 @@ export class GreenTeleport extends Teleport {
 
 				for (let offset = 0; offset < 4; offset++) {
 					if (
-						this.level.checkCollisionFromTile(
-							other,
+						other.checkCollisionFromTile(
 							teleport.tile,
 							(dir + offset) % 4,
 							true,
@@ -271,8 +268,7 @@ export class YellowTeleport extends Teleport implements Item {
 			while (other.newActor) other = other.newActor
 			return (
 				!teleport.tile.hasLayer(Layer.MOVABLE) &&
-				this.level.checkCollisionFromTile(
-					other,
+				other.checkCollisionFromTile(
 					teleport.tile,
 					other.direction,
 					true,
