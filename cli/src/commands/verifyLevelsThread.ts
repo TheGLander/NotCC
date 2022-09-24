@@ -74,7 +74,7 @@ function connectToParent(): Promise<ParentResponse> {
 			if (!levelData?.associatedSolution || !levelData.associatedSolution.steps)
 				throw new Error("Level has no baked solution!")
 
-			let bonusTicks = 60 * 10
+			let bonusTicks = 60 * 60
 			let lastReply = Date.now()
 			level.playbackSolution(levelData.associatedSolution)
 			while (level.gameState === GameState.PLAYING && bonusTicks > 0) {
