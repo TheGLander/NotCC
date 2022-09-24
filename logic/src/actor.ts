@@ -190,6 +190,7 @@ export abstract class Actor implements Wirable {
 		if (this.pendingDecision) return
 		// This is where the decision *actually* begins
 		this.currentMoveSpeed = null
+		this.isPushing = false
 		// Since this is a generic actor, we cannot override weak sliding
 		// TODO Ghost ice shenanigans
 		if (this.slidingState) {
@@ -372,6 +373,7 @@ export abstract class Actor implements Wirable {
 		}
 		this.bonked = false
 	}
+	isPushing = false
 	/**
 	 * Checks if a specific actor can move in a certain direction
 	 * @param actor The actor to check for
@@ -509,6 +511,7 @@ export abstract class Actor implements Wirable {
 				pulledActor.pendingDecision = direction + 1
 			}
 		}
+		if (toPush.length !== 0) this.isPushing = true
 		return true
 	}
 	/**

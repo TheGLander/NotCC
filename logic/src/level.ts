@@ -88,7 +88,8 @@ onLevelDecisionTick.push(level => {
 	if (level.subtick !== 2) return
 	if (
 		level.selectedPlayable.cooldown > 0 ||
-		level.selectedPlayable.playerBonked
+		level.selectedPlayable.playerBonked ||
+		level.selectedPlayable.isPushing
 	) {
 		level.selectedPlayable.lastDecision = level.selectedPlayable.direction + 1
 	} else {

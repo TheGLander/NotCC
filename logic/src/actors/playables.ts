@@ -63,6 +63,7 @@ export abstract class Playable extends Actor {
 	_internalDecide(forcedOnly: boolean): void {
 		this.moveDecision = Decision.NONE
 		if (this.cooldown) return
+		this.isPushing = false
 		if (!forcedOnly) this.playerBonked = false
 
 		// TODO Split screen
