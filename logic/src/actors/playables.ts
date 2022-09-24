@@ -120,27 +120,20 @@ export abstract class Playable extends Actor {
 			// We have a direction we certanly wanna move to
 			if (vert === undefined || horiz === undefined) {
 				// @ts-expect-error We ruled out the possibility of no directions earlier, so if any of them is undefined, the other one is not
-				bonked = !this.checkCollision(vert ?? horiz)
-				this.moveDecision = this.level.resolvedCollisionCheckDirection + 1
+				const chosenDirection: Direction = vert ?? horiz
+				bonked = !this.checkCollision(chosenDirection)
+				this.moveDecision = chosenDirection + 1
 			} else {
 				// We have two directions
 				const canHoriz = this.checkCollision(horiz)
-				horiz = this.level.resolvedCollisionCheckDirection
+				//horiz = this.level.resolvedCollisionCheckDirection
 				const canVert = this.checkCollision(vert)
-				vert = this.level.resolvedCollisionCheckDirection
+				//vert = this.level.resolvedCollisionCheckDirection
 				if (canHoriz && !canVert) this.moveDecision = horiz + 1
 				else if (canVert && !canHoriz) this.moveDecision = vert + 1
 				else {
 					// We can move in both / none directions, crap
 					bonked = !canHoriz
-					// This can break if railroads make both directions horizontal/verticaal, so let's prioritize the lower direction??
-					if (horiz % 2 === vert % 2) {
-						if (horiz > vert) {
-							const temp = horiz
-							horiz = vert
-							vert = temp
-						}
-					}
 					// Just discovered: When both dirs are blocked, always choose horiz
 					if (!canHoriz) this.moveDecision = horiz + 1
 					else {

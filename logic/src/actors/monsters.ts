@@ -462,7 +462,7 @@ export class MirrorChip extends Monster {
 		if (
 			!this.level.selectedPlayable ||
 			this.level.selectedPlayable.id !== this.fakes ||
-			this.level.selectedPlayable.lastDecision === 0
+			this.level.selectedPlayable.lastDecision === Decision.NONE
 		)
 			return []
 		this.moveDecision = this.level.selectedPlayable.lastDecision
@@ -489,7 +489,7 @@ export class MirrorMelinda extends Monster {
 		if (
 			!this.level.selectedPlayable ||
 			this.level.selectedPlayable.id !== this.fakes ||
-			this.level.selectedPlayable.lastDecision === 0
+			this.level.selectedPlayable.lastDecision === Decision.NONE
 		)
 			return []
 		this.moveDecision = this.level.selectedPlayable.lastDecision
