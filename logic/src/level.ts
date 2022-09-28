@@ -51,6 +51,7 @@ export const crossLevelData: CrossLevelDataInterface = {
 	greenButtonPressed: false,
 	blueButtonPressed: false,
 	currentYellowButtonPress: 0,
+	logicGateTeleportPurgatory: [],
 }
 
 export const onLevelStart: ((level: LevelState) => void)[] = [
@@ -81,6 +82,7 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 	},
 ]
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
+export const onLevelWireTick: ((level: LevelState) => void)[] = []
 export const onLevelAfterTick: ((level: LevelState) => void)[] = []
 
 onLevelDecisionTick.push(level => {
@@ -244,6 +246,7 @@ export class LevelState {
 		this.tickStage = "move"
 		this.moveTick()
 		this.tickStage = "wire"
+		onLevelWireTick.forEach(val => val(this))
 		wireTick.apply(this)
 		//	if (this.playables.length === 0) this.lost = true
 

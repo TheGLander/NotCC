@@ -183,6 +183,7 @@ export abstract class Actor implements Wirable {
 	decideMovement?(): Direction[]
 	onEachDecision?(forcedOnly: boolean): void
 	_internalDecide(forcedOnly = false): void {
+		if (!this.exists) return
 		this.bonked = false
 		this.moveDecision = Decision.NONE
 		if (this.cooldown) return
@@ -248,6 +249,7 @@ export abstract class Actor implements Wirable {
 		return true
 	}
 	_internalMove(): void {
+		if (!this.exists) return
 		if (this.cooldown > 0) {
 			this.isPulled = false
 			return
@@ -360,6 +362,7 @@ export abstract class Actor implements Wirable {
 		this.cooldown = 0
 	}
 	_internalDoCooldown(): void {
+		if (!this.exists) return
 		if (this.cooldown > 0 && this.cooldown <= 1) {
 			this.enterTile()
 		} else if (this.cooldown > 0) this.cooldown--
@@ -517,7 +520,7 @@ export abstract class Actor implements Wirable {
 	/**
 	 * Updates tile states and calls hooks
 	 */
-	_internalUpdateTileStates(): void {
+	_internalUpdateTileStates(noTileRemove?: boolean): void {
 		if (this.despawned) {
 			// We moved! That means this is no longer despawned and we are no longer omni-present
 			this.despawned = false
@@ -527,12 +530,14 @@ export abstract class Actor implements Wirable {
 					1
 				)
 		}
-		this.oldTile?.removeActors(this)
-		this.slidingState = SlidingState.NONE
-		// Spread from and to to not have actors which create new actors instantly be interacted with
-		if (this.oldTile)
-			for (const actor of [...this.oldTile.allActorsReverse])
-				if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
+		if (!noTileRemove) {
+			this.oldTile?.removeActors(this)
+			this.slidingState = SlidingState.NONE
+			// Spread from and to to not have actors which create new actors instantly be interacted with
+			if (this.oldTile)
+				for (const actor of [...this.oldTile.allActorsReverse])
+					if (!this._internalIgnores(actor)) actor.actorLeft?.(this)
+		}
 
 		this.tile.addActors(this)
 

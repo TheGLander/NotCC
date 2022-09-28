@@ -193,7 +193,11 @@ export function buildCircuits(this: LevelState): void {
 			this.circuits.push(circuit)
 			for (const wirable of circuit.population) {
 				if (!wirable[0].circuits) wirable[0].circuits = []
-				wirable[0].circuits[wireToDir(i)] = circuit
+				for (let i = Direction.UP; i <= Wires.LEFT; i++) {
+					if (dirToWire(i) & wirable[1]) {
+						wirable[0].circuits[i] = circuit
+					}
+				}
 			}
 		}
 	}

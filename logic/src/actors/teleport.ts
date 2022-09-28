@@ -4,50 +4,46 @@ import { actorDB } from "../const"
 import { Playable } from "./playables"
 import { Item, ItemDestination } from "./items"
 import { iterableFind, iterableIncludes } from "../iterableHelpers"
-import { CircuitCity, getTileWirable, WireOverlapMode } from "../wires"
+import { CircuitCity, getTileWirable, WireOverlapMode, Wires } from "../wires"
 
-function findNextTeleport<T extends Teleport>(
-	this: T,
+function findNextTeleport<T extends Actor>(
+	teleport: T,
 	rro: boolean,
 	validateDestination?: (newTeleport: T, rolledOver: boolean) => boolean
 ): T {
-	const thisConstructor = Object.getPrototypeOf(this).constructor
-	let lastY = this.tile.y
+	const thisConstructor = Object.getPrototypeOf(teleport).constructor
+	let lastY = teleport.tile.y
 	let rolledOver = false
-	for (const tile of this.level.tiles(rro, this.tile.position)) {
+	for (const tile of teleport.level.tiles(rro, teleport.tile.position)) {
 		if (!rolledOver && Math.abs(tile.y - lastY) > 1) rolledOver = true
 		lastY = tile.y
 		const newTeleport = iterableFind(
-			tile[this.layer],
+			tile[teleport.layer],
 			val => val instanceof thisConstructor
 		) as T | null
 		if (
 			newTeleport &&
-			(!validateDestination ||
-				validateDestination.call(this, newTeleport, rolledOver))
+			(!validateDestination || validateDestination(newTeleport, rolledOver))
 		)
 			return newTeleport
 	}
-	return this
+	return teleport
 }
 
-function findNextTile<T extends Teleport>(
-	this: T,
+function findNextBlueTeleport<T extends Actor>(
+	teleport: T,
 	rro: boolean,
-	validateDestination?: (newTeleport: Tile, rolledOver: boolean) => boolean
-): Tile {
-	let lastY = this.tile.y
+	validateDestination: (newTeleport: Tile, rolledOver: boolean) => T | null
+): T | null {
+	let lastY = teleport.tile.y
 	let rolledOver = false
-	for (const tile of this.level.tiles(rro, this.tile.position)) {
+	for (const tile of teleport.level.tiles(rro, teleport.tile.position)) {
 		if (!rolledOver && Math.abs(tile.y - lastY) > 1) rolledOver = true
 		lastY = tile.y
-		if (
-			!validateDestination ||
-			validateDestination.call(this, tile, rolledOver)
-		)
-			return tile
+		const res = validateDestination(tile, rolledOver)
+		if (res) return res
 	}
-	return this.tile
+	return null
 }
 
 export abstract class Teleport extends Actor {
@@ -56,7 +52,7 @@ export abstract class Teleport extends Actor {
 		return Layer.STATIONARY
 	}
 	shouldProcessThing = false
-	actorCompletelyJoined() {
+	actorCompletelyJoined(): void {
 		this.shouldProcessThing = true
 	}
 	actorOnTile(other: Actor): void {
@@ -70,47 +66,115 @@ export abstract class Teleport extends Actor {
 	abstract onTeleport(other: Actor): void
 	requiresFullConnect = true
 }
-export class BlueTeleport extends Teleport {
+
+export interface BlueTeleportTarget extends Actor {
+	isBlueTeleportTarget(): boolean
+	takeTeleport(other: Actor): void
+	giveUpTeleport(other: Actor): void
+	isBusy(other: Actor): boolean
+	getTeleportOutputCircuit(): CircuitCity | undefined
+	getTeleportInputCircuit(): CircuitCity[]
+}
+
+export function isBlueTeleportTarget(val: Actor): val is BlueTeleportTarget {
+	return "isBlueTeleportTarget" in val && "takeTeleport" in val
+}
+
+export function doBlueTeleport(
+	teleport: BlueTeleportTarget,
+	other: Actor
+): void {
+	const thisNetwork = teleport.getTeleportOutputCircuit()
+	const seenNetworks = new Set<CircuitCity>()
+	const newTeleportish = findNextBlueTeleport(
+		teleport,
+		true,
+		(tile, rolledOver) => {
+			while (other.newActor) other = other.newActor
+			const wirable = getTileWirable(tile)
+			const tpNetworks =
+				wirable.circuits?.reduce<CircuitCity[]>(
+					(acc, val) => (val ? acc.concat(val) : acc),
+					[]
+				) ?? []
+			if (thisNetwork && tpNetworks.length === 0) return null
+			if (!thisNetwork && tpNetworks.length > 0 && !rolledOver) {
+				for (const network of tpNetworks) seenNetworks.add(network)
+				return null
+			}
+			if (wirable instanceof Tile || !isBlueTeleportTarget(wirable as Actor))
+				return null
+			const newTeleport = wirable as BlueTeleportTarget
+			if (!thisNetwork && tpNetworks.some(val => seenNetworks.has(val)))
+				return null
+			if (
+				tpNetworks.length > 0 &&
+				thisNetwork &&
+				!newTeleport.getTeleportInputCircuit().includes(thisNetwork)
+			)
+				return null
+			if (
+				!thisNetwork &&
+				tpNetworks.length > 0 &&
+				!newTeleport
+					.getCompleteTags("tags")
+					.includes("janky-blue-teleport-overflow-target")
+			)
+				return null
+			if (newTeleport.isBusy(other)) return null
+			return newTeleport
+		}
+	)
+	const newTeleport = newTeleportish ?? teleport
+	teleport.giveUpTeleport(other)
+	newTeleport.takeTeleport(other)
+}
+
+export class BlueTeleport extends Teleport implements BlueTeleportTarget {
+	isBlueTeleportTarget(): boolean {
+		return true
+	}
+	takeTeleport(other: Actor): void {
+		other.oldTile = other.tile
+		other.tile = this.tile
+		other._internalUpdateTileStates(
+			!iterableIncludes(other.oldTile[other.layer], other)
+		)
+		other.slidingState = SlidingState.STRONG
+	}
+	giveUpTeleport(other: Actor): void {
+		other.tile.removeActors(other)
+	}
+	isBusy(other: Actor): boolean {
+		return (
+			this.tile.hasLayer(Layer.MOVABLE) ||
+			!other.checkCollisionFromTile(
+				this.tile,
+				other.direction,
+				true,
+				false,
+				false
+			)
+		)
+	}
 	id = "teleportBlue"
+	tags = ["machinery", "teleport", "janky-blue-teleport-overflow-target"]
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 	}
 	onTeleport(other: Actor): void {
-		other.oldTile = other.tile
-		const thisNetwork = this.circuits?.find(val => val)
-		const seenNetworks = new Set<CircuitCity>()
-		other.tile = findNextTile.call(
-			this,
-			true,
-			// TODO Logic gates
-			(tile, rolledOver) => {
-				while (other.newActor) other = other.newActor
-				const wirable = getTileWirable(tile)
-				const tpNetwork = wirable.circuits?.find(val => val)
-				if (thisNetwork && !tpNetwork) return false
-				if (!thisNetwork && tpNetwork && !rolledOver) {
-					seenNetworks.add(tpNetwork)
-					return false
-				}
-				if (wirable instanceof Tile || (wirable as Actor).id !== this.id)
-					return false
-				const teleport = wirable as BlueTeleport
-				if (!thisNetwork && tpNetwork && seenNetworks.has(tpNetwork))
-					return false
-				if (tpNetwork && thisNetwork && thisNetwork !== tpNetwork) return false
-				if (teleport.tile.hasLayer(Layer.MOVABLE)) return false
-				return other.checkCollisionFromTile(
-					teleport.tile,
-					other.direction,
-					true,
-					false,
-					false
-				)
-			}
+		doBlueTeleport(this, other)
+	}
+	getTeleportOutputCircuit(): CircuitCity | undefined {
+		return this.circuits?.find(val => val)
+	}
+	getTeleportInputCircuit(): CircuitCity[] {
+		return (
+			this.circuits?.reduce<CircuitCity[]>(
+				(acc, val) => (val ? acc.concat(val) : acc),
+				[]
+			) ?? []
 		)
-		while (other.newActor) other = other.newActor
-		other._internalUpdateTileStates()
-		other.slidingState = SlidingState.STRONG
 	}
 
 	wireOverlapMode = WireOverlapMode.OVERLAP
@@ -127,7 +191,7 @@ export class RedTeleport extends Teleport {
 		other.slidingState = SlidingState.WEAK
 		other.oldTile = other.tile
 		if (!this.wired || this.poweredWires)
-			other.tile = findNextTeleport.call(this, false, (teleport: Actor) => {
+			other.tile = findNextTeleport(this, false, (teleport: Actor) => {
 				while (other.newActor) other = other.newActor
 				if (teleport.tile.hasLayer(Layer.MOVABLE)) return false
 				if (teleport.wired && !teleport.poweredWires) return false
@@ -184,9 +248,9 @@ export class GreenTeleport extends Teleport {
 		let validTeleports: this[] = []
 		let targetTeleport: this | undefined
 		for (
-			let teleport = findNextTeleport.call(this, false);
+			let teleport = findNextTeleport(this, false);
 			teleport !== this;
-			teleport = findNextTeleport.call(teleport, false)
+			teleport = findNextTeleport(teleport, false)
 		) {
 			allTeleports.push(teleport as this)
 			if (!teleport.tile.hasLayer(Layer.MOVABLE))
@@ -245,7 +309,7 @@ export class YellowTeleport extends Teleport implements Item {
 	pickup = Item.prototype.pickup
 	carrierTags?: Record<string, string[]> | undefined
 	hasItemMod(): boolean {
-		return Item.prototype.hasItemMod.call(this)
+		return Item.prototype.hasItemMod.apply(this)
 	}
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
@@ -260,11 +324,11 @@ export class YellowTeleport extends Teleport implements Item {
 	shouldPickup = true
 	levelStarted(): void {
 		// If this is the only yellow teleport at yellow start, never pick up
-		this.shouldPickup = findNextTeleport.call(this, false) !== this
+		this.shouldPickup = findNextTeleport(this, false) !== this
 	}
 	onTeleport(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
-		const newTP = findNextTeleport.call(this, true, teleport => {
+		const newTP = findNextTeleport(this, true, teleport => {
 			while (other.newActor) other = other.newActor
 			return (
 				!teleport.tile.hasLayer(Layer.MOVABLE) &&
