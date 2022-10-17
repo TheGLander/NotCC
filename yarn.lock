@@ -2127,11 +2127,6 @@ tsutils@^3.21.0:
   dependencies:
     tslib "^1.8.1"
 
-twgl.js@^4.19.1:
-  version "4.23.1"
-  resolved "https://registry.yarnpkg.com/twgl.js/-/twgl.js-4.23.1.tgz#90541963a97de1de5c94a6aca1e0577fd99bd1c3"
-  integrity sha512-j/rHvMUocTw7sDvQoxwpvi0EnU0Y8iuN7ouS5QuBgMiTLPZvMuViqKsU1+/yInZQkC3RLKdfRpuDtzy9vuBWjg==
-
 type-check@^0.4.0, type-check@~0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/type-check/-/type-check-0.4.0.tgz#07b8203bfa7056c0657050e3ccd2c37730bab8f1"

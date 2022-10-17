@@ -1,96 +1,27 @@
-import {
-	getWebGLContext,
-	createProgramInfo,
-	createTexture,
-	ProgramInfo,
-	BufferInfo,
-	primitives,
-	drawBufferInfo,
-	setUniforms,
-	setBuffersAndAttributes,
-	m4,
-	TextureFunc,
-} from "twgl.js"
-
-export interface SizedWebGLTexture {
-	width: number
-	height: number
-	srcCoords?: [number, number]
-	srcSize?: [number, number]
-	texture: WebGLTexture
-	source:
-		| string
-		| number[]
-		| ArrayBufferView
-		| TexImageSource
-		| TexImageSource[]
-		| string[]
-		| TextureFunc
-	image: TexImageSource
-}
-
 export class WebGLRenderer {
 	canvas: HTMLCanvasElement
-	gl: WebGLRenderingContext
-	programInfo: ProgramInfo
-	bufferInfo: BufferInfo
+	ctx: CanvasRenderingContext2D
 	cameraPosition: [number, number] = [0, 0]
 	scaling = 1
 	constructor() {
 		this.canvas = document.createElement("canvas")
 		this.canvas.classList.add("renderer")
 		this.canvas.addEventListener("resize", () => this.updateSize())
-		this.gl = getWebGLContext(this.canvas, {
+		this.ctx = this.canvas.getContext("2d", {
 			// Meh
 			alpha: true,
 			// Ew blurry pixel art
 			antialias: false,
 			// Emulates a dumb CC2 tearing effect with some weird tiles
 			preserveDrawingBuffer: true,
-		})
-		this.gl.enable(this.gl.BLEND)
-		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA)
-		this.programInfo = createProgramInfo(this.gl, [
-			`// we will always pass a 0 to 1 unit quad
-// and then use matrices to manipulate it
-attribute vec4 aPosition;   
-
-uniform mat4 uMatrix;
-uniform mat4 uTextureMatrix;
-
-varying vec2 vTexcoord;
-
-void main () {
-  gl_Position = uMatrix * aPosition;
-  vTexcoord = (uTextureMatrix * aPosition).xy;
-}`,
-			`precision mediump float;
-
-varying vec2 vTexcoord;
-uniform vec4 uColorMult;
-uniform bool uDesaturate;
-uniform sampler2D uTexture;
-
-void main() {
-	gl_FragColor = texture2D(uTexture, vTexcoord) * uColorMult;
-	if (uDesaturate) gl_FragColor.rgb = vec3((gl_FragColor.r + gl_FragColor.g + gl_FragColor.b) / 3.0);
-}`,
-		])
-		this.bufferInfo = primitives.createXYQuadBufferInfo(this.gl, 1, 0.5, 0.5)
-		if (this.bufferInfo.attribs) {
-			this.bufferInfo.attribs.aPosition = this.bufferInfo.attribs.position
-			delete this.bufferInfo.attribs.position
-		}
-		this.gl.useProgram(this.programInfo.program)
-		// calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
-		setBuffersAndAttributes(this.gl, this.programInfo, this.bufferInfo)
+		}) as CanvasRenderingContext2D
 	}
 	updateSize(): void {
 		this.canvas.style.height = `${this.canvas.height * this.scaling}px`
 		this.canvas.style.width = `${this.canvas.width * this.scaling}px`
-		this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
+		//this.ctx.set(0, 0, this.canvas.width, this.canvas.height)
 	}
-	addTexture(
+	/*addTexture(
 		source:
 			| string
 			| number[]
@@ -103,7 +34,7 @@ void main() {
 		if (!(source instanceof HTMLElement))
 			return new Promise<SizedWebGLTexture>((res, rej) => {
 				createTexture(
-					this.gl,
+					this.ctx,
 					{
 						src: source,
 					},
@@ -128,13 +59,13 @@ void main() {
 			return Promise.resolve({
 				height: source.height,
 				width: source.width,
-				texture: createTexture(this.gl, { src: source }),
+				texture: createTexture(this.ctx, { src: source }),
 				source,
 				image: source,
 			})
-	}
+	}*/
 	drawImage(
-		tex: SizedWebGLTexture,
+		tex: CanvasImageSource,
 		srcX: number,
 		srcY: number,
 		srcWidth: number,
@@ -143,43 +74,30 @@ void main() {
 		dstY: number,
 		dstWidth: number,
 		dstHeight: number,
-		colorMult: [number, number, number, number] = [1, 1, 1, 1],
-		desaturate: boolean = false
+		alphaMult = 1,
+		rotation = 0
 	): void {
-		const mat = m4.identity()
-		const tmat = m4.identity()
-		const uniforms = {
-			uMatrix: mat,
-			uTextureMatrix: tmat,
-			uTexture: tex.texture,
-			uColorMult: colorMult,
-			uDesaturate: desaturate,
+		dstX -= Math.round(this.cameraPosition[0])
+		dstY -= Math.round(this.cameraPosition[1])
+		if (rotation !== 0) {
+			this.ctx.translate(dstX + dstWidth / 2, dstY + dstHeight / 2)
+			this.ctx.rotate(rotation)
+			this.ctx.translate(-dstX - dstWidth / 2, -dstY - dstHeight / 2)
 		}
-
-		// these adjust the unit quad to generate texture coordinates
-		// to select part of the src texture
-		m4.translate(tmat, [srcX / tex.width, srcY / tex.height, 0], tmat)
-		m4.scale(tmat, [srcWidth / tex.width, srcHeight / tex.height, 1], tmat)
-
-		// these convert from pixels to clip space
-		m4.translate(mat, [-1, 1, 0], mat)
-		m4.scale(mat, [2 / this.canvas.width, -2 / this.canvas.height, 1], mat)
-		// these move and scale the unit quad into the size we want
-		// in the target as pixels
-		m4.translate(
-			mat,
-			[
-				dstX - Math.round(this.cameraPosition[0]),
-				dstY - Math.round(this.cameraPosition[1]),
-				0,
-			],
-			mat
+		this.ctx.globalAlpha = alphaMult
+		this.ctx.drawImage(
+			tex,
+			srcX,
+			srcY,
+			srcWidth,
+			srcHeight,
+			dstX,
+			dstY,
+			dstWidth,
+			dstHeight
 		)
-		m4.scale(mat, [dstWidth, dstHeight, 1], mat)
-
-		// calls gl.uniformXXX, gl.activeTexture, gl.bindTexture
-		setUniforms(this.programInfo, uniforms)
-		// calls gl.drawArray or gl.drawElements
-		drawBufferInfo(this.gl, this.bufferInfo, this.gl.TRIANGLES)
+		if (rotation !== 0) {
+			this.ctx.resetTransform()
+		}
 	}
 }

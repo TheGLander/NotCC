@@ -1,7 +1,7 @@
 import { Direction } from "@notcc/logic"
 import { LevelState, crossLevelData } from "@notcc/logic"
 import ogData from "./cc2ImageFormat"
-import { SizedWebGLTexture, WebGLRenderer } from "./rendering"
+import { WebGLRenderer } from "./rendering"
 import { keyNameList } from "@notcc/logic"
 import { Actor } from "@notcc/logic"
 import { artDB } from "./const"
@@ -151,14 +151,14 @@ function convertDirection(direction: Direction): [number, number] {
 const tileSize = 32 as const
 
 // TODO Custom tilsets
-let fetchTiles = (async (): Promise<SizedWebGLTexture> =>
-	renderer.addTexture(await removeBackground("./data/img/tiles.png")))()
+const fetchTiles = (): Promise<CanvasImageSource> =>
+	removeBackground("./data/img/tiles.png")
 
 export default class Renderer {
 	ready: Promise<void>
 	readyBool = false
 	// @ts-expect-error We don't use it unless we have it
-	renderTexture: SizedWebGLTexture
+	renderTexture: CanvasImageSource
 
 	/**
 	 * Initializes the renderer, optional `this.ready` promise
@@ -171,7 +171,7 @@ export default class Renderer {
 	) {
 		this.updateCameraSizes()
 		this.ready = (async () => {
-			this.renderTexture = await fetchTiles
+			this.renderTexture = await fetchTiles()
 			renderSpace?.appendChild(renderer.canvas)
 			itemSpace?.appendChild(itemCtx.canvas)
 			this.readyBool = true
@@ -207,7 +207,7 @@ export default class Renderer {
 				]?.[artPiece.frame ?? 0]
 			if (!frame) continue
 			itemCtx.drawImage(
-				this.renderTexture.image as HTMLImageElement,
+				this.renderTexture,
 				frame[0] * tileSize,
 				frame[1] * tileSize,
 				tileSize,
@@ -233,7 +233,7 @@ export default class Renderer {
 			let index = keyNameList.indexOf(key.type.id)
 			if (index === -1) index = nonRegisteredOffset++
 			itemCtx.drawImage(
-				this.renderTexture.image as HTMLImageElement,
+				this.renderTexture,
 				frame[0] * tileSize,
 				frame[1] * tileSize,
 				tileSize,
@@ -298,8 +298,8 @@ export default class Renderer {
 			arr: ActorArt[],
 			x: number,
 			y: number,
-			colorMult?: [number, number, number, number],
-			desaturate: boolean = false
+			alphaMult?: number,
+			rotation?: number
 		) => {
 			for (const art of arr) {
 				if (!art) continue
@@ -319,8 +319,8 @@ export default class Renderer {
 					Math.floor((y + (art.imageOffset?.[1] ?? 0)) * tileSize),
 					croppedSize[0] * tileSize,
 					croppedSize[1] * tileSize,
-					colorMult,
-					desaturate
+					alphaMult,
+					rotation
 				)
 			}
 		}
@@ -328,8 +328,8 @@ export default class Renderer {
 			actor: Actor,
 			x: number,
 			y: number,
-			colorMult?: [number, number, number, number],
-			desaturate?: boolean
+			alphaMult?: number,
+			rotation?: number
 		) => {
 			const movedPos = [x, y]
 			if (actor.cooldown && actor.currentMoveSpeed) {
@@ -339,7 +339,7 @@ export default class Renderer {
 				movedPos[0] -= offsetMult * mults[0]
 				movedPos[1] -= offsetMult * mults[1]
 			}
-			drawArt(getArt(actor), movedPos[0], movedPos[1], colorMult, desaturate)
+			drawArt(getArt(actor), movedPos[0], movedPos[1], alphaMult, rotation)
 		}
 		for (let layer = Layer.STATIONARY; layer <= Layer.SPECIAL; layer++)
 			for (
@@ -365,7 +365,7 @@ export default class Renderer {
 				}
 		if (crossLevelData.despawnedActors)
 			for (const actor of crossLevelData.despawnedActors)
-				drawActor(actor, actor.tile.x, actor.tile.y, [1, 1, 1, 0.75], true)
+				drawActor(actor, actor.tile.x, actor.tile.y, 0.75)
 		this.updateItems()
 	}
 	destroy(): void {
@@ -374,8 +374,7 @@ export default class Renderer {
 	}
 	async setTileset(tilesetImage: string): Promise<void> {
 		this.readyBool = false
-		fetchTiles = renderer.addTexture(await removeBackground(tilesetImage))
-		this.renderTexture = await fetchTiles
+		this.renderTexture = await removeBackground(tilesetImage)
 		this.readyBool = true
 	}
 }
@@ -623,7 +622,6 @@ export const genericWiredTerrainArt =
 		[
 			{ actorName: "floor" },
 			...wireBaseArt(actor.wires, actor.poweredWires),
-			,
 			{
 				actorName: name,
 				animation: animName,

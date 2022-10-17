@@ -33,7 +33,6 @@
 		"rollup-plugin-polyfill-node": "^0.9.0",
 		"rollup-plugin-sourcemaps": "^0.6.3",
 		"rollup-plugin-terser": "^7.0.2",
-		"twgl.js": "^4.19.1",
 		"typescript": "^4.2.3"
 	},
 	"dependencies": {
