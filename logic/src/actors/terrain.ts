@@ -421,15 +421,12 @@ export class Trap extends Actor {
 actorDB["trap"] = Trap
 
 onLevelDecisionTick.push(level => {
-	for (const tile of level.tiles())
-		for (const trap of tile[Layer.STATIONARY]) {
-			if (!(trap instanceof Trap)) continue
-			if (trap.circuits) trap.isOpen = !!trap.poweredWires
-			for (const movable of trap.tile[Layer.MOVABLE])
-				movable.slidingState = trap.isOpen
-					? SlidingState.NONE
-					: SlidingState.WEAK
-		}
+	for (const trap of level.actors) {
+		if (trap.id !== "trap" || !(trap instanceof Trap)) continue
+		if (trap.circuits) trap.isOpen = !!trap.poweredWires
+		for (const movable of trap.tile[Layer.MOVABLE])
+			movable.slidingState = trap.isOpen ? SlidingState.NONE : SlidingState.WEAK
+	}
 })
 
 // TODO CC1 clone machines, direction arrows on clone machine
@@ -776,11 +773,9 @@ export class Railroad extends Actor {
 actorDB["railroad"] = Railroad
 
 onLevelWireTick.push(level => {
-	for (const tile of level.tiles()) {
-		for (const logicGate of tile[Layer.STATIONARY]) {
-			if (logicGate instanceof LogicGate) {
-				logicGate.doTeleport()
-			}
+	for (const logicGate of level.circuitInputs) {
+		if (logicGate instanceof LogicGate) {
+			logicGate.doTeleport()
 		}
 	}
 })

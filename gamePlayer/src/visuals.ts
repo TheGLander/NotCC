@@ -4,27 +4,25 @@ import ogData from "./cc2ImageFormat"
 import { WebGLRenderer } from "./rendering"
 import { keyNameList } from "@notcc/logic"
 import { Actor } from "@notcc/logic"
-import { artDB } from "./const"
+import { artDB, Falsy } from "./const"
 import { Layer } from "@notcc/logic"
 import { Wirable, WireOverlapMode, Wires } from "@notcc/logic"
 import { Tile } from "@notcc/logic"
 
-function getArt(actor: Actor): ActorArt[] {
+function getArt(actor: Actor): (ActorArt | Falsy)[] {
 	let art = artDB[actor.id]
 	if (!art) return [{ actorName: "unknown" }]
 	if (typeof art === "function") art = art(actor)
-	if (art instanceof Array)
-		return art.filter<ActorArt>((art): art is ActorArt => !!art)
+	if (art instanceof Array) return art
 	else return [art]
 }
 
-function getFloorArt(tile: Tile): ActorArt[] {
+function getFloorArt(tile: Tile): (ActorArt | Falsy)[] {
 	let art = artDB["floor"]
 	if (!art) return [{ actorName: "unknown" }]
 	// Hack, as the floor art code takes any wirable, not onlt actors
 	if (typeof art === "function") art = art(tile as Wirable as Actor)
-	if (art instanceof Array)
-		return art.filter<ActorArt>((art): art is ActorArt => !!art)
+	if (art instanceof Array) return art
 	else return [art]
 }
 
@@ -200,6 +198,7 @@ export default class Renderer {
 		if (!player) return
 		for (const [i, item] of player.inventory.items.entries()) {
 			const artPiece = getArt(item)[0]
+			if (!artPiece) continue
 			if (!artPiece.actorName) continue
 			const frame =
 				data.actorMapping[artPiece.actorName]?.[
@@ -222,7 +221,8 @@ export default class Renderer {
 		for (const key of Object.values(player.inventory.keys)) {
 			if (key.amount <= 0) continue
 			const artPiece = getArt(key.type)[0]
-			if (!artPiece.actorName) continue
+			if (!artPiece) continue
+			if (!artPiece?.actorName) continue
 
 			const frame =
 				data.actorMapping[artPiece.actorName]?.[
@@ -295,7 +295,7 @@ export default class Renderer {
 			]
 		}
 		const drawArt = (
-			arr: ActorArt[],
+			arr: (ActorArt | Falsy)[],
 			x: number,
 			y: number,
 			alphaMult?: number,
