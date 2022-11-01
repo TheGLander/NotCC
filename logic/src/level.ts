@@ -230,6 +230,10 @@ export class LevelState {
 				this.subtick = 0
 			} else this.subtick++
 		}
+		if (this.timeLeft !== 0 && !this.timeFrozen) {
+			this.timeLeft--
+			if (this.timeLeft <= 0) this.gameState = GameState.LOST
+		}
 		if (this.solutionSubticksLeft >= 0 && this.currentSolution) {
 			let step = this.currentSolution.steps[0][this.solutionStep]
 			this.solutionSubticksLeft--
@@ -249,11 +253,6 @@ export class LevelState {
 		onLevelWireTick.forEach(val => val(this))
 		wireTick.apply(this)
 		//	if (this.playables.length === 0) this.lost = true
-
-		if (this.timeLeft !== 0 && !this.timeFrozen) {
-			this.timeLeft--
-			if (this.timeLeft <= 0) this.gameState = GameState.LOST
-		}
 		/*for (const debouncedKey of debouncedInputs)
 			if (!this.gameInput[debouncedKey]) this.debouncedInputs[debouncedKey] = 0
 			else if (this.debouncedInputs[debouncedKey] > 0) {
@@ -261,6 +260,8 @@ export class LevelState {
 					this.debouncedInputs[debouncedKey]--
 				this.debouncedInputs[debouncedKey]--
 			} */
+
+		if (this.playablesLeft <= 0) this.gameState = GameState.WON
 		for (const releasable of releasableKeys) {
 			if (!this.gameInput[releasable]) this.releasedKeys[releasable] = false
 		}

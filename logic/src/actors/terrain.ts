@@ -271,8 +271,6 @@ export class Exit extends Actor {
 			other.destroy(this, null)
 			this.level.gameState = GameState.PLAYING
 			this.level.playablesLeft--
-
-			if (this.level.playablesLeft <= 0) this.level.gameState = GameState.WON
 		}
 	}
 }
