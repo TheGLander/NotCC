@@ -53,6 +53,7 @@ export abstract class Actor implements Wirable {
 	oldTile: Tile | null = null
 	cooldown = 0
 	pendingDecision = Decision.NONE
+	pendingDecisionCemented = false
 	slidingState = SlidingState.NONE
 	abstract getLayer(): Layer
 	layer: Layer
@@ -259,6 +260,7 @@ export abstract class Actor implements Wirable {
 		if (this.pendingDecision) {
 			this.moveDecision = this.pendingDecision
 			this.pendingDecision = Decision.NONE
+			this.pendingDecisionCemented = false
 		}
 
 		if (!this.moveDecision) {
@@ -374,6 +376,9 @@ export abstract class Actor implements Wirable {
 					if (thisActor.newActor) thisActor = thisActor.newActor
 				}
 		}
+		if (this.pendingDecision) {
+			this.pendingDecisionCemented = true
+		}
 		this.bonked = false
 	}
 	isPushing = false
@@ -480,7 +485,9 @@ export abstract class Actor implements Wirable {
 
 		for (const pushable of toPush) {
 			if (pushable.slidingState) {
-				pushable.pendingDecision = direction + 1
+				if (!pushable.pendingDecisionCemented) {
+					pushable.pendingDecision = direction + 1
+				}
 				// We did not move, shame, but we did queue this block push
 				this.level.resolvedCollisionCheckDirection = direction
 				return false
@@ -511,7 +518,9 @@ export abstract class Actor implements Wirable {
 					(pulledActor.canBePushed && !pulledActor.canBePushed(this, direction))
 				)
 					continue
-				pulledActor.pendingDecision = direction + 1
+				if (!pulledActor.pendingDecisionCemented) {
+					pulledActor.pendingDecision = direction + 1
+				}
 			}
 		}
 		if (toPush.length !== 0) this.isPushing = true
@@ -621,7 +630,7 @@ export abstract class Actor implements Wirable {
 	 */
 	bumpedActor?(other: Actor, bumpDirection: Direction, onExit: boolean): void
 	_internalCanPush(other: Actor, direction: Direction): boolean {
-		if (other.pendingDecision) return false
+		//if (other.pendingDecision) return false
 		if (
 			!matchTags(
 				other.getCompleteTags("tags"),
