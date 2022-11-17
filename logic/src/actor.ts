@@ -493,7 +493,10 @@ export abstract class Actor implements Wirable {
 				this.level.resolvedCollisionCheckDirection = direction
 				return false
 			}
-
+			if (pushable.pendingDecisionApplied) {
+				this.level.resolvedCollisionCheckDirection = direction
+				return false
+			}
 			if (
 				pushable.cooldown ||
 				!pushable.checkCollision(direction, pushBlocks)
