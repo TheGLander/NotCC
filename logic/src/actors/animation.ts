@@ -28,7 +28,6 @@ export abstract class Animation extends Actor {
 	_internalDecide(): void {
 		this.pendingDecision = this.moveDecision = Decision.NONE
 		this.slidingState = SlidingState.NONE
-		this.pendingDecisionCemented = false
 		this.animationCooldown--
 		if (!this.animationCooldown) this.destroy(null, null)
 	}
