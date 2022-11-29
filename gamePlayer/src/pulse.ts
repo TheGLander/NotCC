@@ -3,7 +3,6 @@ import {
 	LevelState,
 	InputType,
 	KeyInputs,
-	decodeSolutionStep,
 	encodeSolutionStep,
 } from "@notcc/logic"
 import Renderer from "./visuals"

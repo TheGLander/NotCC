@@ -277,7 +277,7 @@ export abstract class Actor implements Wirable {
 	/**
 	 * True if the last move failed
 	 */
-	bonked: boolean = false
+	bonked = false
 	blocks?(other: Actor, otherMoveDirection: Direction): boolean
 	blockedBy?(other: Actor, thisMoveDirection: Direction): boolean
 	/**
@@ -558,7 +558,7 @@ export abstract class Actor implements Wirable {
 	destroy(
 		killer?: Actor | null,
 		animType: string | null = "explosion",
-		extendedAnim: boolean = false,
+		extendedAnim = false,
 		shouldDieNoItems = false
 	): boolean {
 		if (killer && !this._internalShouldDie(killer, shouldDieNoItems))
@@ -718,16 +718,16 @@ export abstract class Actor implements Wirable {
 		direction: Direction
 	): Direction | null
 	bumpedEdge?(fromTile: Tile, direction: Direction): void
-	wires: number = 0
+	wires = 0
 	/**
 	 * The currently powered wires, either by it's own abilities of via neighbors
 	 */
-	poweredWires: number = 0
+	poweredWires = 0
 	/**
 	 * The wires this actor is powering itself
 	 */
-	poweringWires: number = 0
-	wireTunnels: number = 0
+	poweringWires = 0
+	wireTunnels = 0
 	circuits?: [CircuitCity?, CircuitCity?, CircuitCity?, CircuitCity?]
 	wireOverlapMode: WireOverlapMode = WireOverlapMode.NONE
 	/**
@@ -739,7 +739,7 @@ export abstract class Actor implements Wirable {
 	listensWires?: boolean
 	onCreation?(): void
 	providesPower?: boolean
-	wired: boolean = false
+	wired = false
 	/**
 	 * If true, this will be actually checked on exit-only collision checks
 	 */

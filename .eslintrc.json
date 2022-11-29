@@ -26,6 +26,8 @@
 		"indent": [0], //Prettier automatically handles this too
 		"linebreak-style": ["error", "unix"],
 		"quotes": [0], //Prettier automatically handles them
-		"@typescript-eslint/ban-types": ["error", { "types": { "object": false } }]
+		"@typescript-eslint/ban-types": ["error", { "types": { "object": false } }],
+		"@typescript-eslint/no-this-alias": [0],
+		"@typescript-eslint/no-non-null-assertion": [0]
 	}
 }

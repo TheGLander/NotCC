@@ -2,7 +2,6 @@ import { artDB, setArtForActor } from "../const"
 import {
 	ActorArt,
 	genericAnimatedArt,
-	genericWiredTerrainArt,
 	wireBaseExtendedCornersArt,
 	wiredTerrainArt,
 } from "../visuals"

@@ -151,7 +151,7 @@ export class Tile implements Wirable {
 			}
 		}
 	}
-	getNeighbor(direction: Direction, wrap: boolean = true): Tile | null {
+	getNeighbor(direction: Direction, wrap = true): Tile | null {
 		switch (direction) {
 			case Direction.UP:
 				return (
@@ -212,10 +212,10 @@ export class Tile implements Wirable {
 			if (tile) yield tile
 		}
 	}
-	wires: number = 0
-	poweredWires: number = 0
-	wireTunnels: number = 0
+	wires = 0
+	poweredWires = 0
+	wireTunnels = 0
 	circuits?: [CircuitCity?, CircuitCity?, CircuitCity?, CircuitCity?]
 	wireOverlapMode: WireOverlapMode = WireOverlapMode.CROSS
-	poweringWires: number = 0
+	poweringWires = 0
 }

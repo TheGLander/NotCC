@@ -7,7 +7,7 @@ import { Direction } from "../helpers"
 export abstract class Animation extends Actor {
 	animationCooldown = 16
 	animationLength = 16
-	moveSpeed: number = 0
+	moveSpeed = 0
 	blockTags = ["real-playable"]
 	getLayer(): Layer {
 		return Layer.MOVABLE

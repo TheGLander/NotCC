@@ -1,4 +1,4 @@
-import { artDB, setArtForActor } from "../const"
+import { setArtForActor } from "../const"
 import { CombinationTile, VoodooTile } from "@notcc/logic"
 
 setArtForActor<CombinationTile>("combinationTile", actor => [

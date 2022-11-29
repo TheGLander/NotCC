@@ -34,7 +34,7 @@ export async function startNewLevelSet(
 		case 0xacaa0300:
 			levelData = parseDAT(buffer, filename)
 			break
-		case 0x504b0304:
+		case 0x504b0304: {
 			// TODO Handle C2Gs in this thing
 			const unzipValue = await decompresssActuallyAsync(buffer, {
 				filter(file) {
@@ -49,6 +49,7 @@ export async function startNewLevelSet(
 				n++
 			}
 			break
+		}
 		default:
 			throw new Error("Pls give good file format")
 	}

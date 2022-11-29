@@ -68,7 +68,7 @@ export abstract class Playable extends Actor {
 
 		// TODO Split screen
 
-		let canMove =
+		const canMove =
 			this.level.selectedPlayable === this &&
 			(!this.slidingState ||
 				(this.slidingState === SlidingState.WEAK && this.hasOverride)) &&
@@ -105,7 +105,7 @@ export abstract class Playable extends Actor {
 		}
 		this.lastDecisionWasSliding = false
 		let bonked = false
-		let [vert, horiz] = getMovementDirections(this.level.gameInput)
+		const [vert, horiz] = getMovementDirections(this.level.gameInput)
 		if (
 			this.slidingState &&
 			(!canMove || (vert === undefined && horiz === undefined))

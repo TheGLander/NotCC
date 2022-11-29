@@ -245,7 +245,7 @@ export class GreenTeleport extends Teleport {
 		// All green TPs
 		const allTeleports: this[] = []
 		// TPs which do not have an actor on them
-		let validTeleports: this[] = []
+		const validTeleports: this[] = []
 		let targetTeleport: this | undefined
 		for (
 			let teleport = findNextTeleport(this, false);
@@ -270,7 +270,7 @@ export class GreenTeleport extends Teleport {
 			const dir = this.level.random() % 4
 
 			mainLoop: for (let i = 0; i < validTeleports.length; i++) {
-				let index = i + targetIndex
+				const index = i + targetIndex
 				const teleport = validTeleports[index]
 				if (teleport === this) continue
 				if (index >= validTeleports.length) break
