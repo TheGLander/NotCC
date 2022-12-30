@@ -53,7 +53,8 @@ export abstract class Actor implements Wirable {
 	oldTile: Tile | null = null
 	cooldown = 0
 	pendingDecision = Decision.NONE
-	pendingDecisionCemented = false
+	hadMovingPendingDecision = false
+	pendingDecisionApplied = false
 	slidingState = SlidingState.NONE
 	abstract getLayer(): Layer
 	layer: Layer
@@ -187,15 +188,17 @@ export abstract class Actor implements Wirable {
 		if (!this.exists) return
 		this.bonked = false
 		this.moveDecision = Decision.NONE
-		// If we have a pending decision, don't do anything, doing decisions may cause a state change, otherwise
-		if (this.pendingDecision) {
-			this.pendingDecisionCemented = true
-			return
-		}
+
 		if (this.cooldown) return // This is where the decision *actually* begins
 		this.currentMoveSpeed = null
 		this.isPushing = false
-		// Since this is a generic actor, we cannot override weak sliding
+		if (this.pendingDecision) {
+			this.moveDecision = this.pendingDecision
+			this.pendingDecision = Decision.NONE
+			this.pendingDecisionApplied = true
+			return
+		}
+		// This is where the decision *actually* begins		// Since this is a generic actor, we cannot override weak sliding
 		// TODO Ghost ice shenanigans
 		if (this.slidingState) {
 			this.moveDecision = this.direction + 1
@@ -238,6 +241,8 @@ export abstract class Actor implements Wirable {
 			this.level.resolvedCollisionCheckDirection,
 			false
 		)
+		this.pendingDecision = Decision.NONE
+		this.moveDecision = Decision.NONE
 		// This is purely a defensive programming thing, shouldn't happen normally (checkCollision should check for going OOB)
 		if (!newTile) return false
 		let speedMult = 1
@@ -255,20 +260,17 @@ export abstract class Actor implements Wirable {
 		if (!this.exists) return
 		if (this.cooldown > 0) {
 			this.isPulled = false
+			this.moveDecision = Decision.NONE
 			return
-		}
-		// If the thing has a decision queued up, do it forcefully
-		// (Currently only used for blocks pushed while sliding)
-		if (this.pendingDecision) {
-			this.moveDecision = this.pendingDecision
-			this.pendingDecision = Decision.NONE
-			this.pendingDecisionCemented = false
 		}
 
 		if (!this.moveDecision) {
 			this.isPulled = false
 			return
 		}
+		this.pendingDecision = Decision.NONE
+		this.hadMovingPendingDecision = false
+		this.pendingDecisionApplied = false
 		const ogDirection = this.moveDecision - 1
 		const success = this._internalStep(ogDirection)
 
@@ -483,14 +485,13 @@ export abstract class Actor implements Wirable {
 			}
 
 		for (const pushable of toPush) {
-			if (pushable.pendingDecisionCemented) {
-				this.level.resolvedCollisionCheckDirection = direction
-				return false
-			}
+			this.level.resolvedCollisionCheckDirection = direction
 			if (pushable.slidingState) {
-				pushable.pendingDecision = direction + 1
-				// We did not move, shame, but we did queue this block push
-				this.level.resolvedCollisionCheckDirection = direction
+				// Blocks with no cooldown can't have their pending decision be overriden
+				if (!(pushable.cooldown === 0 && pushable.hadMovingPendingDecision)) {
+					pushable.hadMovingPendingDecision = pushable.cooldown > 0
+					pushable.pendingDecision = pushable.moveDecision = direction + 1
+				}
 				return false
 			}
 			if (
@@ -514,12 +515,13 @@ export abstract class Actor implements Wirable {
 				//a
 				if (
 					!pushBlocks ||
+					pulledActor.pendingDecisionApplied ||
 					!pulledActor.getCompleteTags("tags").includes("block") ||
 					(pulledActor.canBePushed && !pulledActor.canBePushed(this, direction))
 				)
 					continue
-				if (pulledActor.pendingDecisionCemented) continue
-				pulledActor.pendingDecision = direction + 1
+				pulledActor.direction = direction
+				pulledActor.pendingDecision = pulledActor.moveDecision = direction + 1
 			}
 		}
 		if (toPush.length !== 0) this.isPushing = true
