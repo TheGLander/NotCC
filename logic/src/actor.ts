@@ -640,6 +640,7 @@ export abstract class Actor implements Wirable {
 			!(other.canBePushed?.(this, direction) ?? true)
 		)
 			return false
+		if (other.pendingDecisionApplied) return false
 		return other.checkCollision(direction, true, true)
 	}
 	/**
