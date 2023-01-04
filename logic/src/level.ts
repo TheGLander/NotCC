@@ -77,7 +77,7 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 			actor.tile = level.field[actor.tile.position[0]][actor.tile.position[1]]
 			if (actor instanceof Playable) level.playables.push(actor)
 			// Note that we don't add the actor to the tile: That's the whole point of despawning
-			ctor.tile.addActors(actor)
+			// actor.tile.addActors(actor)
 		}
 	},
 ]
