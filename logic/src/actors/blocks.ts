@@ -160,7 +160,6 @@ export class DirectionalBlock extends Actor {
 			this.legalDirections[i] = (this.legalDirections[i] - delta + 4) % 4
 		}
 		this.rebuildCustomData()
-		//a
 	}
 }
 

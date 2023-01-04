@@ -190,7 +190,7 @@ Bonus: ${this.level.bonusPoints}pts`
 			delayCounter.innerText = `Calculation delay: ${
 				Math.round(this.countDelay(Date.now() - oldTime) * 1000) / 1000
 			}ms
-			TPS: ${this.countTps(1000 / (Date.now() - this.lastTick))}` //a
+			TPS: ${this.countTps(1000 / (Date.now() - this.lastTick))}`
 		this.lastTick = Date.now()
 		/*if (
 			this.level.currentTick >= 300 &&

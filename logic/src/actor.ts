@@ -512,7 +512,7 @@ export abstract class Actor implements Wirable {
 			for (const pulledActor of backTile[Layer.MOVABLE]) {
 				if (pulledActor.cooldown && pulledActor.moveSpeed) return false
 				pulledActor.isPulled = true
-				//a
+
 				if (
 					!pushBlocks ||
 					pulledActor.pendingDecisionApplied ||

@@ -289,7 +289,7 @@ export class LitTNT extends Monster {
 			val.getCompleteTags("tags").includes("blocks-tnt")
 		)
 		if (protector) protectedLayer = protector.layer
-		//a
+
 		for (const actor of Array.from(tile.allActorsReverse))
 			if (actor.layer >= protectedLayer) {
 				actor.bumped?.(

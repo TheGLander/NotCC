@@ -467,7 +467,7 @@ export class CloneMachine extends Actor {
 					for (let i = 1; i <= 3; i++)
 						if (clonee._internalStep((ogDir + i) % 4)) {
 							clonee.cooldown--
-							//a
+
 							break
 						}
 				}
