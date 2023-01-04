@@ -53,8 +53,7 @@ export abstract class Actor implements Wirable {
 	oldTile: Tile | null = null
 	cooldown = 0
 	pendingDecision = Decision.NONE
-	hadMovingPendingDecision = false
-	pendingDecisionApplied = false
+	pendingDecisionLockedIn = false
 	slidingState = SlidingState.NONE
 	abstract getLayer(): Layer
 	layer: Layer
@@ -195,7 +194,7 @@ export abstract class Actor implements Wirable {
 		if (this.pendingDecision) {
 			this.moveDecision = this.pendingDecision
 			this.pendingDecision = Decision.NONE
-			this.pendingDecisionApplied = true
+			this.pendingDecisionLockedIn = true
 			return
 		}
 		// This is where the decision *actually* begins		// Since this is a generic actor, we cannot override weak sliding
@@ -269,8 +268,7 @@ export abstract class Actor implements Wirable {
 			return
 		}
 		this.pendingDecision = Decision.NONE
-		this.hadMovingPendingDecision = false
-		this.pendingDecisionApplied = false
+		this.pendingDecisionLockedIn = false
 		const ogDirection = this.moveDecision - 1
 		const success = this._internalStep(ogDirection)
 
@@ -370,6 +368,7 @@ export abstract class Actor implements Wirable {
 	_internalDoCooldown(): void {
 		if (!this.exists) return
 		if (this.cooldown > 0 && this.cooldown <= 1) {
+			if (this.pendingDecision) this.pendingDecisionLockedIn = true
 			this.enterTile()
 		} else if (this.cooldown > 0) this.cooldown--
 		else if (this.exists) {
@@ -488,8 +487,7 @@ export abstract class Actor implements Wirable {
 			this.level.resolvedCollisionCheckDirection = direction
 			if (pushable.slidingState) {
 				// Blocks with no cooldown can't have their pending decision be overriden
-				if (!(pushable.cooldown === 0 && pushable.hadMovingPendingDecision)) {
-					pushable.hadMovingPendingDecision = pushable.cooldown > 0
+				if (!pushable.pendingDecisionLockedIn) {
 					pushable.pendingDecision = pushable.moveDecision = direction + 1
 				}
 				return false
@@ -515,7 +513,7 @@ export abstract class Actor implements Wirable {
 
 				if (
 					!pushBlocks ||
-					pulledActor.pendingDecisionApplied ||
+					pulledActor.pendingDecisionLockedIn ||
 					!pulledActor.getCompleteTags("tags").includes("block") ||
 					(pulledActor.canBePushed && !pulledActor.canBePushed(this, direction))
 				)
@@ -640,7 +638,7 @@ export abstract class Actor implements Wirable {
 			!(other.canBePushed?.(this, direction) ?? true)
 		)
 			return false
-		if (other.pendingDecisionApplied) return false
+		if (other.pendingDecisionLockedIn) return false
 		return other.checkCollision(direction, true, true)
 	}
 	/**
