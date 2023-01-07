@@ -4,10 +4,9 @@
 	"version": "0.1.0",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "npx rollup -c",
-		"watch": "env NODE_ENV=development npm run build -- --watch",
-		"build:prod": "env NODE_ENV=production npm run build",
-		"start": "nollup -c"
+		"build": "rollup -c",
+		"watch": "env NODE_ENV=development yarn build --watch",
+		"build:prod": "env NODE_ENV=production yarn build"
 	},
 	"repository": {
 		"type": "git",
