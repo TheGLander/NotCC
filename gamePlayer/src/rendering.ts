@@ -19,51 +19,7 @@ export class WebGLRenderer {
 	updateSize(): void {
 		this.canvas.style.height = `${this.canvas.height * this.scaling}px`
 		this.canvas.style.width = `${this.canvas.width * this.scaling}px`
-		//this.ctx.set(0, 0, this.canvas.width, this.canvas.height)
 	}
-	/*addTexture(
-		source:
-			| string
-			| number[]
-			| ArrayBufferView
-			| TexImageSource
-			| TexImageSource[]
-			| string[]
-			| TextureFunc
-	): Promise<SizedWebGLTexture> {
-		if (!(source instanceof HTMLElement))
-			return new Promise<SizedWebGLTexture>((res, rej) => {
-				createTexture(
-					this.ctx,
-					{
-						src: source,
-					},
-					(err, tex, src: HTMLImageElement | HTMLImageElement[]) => {
-						if (err) {
-							rej(err)
-							return
-						}
-						if (src instanceof Array) src = src[0]
-						res({
-							height: src.height,
-							width: src.width,
-							texture: tex,
-							source,
-							image: src,
-						})
-					}
-				)
-			})
-		// Fun fact: "instant" loading from elements just doesn't call the callback, so do an emulation of that here in case of an element
-		else
-			return Promise.resolve({
-				height: source.height,
-				width: source.width,
-				texture: createTexture(this.ctx, { src: source }),
-				source,
-				image: source,
-			})
-	}*/
 	drawImage(
 		tex: CanvasImageSource,
 		srcX: number,
