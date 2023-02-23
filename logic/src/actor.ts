@@ -619,6 +619,15 @@ export abstract class Actor implements Wirable {
 		}
 		return true
 	}
+	getVisualPosition(): [number, number] {
+		if (!this.cooldown || !this.currentMoveSpeed || !this.oldTile)
+			return this.tile.position
+		const progress = 1 - this.cooldown / this.currentMoveSpeed
+		return [
+			this.oldTile.x * (1 - progress) + this.tile.x * progress,
+			this.oldTile.y * (1 - progress) + this.tile.y * progress,
+		]
+	}
 	actorDestroyed?(actor: Actor): void
 	/**
 	 * Called when another actor bumps into this actor

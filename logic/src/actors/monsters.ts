@@ -107,23 +107,13 @@ export class Ball extends Monster {
 
 actorDB["ball"] = Ball
 
-export function getVisualCoordinates(actor: Actor): [number, number] {
-	if (!actor.cooldown || !actor.currentMoveSpeed || !actor.oldTile)
-		return actor.tile.position
-	const progress = 1 - actor.cooldown / actor.currentMoveSpeed
-	return [
-		actor.oldTile.x * (1 - progress) + actor.tile.x * progress,
-		actor.oldTile.y * (1 - progress) + actor.tile.y * progress,
-	]
-}
-
 function getPursuitCoords(
 	actor: Actor,
 	target: Actor,
 	reverse = false
 ): Direction[] {
 	// This uses the visual position of the target
-	const targetPos = getVisualCoordinates(target)
+	const targetPos = target.getVisualPosition()
 	const dx = actor.tile.x - targetPos[0],
 		dy = actor.tile.y - targetPos[1]
 	const directions: Direction[] = []
