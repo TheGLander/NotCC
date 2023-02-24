@@ -50,7 +50,7 @@ function createFieldFromArrayBuffer(
 								0,
 								["u", "r", "d", "l", "c"]
 									.filter((_val, i) => !!((2 ** i) & options))
-									.join(),
+									.join(""),
 							])
 
 						tiles.splice(tiles.indexOf(tile), 1, ...additions)
