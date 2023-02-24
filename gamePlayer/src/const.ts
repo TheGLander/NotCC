@@ -1,22 +1,18 @@
-import { ActorArt } from "./visuals"
-import { Actor } from "@notcc/logic"
+import { ActorArt, Tileset } from "./visuals"
+import { Actor, Wirable } from "@notcc/logic"
 
 export type Falsy = false | undefined | 0 | null | ""
 
-export const artDB: Record<
-	string,
+type ArtFunc<T = Actor> =
 	| ActorArt
 	| (ActorArt | Falsy)[]
-	| ((actor: Actor) => ActorArt | (ActorArt | Falsy)[])
-> = {}
+	| ((actor: T, tileset: Tileset) => ActorArt | (ActorArt | Falsy)[])
+
+export const artDB: Record<string, ArtFunc> & { floor?: ArtFunc<Wirable> } = {}
 
 export function setArtForActor<T extends Actor>(
 	id: string,
-	art:
-		| ActorArt
-		| (ActorArt | Falsy)[]
-		| ((actor: T) => ActorArt | (ActorArt | Falsy)[])
+	art: ArtFunc<T>
 ): void {
-	//@ts-expect-error TS is dumb
-	artDB[id] = art
+	artDB[id] = art as ArtFunc<Actor>
 }

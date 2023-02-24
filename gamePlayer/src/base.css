@@ -89,7 +89,7 @@ select {
 
 /* Renderer things */
 
-.renderer {
+#viewportCanvas {
 	image-rendering: -moz-crisp-edges;
 	image-rendering: -webkit-crisp-edges;
 	image-rendering: pixelated;

@@ -4,9 +4,16 @@ import {
 	InputType,
 	KeyInputs,
 	encodeSolutionStep,
+	Tile,
 } from "@notcc/logic"
-import Renderer from "./visuals"
+import Renderer, {
+	generateActorFrames,
+	loadImage,
+	removeBackground,
+	Tileset,
+} from "./visuals"
 import { SolutionStep } from "@notcc/logic"
+import cc2ImageFormat from "./cc2ImageFormat"
 
 const isSmartTV =
 	/smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
@@ -47,6 +54,14 @@ const checkIfRelevant = (key: string): key is keyof typeof keymap =>
 
 const fpsCounter = document.querySelector<HTMLElement>("#fpsCounter")
 const delayCounter = document.querySelector<HTMLElement>("#delayCounter")
+
+// This a mid-rewrite hack
+const nullTileset: Tileset = {
+	frameMap: {},
+	image: document.createElement("img"),
+	tileSize: 0,
+	wireWidth: 0,
+}
 
 type EventNames = "stateChange" | "win" | "lose" | "newLevel"
 
@@ -90,16 +105,21 @@ export class PulseManager {
 		this.renderer.frame()
 		this.trackFps()
 	}
-	oldLevelStates: LevelState[] = []
 	constructor(
 		public level: LevelState,
-		public renderSpace?: HTMLElement | null,
-		public itemSpace?: HTMLElement | null,
-		public textStats?: HTMLTextAreaElement | null
+		public viewportCanvas: HTMLCanvasElement,
+		public itemCanvas?: HTMLCanvasElement,
+		public textStats?: HTMLTextAreaElement
 	) {
-		this.renderer = new Renderer(level, renderSpace, itemSpace)
+		this.ready = loadImage("./data/img/tiles.png")
+			.then(image => removeBackground(image))
+			.then(image => {
+				const frameMap = generateActorFrames(cc2ImageFormat)
+				const tileset: Tileset = { frameMap, image, tileSize: 32, wireWidth: 2 }
+				this.renderer.tileset = tileset
+			})
+		this.renderer = new Renderer(nullTileset, viewportCanvas, itemCanvas)
 		this.updateFrame = this.updateFrame.bind(this)
-		this.ready = this.renderer.ready
 		window.addEventListener("keydown", this.keyDownFunc.bind(this))
 		window.addEventListener("keyup", this.keyUpFunc.bind(this))
 		this.updateFrame()
@@ -117,6 +137,7 @@ export class PulseManager {
 	}
 	async setNewLevel(level: LevelState): Promise<void> {
 		this.renderer.level = this.level = level
+		this.renderer.cameraSize = level.cameraType
 		// Uncomment for full-level camera
 		/*this.level.cameraType = {
 			width: this.level.width,
@@ -132,11 +153,10 @@ export class PulseManager {
 			rotateInv: false,
 			switchPlayable: false,
 		}
-		this.renderer.updateCameraSizes()
+		this.renderer.updateTileSize()
 
 		this.eventsRegistered.newLevel.forEach(val => val())
 		this.recordedSteps = []
-		this.oldLevelStates = []
 	}
 	updateTextStats(): void {
 		if (!this.textStats) return
