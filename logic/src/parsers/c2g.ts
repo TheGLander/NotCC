@@ -35,6 +35,8 @@ export const C2GVariables = [
 	"tools",
 ] as const
 
+export const C2GReadonlyVariables = ["score"]
+
 export type C2GState = Record<typeof C2GVariables[number], number>
 
 export const C2GPseudoVariables = {
@@ -127,34 +129,35 @@ export const C2GDirectives: Record<
 		else console.warn("The first argument of music must be a string!")
 	},
 	script() {
-		let finalString = ""
-		// Strip everything before the first line
-		for (
-			let token = this.getToken();
-			token && token.type !== "newline";
-			token = this.getToken() // eslint-disable-next-line no-empty
-		) {}
-		for (
-			let token = this.getToken();
-			token && (token.type === "newline" || token.type === "string");
+		// Strip everything before the first `script` line
+		let token = this.getToken()
+		while (token && token.type !== "newline") {
 			token = this.getToken()
-		) {
+		}
+		let finalString = ""
+		token = this.getToken()
+		if (!token || token.type === "newline") {
+			// If the the first line of the `script` (the one after it) is blank, end the script prematurely
+			return true
+		}
+		do {
 			if (token.type === "newline") {
-				// If the first line is actually a newline, this is an invalid script
-				if (finalString === "") return true
 				finalString += "\n"
 				continue
 			}
+
 			const string = token.value
+
+			// It's time to figure out tbe escape values. Each escape value is one token in length.
+			// All expressions have to be done beforehand and placed in temporary variables.
 			const escapeValues: number[] = []
-			for (
-				token = this.getToken();
-				token && token.type !== "newline";
-				token = this.getToken()
-			)
+			token = this.getToken()
+			while (token && token.type !== "newline") {
 				escapeValues.push(this.evaluateExpression([token]))
-			finalString += printf(string, ...escapeValues) + "\n"
-		}
+				token = this.getToken()
+			}
+			finalString += printf(string, ...escapeValues)
+		} while (token && token.type === "ass")
 		// If this stopped by encountering a non-script token, vomit it back
 		if (this.tokens[this.currentToken]) this.currentToken--
 		if (finalString)
@@ -175,31 +178,40 @@ const tokenTypes: TokenType[] = [
 	// Also, no escapes in C2G, yay
 	{ regex: /"([^"\n]*)(?:["\n]|$)/, name: "string" },
 	{ regex: /(?:\/\/|;).+/, name: "comment" },
-	// This is an obscure fact hidden in Architect's doc: Labels are terminated by whitespace only
+	// Labels are only terminated by whitespace
 	{ regex: /#(\S+)/, name: "label" },
-	// These guys do not have to be terminated by whitespace, so stuff like
-	// 1level= is 3 tokens!
+	// Numbers aren't terminated by whitespace, so `1level=` is legal
 	{ regex: /\d+/, name: "number" },
 	{
 		regex: /==|>=|<=|!=|&&|\|\||[=+\-*/><|&^]/,
 		name: "operator",
 	},
-	// (Lax) keywords are anything not starting with a number, which is a good convention I guess
+	// (Lax) keywords are anything not starting with a number
 	{ regex: /(?=\D)\w+/, name: "lax-keyword" },
 ]
 
 type TokenTypePlace = [type: TokenType, lastMatch: RegExpExecArray | null]
 
-export function resolveC2GKeyword(name: string): string | null {
-	const keywordPositions = [
+type KeywordPosition = [keyword: string, position: number]
+export function resolveC2GKeywords(name: string): KeywordPosition[] {
+	const keywords = [
 		...C2GVariables,
 		...Object.keys(C2GPseudoVariables),
 		...Object.keys(C2GDirectives),
-	].map<[string | null, number]>(val => [val, name.indexOf(val)])
-	return keywordPositions.reduce(
-		(acc, val) => (acc[1] > val[1] && val[1] !== -1 ? val : acc),
-		[null, Infinity]
-	)[0]
+	]
+
+	const foundKeywords: KeywordPosition[] = []
+
+	loop: for (let strPos = 0; strPos < name.length; strPos++) {
+		for (const keyword of keywords) {
+			if (name.startsWith(keyword)) {
+				foundKeywords.push([keyword, strPos])
+				strPos += keyword.length
+				continue loop
+			}
+		}
+	}
+	return foundKeywords
 }
 
 export function tokenizeC2G(file: string): Token[] {
@@ -237,19 +249,24 @@ export function tokenizeC2G(file: string): Token[] {
 		}
 		firstThing = latestOccurrence.shift()
 	}
-	// Resolve all keywords
-	return tokens
-		.map(val =>
-			val.type !== "lax-keyword"
-				? val
-				: {
-						position: val.position,
-						type: "keyword",
-						value: resolveC2GKeyword(val.value),
-						fullValue: val.fullValue,
-				  }
-		)
-		.filter<Token>((val): val is Token => val.type !== "comment" && !!val.value)
+	// Resolve lax keywords
+	const resolvedTokens: Token[] = []
+	for (const token of tokens) {
+		if (token.type !== "lax-keyword") {
+			resolvedTokens.push(token)
+			continue
+		}
+		const keywords = resolveC2GKeywords(token.value)
+		for (const keyword of keywords) {
+			resolvedTokens.push({
+				position: keyword[1],
+				type: "keyword",
+				value: keyword[0],
+				fullValue: keyword[0],
+			})
+		}
+	}
+	return resolvedTokens.filter(val => val.type !== "comment")
 }
 
 // Typescript stuff
@@ -401,6 +418,10 @@ export class C2GRunner {
 								console.warn(
 									"You are assigning a number to anything but a number!"
 								)
+								break
+							}
+							if (C2GReadonlyVariables.includes(values[1][1])) {
+								console.warn("Writing to read-only variables is not allowed!")
 								break
 							}
 							this.state[values[1][1]] = a
