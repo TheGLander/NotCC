@@ -24,6 +24,8 @@ import "./visuals"
 import "./art"
 import { setColorScheme } from "./ui"
 
+import "./base.css"
+
 // Enable crash handling
 window.addEventListener("error", ev =>
 	alert(`Yikes! Something went wrong...

@@ -1,6 +1,7 @@
 import { startNewLevelSet } from "./loadLevel"
 import { unzlib, AsyncUnzlibOptions } from "fflate"
 import { toByteArray } from "base64-js"
+import defaultLevel from "../data/NotCC.c2m"
 
 function unzlibActuallyAsync(
 	buffer: ArrayBuffer,
@@ -36,7 +37,7 @@ function unzlibActuallyAsync(
 	}
 	if (!customLevelLoaded) {
 		const levelData = (
-			await (await fetch("./data/NotCC.c2m")).body?.getReader()?.read()
+			await (await fetch(defaultLevel)).body?.getReader()?.read()
 		)?.value?.buffer
 		if (!levelData) console.log("Couldn't fetch default level")
 		else startNewLevelSet(levelData, "NotCC.c2m")

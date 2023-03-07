@@ -4,7 +4,6 @@ import {
 	InputType,
 	KeyInputs,
 	encodeSolutionStep,
-	Tile,
 } from "@notcc/logic"
 import Renderer, {
 	generateActorFrames,
@@ -14,6 +13,7 @@ import Renderer, {
 } from "./visuals"
 import { SolutionStep } from "@notcc/logic"
 import cc2ImageFormat from "./cc2ImageFormat"
+import defaultTileset from "./data/img/tiles.png"
 
 const isSmartTV =
 	/smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast.tv/.test(
@@ -111,7 +111,7 @@ export class PulseManager {
 		public itemCanvas?: HTMLCanvasElement,
 		public textStats?: HTMLTextAreaElement
 	) {
-		this.ready = loadImage("./data/img/tiles.png")
+		this.ready = loadImage(defaultTileset)
 			.then(image => removeBackground(image))
 			.then(image => {
 				const frameMap = generateActorFrames(cc2ImageFormat)
