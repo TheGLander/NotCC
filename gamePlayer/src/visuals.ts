@@ -135,9 +135,6 @@ export default class Renderer {
 	ctx: CanvasRenderingContext2D
 	itemCtx: CanvasRenderingContext2D | null = null
 	cameraPosition: [number, number] = [0, 0]
-	// TODO Make this dynamic, like in LL
-	gameScale = 2
-	inventoryScale = 1
 	level: LevelState | null = null
 	cameraSize: CameraType | null = null
 
@@ -169,14 +166,16 @@ export default class Renderer {
 			throw new Error("Can't update the tile size without a level!")
 		this.viewportCanvas.width =
 			this.level.cameraType.width * this.tileset.tileSize
+		this.viewportCanvas.style.setProperty(
+			"--level-camera-width",
+			this.level.cameraType.width.toString()
+		)
 		this.viewportCanvas.height =
 			this.level.cameraType.height * this.tileset.tileSize
-		this.viewportCanvas.style.width = `${
-			this.viewportCanvas.width * this.gameScale
-		}px`
-		this.viewportCanvas.style.height = `${
-			this.viewportCanvas.height * this.gameScale
-		}px`
+		this.viewportCanvas.style.setProperty(
+			"--level-camera-height",
+			this.level.cameraType.height.toString()
+		)
 	}
 	getArt(actor: Actor): ActorArtList {
 		let art = artDB[actor.id]
@@ -235,7 +234,7 @@ export default class Renderer {
 			throw new Error("Can't update the inventory without a playable!")
 		if (!this.itemCanvas || !this.itemCtx)
 			throw new Error("The inventory canvas is unset!")
-		const tileSize = this.inventoryScale * this.tileset.tileSize
+		const tileSize = this.tileset.tileSize
 		const player = this.level.selectedPlayable
 		const expectedWidth = player.inventory.itemMax * tileSize
 		const expectedHeight = 2 * tileSize

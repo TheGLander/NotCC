@@ -77,28 +77,44 @@ export const levelPlayerPage = {
 		}
 		return keyInputs as KeyInputs
 	},
+	updateTextOutputs(): void {
+		if (this.textOutputs) {
+			this.textOutputs.chips.textContent =
+				this.currentLevel!.chipsLeft.toString()
+			this.textOutputs.bonusPoints.textContent =
+				this.currentLevel!.bonusPoints.toString()
+			this.textOutputs.time.textContent = `${
+				this.currentLevel!.timeFrozen ? "❄" : ""
+			}${Math.ceil(this.currentLevel!.timeLeft / 60)}s`
+		}
+	},
 	updateLogic(): void {
 		if (!this.currentLevel)
 			throw new Error("Cannot update the level without a level.")
 		this.currentLevel.gameInput = this.getInput()
 		this.currentLevel.tick()
-		if (this.textOutputs) {
-			this.textOutputs.chips.textContent =
-				this.currentLevel.chipsLeft.toString()
-			this.textOutputs.bonusPoints.textContent =
-				this.currentLevel.bonusPoints.toString()
-			this.textOutputs.time.textContent = `${
-				this.currentLevel.timeFrozen ? "❄" : ""
-			}${Math.ceil(this.currentLevel.timeLeft / 60)}s`
-		}
+		this.updateTextOutputs()
 	},
 	updateRender(): void {
 		this.renderer!.frame()
 	},
-	open(pager: Pager): void {
+	updateTileset(pager: Pager, page: HTMLElement): void {
+		if (!pager.tileset)
+			throw new Error("Can't update the tileset without a tileset.")
+		if (!this.renderer) throw new Error("Can't update ")
+		page.style.setProperty(
+			"--base-tile-size",
+			`${pager.tileset.tileSize.toString()}px`
+		)
+		// TODO Make this dynamic, line in LL
+		page.style.setProperty("--tile-scale", "2")
+	},
+	open(pager: Pager, page: HTMLElement): void {
+		this.updateTileset(pager, page)
+		this.restart(pager)
+		this.updateTextOutputs()
 		this.logicTimer = new IntervalTimer(this.updateLogic.bind(this), 1 / 60)
 		this.renderTimer = new AnimationTimer(this.updateRender.bind(this))
-		this.restart(pager)
 	},
 	close(): void {
 		if (this.logicTimer) {

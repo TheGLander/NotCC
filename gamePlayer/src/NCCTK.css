@@ -16,10 +16,6 @@ body {
 	--time-unknown: hsl(210, 100%, 50%);
 	--time-better: hsl(120, 100%, 25%);
 	--time-worse: hsl(0, 100%, 40%);
-	--base-tile-size: 32px;
-	--scale: 2;
-	--tile-size: calc(var(--base-tile-size) * var(--scale));
-	--quarter-tile: calc(var(--tile-size) / 4);
 	color: var(--text-color);
 }
 
@@ -237,6 +233,10 @@ kbd {
 		"viewport stats"
 		"viewport inventory"
 		"viewport hint";
+	--base-tile-size: 32px;
+	--tile-scale: 2;
+	--tile-size: calc(var(--base-tile-size) * var(--tile-scale));
+	--quarter-tile: calc(var(--tile-size) / 4);
 }
 
 #levelPlayerPage > .stats {
@@ -244,8 +244,8 @@ kbd {
 	display: grid;
 	grid-template-columns: auto auto;
 	grid-template-rows: repeat(auto-fill, 1em);
-	gap: 8px;
-	padding: 1em;
+	gap: var(--quarter-tile);
+	padding: var(--quarter-tile);
 	padding-bottom: 0;
 	font-size: 1.2em;
 	white-space: nowrap;
@@ -329,8 +329,8 @@ kbd {
 
 #levelPlayerPage > .viewport {
 	grid-area: viewport;
-	width: calc(var(--tile-size) * 10);
-	height: calc(var(--tile-size) * 10);
+	width: calc(var(--tile-size) * var(--level-camera-width));
+	height: calc(var(--tile-size) * var(--level-camera-height));
 }
 
 #levelPlayerPage > .inventory {
