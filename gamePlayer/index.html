@@ -32,7 +32,26 @@
 		</nav>
 		<main id="loadingPage" class="container"><p>Loading, standy...</p></main>
 		<main id="levelPlayerPage" class="container closedPage">
-			<canvas class="viewport pixelCanvas"></canvas>
+			<div class="viewportArea">
+				<canvas id="levelViewportCanvas" class="pixelCanvas"></canvas>
+				<div id="levelViewportOverlay">
+					<div id="overlayWinContents">
+						<h3>You won!!</h3>
+						<div class="buttonContainer container">
+							<button id="restartButton">Scores</button>
+							<button id="restartButton">Next level</button>
+							<button id="restartButton">Explode Jupiter</button>
+						</div>
+					</div>
+					<div id="overlayLoseContents">
+						<h3 class="deathOnly">You died...</h3>
+						<h3 class="noTimeOnly">You ran out of time...</h3>
+						<div class="buttonContainer container">
+							<button id="restartButton">Restart</button>
+						</div>
+					</div>
+				</div>
+			</div>
 			<div class="stats">
 				<div>Chips:</div>
 				<output id="chipsText">12</output>
@@ -41,9 +60,9 @@
 				<div>Bonus points:</div>
 				<output id="bonusPointsText">4200</output>
 			</div>
-			<canvas class="inventory pixelCanvas"></canvas>
+			<canvas class="pixelCanvas" id="levelInventoryCanvas"></canvas>
 		</main>
-		<main id="setSelectorPage" class="container closedPage">
+		<main class="container closedPage" id="setSelectorPage">
 			<button id="loadDefaultLevel">Load default level</button>
 		</main>
 		<script src="/src/index.ts" type="module"></script>

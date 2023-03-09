@@ -327,13 +327,105 @@ kbd {
 	image-rendering: optimizeSpeed;
 }
 
-#levelPlayerPage > .viewport {
+#levelPlayerPage > .viewportArea {
 	grid-area: viewport;
+	position: relative;
 	width: calc(var(--tile-size) * var(--level-camera-width));
 	height: calc(var(--tile-size) * var(--level-camera-height));
 }
 
-#levelPlayerPage > .inventory {
+#levelViewportCanvas {
+	width: 100%;
+	height: 100%;
+}
+
+/* Viewport overlay */
+
+#levelViewportOverlay {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	top: 0;
+	display: grid;
+	gap: 0px 0px;
+	grid-template:
+		". . ." var(--tile-size)
+		". text ." var(--tile-size)
+		". . ." 0.5fr
+		". stats ." 1fr
+		". . ." 0.5fr
+		". buttons ." calc(var(--tile-size) * 1.5)
+		". . ." calc(var(--tile-size) * 0.75)
+		/ 0.15fr 2.7fr 0.15fr;
+	--win-background: radial-gradient(#4406, #660d);
+	--timeout-background: radial-gradient(#0084, #0088);
+	--death-background: radial-gradient(#1004, #2008);
+}
+
+#levelViewportOverlay.win {
+	background-image: var(--win-background);
+}
+
+#levelViewportOverlay.noTime {
+	background-image: var(--timeout-background);
+}
+
+#levelViewportOverlay.death {
+	background-image: var(--death-background);
+}
+
+#levelViewportOverlay > * > .statsContainer {
+	grid-area: stats;
+	padding: var(--quarter-tile);
+}
+
+#levelViewportOverlay > * > h3 {
+	grid-area: text;
+	text-align: center;
+	font-size: 300%;
+	margin: 0;
+}
+
+#levelViewportOverlay > * > .buttonContainer {
+	box-sizing: border-box;
+	justify-content: stretch;
+	grid-area: buttons;
+	gap: var(--quarter-tile);
+	padding: var(--quarter-tile);
+	height: 100%;
+	display: flex;
+	flex-direction: row;
+}
+
+.buttonContainer > button {
+	flex: 1;
+	font-size: 120%;
+}
+
+#levelViewportOverlay > * {
+	display: none;
+}
+
+#levelViewportOverlay.win > #overlayWinContents {
+	display: contents;
+}
+
+#levelViewportOverlay.death > #overlayLoseContents,
+#levelViewportOverlay.noTime > #overlayLoseContents {
+	display: contents;
+}
+
+#overlayLoseContents > h3.deathOnly,
+#overlayLoseContents > h3.noTimeOnly {
+	display: none;
+}
+
+#levelViewportOverlay.death > #overlayLoseContents > h3.deathOnly,
+#levelViewportOverlay.noTime > #overlayLoseContents > h3.noTimeOnly {
+	display: initial;
+}
+
+#levelPlayerPage > #levelInventoryCanvas {
 	grid-area: inventory;
 	margin: auto;
 	width: calc(var(--tile-size) * 4);

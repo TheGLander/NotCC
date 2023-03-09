@@ -166,16 +166,8 @@ export default class Renderer {
 			throw new Error("Can't update the tile size without a level!")
 		this.viewportCanvas.width =
 			this.level.cameraType.width * this.tileset.tileSize
-		this.viewportCanvas.style.setProperty(
-			"--level-camera-width",
-			this.level.cameraType.width.toString()
-		)
 		this.viewportCanvas.height =
 			this.level.cameraType.height * this.tileset.tileSize
-		this.viewportCanvas.style.setProperty(
-			"--level-camera-height",
-			this.level.cameraType.height.toString()
-		)
 	}
 	getArt(actor: Actor): ActorArtList {
 		let art = artDB[actor.id]

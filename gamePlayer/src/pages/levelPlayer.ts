@@ -39,7 +39,7 @@ export const levelPlayerPage = {
 	logicTimer: null as IntervalTimer | null,
 	renderTimer: null as AnimationTimer | null,
 	textOutputs: null as TextOutputs | null,
-	restart(pager: Pager): void {
+	restart(pager: Pager, page: HTMLElement): void {
 		if (!pager.loadedLevel) return
 		this.currentLevel = createLevelFromData(pager.loadedLevel)
 
@@ -48,15 +48,29 @@ export const levelPlayerPage = {
 				"The level player page cannot start without the renderer."
 			)
 		this.renderer.level = this.currentLevel
+		this.currentLevel.cameraType = { width: 10, height: 10, screens: 1 }
 		this.renderer.cameraSize = this.currentLevel.cameraType
 		this.renderer.updateTileSize()
+		const viewportArea = page.querySelector<HTMLElement>(".viewportArea")!
+		viewportArea.style.setProperty(
+			"--level-camera-width",
+			this.currentLevel.cameraType.width.toString()
+		)
+		viewportArea.style.setProperty(
+			"--level-camera-height",
+			this.currentLevel.cameraType.height.toString()
+		)
 	},
 	setupPage(pager: Pager, page: HTMLElement): void {
 		setupKeyListener()
 		if (!pager.tileset)
 			throw new Error("The level player page cannot be opened with no tileset.")
-		const viewportCanvas = page.querySelector<HTMLCanvasElement>(".viewport")!
-		const inventoryCanvas = page.querySelector<HTMLCanvasElement>(".inventory")!
+		const viewportCanvas = page.querySelector<HTMLCanvasElement>(
+			"#levelViewportCanvas"
+		)!
+		const inventoryCanvas = page.querySelector<HTMLCanvasElement>(
+			"#levelInventoryCanvas"
+		)!
 		this.renderer = new Renderer(pager.tileset, viewportCanvas, inventoryCanvas)
 		this.textOutputs = {
 			chips: page.querySelector("#chipsText")!,
@@ -111,7 +125,7 @@ export const levelPlayerPage = {
 	},
 	open(pager: Pager, page: HTMLElement): void {
 		this.updateTileset(pager, page)
-		this.restart(pager)
+		this.restart(pager, page)
 		this.updateTextOutputs()
 		this.logicTimer = new IntervalTimer(this.updateLogic.bind(this), 1 / 60)
 		this.renderTimer = new AnimationTimer(this.updateRender.bind(this))
