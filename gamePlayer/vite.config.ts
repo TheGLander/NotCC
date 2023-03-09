@@ -9,6 +9,7 @@ export default defineConfig({
 		commonjsOptions: {
 			include: [],
 		},
+		sourcemap: true,
 	},
 	base: "./",
 	assetsInclude: ["**/*.c2m"],

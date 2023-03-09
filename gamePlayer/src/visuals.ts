@@ -185,7 +185,7 @@ export default class Renderer {
 		if (art instanceof Array) return art
 		else return [art]
 	}
-	getFloorArt(tile: Tile): ActorArtList {
+	getFloorArt(tile?: Tile): ActorArtList {
 		let art = artDB["floor"]
 		if (!art) throw new Error(`The floor has no art!`)
 		if (typeof art === "function") art = art(tile, this.tileset)
@@ -229,6 +229,7 @@ export default class Renderer {
 			)
 		}
 	}
+
 	updateItems(): void {
 		if (!this.level || !this.level.selectedPlayable)
 			throw new Error("Can't update the inventory without a playable!")
@@ -238,6 +239,17 @@ export default class Renderer {
 		const player = this.level.selectedPlayable
 		const expectedWidth = player.inventory.itemMax * tileSize
 		const expectedHeight = 2 * tileSize
+		const floorArt = this.getFloorArt()
+		for (let index = 0; index < player.inventory.itemMax * 2; index++) {
+			const x = index % player.inventory.itemMax
+			const y = Math.floor(index / player.inventory.itemMax)
+			this.drawActor(
+				this.itemCtx,
+				tileSize,
+				[x * tileSize, y * tileSize],
+				floorArt
+			)
+		}
 		if (
 			this.itemCanvas.width !== expectedWidth ||
 			this.itemCanvas.height !== expectedHeight
@@ -245,7 +257,6 @@ export default class Renderer {
 			this.itemCanvas.width = expectedWidth
 			this.itemCanvas.height = expectedHeight
 		}
-		this.itemCtx.clearRect(0, 0, expectedWidth, expectedHeight)
 		for (const [i, item] of player.inventory.items.entries()) {
 			this.drawActor(
 				this.itemCtx,
@@ -265,7 +276,7 @@ export default class Renderer {
 			this.drawActor(
 				this.itemCtx,
 				tileSize,
-				[index, tileSize],
+				[index * tileSize, tileSize],
 				this.getArt(key.type)
 			)
 		}
@@ -555,20 +566,22 @@ export const wireTunnelArt = (wireTunnels: Wires): ActorArt[] => {
 	return toDraw
 }
 
-export const wiredTerrainArt = (name: string) => (actor: Wirable) =>
-	[
-		{ actorName: name, animation: "wireBase" },
-		...wireBaseArt(actor.wires, actor.poweredWires),
-		{
-			actorName: name,
-			animation:
-				actor.wires === 0b1111 &&
-				actor.wireOverlapMode === WireOverlapMode.CROSS
-					? "wireOverlapCross"
-					: "wireOverlap",
-		},
-		...wireTunnelArt(actor.wireTunnels),
-	]
+export const wiredTerrainArt = (name: string) => (actor: Wirable | undefined) =>
+	actor === undefined
+		? { actorName: name, animation: "wireBase" }
+		: [
+				{ actorName: name, animation: "wireBase" },
+				...wireBaseArt(actor.wires, actor.poweredWires),
+				{
+					actorName: name,
+					animation:
+						actor.wires === 0b1111 &&
+						actor.wireOverlapMode === WireOverlapMode.CROSS
+							? "wireOverlapCross"
+							: "wireOverlap",
+				},
+				...wireTunnelArt(actor.wireTunnels),
+		  ]
 
 export const genericWiredTerrainArt =
 	(name: string, animName?: string, animLength?: number) => (actor: Actor) =>

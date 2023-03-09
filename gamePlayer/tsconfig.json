@@ -7,6 +7,7 @@
 		"types": ["vite/client"],
 		"moduleResolution": "Node",
 		"strict": true,
+		"strictNullChecks": true,
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"esModuleInterop": true,

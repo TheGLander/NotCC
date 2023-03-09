@@ -1,5 +1,4 @@
 import {
-	LevelState,
 	onLevelDecisionTick,
 	crossLevelData,
 	createLevelFromData,
@@ -7,7 +6,7 @@ import {
 	onLevelStart,
 } from "@notcc/logic"
 import { Direction } from "@notcc/logic"
-import "./base.css"
+import "./NCCTK.css"
 import { parseC2M } from "@notcc/logic"
 import { actorDB, keyNameList } from "@notcc/logic"
 import { parseDAT } from "@notcc/logic"
@@ -16,15 +15,14 @@ import { parseNCCS, writeNCCS } from "@notcc/logic"
 import { tokenizeC2G, C2GRunner } from "@notcc/logic"
 import { Actor } from "@notcc/logic"
 import { Item } from "@notcc/logic"
-import { setPlayer } from "./ui/setPlayer"
 
 import "@notcc/logic"
 
 import "./visuals"
 import "./art"
-import { setColorScheme } from "./ui"
+import { Pager } from "./pager"
 
-import "./base.css"
+const pager = new Pager()
 
 // Enable crash handling
 window.addEventListener("error", ev =>
@@ -38,9 +36,9 @@ in ${ev.filename}
 
 // We export it like this so the global values are always updated
 const exportObject = {
-	get level(): LevelState {
+	/* get level(): LevelState {
 		return setPlayer.pulseManager.level
-	},
+	}, */
 	parseC2M,
 	parseDAT,
 	parseNCCS,
@@ -49,7 +47,7 @@ const exportObject = {
 	C2GRunner,
 	Direction,
 	actorDB,
-	setPlayer,
+	//setPlayer,
 	keyNameList,
 	onLevelDecisionTick,
 	onLevelAfterTick,
@@ -59,7 +57,8 @@ const exportObject = {
 	createLevelFromData,
 	Actor,
 	Item,
-	setColorScheme,
+	//setColorScheme,
+	pager,
 }
 
-export default exportObject
+;(globalThis as any).NotCC = exportObject

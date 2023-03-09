@@ -1,0 +1,349 @@
+body {
+	font-family: sans-serif;
+	--theme-color-huesat: 212deg 70%;
+	--general-bg: hsl(var(--theme-color-huesat) 20%);
+	--secondary-bg: hsl(var(--theme-color-huesat) 10%);
+	--page-bg-brightness: 40%;
+	--page-bg-darker-color: hsl(
+		var(--theme-color-huesat) calc(var(--page-bg-brightness) * 100 / 125)
+	);
+	--page-bg-lighter-color: hsl(
+		var(--theme-color-huesat) calc(var(--page-bg-brightness) * 125 / 100)
+	);
+	--text-color: hsl(0, 0%, 85%);
+	--icon-color: var(--text-color);
+	--timer-bg: #000000;
+	--time-unknown: hsl(210, 100%, 50%);
+	--time-better: hsl(120, 100%, 25%);
+	--time-worse: hsl(0, 100%, 40%);
+	--base-tile-size: 32px;
+	--scale: 2;
+	--tile-size: calc(var(--base-tile-size) * var(--scale));
+	--quarter-tile: calc(var(--tile-size) / 4);
+	color: var(--text-color);
+}
+
+.container {
+	border-radius: 5px;
+	background: var(--general-bg);
+}
+
+.closedPage {
+	display: none !important;
+}
+
+body.gameBody {
+	margin: 0;
+	display: flex;
+	flex-direction: row;
+	width: 100vw;
+	height: 100vh;
+	background: linear-gradient(
+		to top left,
+		var(--page-bg-darker-color),
+		var(--page-bg-lighter-color)
+	);
+}
+
+button {
+	--button-high-color: hsl(var(--theme-color-huesat) 40%);
+	--button-low-color: hsl(var(--theme-color-huesat) 33%);
+	color: var(--text-color);
+	padding: 0 0.4em;
+	border-width: 2px;
+	border-style: solid;
+	border-color: var(--button-high-color) var(--button-low-color)
+		var(--button-low-color) var(--button-high-color);
+	border-radius: 2px;
+	background-image: linear-gradient(
+		to bottom,
+		var(--button-high-color),
+		var(--button-low-color)
+	);
+}
+
+button:hover {
+	--button-high-color: hsl(var(--theme-color-huesat) 45%);
+	--button-low-color: hsl(var(--theme-color-huesat) 38%);
+}
+
+button:active {
+	--button-high-color: hsl(var(--theme-color-huesat) 30%);
+	--button-low-color: hsl(var(--theme-color-huesat) 23%);
+}
+
+/* Tooltip */
+
+.tooltipRoot {
+	width: fit-content;
+	transform-origin: 10px 10px;
+	display: flex;
+	opacity: 0.9;
+	backdrop-filter: blur(3px);
+	animation: openTooltip 0.75s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+.tooltipBox {
+	border-radius: 5px;
+	padding: 0.6em 0.75em;
+}
+.tooltipTriangle {
+	width: 0;
+	height: 0;
+	display: inline-block;
+	border: solid 10px transparent;
+	border-right: solid 10px var(--general-bg);
+	position: relative;
+	top: 5px;
+	margin-right: -1px;
+}
+
+@keyframes openTooltip {
+	from {
+		transform: scale(40%);
+		opacity: 0;
+	}
+
+	50% {
+		opacity: 0.9;
+	}
+
+	100% {
+		opacity: 0.9;
+		transform: scale(100%);
+	}
+}
+@keyframes closeTooltip {
+	from {
+		opacity: 0.9;
+		transform: scale(100%);
+	}
+
+	50% {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 0;
+		transform: scale(40%);
+	}
+}
+.buttonTooltipBox {
+	display: flex;
+	flex-direction: column;
+	row-gap: 0.5em;
+}
+.buttonTooltipRow {
+	display: flex;
+	flex-direction: row;
+	padding: 0.2em 0.5em;
+	border-radius: 3px;
+	cursor: pointer;
+}
+.buttonTooltipRow:hover {
+	background: var(--secondary-bg);
+}
+.buttonTooltipItem {
+	margin-right: 2em;
+}
+.buttonTooltipKey {
+	margin-left: auto;
+	padding-bottom: 0.2em;
+}
+hr {
+	margin: 0;
+}
+/* Copied wholesale from https://github.com/eevee/lexys-labyrinth/ */
+kbd {
+	padding: 0 0.25em;
+	border: 1px solid currentColor;
+	border-radius: 0.25em;
+	box-shadow: 0 2px 0 currentColor;
+	text-align: center;
+	text-transform: uppercase;
+	width: fit-content;
+}
+
+/* The sidebar */
+
+.sidebar {
+	border-radius: 0px;
+	width: min(20%, 150px);
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	animation: sidebarSlideIn 1s ease-in-out;
+}
+
+.sidebarButton {
+	margin: 1em;
+	display: flex;
+}
+
+.bottomButton {
+	margin-top: auto;
+}
+
+.sidebarButton > img,
+.levelIconContainer {
+	width: 80%;
+	user-select: none;
+	margin: auto;
+}
+
+.levelIconContainer {
+	position: relative;
+}
+
+.sidebarButton > img,
+.levelIconContainer > img {
+	display: block;
+}
+
+.levelIconContainer > img {
+	width: 100%;
+}
+
+#levelIconText {
+	position: absolute;
+	top: 25%;
+	height: 35%;
+	left: 12%;
+	width: 75%;
+	font-size: 2.3em;
+	color: var(--icon-color);
+	text-align: center;
+	user-select: none;
+}
+
+#loadingPage {
+	width: fit-content;
+	height: fit-content;
+	margin: auto;
+}
+
+#loadingPage > p {
+	font-style: italic;
+}
+
+/* The game player */
+
+#levelPlayerPage {
+	padding: var(--quarter-tile);
+	border-radius: 5px;
+	margin: auto;
+	display: grid;
+	gap: var(--quarter-tile);
+	grid-template-areas:
+		"viewport stats"
+		"viewport inventory"
+		"viewport hint";
+}
+
+#levelPlayerPage > .stats {
+	grid-area: stats;
+	display: grid;
+	grid-template-columns: auto auto;
+	grid-template-rows: repeat(auto-fill, 1em);
+	gap: 8px;
+	padding: 1em;
+	padding-bottom: 0;
+	font-size: 1.2em;
+	white-space: nowrap;
+}
+
+.stats > output {
+	text-align: right;
+}
+
+/* The (nixed) timer */
+
+.timer {
+	grid-area: timer;
+	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows: 1em 3em;
+	gap: 0px 0px;
+	grid-template-areas:
+		"text"
+		"bar";
+}
+
+.timerText {
+	grid-area: text;
+	text-align: center;
+}
+
+.timerBar {
+	grid-area: bar;
+	width: 90%;
+	background-color: var(--timer-bg);
+	height: calc(100% - 1em);
+	margin: 0.5em auto;
+	position: relative;
+	display: flex;
+}
+
+.timerBar > * {
+	height: 100%;
+}
+
+.timerBar > .unknown {
+	background-color: var(--time-unknown);
+}
+
+.timerBar > .better {
+	background-color: var(--time-better);
+}
+
+.timerBar > .worse {
+	background-color: var(--time-worse);
+}
+
+.timerBar > .timerBarTextContainer {
+	position: absolute;
+	display: flex;
+	width: 100%;
+}
+
+.timerBarTextContainer > .timeText {
+	margin: auto;
+}
+.timerBarTextContainer > .timeOverflowText {
+	color: var(--time-better);
+	margin: auto;
+	margin-right: 0.25em;
+	font-size: 1.25em;
+	font-weight: bolder;
+	user-select: none;
+}
+
+/* Misc game player sections */
+
+.pixelCanvas {
+	image-rendering: -moz-crisp-edges;
+	image-rendering: -webkit-crisp-edges;
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+	image-rendering: optimizeSpeed;
+}
+
+#levelPlayerPage > .viewport {
+	grid-area: viewport;
+	width: calc(var(--tile-size) * 10);
+	height: calc(var(--tile-size) * 10);
+}
+
+#levelPlayerPage > .inventory {
+	grid-area: inventory;
+	margin: auto;
+	width: calc(var(--tile-size) * 4);
+	height: calc(var(--tile-size) * 2);
+	background-color: azure;
+}
+
+/* Set selector (stub) */
+
+#setSelectorPage {
+	margin: auto;
+	padding: 0.6em 0.75em;
+}
