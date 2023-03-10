@@ -24,7 +24,8 @@ import {
 
 export enum GameState {
 	PLAYING,
-	LOST,
+	DEATH,
+	TIMEOUT,
 	WON,
 }
 
@@ -232,7 +233,7 @@ export class LevelState {
 		}
 		if (this.timeLeft !== 0 && !this.timeFrozen) {
 			this.timeLeft--
-			if (this.timeLeft <= 0) this.gameState = GameState.LOST
+			if (this.timeLeft <= 0) this.gameState = GameState.TIMEOUT
 		}
 		if (this.solutionSubticksLeft >= 0 && this.currentSolution) {
 			let step = this.currentSolution.steps[0][this.solutionStep]

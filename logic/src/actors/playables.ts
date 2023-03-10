@@ -160,7 +160,7 @@ export abstract class Playable extends Actor {
 		if (!super.destroy(other, anim)) return false
 		if (this.level.playables.includes(this))
 			this.level.playables.splice(this.level.playables.indexOf(this), 1)
-		this.level.gameState = GameState.LOST
+		this.level.gameState = GameState.DEATH
 		return true
 	}
 	replaceWith(other: typeof actorDB[string]): Actor {

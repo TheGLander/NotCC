@@ -87,7 +87,7 @@ function connectToParent(): Promise<ParentResponse> {
 				outcome:
 					level.gameState === GameState.WON
 						? "success"
-						: level.gameState === GameState.LOST
+						: level.gameState !== GameState.PLAYING
 						? "badInput"
 						: "noInput",
 			})
