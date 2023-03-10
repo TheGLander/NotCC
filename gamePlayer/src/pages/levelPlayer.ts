@@ -1,4 +1,10 @@
-import { createLevelFromData, KeyInputs, LevelState } from "@notcc/logic"
+import {
+	createLevelFromData,
+	GameState,
+	KeyInputs,
+	LevelData,
+	LevelState,
+} from "@notcc/logic"
 import { Pager } from "../pager"
 import Renderer from "../visuals"
 import { AnimationTimer, IntervalTimer } from "../timers"
@@ -32,6 +38,13 @@ interface TextOutputs {
 	bonusPoints: HTMLElement
 }
 
+interface CompletionButton {
+	restart: HTMLElement
+	nextLevel: HTMLElement
+	scores: HTMLElement
+	explodeJupiter: HTMLElement
+}
+
 export const levelPlayerPage = {
 	pageId: "levelPlayerPage",
 	renderer: null as Renderer | null,
@@ -39,26 +52,49 @@ export const levelPlayerPage = {
 	logicTimer: null as IntervalTimer | null,
 	renderTimer: null as AnimationTimer | null,
 	textOutputs: null as TextOutputs | null,
-	restart(pager: Pager, page: HTMLElement): void {
-		if (!pager.loadedLevel) return
-		this.currentLevel = createLevelFromData(pager.loadedLevel)
+	completionButtons: null as CompletionButton | null,
+	gameOverlay: null as HTMLElement | null,
+	viewportArea: null as HTMLElement | null,
+	completionMomentTime: null as number | null,
+	gameState: GameState.PLAYING,
+	loadLevel(level: LevelData): void {
+		this.currentLevel = createLevelFromData(level)
 
 		if (!this.renderer)
 			throw new Error(
 				"The level player page cannot start without the renderer."
 			)
 		this.renderer.level = this.currentLevel
-		this.currentLevel.cameraType = { width: 10, height: 10, screens: 1 }
+		this.completionMomentTime = null
+		this.gameState = GameState.PLAYING
+		this.gameOverlay?.setAttribute(
+			"data-game-state",
+			GameState[this.gameState].toLowerCase()
+		)
 		this.renderer.cameraSize = this.currentLevel.cameraType
 		this.renderer.updateTileSize()
-		const viewportArea = page.querySelector<HTMLElement>(".viewportArea")!
-		viewportArea.style.setProperty(
+		if (!this.viewportArea)
+			throw new Error(
+				"Cannot set the level camera without knowing where the viewport is."
+			)
+
+		this.viewportArea.style.setProperty(
 			"--level-camera-width",
 			this.currentLevel.cameraType.width.toString()
 		)
-		viewportArea.style.setProperty(
+		this.viewportArea.style.setProperty(
 			"--level-camera-height",
 			this.currentLevel.cameraType.height.toString()
+		)
+	},
+	findCurrentMainButton(): HTMLButtonElement | null {
+		if (!this.gameOverlay)
+			throw new Error("The game overlay must be set to find the main button.")
+
+		return (
+			Array.from(
+				this.gameOverlay.querySelectorAll<HTMLButtonElement>(".mainButton")
+			).find(button => button.getBoundingClientRect().height !== 0) ?? null
 		)
 	},
 	setupPage(pager: Pager, page: HTMLElement): void {
@@ -83,6 +119,31 @@ export const levelPlayerPage = {
 			!this.textOutputs.bonusPoints
 		)
 			throw new Error("Could not find the text output elements.")
+		this.completionButtons = {
+			restart: page.querySelector("#restartButton")!,
+			explodeJupiter: page.querySelector("#explodeJupiterButton")!,
+			nextLevel: page.querySelector("#nextLevelButton")!,
+			scores: page.querySelector("#scoresButton")!,
+		}
+
+		if (
+			!this.completionButtons.scores ||
+			!this.completionButtons.explodeJupiter ||
+			!this.completionButtons.restart ||
+			!this.completionButtons.nextLevel
+		)
+			throw new Error("Could not find the completion button elements.")
+		this.completionButtons.nextLevel.addEventListener("click", () => {
+			alert("Oops, sets aren't implemented yet.")
+			this.loadLevel(pager.loadedLevel!)
+		})
+		this.completionButtons.restart.addEventListener("click", () => {
+			this.loadLevel(pager.loadedLevel!)
+		})
+		this.gameOverlay = document.querySelector<HTMLElement>(
+			"#levelViewportOverlay"
+		)!
+		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
 	},
 	getInput(): KeyInputs {
 		const keyInputs: Partial<KeyInputs> = {}
@@ -92,22 +153,34 @@ export const levelPlayerPage = {
 		return keyInputs as KeyInputs
 	},
 	updateTextOutputs(): void {
-		if (this.textOutputs) {
-			this.textOutputs.chips.textContent =
-				this.currentLevel!.chipsLeft.toString()
-			this.textOutputs.bonusPoints.textContent =
-				this.currentLevel!.bonusPoints.toString()
-			this.textOutputs.time.textContent = `${
-				this.currentLevel!.timeFrozen ? "❄" : ""
-			}${Math.ceil(this.currentLevel!.timeLeft / 60)}s`
-		}
+		if (!this.textOutputs) return
+		this.textOutputs.chips.textContent = this.currentLevel!.chipsLeft.toString()
+		this.textOutputs.bonusPoints.textContent =
+			this.currentLevel!.bonusPoints.toString()
+		const currentTime = this.completionMomentTime ?? this.currentLevel!.timeLeft
+		this.textOutputs.time.textContent = `${
+			this.currentLevel!.timeFrozen ? "❄" : ""
+		}${Math.ceil(currentTime / 60)}s`
 	},
 	updateLogic(): void {
-		if (!this.currentLevel)
-			throw new Error("Cannot update the level without a level.")
-		this.currentLevel.gameInput = this.getInput()
-		this.currentLevel.tick()
+		const level = this.currentLevel
+		if (!level) throw new Error("Cannot update the level without a level.")
+		if (this.gameState === GameState.TIMEOUT) return
+		level.gameInput = this.getInput()
+		level.tick()
 		this.updateTextOutputs()
+		if (
+			this.gameState === GameState.PLAYING &&
+			level.gameState !== GameState.PLAYING
+		) {
+			this.gameState = level.gameState
+			this.gameOverlay?.setAttribute(
+				"data-game-state",
+				GameState[this.gameState].toLowerCase()
+			)
+			this.completionMomentTime = level.timeLeft
+			this.findCurrentMainButton()?.focus()
+		}
 	},
 	updateRender(): void {
 		this.renderer!.frame()
@@ -125,7 +198,10 @@ export const levelPlayerPage = {
 	},
 	open(pager: Pager, page: HTMLElement): void {
 		this.updateTileset(pager, page)
-		this.restart(pager, page)
+		const loadedLevel = pager.loadedLevel
+		if (!loadedLevel)
+			throw new Error("Cannot open the level player page with a level to play.")
+		this.loadLevel(loadedLevel)
 		this.updateTextOutputs()
 		this.logicTimer = new IntervalTimer(this.updateLogic.bind(this), 1 / 60)
 		this.renderTimer = new AnimationTimer(this.updateRender.bind(this))

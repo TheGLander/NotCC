@@ -362,15 +362,15 @@ kbd {
 	--death-background: radial-gradient(#1004, #2008);
 }
 
-#levelViewportOverlay.win {
+#levelViewportOverlay[data-game-state="won"] {
 	background-image: var(--win-background);
 }
 
-#levelViewportOverlay.noTime {
+#levelViewportOverlay[data-game-state="timeout"] {
 	background-image: var(--timeout-background);
 }
 
-#levelViewportOverlay.death {
+#levelViewportOverlay[data-game-state="death"] {
 	background-image: var(--death-background);
 }
 
@@ -406,22 +406,26 @@ kbd {
 	display: none;
 }
 
-#levelViewportOverlay.win > #overlayWinContents {
+#levelViewportOverlay[data-game-state="won"] > #overlayWinContents {
 	display: contents;
 }
 
-#levelViewportOverlay.death > #overlayLoseContents,
-#levelViewportOverlay.noTime > #overlayLoseContents {
+#levelViewportOverlay[data-game-state="death"] > #overlayLoseContents,
+#levelViewportOverlay[data-game-state="timeout"] > #overlayLoseContents {
 	display: contents;
 }
 
 #overlayLoseContents > h3.deathOnly,
-#overlayLoseContents > h3.noTimeOnly {
+#overlayLoseContents > h3.timeoutOnly {
 	display: none;
 }
 
-#levelViewportOverlay.death > #overlayLoseContents > h3.deathOnly,
-#levelViewportOverlay.noTime > #overlayLoseContents > h3.noTimeOnly {
+#levelViewportOverlay[data-game-state="death"]
+	> #overlayLoseContents
+	> h3.deathOnly,
+#levelViewportOverlay[data-game-state="timeout"]
+	> #overlayLoseContents
+	> h3.timeoutOnly {
 	display: initial;
 }
 
