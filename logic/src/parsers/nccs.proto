@@ -28,27 +28,26 @@ message ScriptState {
       string id = 3;
     }
   }
-  enum ScriptVariableKeys {
-    INVALID = 0;
-    ENTER = 1;
-    EXIT = 2;
-    FLAGS = 3;
-    GENDER = 4;
-    SCORE = 5;
-    KEYS = 6;
-    LEVEL = 7;
-    LINE = 8;
-    MENU = 9;
-    REG1 = 10;
-    REG2 = 11;
-    REG3 = 12;
-    REG4 = 13;
-    RESULT = 14;
-    SPEED = 15;
-    TLEFT = 16;
-    TOOLS = 17;
+  message ScriptVariables {
+    uint32 enter = 1;
+    uint32 exit = 2;
+    uint32 flags = 3;
+    uint32 gender = 4;
+    uint32 score = 5;
+    uint32 keys = 6;
+    uint32 level = 7;
+    uint32 line = 8;
+    uint32 menu = 9;
+    uint32 reg1 = 10;
+    uint32 reg2 = 11;
+    uint32 reg3 = 12;
+    uint32 reg4 = 13;
+    uint32 result = 14;
+    uint32 speed = 15;
+    uint32 tleft = 16;
+    uint32 tools = 17;
   }
-  map<uint32, int32> variables = 1;
+  ScriptVariables variables = 1;
   int32 current_line = 2;
   ScriptMusicState music = 3;
   /**
