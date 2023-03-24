@@ -7,6 +7,9 @@
 		"eslint": "^7.0.0",
 		"eslint-config-prettier": "^8.1.0"
 	},
+	"scripts": {
+		"build-web": "yarn && yarn workspace @notcc/logic run build:prod && yarn workspace @notcc/player build"
+	},
 	"workspaces": {
 		"packages": [
 			"cli",
