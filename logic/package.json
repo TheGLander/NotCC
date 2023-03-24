@@ -7,10 +7,12 @@
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "tsc",
+		"build-proto": "yarn pbjs -t json-module src/parsers/nccs.proto -o src/parsers/nccs.pb.js && yarn build-proto-types",
+		"build-proto-types": "yarn pbjs -t static-module src/parsers/nccs.proto -o tmp_nccs.js && yarn pbts -o src/parsers/nccs.pb.d.ts tmp_nccs.js;rm tmp_nccs.js",
+		"build": "yarn build-proto && tsc",
 		"watch": "tsc --watch --declaration",
-		"build-dts": "dts-bundle-generator src/index.ts -o dist/index.d.ts",
-		"build:prod": "rm -rf dist && yarn build && yarn build-dts",
+		"copy-proto-files": "cp ./src/parsers/*.pb.* ./dist/parsers",
+		"build:prod": "rm -rf dist && yarn build && yarn copy-proto-files",
 		"publish": "yarn build:prod"
 	},
 	"repository": {
@@ -24,11 +26,12 @@
 	},
 	"homepage": "https://github.com/TheGLander/NotCC#readme",
 	"devDependencies": {
-		"dts-bundle-generator": "^5.6.0",
+		"protobufjs-cli": "^1.1.1",
 		"typescript": "^4.7.3"
 	},
 	"dependencies": {
 		"fast-printf": "^1.6.5",
+		"protobufjs": "^7.2.2",
 		"rfdc": "^1.3.0"
 	},
 	"files": [

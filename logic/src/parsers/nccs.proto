@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+message SetInfo {
+  string ruleset = 1;
+  string set_type = 2;
+  string set_name = 3;
+  repeated LevelInfo levels = 4;
+}
+
+message LevelInfo {
+  int32 level_number = 1;
+  string title = 2;
+  ScriptState script_state = 3;
+  repeated AttemptInfo attempts = 4;
+
+  string prologue_text = 16;
+  string epilogue_text = 17;
+}
+
+message ScriptState {
+  message ScriptMusicState {
+    bool repeating = 1;
+    oneof music_selector {
+      string path = 2;
+      string id = 3;
+    }
+  }
+  enum ScriptVariableKeys {
+    INVALID = 0;
+    ENTER = 1;
+    EXIT = 2;
+    FLAGS = 3;
+    GENDER = 4;
+    SCORE = 5;
+    KEYS = 6;
+    LEVEL = 7;
+    LINE = 8;
+    MENU = 9;
+    REG1 = 10;
+    REG2 = 11;
+    REG3 = 12;
+    REG4 = 13;
+    RESULT = 14;
+    SPEED = 15;
+    TLEFT = 16;
+    TOOLS = 17;
+  }
+  map<uint32, int32> variables = 1;
+  int32 current_line = 2;
+  ScriptMusicState music = 3;
+  /**
+   * `scriptTitle` is the title of the whole levelset (which is what is
+   * used as the list name)
+   */
+  string script_title = 4;
+
+  /**
+   * `gameName` is the current title set by `game`. In CC2, used for the
+   * save file location.
+   */
+  string game_title = 5;
+  string script_path = 6;
+
+  string fs_position = 16;
+}
+
+message AttemptInfo {
+  google.protobuf.Timestamp attempt_start = 1;
+  google.protobuf.Duration attempt_length = 2;
+  oneof attempt_result {
+    string fail_reason = 3;
+    SolutionInfo solution = 4;
+  }
+}
+
+message SolutionInfo {
+  repeated bytes steps = 1;
+  LevelStateInfo level_state = 2;
+  SolutionOutcomeInfo outcome = 3;
+  int32 solution_n = 4;
+  string solution_comment = 5;
+}
+
+message SolutionOutcomeInfo {
+  google.protobuf.Duration time_left = 1;
+  google.protobuf.Duration absolute_time = 2;
+  uint32 bonus_score = 3;
+}
+
+message LevelStateInfo {
+  message CC1LevelStateData {
+    int32 randomness_seed = 1;
+    int32 step_parity = 2;
+  }
+  message CC2LevelStateData {
+    int32 blob_modifier = 1;
+    ScriptState script_state = 2;
+  }
+  ProtoDirection random_force_floor_direction = 1;
+  oneof custom_level_state {
+    CC1LevelStateData cc1_data = 2;
+    CC2LevelStateData cc2_data = 3;
+  }
+}
+
+// The enum must be at the bottom, since the typings generator explodes if there
+// are messages after top-level enums??
+
+enum ProtoDirection {
+  INVALID = 0;
+  UP = 1;
+  RIGHT = 2;
+  DOWN = 3;
+  LEFT = 4;
+}

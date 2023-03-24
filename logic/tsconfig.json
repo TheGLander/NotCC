@@ -5,14 +5,14 @@
 		"module": "CommonJS",
 		"moduleResolution": "node",
 		"resolveJsonModule": true,
+		"declaration": true,
 		"sourceMap": true,
 		"strict": true,
-		"outDir": "dist"
+		"outDir": "dist",
+		"allowJs": true
 	},
 	"buildOptions": {
 		"incremental": true
 	},
-	"include": [
-		"./src/*"
-	]
+	"include": ["./src/*"]
 }

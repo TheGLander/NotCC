@@ -1,0 +1,7 @@
+lint:
+  rules_option:
+    enum_field_names_zero_value_end_with:
+      suffix: INVALID
+  rules:
+    remove:
+      - ENUM_FIELD_NAMES_PREFIX
