@@ -3,15 +3,8 @@ import { Field, Direction } from "./helpers"
 import { Playable } from "./actors/playables"
 import { Tile } from "./tile"
 import { Layer } from "./tile"
-import {
-	LevelData,
-	CameraType,
-	SolutionData,
-	SolutionStep,
-	SolutionDataWithSteps,
-} from "./encoder"
+import type { LevelData, CameraType } from "./parsers/c2m"
 import { actorDB, Decision } from "./const"
-import { hasSteps } from "./encoder"
 import { iterableIndexOf, iterableSome } from "./iterableHelpers"
 import {
 	buildCircuits,
@@ -103,29 +96,28 @@ onLevelDecisionTick.push(level => {
 export const releasableKeys = ["drop", "rotateInv", "switchPlayable"] as const
 type ReleasableKeys = typeof releasableKeys[number]
 
-export function decodeSolutionStep(step: SolutionStep): KeyInputs {
+export function decodeSolutionStep(step: number): KeyInputs {
 	return {
-		up: (step[0] & 0x1) > 0,
-		right: (step[0] & 0x2) > 0,
-		down: (step[0] & 0x4) > 0,
-		left: (step[0] & 0x8) > 0,
-		drop: (step[0] & 0x10) > 0,
-		rotateInv: (step[0] & 0x20) > 0,
-		switchPlayable: (step[0] & 0x40) > 0,
+		up: (step & 0x1) > 0,
+		right: (step & 0x2) > 0,
+		down: (step & 0x4) > 0,
+		left: (step & 0x8) > 0,
+		drop: (step & 0x10) > 0,
+		rotateInv: (step & 0x20) > 0,
+		switchPlayable: (step & 0x40) > 0,
 	}
 }
 
-export function encodeSolutionStep(input: KeyInputs): SolutionStep {
-	return [
+export function encodeSolutionStep(input: KeyInputs): number {
+	return (
 		(input.up ? 0x01 : 0) +
-			(input.right ? 0x02 : 0) +
-			(input.down ? 0x04 : 0) +
-			(input.left ? 0x08 : 0) +
-			(input.drop ? 0x10 : 0) +
-			(input.rotateInv ? 0x20 : 0) +
-			(input.switchPlayable ? 0x40 : 0),
-		0,
-	]
+		(input.right ? 0x02 : 0) +
+		(input.down ? 0x04 : 0) +
+		(input.left ? 0x08 : 0) +
+		(input.drop ? 0x10 : 0) +
+		(input.rotateInv ? 0x20 : 0) +
+		(input.switchPlayable ? 0x40 : 0)
+	)
 }
 
 /**
@@ -175,14 +167,6 @@ export class LevelState {
 		switchPlayable: false,
 	}
 	/**
-	 * Inputs which should not be counted
-	 */
-	/*debouncedInputs: Record<typeof debouncedInputs[number], number> = {
-		drop: 0,
-		rotateInv: 0,
-		switchPlayable: 0,
-	} */
-	/**
 	 * Connections of 2 tiles, used for CC1-style clone machine and trap connections
 	 */
 	connections: [[number, number], [number, number]][] = []
@@ -212,19 +196,7 @@ export class LevelState {
 	 */
 	tick(): void {
 		if (!this.levelStarted) {
-			this.levelStarted = true
-			buildCircuits.apply(this)
-			for (const actor of Array.from(this.actors)) {
-				actor.levelStarted?.()
-				actor.onCreation?.()
-				actor.noSlidingBonk = iterableSome(
-					actor.tile.allActors,
-					val => !!val.slidingPlayableShouldntBonk
-				)
-				if (actor.noSlidingBonk && actor instanceof Playable)
-					actor.hasOverride = true
-			}
-			onLevelStart.forEach(val => val(this))
+			this.initializeLevel()
 		} else {
 			if (this.subtick === 2) {
 				this.currentTick++
@@ -234,16 +206,6 @@ export class LevelState {
 		if (this.timeLeft !== 0 && !this.timeFrozen) {
 			this.timeLeft--
 			if (this.timeLeft <= 0) this.gameState = GameState.TIMEOUT
-		}
-		if (this.solutionSubticksLeft >= 0 && this.currentSolution) {
-			let step = this.currentSolution.steps[0][this.solutionStep]
-			this.solutionSubticksLeft--
-			if (this.solutionSubticksLeft <= 0) {
-				this.solutionStep++
-				step = this.currentSolution.steps[0][this.solutionStep]
-				this.solutionSubticksLeft = step?.[1] ?? Infinity
-			}
-			if (step) this.gameInput = decodeSolutionStep(step)
 		}
 		wirePretick.apply(this)
 		this.tickStage = "decision"
@@ -273,6 +235,35 @@ export class LevelState {
 		if (this.debouncedInputs[inputType] !== -1)
 			this.debouncedInputs[inputType] = debouncePeriod
 	} */
+
+	initializeLevel(): void {
+		this.levelStarted = true
+		buildCircuits.apply(this)
+		for (const actor of Array.from(this.actors)) {
+			actor.levelStarted?.()
+			actor.onCreation?.()
+			actor.noSlidingBonk = iterableSome(
+				actor.tile.allActors,
+				val => !!val.slidingPlayableShouldntBonk
+			)
+			if (actor.noSlidingBonk && actor instanceof Playable)
+				actor.hasOverride = true
+		}
+		onLevelStart.forEach(val => val(this))
+	}
+	getSolutionMove(): KeyInputs | null {
+		if (this.solutionSubticksLeft < 0 || !this.solutionSteps) return null
+
+		this.solutionSubticksLeft -= 1
+		if (this.solutionSubticksLeft <= 0) {
+			this.solutionStep += 1
+			this.solutionSubticksLeft =
+				this.solutionSteps[this.solutionStep * 2 + 1] ?? Infinity
+		}
+		const step = this.solutionSteps[this.solutionStep * 2]
+		return decodeSolutionStep(step)
+	}
+
 	constructor(public width: number, public height: number) {
 		//Init field
 		this.field = []
@@ -308,19 +299,14 @@ export class LevelState {
 		this.blobPrngValue = mod
 		return mod
 	}
-	currentSolution?: SolutionDataWithSteps
+	solutionSteps?: Uint8Array
 	solutionStep = 0
 	solutionSubticksLeft = 0
-	playbackSolution(solution: SolutionData): void {
-		if (!hasSteps(solution)) throw new Error("The solution must have steps!")
-		this.currentSolution = solution
+	playbackSolution(solutionSteps: Uint8Array): void {
+		this.solutionSteps = solutionSteps
 		// TODO Multiplayer
 		this.solutionStep = 0
-		this.solutionSubticksLeft = solution.steps[0][0][1] + 1
-		if (solution.blobModSeed !== undefined)
-			this.blobPrngValue = solution.blobModSeed
-		if (solution.rffDirection !== undefined)
-			crossLevelData.RFFDirection = solution.rffDirection
+		this.solutionSubticksLeft = solutionSteps[1] + 1
 	}
 	*tiles(
 		rro = true,

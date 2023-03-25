@@ -1,21 +1,12 @@
-import { join } from "path"
 import { printf } from "fast-printf"
+import { join } from "path"
+import { IScriptState } from "./nccs.pb"
 
-interface TokenType {
-	regex: RegExp
-	name: string
-}
+export const C2G_NOTCC_VERSION = "1.0-NotCC"
 
-interface Token {
-	type: string
-	value: string
-	fullValue: string
-	position: number
-}
-
-export const C2G_NOTCC_VERSION = "0.2-NotCC"
-
-export const C2GVariables = [
+// C2G identifiers which can be written and read from without much issue.
+// `tleft` and `speed` are not saved in the C2S and C2H file formats, though.
+export const scriptVariables = [
 	"enter",
 	"exit",
 	"flags",
@@ -35,11 +26,43 @@ export const C2GVariables = [
 	"tools",
 ] as const
 
-export const C2GReadonlyVariables = ["score"]
+// These keywords don't do anything, but are considerd as such when it's converted to a value
+export const scriptBrokenKeywords = [
+	"bonus",
+	"chips",
+	"no_l_doors",
+	"art",
+	"screen",
+	"dlc",
+	"wav",
+	"start",
+	"end",
+	"main",
+] as const
 
-export type C2GState = Record<typeof C2GVariables[number], number>
+export const scriptDirectives = [
+	"chain",
+	"chdir",
+	"do",
+	"edit",
+	"game",
+	"goto",
+	"map",
+	"music",
+	"script",
+] as const
 
-export const C2GPseudoVariables = {
+export type ScriptDirective = typeof scriptDirectives[number]
+
+export type ScriptVariableState = Partial<
+	Record<Exclude<typeof scriptVariables[number], "line" | "score">, number>
+>
+
+export type ScriptMusicState = {
+	repeating: boolean
+} & ({ id: string } | { path: string })
+
+export const scriptConstants = {
 	cc2h: 2,
 	cc2m: 2,
 	cc2s: 2,
@@ -54,447 +77,668 @@ export const C2GPseudoVariables = {
 	},
 	replay: 0x2,
 	silent: 0x4,
+} as const
+
+type ScriptKeyword =
+	| keyof typeof scriptConstants
+	| ScriptDirective
+	| typeof scriptBrokenKeywords[number]
+	| typeof scriptVariables[number]
+
+const scriptKeywords = [
+	...Object.keys(scriptConstants),
+	...scriptDirectives,
+	...scriptBrokenKeywords,
+	...scriptVariables,
+] as ScriptKeyword[]
+
+const scriptOperators = [
+	"==",
+	"=",
+	"!=",
+	"<=",
+	"<",
+	">=",
+	">",
+	"&&",
+	"||",
+	"+",
+	"-",
+	"*",
+	"/",
+	"%",
+	"&",
+	"|",
+	"^",
+] as const
+
+type ScriptOperators = typeof scriptOperators[number]
+
+interface StringToken {
+	type: "string"
+	value: string
+	leakyValue: string
+	closed: boolean
 }
 
-export const C2GDirectives: Record<
-	string,
-	// The returning value is if to ignore the rest of the line, by default false
-	(this: C2GRunner, expressionValue: number) => void | boolean
+interface LabelToken {
+	type: "label"
+	value: string
+	leakyValue: string
+}
+
+interface CommentToken {
+	type: "comment"
+	value: string
+}
+
+interface NumberToken {
+	type: "number"
+	value: number
+}
+
+interface OperatorToken {
+	type: "operator"
+	leakyValue: string
+	value: ScriptOperators
+}
+
+interface KeywordToken {
+	type: "keyword"
+	leakyValue: string
+	value: ScriptKeyword
+}
+
+type Token =
+	| StringToken
+	| LabelToken
+	| CommentToken
+	| NumberToken
+	| OperatorToken
+	| KeywordToken
+
+/**
+ * What should the interpreter do after this directive?
+ * `"consume nothing"` pushes the directive onto the stack, as if it's a broken identifier.
+ * This behaviour is mostly used for error conditions.
+ *
+ * `"consume token"` is the most common return type. It doesn't push the directive's token onto the stack,
+ * but continues on with the line.
+ *
+ * `"consume line"` forces the interpreter to stop executing the current line.
+ * This is used for interruptive directives, such as `chain`, `map`, and `edit`.
+ */
+type ActionReturnValue = "consume line" | "consume token" | "consume nothing"
+
+// The return value is whenether to terminate the current line
+const scriptDirectiveFunctions: Record<
+	ScriptDirective,
+	(this: ScriptRunner, line: Token[], stack: Token[]) => ActionReturnValue
 > = {
-	art() {
-		console.warn("ART directives do nothing")
-	},
-	chain() {
-		const filename = this.getToken()
-		if (filename?.type === "string")
-			this.queuedActions.push({
+	chain(line: Token[]) {
+		const filename = line[0]
+		if (filename?.type === "string") {
+			this.scriptInterrupt = {
 				type: "chain",
-				value: join(this.fsPosition, filename.value),
-			})
-		else console.warn("The first argument of a chain must be a string!")
+				path: join(this.state.fsPosition ?? "", filename.value),
+			}
+			return "consume line"
+		}
+		console.warn("The first argument of a chain must be a string.")
+		return "consume nothing"
 	},
-	chdir() {
-		const dirname = this.getToken()
-		if (dirname?.type === "string")
-			this.fsPosition = join(this.fsPosition, dirname.value)
-		else console.warn("The first argument of a chdir must be a string!")
+	chdir(line: Token[]) {
+		const dirname = line[0]
+		if (dirname?.type === "string") {
+			this.state.fsPosition = join(this.state.fsPosition ?? "", dirname.value)
+			line.shift()
+			return "consume token"
+		} else {
+			console.warn("The first argument of a chdir must be a string.")
+			return "consume nothing"
+		}
 	},
-	dlc() {
-		console.warn("DLC directives do nothing")
-	},
-	do(lastExpression: number) {
-		return !lastExpression
+	do(_line: Token[], stack: Token[]) {
+		const lastToken = stack.pop()
+		if (!lastToken) return "consume nothing"
+		const lastValue = this.getTokenValue(lastToken)
+		return lastValue === 0 ? "consume line" : "consume token"
 	},
 	edit() {
-		console.warn("There is no editor to open")
+		console.warn("There is no editor to open.")
+		return "consume line"
 	},
-	game() {
-		const title = this.getToken()
-		if (title?.type === "string") this.gameName = title.value
-		else console.warn("The first argument of game must be a string!")
-	},
-	goto() {
-		const label = this.getToken()
-		if (label?.type !== "label") {
-			console.warn("The first argument of a goto must be a label!")
-			return
+	game(line: Token[]) {
+		const titleToken = line[0]
+		if (titleToken?.type === "string") {
+			this.state.gameTitle = titleToken.value
+			line.shift()
+			return "consume token"
+		} else {
+			console.warn("The first argument of game must be a string.")
+			return "consume nothing"
 		}
-		if (this.labels[label.value] !== undefined)
-			this.currentToken = this.labels[label.value]
-		return true
 	},
-	main() {
-		console.warn("This should jump to playcc2.c2g, but NotCC doesn't have it!")
+	goto(line: Token[]) {
+		const label = line[0]
+		if (label?.type !== "label") {
+			console.warn("The first argument of a goto must be a label.")
+			return "consume nothing"
+		}
+		if (this.labels[label.value] !== undefined) {
+			this.state.currentLine = this.labels[label.value]
+		}
+		// This consumes the original line
+		return "consume line"
 	},
-	map() {
-		const mapName = this.getToken()
-		if (mapName?.type === "string")
-			this.queuedActions.push({
+	map(line: Token[]) {
+		const mapName = line[0]
+		if (mapName?.type === "string") {
+			this.scriptInterrupt = {
 				type: "map",
-				value: join(this.fsPosition, mapName.value),
-			})
-		else console.warn("The first argument of a map must be a string!")
-		return true
+				path: join(this.state.fsPosition ?? "", mapName.value),
+			}
+			return "consume line"
+		} else {
+			console.warn("The first argument of a map must be a string.")
+			return "consume nothing"
+		}
 	},
-	music() {
-		const mapName = this.getToken()
-		if (mapName?.type === "string")
-			this.queuedActions.push({
-				type: "music",
-				// This is not resolved, since it
-				// a. Can start with + to loop
-				// b. Can not be a path but an alias to a pre-set song
-				value: mapName.value,
-			})
-		else console.warn("The first argument of music must be a string!")
+	music(line: Token[]) {
+		const musicName = line[0]
+		if (musicName?.type === "string") {
+			this.musicChanged = true
+			let str = musicName.value
+			// Yeah, we're judging by if the string has an extension dot in it.
+			// Vanilla music IDs don't have dots, and all music files should have an extension, so this should be fine.
+			const isPath = str.includes(".")
+			const isRepeating = str.startsWith("+")
+			if (isRepeating) {
+				str = str.slice(1)
+			}
+			this.state.music = isPath
+				? {
+						repeating: isRepeating,
+						path: join(this.state.fsPosition ?? "", str),
+				  }
+				: { repeating: isRepeating, id: str }
+			return "consume token"
+		} else {
+			console.warn("The first argument of music must be a string!")
+			return "consume nothing"
+		}
 	},
 	script() {
-		// Strip everything before the first `script` line
-		let token = this.getToken()
-		while (token && token.type !== "newline") {
-			token = this.getToken()
-		}
+		// Ignore everything past the `script` directive
 		let finalString = ""
-		token = this.getToken()
-		if (!token || token.type === "newline") {
-			// If the the first line of the `script` (the one after it) is blank, end the script prematurely
-			return true
-		}
-		do {
-			if (token.type === "newline") {
-				finalString += "\n"
+
+		const substitions: [number, number, number] = [0, 0, 0]
+		// eslint-disable-next-line no-constant-condition
+		while (true) {
+			this.state.currentLine ??= 0
+			this.state.currentLine += 1
+			const line = this.tokenizeLine(this.state.currentLine)
+			if (finalString === "" && line[0]?.type !== "string") {
+				// If the first line after the `script` is empty, return prematery
+				console.warn("The first line of a script must be a string.")
+				break
+			}
+			if (line.length === 0) {
+				// There aren't any tokens. C2G appends the line without the first character and with a newline at the end.
+				// So, a line consisting of just a newline will still result in just a newline.
+				finalString += this.scriptLines[this.state.currentLine].slice(1) + "\n"
 				continue
 			}
 
-			const string = token.value
+			const stringToken = line[0]
+			if (stringToken.type !== "string") break
 
-			// It's time to figure out tbe escape values. Each escape value is one token in length.
-			// All expressions have to be done beforehand and placed in temporary variables.
-			const escapeValues: number[] = []
-			token = this.getToken()
-			while (token && token.type !== "newline") {
-				escapeValues.push(this.evaluateExpression([token]))
-				token = this.getToken()
+			for (let substituionI = 0; substituionI < 3; substituionI++) {
+				const substitutionToken = line[substituionI + 1]
+				if (!substitutionToken) break
+				substitions[substituionI] = this.getTokenValue(substitutionToken)
 			}
-			finalString += printf(string, ...escapeValues)
-		} while (token && token.type === "ass")
-		// If this stopped by encountering a non-script token, vomit it back
-		if (this.tokens[this.currentToken]) this.currentToken--
-		if (finalString)
-			this.queuedActions.push({
-				type: "script",
-				value: finalString.replace(/\w+$/, ""),
-			})
-		return true
-	},
-	wav() {
-		console.warn("WAV directives do nothing")
+			finalString += printf(stringToken.value, ...substitions) + "\n"
+		}
+		this.scriptInterrupt = { type: "script", text: finalString }
+		// We stopped reading on a line which doesn't work, so let the interpreter read the next line normally
+		this.state.currentLine -= 1
+		return "consume line"
 	},
 }
 
-const tokenTypes: TokenType[] = [
-	{ regex: /\n/, name: "newline" },
-	// Strings are stopped by either quotes or newlines (or EOF) :clapping:
-	// Also, no escapes in C2G, yay
-	{ regex: /"([^"\n]*)(?:["\n]|$)/, name: "string" },
-	{ regex: /(?:\/\/|;).+/, name: "comment" },
-	// Labels are only terminated by whitespace
-	{ regex: /#(\S+)/, name: "label" },
-	// Numbers aren't terminated by whitespace, so `1level=` is legal
-	{ regex: /\d+/, name: "number" },
-	{
-		regex: /==|>=|<=|!=|&&|\|\||[=+\-*/><|&^]/,
-		name: "operator",
-	},
-	// (Lax) keywords are anything not starting with a number
-	{ regex: /(?=\D)\w+/, name: "lax-keyword" },
-]
-
-type TokenTypePlace = [type: TokenType, lastMatch: RegExpExecArray | null]
-
-type KeywordPosition = [keyword: string, position: number]
-export function resolveC2GKeywords(name: string): KeywordPosition[] {
-	const keywords = [
-		...C2GVariables,
-		...Object.keys(C2GPseudoVariables),
-		...Object.keys(C2GDirectives),
-	]
-
-	const foundKeywords: KeywordPosition[] = []
-
-	loop: for (let strPos = 0; strPos < name.length; strPos++) {
-		for (const keyword of keywords) {
-			if (name.startsWith(keyword)) {
-				foundKeywords.push([keyword, strPos])
-				strPos += keyword.length
-				continue loop
-			}
-		}
+function makeSimpleOperator(
+	func: (a: number, b: number) => number
+): (this: ScriptRunner, stack: Token[]) => ActionReturnValue {
+	return function (stack: Token[]) {
+		// Where there are less than 2 tokens, the operator itself is treated as a value
+		if (stack.length < 2) return "consume nothing"
+		const b = this.getTokenValue(stack.pop() as Token)
+		const a = this.getTokenValue(stack.pop() as Token)
+		stack.push({ type: "number", value: Math.imul(func(a, b), 1) })
+		return "consume token"
 	}
-	return foundKeywords
 }
 
-export function tokenizeC2G(file: string): Token[] {
-	const latestOccurrence: TokenTypePlace[] = tokenTypes
-		.map(val => ({ name: val.name, regex: new RegExp(val.regex, "g") }))
-		.map<TokenTypePlace>(val => [val, val.regex.exec(file)])
-		.filter(val => val[1])
-		.sort((a, b) =>
-			!a[1] && !b[1] ? 0 : !a[1] ? 1 : !b[1] ? -1 : a[1].index - b[1].index
-		)
-	const tokens: Token[] = []
-	let firstThing = latestOccurrence.shift(),
-		lastThingEnd: number | null = null
-	while (firstThing?.[1]) {
-		if (!lastThingEnd || firstThing[1].index >= lastThingEnd) {
-			lastThingEnd = firstThing[1].index + firstThing[1][0].length
-			tokens.push({
-				position: firstThing[1].index,
-				type: firstThing[0].name,
-				value: firstThing[1][1] ?? firstThing[1][0],
-				fullValue: firstThing[1][0],
-			})
+const scriptOperatorFunctions: Record<
+	ScriptOperators,
+	(this: ScriptRunner, stack: Token[]) => ActionReturnValue
+> = {
+	"==": makeSimpleOperator((a, b) => (a === b ? 1 : 0)),
+	"="(this: ScriptRunner, stack: Token[]) {
+		if (stack.length < 2) return "consume nothing"
+		const assignedValue = stack.pop() as Token
+		const variable = stack.pop() as Token
+		// Assignment to non-variables doesn't seem to do anything in CC2
+		if (variable.type === "keyword" && isVariable(variable.value)) {
+			const variableName = variable.value
+			const variableValue = this.getTokenValue(assignedValue)
+			if (variableName === "line") {
+				this.state.currentLine = variableValue
+			} else if (variableName === "score") {
+				// This variable is readonly, meaning the game can set it after `map`s, but the script can't alter it itself
+			} else {
+				// Whoo regular assignment
+				if (!this.state.variables) {
+					this.state.variables = {}
+				}
+				this.state.variables[variableName] = variableValue
+			}
 		}
-
-		firstThing[1] = firstThing[0].regex.exec(file)
-		if (firstThing[1]) {
-			let currentOffset = 0
-			while (
-				latestOccurrence[currentOffset]?.[1] &&
-				// @ts-expect-error I am not sure how TS misses this
-				firstThing[1].index > latestOccurrence[currentOffset][1].index
-			)
-				currentOffset++
-			latestOccurrence.splice(currentOffset, 0, firstThing)
-		}
-		firstThing = latestOccurrence.shift()
-	}
-	// Resolve lax keywords
-	const resolvedTokens: Token[] = []
-	for (const token of tokens) {
-		if (token.type !== "lax-keyword") {
-			resolvedTokens.push(token)
-			continue
-		}
-		const keywords = resolveC2GKeywords(token.value)
-		for (const keyword of keywords) {
-			resolvedTokens.push({
-				position: keyword[1],
-				type: "keyword",
-				value: keyword[0],
-				fullValue: keyword[0],
-			})
-		}
-	}
-	return resolvedTokens.filter(val => val.type !== "comment")
+		stack.push(assignedValue)
+		return "consume token"
+	},
+	"!=": makeSimpleOperator((a, b) => (a !== b ? 1 : 0)),
+	"<=": makeSimpleOperator((a, b) => (a <= b ? 1 : 0)),
+	"<": makeSimpleOperator((a, b) => (a < b ? 1 : 0)),
+	">=": makeSimpleOperator((a, b) => (a >= b ? 1 : 0)),
+	">": makeSimpleOperator((a, b) => (a > b ? 1 : 0)),
+	"&&": makeSimpleOperator((a, b) => (a && b ? 1 : 0)),
+	"||": makeSimpleOperator((a, b) => (a || b ? 1 : 0)),
+	"+": makeSimpleOperator((a, b) => a + b),
+	"-": makeSimpleOperator((a, b) => a - b),
+	"*": makeSimpleOperator((a, b) => a * b),
+	"/": makeSimpleOperator((a, b) => a / b),
+	"%": makeSimpleOperator((a, b) => a % b),
+	"&": makeSimpleOperator((a, b) => a & b),
+	"|": makeSimpleOperator((a, b) => a | b),
+	"^": makeSimpleOperator((a, b) => a ^ b),
 }
 
 // Typescript stuff
 const isVariable = (
-	varName: string,
-	runner: C2GRunner
-): varName is typeof C2GVariables[number] => varName in runner.state
-const isPseudoVariable = (
 	varName: string
-): varName is keyof typeof C2GPseudoVariables => varName in C2GPseudoVariables
+): varName is typeof scriptVariables[number] =>
+	scriptVariables.includes(varName as keyof ScriptVariableState)
+const isConstant = (varName: string): varName is keyof typeof scriptConstants =>
+	varName in scriptConstants
+const isDirective = (varName: string): varName is ScriptDirective =>
+	(scriptDirectives as readonly string[]).includes(varName)
 
-export interface QueuedC2GAction {
-	/**
-	 * The type of the thing to do, in vanilla C2G
-	 */
-	type: string
-	value: string
+export type ScriptInterrupt =
+	| {
+			type: "chain" | "map"
+			path: string
+	  }
+	| { type: "script"; text: string }
+
+export interface ScriptMusic {
+	path: string
+	repeating: boolean
 }
 
-export class C2GRunner {
-	/**
-	 * All the labels which are after newlines, aka valid jump locations
-	 * The number is the token offset, not the character offset
-	 */
+export const scriptLegalInventoryTools = [
+	null,
+	"bootForceFloor",
+	"bootIce",
+	"bootFire",
+	"bootWater",
+	"tnt",
+	"helmet",
+	"bootDirt",
+	"lightningBolt",
+	"bowlingBall",
+	"teleportYellow",
+	"railroadSign",
+	"foil",
+	"secretEye",
+	"bribe",
+	"bootSpeed",
+	"hook",
+] as const
+
+export type ScriptLegalInventoryTool = typeof scriptLegalInventoryTools[number]
+
+export type MapInterruptResponse =
+	| {
+			type: "win"
+			totalScore: number
+			lastExitGender: "male" | "female"
+			lastExitN: number
+			inventoryTools: ScriptLegalInventoryTool[]
+			inventoryKeys: Record<"red" | "green" | "blue" | "yellow", number>
+			timeLeft: number
+	  }
+	| { type: "retry" }
+	| { type: "skip" }
+
+function stringToValue(str: string): number {
+	return str
+		.slice(0, 4)
+		.split("")
+		.map(char => char.charCodeAt(0))
+		.reduce((acc, val, i) => (acc + val) << (8 * i), 0)
+}
+
+export const MAX_LINES_UNTIL_TERMINATION = 1_000_000_000
+
+export class ScriptRunner {
 	labels: Record<string, number> = {}
-	fsPosition = ""
-	queuedActions: QueuedC2GAction[] = []
-	state: C2GState = C2GVariables.reduce(
-		(acc, val) => ((acc[val] = 0), acc),
-		{} as Partial<C2GState>
-	) as C2GState
-	currentToken = 0
-	gameName?: string
-	c2gTitle: string
-	constructor(public tokens: Token[] = []) {
-		// If the first line doesn't contain a closed string, this is invalid
-		const strPos = tokens.findIndex(
-				val => val.type === "string" && val.fullValue.endsWith('"')
-			),
-			str = tokens[strPos],
-			newlinePos = tokens.findIndex(val => val.type === "newline")
-		if ((newlinePos !== -1 && strPos > newlinePos) || strPos === -1)
-			throw new Error(
-				"All C2Gs must contain a closed string in the first line!"
-			)
-		this.c2gTitle = str.value
-		this.updateLabels()
-	}
-	getToken(): Token | undefined {
-		const result = this.tokens[this.currentToken]
-		if (result) this.currentToken++
-		return result
-	}
-	/**
-	 * Evaluates an expression and **eats the tokens used**
-	 * @returns The result of the calculations
-	 */
-	evaluateExpression(tokens: Token[]): number {
-		// The number is the actual value, the string is the source identifier, can be null
-		const stack: [number, string?][] = []
-		loop: for (let token = tokens.shift(); token; token = tokens.shift())
-			switch (token.type) {
-				case "number":
-					stack.push([parseInt(token.value)])
-					break
-				case "string":
-					if (token.value.length < 4) {
-						console.warn(
-							"Strings in expressions must be at least 4 characters!"
-						)
-						break
-					}
-					stack.push([
-						[...token.value.substr(0, 4)]
-							.map(val => val.charCodeAt(0))
-							.reduce((acc, val, i) => acc + 0x100 ** i * val, 0),
-					])
-					break
-				case "keyword": {
-					if (isVariable(token.value, this))
-						stack.push([this.state[token.value], token.value])
-					else if (isPseudoVariable(token.value))
-						stack.push([C2GPseudoVariables[token.value]])
-					else {
-						// Return the token
-						tokens.unshift(token)
-						break loop
-					}
-					break
-				}
-				case "operator": {
-					const values = [stack.pop(), stack.pop()].reverse()
-					if (!values[0] || !values[1]) {
-						console.warn(
-							"Not enough values on the stack to perform the operation!"
-						)
-						break
-					}
-					const a = values[0][0],
-						b = values[1][0]
+	// The current filesystem position, changed by `chdir`.
+	scriptInterrupt: ScriptInterrupt | null = null
+	totalScore = 0
+	state: IScriptState = {}
 
-					let result: number | null
-					switch (token.value) {
-						case "+":
-							result = a + b
-							break
-						case "-":
-							result = a - b
-							break
-						case "*":
-							result = a * b
-							break
-						case "/":
-							result = a / b
-							break
-						case "&":
-							result = a & b
-							break
-						case "|":
-							result = a | b
-							break
-						case "^":
-							result = a ^ b
-							break
-						case "==":
-							result = a === b ? 1 : 0
-							break
-						case ">=":
-							result = a >= b ? 1 : 0
-							break
-						case ">":
-							result = a > b ? 1 : 0
-							break
-						case "<=":
-							result = a <= b ? 1 : 0
-							break
-						case "<":
-							result = a < b ? 1 : 0
-							break
-						case "||":
-							result = a || b
-							break
-						case "&&":
-							result = a && b
-							break
-						case "=":
-							result = a
-							if (!values[1][1] || !isVariable(values[1][1], this)) {
-								console.warn(
-									"You are assigning a number to anything but a number!"
-								)
-								break
-							}
-							if (C2GReadonlyVariables.includes(values[1][1])) {
-								console.warn("Writing to read-only variables is not allowed!")
-								break
-							}
-							this.state[values[1][1]] = a
-							break
-						default:
-							console.warn(
-								"This code encountered an operator partially recognized! Please file a bug report"
-							)
-							result = null
-							break
-					}
-					if (result !== null) stack.push([result])
-					break
+	// Indicates if the UI should start playing the music track from the beginning.
+	// This is important in scenarios like
+	// ```
+	// music "+Despacito"
+	// map "coolMap.c2m"
+	// ```
+	// and
+	// ```
+	// music "+Despacito" map "coolMap.c2m"
+	// ```
+	// The former has the music track on loop, even if the map is restarted.
+	// The latter has the music start from the beginning on each level restart.
+	musicChanged = false
+	scriptLines: string[]
+	constructor(script: string, scriptPath?: string, state?: IScriptState) {
+		if (state) {
+			this.state = state
+		}
+		this.loadScript(script, scriptPath, !state)
+		//@ts-expect-error Hack to silence TypeScript, since it *can't believe* `this.scriptLines` is assigned in `this.loadScript`
+		this.scriptLines = this.scriptLines as string[]
+	}
+	loadScript(script: string, scriptPath?: string, requireTitle = false): void {
+		this.scriptLines = script.split(/\n\r?/g)
+		if (requireTitle) {
+			const scriptTitleToken = this.tokenizeLine(0).find(
+				(token): token is StringToken => token.type === "string"
+			)
+			if (!scriptTitleToken || !scriptTitleToken.closed)
+				throw new Error(
+					"The first line of the script must contain a closed string describing the title."
+				)
+			this.state.scriptTitle = scriptTitleToken.value
+		}
+		if (scriptPath !== undefined) {
+			this.state.scriptPath = scriptPath
+		}
+		this.generateLabels()
+	}
+	generateLabels(): void {
+		for (let lineN = 0; lineN < this.scriptLines.length; lineN++) {
+			const tokens = this.tokenizeLine(lineN)
+			const labelToken = tokens[0]
+			if (labelToken?.type !== "label") continue
+			// The first label in the script is the canonical one
+			if (this.labels[labelToken.value]) continue
+			this.labels[labelToken.value] = lineN
+		}
+	}
+	tokenizeLine(lineN: number): Token[] {
+		const line = this.scriptLines[lineN]
+		const tokens: Token[] = []
+		let linePos = 0
+		while (line[linePos] !== undefined) {
+			// Strings
+			if (line[linePos] === '"') {
+				let stringValue = ""
+				linePos++
+				const leakyValue = line.slice(linePos, linePos + 4)
+				// Lines are not only terminated by closing "'s, but also by newlines.
+				while (line[linePos] !== '"' && line[linePos] !== undefined) {
+					stringValue += line[linePos]
+					linePos++
 				}
-				// Silently drop labels
-				case "label":
-					break
-				// Stop on newlines
-				case "newline":
-					break loop
-				default:
-					console.warn(`Found bad token type "${token.type}" in expression`)
-					break
+				tokens.push({
+					type: "string",
+					closed: line[linePos] === '"',
+					value: stringValue,
+					leakyValue,
+				})
+				// Consume the closing "
+				if (line[linePos] === '"') linePos++
+				continue
 			}
-		return stack[0]?.[0] ?? 0
-	}
-	updateLabels(): void {
-		// Search for good labels
-		for (const [i, token] of this.tokens.entries()) {
-			if (
-				token.type === "label" &&
-				(!this.tokens[i - 1] || this.tokens[i - 1].type === "newline")
-			)
-				this.labels[token.value] = i
-		}
-	}
-	stepLine(): number | void {
-		let lastExpressionResult: number | void
-		for (
-			let shouldContinue = true, directiveToken = this.getToken();
-			directiveToken && directiveToken.type !== "newline";
-			directiveToken = this.getToken()
-		) {
-			// This is EOF or a newline, there is only an expression on the line
-
-			if (shouldContinue)
-				if (!C2GDirectives[directiveToken.value])
-					if (
-						["number", "operator", "string"].includes(directiveToken.type) ||
-						isVariable(directiveToken.value, this) ||
-						isPseudoVariable(directiveToken.value)
-					) {
-						this.currentToken--
-						const tokensToProcess = this.tokens.slice(this.currentToken)
-						lastExpressionResult = this.evaluateExpression(tokensToProcess)
-						this.currentToken = this.tokens.length - tokensToProcess.length
-					} else if (directiveToken.type === "label") {
-						lastExpressionResult = undefined
-						// Silently ignore labels
-					} else {
-						console.warn(
-							"This code encountered a directive which kinda but not really exists? Please file a bug report"
-						)
-						break
-					}
-				else {
-					shouldContinue = !C2GDirectives[directiveToken.value].call(
-						this,
-						(lastExpressionResult as number) ?? 0
-					)
-					lastExpressionResult = undefined
+			// Comments
+			if (line[linePos] === ";") {
+				tokens.push({ type: "comment", value: line.slice(linePos + 1) })
+				break
+			}
+			// Labels
+			if (line[linePos] === "#") {
+				let labelValue = ""
+				linePos++
+				const leakyValue = line.slice(linePos, linePos + 4)
+				while (line[linePos] !== undefined && line[linePos] !== " ") {
+					labelValue += line[linePos]
+					linePos++
 				}
+				tokens.push({ type: "label", value: labelValue, leakyValue })
+				continue
+			}
+			// Integer
+			if (!isNaN(parseInt(line[linePos], 10))) {
+				// Vanilla `parseInt` works in this case
+				const intValue = parseInt(line.slice(linePos), 10)
+				tokens.push({ type: "number", value: intValue })
+				linePos += intValue.toString().length
+				continue
+			}
+			// Operator
+			{
+				const operator = scriptOperators.find(val =>
+					line.slice(linePos).startsWith(val)
+				)
+				if (operator !== undefined) {
+					const leakyValue = line.slice(linePos, linePos + 4)
+					tokens.push({ type: "operator", value: operator, leakyValue })
+					linePos += operator.length
+					continue
+				}
+			}
+			// Keyword
+			{
+				const keyword = scriptKeywords.find(val =>
+					line.slice(linePos).toLowerCase().startsWith(val)
+				)
+				if (keyword !== undefined) {
+					const leakyValue = line.slice(linePos, linePos + 4)
+					tokens.push({ type: "keyword", value: keyword, leakyValue })
+					linePos += keyword.length
+					continue
+				}
+			}
+			// Nothing matched, just move on.
+			linePos++
 		}
-		return lastExpressionResult
+		return tokens
+	}
+	getTokenValue(token: Token): number {
+		// Comments have explicitly the integer value 0. This is demonstrated by the following code:
+		// ```
+		// script
+		// "Setting %d %d %d" 1 2 3
+		// "Reading %d %d %d" ; hi
+		// ```
+		// In CC2, this will show the text "Setting 1 2 3", "Reading 0 2 3"
+		// Note that `script` substitution variables are keps across lines, so the 2 and 3 are persisted,
+		// while the comment overwrites the first substitution variable to be 0 instead of 1.
+		if (token.type === "comment") return 0
+		if (token.type === "number") return token.value
+		if (token.type === "keyword") {
+			if (isVariable(token.value)) {
+				if (token.value === "line") return this.state.currentLine ?? 0
+				if (token.value === "score") return this.totalScore
+				return this.state.variables?.[token.value] ?? 0
+			}
+			if (isConstant(token.value)) {
+				return scriptConstants[token.value]
+			}
+		}
+		// If we have a token here, it has to be either a broken identifier or a directive which didn't execute correctly.
+		// If we have an operator here, the operator didn't have enough arguments and is treated as a value itself.
+		// This could also be a label or a string.
+		// This are tokens which don't special handling for finding it's value, as it's not supposed to happen.
+		// They are treated as strings (with a maximum of 4 characters) starting from the first character of the token, as it appears in the source code.
+		// This is an important distinction from the normal token value. For example, the lines
+		// `mApreg1=` has "mApr" set to `reg1`, while
+		// `Map reg1 =` will have "Map " in `reg1`.
+		// Labels and strings are slightly different, where their source code string value starts after the prefix " or #, without including it in the value
+		// So, `#abc reg1 =` will result in `reg1` having the value "abc ",
+		// and `"p" reg1 =` will set `reg1` to the string 'p" r'.
+		// The tokenizing function above correctly removes the # and " from the leakyValue property.
+		// Note: CC2 doesn't have consistent values after the end of the line and the terminating null, which can be observed with
+		// ```
+		// script
+		// "%d" do
+		// ```
+		// - the string (decoded from the number) will start with "do\0" (where \0 is a singular null character),
+		// but the fourth one isn't guaranteed to be anything in particular
+		// In this implementation, all characters after the end of the line are reported as null characters.
+		return stringToValue(token.leakyValue)
+	}
+	executeTokens(tokens: Token[], allowDirectives = true): void {
+		const stack: Token[] = []
+		// We don't use iteration here, since we actually
+		// need a half-destroyed array for directives to read the first token
+		// *past* itself, and to mutate the line to remove the first token past itself
+		for (
+			let token = tokens.shift() as Token;
+			(token = tokens.shift() as Token);
+			tokens.length > 0
+		) {
+			// This loop mainly handles operators and directives,
+			// so if it's not that, just push the token onto the stack and move on
+			if (
+				!(
+					(token.type === "keyword" && isDirective(token.value)) ||
+					token.type === "operator"
+				)
+			) {
+				stack.push(token)
+				continue
+			}
+			let returnVal: ActionReturnValue
+			if (token.type === "operator") {
+				returnVal = scriptOperatorFunctions[token.value].call(this, stack)
+			} else {
+				if (allowDirectives) {
+					returnVal = scriptDirectiveFunctions[
+						token.value as ScriptDirective
+					].call(this, tokens, stack)
+				} else {
+					// Yeah, if we're not allowed to run directives, tream them like normal tokens
+					returnVal = "consume nothing"
+				}
+			}
+			if (returnVal === "consume line") break
+			if (returnVal === "consume nothing") {
+				// Put the directive/operator token (with it's leaky value) onto the stack
+				stack.push(token)
+			}
+		}
+	}
+	executeLine(): void {
+		if (this.scriptInterrupt)
+			throw new Error(
+				"The current interrupt must be handled before executing further lines."
+			)
+		this.state.currentLine ??= 0
+		if (this.state.currentLine >= this.scriptLines.length)
+			throw new Error("The end of the script has already been reached.")
+
+		const line = this.tokenizeLine(this.state.currentLine)
+		this.executeTokens(line, true)
+
+		this.state.currentLine += 1
+	}
+	executeUntilInterrupt(): ScriptInterrupt | null {
+		let linesExecuted = 0
+		this.state.currentLine ??= 0
+
+		do {
+			linesExecuted += 1
+			if (linesExecuted > MAX_LINES_UNTIL_TERMINATION)
+				throw new Error(
+					"The script ran for too long, perhaps stuck in an infinite loop?"
+				)
+			this.executeLine()
+		} while (
+			this.state.currentLine < this.scriptLines.length &&
+			!this.scriptInterrupt
+		)
+		return this.scriptInterrupt
+	}
+	handleMapInterrupt(interruptData: MapInterruptResponse): void {
+		if (this.scriptInterrupt?.type !== "map")
+			throw new Error(
+				"This method can only be called to handle `map` interrupts."
+			)
+		this.state.currentLine ??= 0
+		this.scriptInterrupt = null
+		if (interruptData.type === "retry") {
+			// Replay the current line
+			this.state.currentLine -= 1
+			return
+		}
+		if (interruptData.type === "skip") {
+			// Set the win-related variables to 0 and continue
+			if (!this.state.variables) {
+				// If all variables are 0, don't do anything, since we're already all set
+				return
+			}
+			this.state.variables.exit = 0
+			this.state.variables.tools = 0
+			this.state.variables.keys = 0
+			this.state.variables.gender = 0
+			this.state.variables.tleft = 0
+			return
+		}
+		if (!this.state.variables) {
+			this.state.variables = {}
+		}
+		const keys = interruptData.inventoryKeys
+		this.state.variables.keys =
+			keys.red +
+			keys.blue * 0x100 +
+			keys.yellow * 0x10000 +
+			keys.green * 0x1000000
+
+		const tools = interruptData.inventoryTools
+		function getToolId(id: ScriptLegalInventoryTool): number {
+			return scriptLegalInventoryTools.indexOf(id)
+		}
+		this.state.variables.tools =
+			getToolId(tools[0]) +
+			getToolId(tools[1]) * 0x100 +
+			getToolId(tools[2]) * 0x10000 +
+			getToolId(tools[3]) * 0x1000000
+		this.state.variables.gender = scriptConstants[interruptData.lastExitGender]
+		this.state.variables.exit = interruptData.lastExitN
+		this.state.variables.tleft = Math.imul(interruptData.timeLeft / 60, 1)
+		this.totalScore = interruptData.totalScore
+	}
+	handleChainInterrupt(fileData: string): void {
+		if (this.scriptInterrupt?.type !== "chain")
+			throw new Error(
+				"This method can only be called to handle `chain` interrupts."
+			)
+
+		this.loadScript(fileData, this.scriptInterrupt.path)
+		this.scriptInterrupt = null
 	}
 }

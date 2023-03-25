@@ -1,4 +1,4 @@
-import { levelAsSet, parseC2M } from "@notcc/logic"
+import { parseC2M } from "@notcc/logic"
 import { Pager } from "../pager"
 import stubLevel from "../data/NotCC.c2m"
 import { levelPlayerPage } from "./levelPlayer"
@@ -8,7 +8,6 @@ export const setSelectorPage = {
 	async loadStubLevel(pager: Pager): Promise<void> {
 		const levelBin = await (await fetch(stubLevel)).arrayBuffer()
 		const level = parseC2M(levelBin, "NotCC.c2m")
-		pager.loadedSet = levelAsSet(level)
 		pager.loadedLevel = level
 		pager.openPage(levelPlayerPage)
 	},

@@ -11,7 +11,7 @@ import { parseC2M } from "@notcc/logic"
 import { actorDB, keyNameList } from "@notcc/logic"
 import { artDB } from "./const"
 import { parseNCCS, writeNCCS } from "@notcc/logic"
-import { tokenizeC2G, C2GRunner } from "@notcc/logic"
+import { ScriptRunner } from "@notcc/logic"
 import { Actor } from "@notcc/logic"
 import { Item } from "@notcc/logic"
 
@@ -41,8 +41,7 @@ const exportObject = {
 	parseC2M,
 	parseNCCS,
 	writeNCCS,
-	tokenizeC2G,
-	C2GRunner,
+	ScriptRunner,
 	Direction,
 	actorDB,
 	//setPlayer,

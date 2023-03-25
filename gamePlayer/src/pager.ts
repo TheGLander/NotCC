@@ -1,4 +1,4 @@
-import { LevelData, LevelSetData } from "@notcc/logic"
+import { LevelData, LevelSet } from "@notcc/logic"
 import { loadingPage } from "./pages/loading"
 import { Tileset } from "./visuals"
 
@@ -12,7 +12,7 @@ export interface Page {
 
 export class Pager {
 	currentPage!: Page
-	loadedSet: LevelSetData | null = null
+	loadedSet: LevelSet | null = null
 	loadedLevel: LevelData | null = null
 	tileset: Tileset | null = null
 	constructor() {

@@ -1,13 +1,87 @@
 import AutoReadDataView from "./autoReader"
-import {
-	LevelData,
-	PartialLevelData,
-	isPartialDataFull,
-	SolutionData,
-} from "../encoder"
-import { Field, Direction } from "../helpers"
+import { Direction, Field } from "../helpers"
 import data, { cc2Tile } from "./c2mData"
 import rfdc from "rfdc"
+import { ISolutionInfo } from "./nccs.pb"
+
+export interface CameraType {
+	width: number
+	height: number
+	screens: number
+}
+
+export interface LevelData {
+	/**
+	 * The filename of this level (or the level set, if a DAT)
+	 */
+	filename?: string
+	/**
+	 * The name of the set this belongs to (not present in C2Ms or DATs)
+	 */
+	setName?: string
+	/**
+	 * Name of the level, can be absent
+	 */
+	name?: string
+	/**
+	 * The password used to access the level. Not supported in vanilla CC2
+	 */
+	password?: string
+	/**
+	 * The field which contains all actors
+	 */
+	field: Field<[string | null, Direction?, string?, number?][]>
+	playablesRequiredToExit: number | "all"
+	width: number
+	height: number
+	/**
+	 * The viewport width/height
+	 */
+	camera: CameraType
+	timeLimit: number
+	/**
+	 * The blob pattern setting in CC2, 1 by default
+	 */
+	blobMode?: 1 | 4 | 256
+	hints?: string[]
+	/**
+	 * If the hint tile didn't get a custom hint, it gets this
+	 */
+	defaultHint?: string
+	note?: string
+	/**
+	 * The amount of chips to add to the required count beyond the default chip amount.
+	 * Is designed to mostly troll people into thinking there are more chips than there really are
+	 */
+	extraChipsRequired?: number
+	/**
+	 * The clone machine/trap custom connections. Not supported in vanilla CC2
+	 */
+	connections?: [[number, number], [number, number]][]
+	/**
+	 * The solution for this level
+	 */
+	associatedSolution?: ISolutionInfo
+	// Random misc custom data
+	customData?: Record<string, string>
+}
+
+export type PartialLevelData = Omit<
+	LevelData,
+	"field" | "width" | "height" | "playablesRequiredToExit"
+> &
+	Partial<LevelData>
+
+export function isPartialDataFull(
+	partial: PartialLevelData
+): partial is LevelData {
+	return (
+		!!partial.field &&
+		!!partial.height &&
+		!!partial.width &&
+		!!partial.playablesRequiredToExit
+	)
+}
 
 const clone = rfdc()
 
@@ -200,15 +274,16 @@ function createFieldFromArrayBuffer(
 
 function createSolutionFromArrayBuffer(
 	solutionData: ArrayBuffer
-): SolutionData {
-	const solution: SolutionData = {}
-	solution.steps = [[], []]
+): ISolutionInfo {
+	const solution: ISolutionInfo = { levelState: { cc2Data: {} } }
+	let steps = new Uint8Array(100)
+	let currentStep = 0
 	const view = new AutoReadDataView(solutionData)
 
 	view.skipBytes(1)
 
-	solution.rffDirection = view.getUint8() % 4
-	solution.blobModSeed = view.getUint8()
+	solution.levelState!.randomForceFloorDirection = (view.getUint8() % 4) + 1
+	solution.levelState!.cc2Data!.blobModifier = view.getUint8()
 
 	// The delay before the first input
 	// I think this is actually never used, but it's not a bad idea
@@ -232,9 +307,17 @@ function createSolutionFromArrayBuffer(
 			(newInput & 0x40) / 0x2 + // Cycle items
 			(newInput & 0x20) * 0x2 // Switch playable
 
-		solution.steps[newInput >> 7].push([resolvedInput, holdTime])
-		if (newInput >> 7) solution.steps[0].push([resolvedInput, holdTime])
+		steps[currentStep] = resolvedInput
+		steps[currentStep + 1] = holdTime
+		currentStep += 2
+		if (currentStep >= steps.byteLength) {
+			const newSteps = new Uint8Array(Math.round(steps.byteLength * 1.5))
+			newSteps.set(steps)
+			steps = newSteps
+		}
 	}
+	steps = steps.slice(0, currentStep)
+	solution.steps = [steps]
 	return solution
 }
 
@@ -466,7 +549,6 @@ export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 				if (sectionName === "PRPL")
 					solutionData = unpackagePackedData(solutionData)
 				data.associatedSolution = createSolutionFromArrayBuffer(solutionData)
-				data.associatedSolution.associatedLevel = { filename, name: data.name }
 				view.skipBytes(length)
 				break
 			}

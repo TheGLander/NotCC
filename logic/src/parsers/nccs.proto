@@ -4,10 +4,17 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 message SetInfo {
+  /**
+   * Currently, one of: "MS", "Lynx", "Lynx (Strict)", or "Steam"
+   */
   string ruleset = 1;
+  /**
+   * Currently, one of: "DAT", "C2M", or "C2G"
+   */
   string set_type = 2;
   string set_name = 3;
   repeated LevelInfo levels = 4;
+  int32 current_level = 5;
 }
 
 message LevelInfo {
