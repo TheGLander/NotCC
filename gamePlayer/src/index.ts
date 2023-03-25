@@ -9,7 +9,6 @@ import { Direction } from "@notcc/logic"
 import "./NCCTK.css"
 import { parseC2M } from "@notcc/logic"
 import { actorDB, keyNameList } from "@notcc/logic"
-import { parseDAT } from "@notcc/logic"
 import { artDB } from "./const"
 import { parseNCCS, writeNCCS } from "@notcc/logic"
 import { tokenizeC2G, C2GRunner } from "@notcc/logic"
@@ -40,7 +39,6 @@ const exportObject = {
 		return setPlayer.pulseManager.level
 	}, */
 	parseC2M,
-	parseDAT,
 	parseNCCS,
 	writeNCCS,
 	tokenizeC2G,
