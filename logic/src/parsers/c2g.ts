@@ -1,5 +1,5 @@
 import { printf } from "fast-printf"
-import { join } from "path"
+import { win32 } from "path"
 import { IScriptState } from "./nccs.pb"
 
 export const C2G_NOTCC_VERSION = "1.0-NotCC"
@@ -158,6 +158,15 @@ type Token =
 	| KeywordToken
 
 /**
+ * Joins the segments via the win32 function (which recognizes both \ and /),
+ * but then converts the backslashes to the more useful normal slashes.
+ */
+
+export function joinPath(...segments: string[]): string {
+	return win32.join(...segments).replace(/\\/g, "/")
+}
+
+/**
  * What should the interpreter do after this directive?
  * `"consume nothing"` pushes the directive onto the stack, as if it's a broken identifier.
  * This behaviour is mostly used for error conditions.
@@ -180,7 +189,7 @@ const scriptDirectiveFunctions: Record<
 		if (filename?.type === "string") {
 			this.scriptInterrupt = {
 				type: "chain",
-				path: join(this.state.fsPosition ?? "", filename.value),
+				path: joinPath(this.state.fsPosition ?? "", filename.value),
 			}
 			return "consume line"
 		}
@@ -190,7 +199,10 @@ const scriptDirectiveFunctions: Record<
 	chdir(line: Token[]) {
 		const dirname = line[0]
 		if (dirname?.type === "string") {
-			this.state.fsPosition = join(this.state.fsPosition ?? "", dirname.value)
+			this.state.fsPosition = joinPath(
+				this.state.fsPosition ?? "",
+				dirname.value
+			)
 			line.shift()
 			return "consume token"
 		} else {
@@ -236,7 +248,7 @@ const scriptDirectiveFunctions: Record<
 		if (mapName?.type === "string") {
 			this.scriptInterrupt = {
 				type: "map",
-				path: join(this.state.fsPosition ?? "", mapName.value),
+				path: joinPath(this.state.fsPosition ?? "", mapName.value),
 			}
 			return "consume line"
 		} else {
@@ -259,7 +271,7 @@ const scriptDirectiveFunctions: Record<
 			this.state.music = isPath
 				? {
 						repeating: isRepeating,
-						path: join(this.state.fsPosition ?? "", str),
+						path: joinPath(this.state.fsPosition ?? "", str),
 				  }
 				: { repeating: isRepeating, id: str }
 			return "consume token"
