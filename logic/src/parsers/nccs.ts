@@ -17,7 +17,8 @@ export function writeNCCS(saveData: ISetInfo): Uint8Array {
 
 	headerData.set(
 		// Get the length of the current version text, and write it as a uint32 spread across bytes
-		new Uint8Array(new Uint32Array([NCCS_VERSION.length + 1]).buffer)
+		new Uint8Array(new Uint32Array([NCCS_VERSION.length + 1]).buffer),
+		4
 	)
 
 	const finalData = new Uint8Array(wireData.length + headerData.length)
