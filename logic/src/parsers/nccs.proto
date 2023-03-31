@@ -36,23 +36,28 @@ message ScriptState {
     }
   }
   message ScriptVariables {
-    uint32 enter = 1;
-    uint32 exit = 2;
-    uint32 flags = 3;
-    uint32 gender = 4;
-    uint32 score = 5;
-    uint32 keys = 6;
-    uint32 level = 7;
-    uint32 line = 8;
-    uint32 menu = 9;
-    uint32 reg1 = 10;
-    uint32 reg2 = 11;
-    uint32 reg3 = 12;
-    uint32 reg4 = 13;
-    uint32 result = 14;
-    uint32 speed = 15;
-    uint32 tleft = 16;
-    uint32 tools = 17;
+    int32 enter = 1;
+    int32 exit = 2;
+    int32 flags = 3;
+    int32 gender = 4;
+    /**
+     * Unused (i.e. always 0) when used in `LevelInfo` (since the emulator is
+     * expected to calculate that in real time), but should be set in a
+     * solution's `LevelStateInfo`
+     */
+    int32 score = 5;
+    int32 keys = 6;
+    int32 level = 7;
+    reserved 8; // `line`, always specified in `ScriptState`
+    int32 menu = 9;
+    int32 reg1 = 10;
+    int32 reg2 = 11;
+    int32 reg3 = 12;
+    int32 reg4 = 13;
+    int32 result = 14;
+    int32 speed = 15;
+    int32 tleft = 16;
+    int32 tools = 17;
   }
   ScriptVariables variables = 1;
   int32 current_line = 2;
