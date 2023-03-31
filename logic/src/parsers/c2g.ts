@@ -468,6 +468,8 @@ export class ScriptRunner {
 	constructor(script: string, scriptPath?: string, state?: IScriptState) {
 		if (state) {
 			this.state = state
+		} else {
+			this.state = { variables: { level: 1 } }
 		}
 		this.loadScript(script, scriptPath, !state)
 		//@ts-expect-error Hack to silence TypeScript, since it *can't believe* `this.scriptLines` is assigned in `this.loadScript`
@@ -707,12 +709,11 @@ export class ScriptRunner {
 			this.state.currentLine -= 1
 			return
 		}
+		if (!this.state.variables) this.state.variables = {}
+		this.state.variables.level ??= 0
+		this.state.variables.level += 1
 		if (interruptData.type === "skip") {
 			// Set the win-related variables to 0 and continue
-			if (!this.state.variables) {
-				// If all variables are 0, don't do anything, since we're already all set
-				return
-			}
 			this.state.variables.exit = 0
 			this.state.variables.tools = 0
 			this.state.variables.keys = 0
