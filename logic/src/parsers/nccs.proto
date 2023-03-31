@@ -22,6 +22,7 @@ message LevelInfo {
   string title = 2;
   ScriptState script_state = 3;
   repeated AttemptInfo attempts = 4;
+  string level_file_path = 5;
 
   string prologue_text = 16;
   string epilogue_text = 17;
