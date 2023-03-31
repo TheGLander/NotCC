@@ -687,6 +687,15 @@ export class ScriptRunner {
 		let linesExecuted = 0
 		this.state.currentLine ??= 0
 
+		if (this.state.currentLine === this.scriptLines.length) {
+			// This is kinda tricky.
+			// The last call might have resulted in an interrupt on the *last line*,
+			// and we'd really like to have a null for proper closure of the set...
+			// So, instead of throwing, return a null if our line is just past the
+			// last one
+			return null
+		}
+
 		do {
 			linesExecuted += 1
 			if (linesExecuted > MAX_LINES_UNTIL_TERMINATION)
