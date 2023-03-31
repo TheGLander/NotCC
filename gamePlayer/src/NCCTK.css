@@ -75,16 +75,25 @@ button:active {
 	transform-origin: 10px 10px;
 	display: flex;
 	opacity: 0.9;
-	backdrop-filter: blur(3px);
 	animation: openTooltip 0.75s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+	position: absolute;
+	left: 110%;
+	top: 35%;
+	z-index: 100;
+	user-select: none;
 }
+
 .tooltipBox {
 	border-radius: 5px;
+	flex-shrink: 0;
+	backdrop-filter: blur(3px);
 	padding: 0.6em 0.75em;
 }
 .tooltipTriangle {
 	width: 0;
 	height: 0;
+	backdrop-filter: blur(3px);
+
 	display: inline-block;
 	border: solid 10px transparent;
 	border-right: solid 10px var(--general-bg);
@@ -135,13 +144,15 @@ button:active {
 	border-radius: 3px;
 	cursor: pointer;
 }
-.buttonTooltipRow:hover {
+.buttonTooltipRow:focus-visible {
+	outline: none;
+}
+.buttonTooltipRow:hover,
+.buttonTooltipRow:focus-visible {
 	background: var(--secondary-bg);
 }
-.buttonTooltipItem {
-	margin-right: 2em;
-}
 .buttonTooltipKey {
+	padding-left: 2em;
 	margin-left: auto;
 	padding-bottom: 0.2em;
 }
@@ -173,6 +184,7 @@ kbd {
 .sidebarButton {
 	margin: 1em;
 	display: flex;
+	position: relative;
 }
 
 .bottomButton {
@@ -193,6 +205,7 @@ kbd {
 .sidebarButton > img,
 .levelIconContainer > img {
 	display: block;
+	cursor: pointer;
 }
 
 .levelIconContainer > img {
@@ -209,6 +222,7 @@ kbd {
 	color: var(--icon-color);
 	text-align: center;
 	user-select: none;
+	pointer-events: none;
 }
 
 #loadingPage {

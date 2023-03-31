@@ -20,8 +20,12 @@ import "@notcc/logic"
 import "./visuals"
 import "./art"
 import { Pager } from "./pager"
+import { generateShortcutListener, generateTabButtons } from "./sidebar"
 
 const pager = new Pager()
+
+generateTabButtons(pager)
+document.addEventListener("keydown", generateShortcutListener(pager))
 
 // Enable crash handling
 window.addEventListener("error", ev =>

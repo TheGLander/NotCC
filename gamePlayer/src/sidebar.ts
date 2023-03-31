@@ -1,0 +1,174 @@
+import { Pager } from "./pager"
+import isHotkey, { parseHotkey } from "is-hotkey"
+import { setSelectorPage } from "./pages/setSelector"
+import { levelPlayerPage } from "./pages/levelPlayer"
+
+interface TooltipEntry {
+	name: string
+	shortcut: string | null
+	action?(pager: Pager): void
+}
+
+type TooltipEntries = (TooltipEntry | "breakline")[]
+
+export const tooltipGroups: Record<string, TooltipEntries> = {
+	selector: [
+		{
+			name: "Set selector",
+			shortcut: "esc",
+			action(pager: Pager): void {
+				pager.openPage(setSelectorPage)
+			},
+		},
+	],
+	level: [
+		{
+			name: "Reset level",
+			shortcut: "ctrl+r",
+			action(pager: Pager): void {
+				// TODO Unify reset for super mode and the level player
+				if (pager.currentPage === levelPlayerPage) {
+					const page = pager.currentPage as typeof levelPlayerPage
+					page.resetLevel(pager)
+				}
+			},
+		},
+		{ name: "Pause", shortcut: "p" },
+		"breakline",
+		{ name: "Previous level", shortcut: "ctrl+p" },
+		{ name: "Next level", shortcut: "ctrl+n" },
+		{ name: "Level list", shortcut: "ctrl+s" },
+	],
+	solution: [],
+	optimization: [],
+	settings: [{ name: "Settings", shortcut: "ctrl+c" }],
+	about: [{ name: "About", shortcut: null }],
+}
+
+const tooltipTemplate =
+	document.querySelector<HTMLTemplateElement>("#tooltipTemplate")!
+
+export function openTooltip(
+	pager: Pager,
+	tooltipContents: TooltipEntries,
+	at: HTMLElement
+): void {
+	const tooltipFragment = tooltipTemplate.content.cloneNode(
+		true
+	) as DocumentFragment
+	// Explicitly get the tooltip root so that we can actually attach events
+	const tooltipRoot = tooltipFragment.firstElementChild! as HTMLDivElement
+	const tooltipInsertionPoint =
+		tooltipRoot.querySelector<HTMLDivElement>(".buttonTooltipBox")!
+
+	tooltipInsertionPoint.tabIndex = 0
+
+	let firstRow: HTMLElement | undefined
+
+	function closeTooltip(): void {
+		tooltipRoot.style.animation = `closeTooltip 0.4s ease-in`
+		tooltipRoot.addEventListener("animationend", () => {
+			tooltipRoot.remove()
+		})
+	}
+
+	for (const tooltipEntry of tooltipContents) {
+		if (tooltipEntry === "breakline") {
+			tooltipInsertionPoint.appendChild(document.createElement("hr"))
+			continue
+		}
+		const tooltipRow = document.createElement("div")
+		tooltipRow.classList.add("buttonTooltipRow")
+		tooltipRow.tabIndex = 0
+
+		if (firstRow === undefined) {
+			firstRow = tooltipRow
+		}
+
+		const tooltipName = document.createElement("div")
+		tooltipName.classList.add("buttonTooltipItem")
+		tooltipName.textContent = tooltipEntry.name
+		tooltipRow.appendChild(tooltipName)
+
+		if (tooltipEntry.shortcut !== null) {
+			const tooltipShortcut = document.createElement("div")
+			tooltipShortcut.classList.add("buttonTooltipKey")
+
+			// eslint-disable-next-line no-inner-declarations
+			function appendKey(key: string): void {
+				const keyElement = document.createElement("kbd")
+				keyElement.textContent = key
+				tooltipShortcut.appendChild(keyElement)
+				const spaceElement = document.createTextNode(" ")
+				tooltipShortcut.appendChild(spaceElement)
+			}
+
+			const shortcutData = parseHotkey(tooltipEntry.shortcut, { byKey: true })
+
+			if (shortcutData.ctrlKey) appendKey("Ctrl")
+			if (shortcutData.metaKey) appendKey("⌘")
+			if (shortcutData.shiftKey) appendKey("⇧")
+			if (shortcutData.altKey) appendKey("Alt")
+			appendKey(shortcutData.key!)
+
+			tooltipRow.appendChild(tooltipShortcut)
+		}
+		tooltipRow.addEventListener("click", () => {
+			tooltipEntry.action?.(pager)
+			closeTooltip()
+		})
+		tooltipInsertionPoint.appendChild(tooltipRow)
+	}
+	tooltipRoot.addEventListener("focusout", ev => {
+		const isChildFocused = tooltipRoot.contains(ev.relatedTarget as Node)
+		if (isChildFocused) return
+		closeTooltip()
+	})
+	// Actually, if we have an empty tooltip, there's no point in showing it, is there?
+	if (!firstRow) return
+	at.appendChild(tooltipRoot)
+	firstRow.focus()
+
+	tooltipRoot.style.animation = `openTooltip 0.2s ease-out`
+}
+
+export function generateTabButtons(pager: Pager): void {
+	const sidebar = document.querySelector<HTMLElement>("nav.sidebar")!
+	for (const [tabName, tabEntries] of Object.entries(tooltipGroups)) {
+		const tab = sidebar.querySelector<HTMLDivElement>(`#${tabName}Tab`)!
+		const tabButton = tab.querySelector("img")!
+		const handler = () => {
+			openTooltip(pager, tabEntries, tab)
+		}
+		tabButton.addEventListener("click", handler)
+		tabButton.addEventListener("keydown", ev => {
+			if (ev.code === "Enter" || ev.code === "Space") {
+				handler()
+			}
+		})
+	}
+}
+
+export function generateShortcutListener(
+	pager: Pager
+): (ev: KeyboardEvent) => void {
+	const allTooltipEntries = Object.values(tooltipGroups)
+		.flat()
+		.filter((val): val is TooltipEntry => val !== "breakline")
+	const checkerFunctions: ((ev: KeyboardEvent) => void)[] = []
+	for (const entry of allTooltipEntries) {
+		if (!entry.shortcut || !entry.action) continue
+		const verifyFunction = isHotkey(entry.shortcut)
+		checkerFunctions.push(ev => {
+			if (!verifyFunction(ev)) return
+			ev.preventDefault()
+			ev.stopPropagation()
+			entry.action!(pager)
+		})
+	}
+	return ev => {
+		for (const checker of checkerFunctions) {
+			checker(ev)
+		}
+	}
+}

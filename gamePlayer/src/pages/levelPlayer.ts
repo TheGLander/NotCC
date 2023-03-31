@@ -87,6 +87,9 @@ export const levelPlayerPage = {
 			this.currentLevel.cameraType.height.toString()
 		)
 	},
+	resetLevel(pager: Pager): void {
+		this.loadLevel(pager.loadedLevel!)
+	},
 	findCurrentMainButton(): HTMLButtonElement | null {
 		if (!this.gameOverlay)
 			throw new Error("The game overlay must be set to find the main button.")
@@ -135,10 +138,10 @@ export const levelPlayerPage = {
 			throw new Error("Could not find the completion button elements.")
 		this.completionButtons.nextLevel.addEventListener("click", () => {
 			alert("Oops, sets aren't implemented yet.")
-			this.loadLevel(pager.loadedLevel!)
+			this.resetLevel(pager)
 		})
 		this.completionButtons.restart.addEventListener("click", () => {
-			this.loadLevel(pager.loadedLevel!)
+			this.resetLevel(pager)
 		})
 		this.gameOverlay = document.querySelector<HTMLElement>(
 			"#levelViewportOverlay"

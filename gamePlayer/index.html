@@ -7,27 +7,33 @@
 		<title>NotCC</title>
 	</head>
 	<body class="gameBody">
+		<template id="tooltipTemplate">
+			<div class="tooltipRoot">
+				<div class="tooltipTriangle"></div>
+				<div class="tooltipBox container buttonTooltipBox"></div>
+			</div>
+		</template>
 		<nav class="sidebar container">
 			<div title="Set Selector" class="sidebarButton" id="selectorTab">
-				<img src="./tabIcons/leaf.svg" draggable="false" />
+				<img src="./tabIcons/leaf.svg" tabindex="0" draggable="false" />
 			</div>
 			<div title="Level" class="sidebarButton" id="levelTab">
 				<div class="levelIconContainer">
-					<img src="./tabIcons/level.svg" draggable="false" />
+					<img src="./tabIcons/level.svg" tabindex="0" draggable="false" />
 					<div id="levelIconText">?</div>
 				</div>
 			</div>
 			<div title="Solutions" class="sidebarButton" id="solutionTab">
-				<img src="./tabIcons/floppy.svg" draggable="false" />
+				<img src="./tabIcons/floppy.svg" tabindex="0" draggable="false" />
 			</div>
 			<div title="Optimization" class="sidebarButton" id="optimizationTab">
-				<img src="./tabIcons/clock.svg" draggable="false" />
+				<img src="./tabIcons/clock.svg" tabindex="0" draggable="false" />
 			</div>
 			<div title="Settings" class="sidebarButton bottomButton" id="settingsTab">
-				<img src="./tabIcons/tools.svg" draggable="false" />
+				<img src="./tabIcons/tools.svg" tabindex="0" draggable="false" />
 			</div>
 			<div title="About" class="sidebarButton" id="aboutTab">
-				<img src="./tabIcons/info.svg" draggable="false" />
+				<img src="./tabIcons/info.svg" tabindex="0" draggable="false" />
 			</div>
 		</nav>
 		<main id="loadingPage" class="container"><p>Loading, standy...</p></main>
