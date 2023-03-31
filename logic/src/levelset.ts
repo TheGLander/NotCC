@@ -5,10 +5,10 @@ import {
 	ScriptInterrupt,
 } from "./parsers/c2g"
 import { LevelData, parseC2M } from "./parsers/c2m"
-import { ILevelInfo } from "./parsers/nccs.pb"
+import { ILevelInfo, ISetInfo } from "./parsers/nccs.pb"
 
 export interface LevelSetRecord {
-	levelData: LevelData
+	levelData?: LevelData
 	levelInfo: ILevelInfo
 }
 
@@ -16,11 +16,6 @@ export type LevelSetLoaderFunction = (
 	path: string,
 	binary: boolean
 ) => Promise<string | ArrayBuffer>
-
-interface LevelSetData {
-	seenLevels: Record<number, LevelSetRecord>
-	currentLevel: number
-}
 
 const clone = rfdc()
 
@@ -34,12 +29,12 @@ export class LevelSet {
 		loaderFunction: LevelSetLoaderFunction
 	)
 	constructor(
-		setData: LevelSetData,
+		setData: ISetInfo,
 		scriptData: string,
 		loaderFunction: LevelSetLoaderFunction
 	)
 	constructor(
-		setDataOrMainScriptPath: LevelSetData | string,
+		setDataOrMainScriptPath: ISetInfo | string,
 		scriptData: string,
 		public loaderFunction: LevelSetLoaderFunction
 	) {
@@ -52,8 +47,29 @@ export class LevelSet {
 		} else {
 			// This is a loaded level set
 			const setData = setDataOrMainScriptPath
+
+			if (setData.ruleset !== "Steam" || setData.setType !== "C2G")
+				throw new Error("LevelSet only represents sets based on C2G scripts.")
+			if (
+				typeof setData.currentLevel !== "number" ||
+				setData.levels === undefined ||
+				setData.levels === null
+			)
+				throw new Error("Given set data is missing essential properties.")
+
 			this.currentLevel = setData.currentLevel
-			this.seenLevels = setData.seenLevels
+			this.seenLevels = Object.fromEntries(
+				setData.levels.map<[number, LevelSetRecord]>(lvl => {
+					if (typeof lvl.levelNumber !== "number")
+						throw new Error(
+							`${
+								lvl.title ? `Level "${lvl.title}"` : "An untitled level "
+							} is missing the levelNumber property.`
+						)
+
+					return [lvl.levelNumber, { levelInfo: lvl }]
+				})
+			)
 			const currentScriptState =
 				this.seenLevels[this.currentLevel].levelInfo.scriptState
 			this.scriptRunner = new ScriptRunner(
@@ -117,7 +133,7 @@ export class LevelSet {
 		let level: LevelData
 
 		if (existingRecord) {
-			level = existingRecord.levelData
+			level = existingRecord.levelData!
 		} else {
 			const levelData = (await this.loaderFunction(
 				recordInterrupt.path,
@@ -125,6 +141,7 @@ export class LevelSet {
 			)) as ArrayBuffer
 			level = parseC2M(levelData, recordInterrupt.path)
 		}
+
 		const record: LevelSetRecord = {
 			levelData: level,
 			levelInfo: {
@@ -133,10 +150,24 @@ export class LevelSet {
 				scriptState: clone(this.scriptRunner.state),
 				levelNumber: levelN,
 				attempts: existingRecord?.levelInfo.attempts,
+				levelFilePath: recordInterrupt.path,
 			},
 		}
 		this.seenLevels[levelN] = record
 
+		record.levelInfo.title = record.levelData!.name
+
 		return record
+	}
+	toSetInfo(): ISetInfo {
+		const currentScriptState =
+			this.seenLevels[this.currentLevel].levelInfo.scriptState
+		return {
+			ruleset: "Steam",
+			setType: "C2G",
+			setName: currentScriptState?.scriptTitle,
+			levels: Object.values(this.seenLevels).map(lvl => lvl.levelInfo),
+			currentLevel: this.currentLevel,
+		}
 	}
 }
