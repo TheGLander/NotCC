@@ -130,23 +130,9 @@ export class LevelSet {
 
 		const existingRecord = this.seenLevels[levelN]
 
-		let level: LevelData
-
-		if (existingRecord) {
-			level = existingRecord.levelData!
-		} else {
-			const levelData = (await this.loaderFunction(
-				recordInterrupt.path,
-				true
-			)) as ArrayBuffer
-			level = parseC2M(levelData, recordInterrupt.path)
-		}
-
 		const record: LevelSetRecord = {
-			levelData: level,
 			levelInfo: {
 				prologueText: prologue,
-				title: level.name,
 				scriptState: clone(this.scriptRunner.state),
 				levelNumber: levelN,
 				attempts: existingRecord?.levelInfo.attempts,
@@ -155,9 +141,33 @@ export class LevelSet {
 		}
 		this.seenLevels[levelN] = record
 
+		await this.verifyLevelDataAvailability(levelN, existingRecord?.levelData)
+
 		record.levelInfo.title = record.levelData!.name
 
 		return record
+	}
+	async verifyLevelDataAvailability(
+		levelN: number,
+		levelData?: LevelData
+	): Promise<void> {
+		const levelRecord = this.seenLevels[levelN]
+		if (!levelRecord) throw new Error(`No level ${levelN} exists.`)
+		if (levelRecord.levelData) return
+		if (levelData) {
+			levelRecord.levelData = levelData
+			return
+		}
+
+		const levelPath = levelRecord.levelInfo.levelFilePath
+
+		if (!levelPath) throw new Error("The level does not have a path specified.")
+
+		const levelBuffer = (await this.loaderFunction(
+			levelPath,
+			true
+		)) as ArrayBuffer
+		levelRecord.levelData = parseC2M(levelBuffer, levelPath)
 	}
 	toSetInfo(): ISetInfo {
 		const currentScriptState =
