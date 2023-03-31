@@ -289,6 +289,9 @@ const scriptDirectiveFunctions: Record<
 		while (true) {
 			this.state.currentLine ??= 0
 			this.state.currentLine += 1
+			if (this.state.currentLine >= this.scriptLines.length) {
+				break
+			}
 			const line = this.tokenizeLine(this.state.currentLine)
 			if (finalString === "" && line[0]?.type !== "string") {
 				// If the first line after the `script` is empty, return prematery
@@ -631,7 +634,7 @@ export class ScriptRunner {
 		// need a half-destroyed array for directives to read the first token
 		// *past* itself, and to mutate the line to remove the first token past itself
 		for (
-			let token = tokens.shift() as Token;
+			let token: Token;
 			(token = tokens.shift() as Token);
 			tokens.length > 0
 		) {
