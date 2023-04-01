@@ -11,6 +11,7 @@ body {
 		var(--theme-color-huesat) calc(var(--page-bg-brightness) * 125 / 100)
 	);
 	--text-color: hsl(0, 0%, 85%);
+	--text-color-disabled: hsl(0, 0%, 40%);
 	--icon-color: var(--text-color);
 	--timer-bg: #000000;
 	--time-unknown: hsl(210, 100%, 50%);
@@ -58,14 +59,20 @@ button {
 	);
 }
 
-button:hover {
+button:hover:not(:disabled) {
 	--button-high-color: hsl(var(--theme-color-huesat) 45%);
 	--button-low-color: hsl(var(--theme-color-huesat) 38%);
 }
 
-button:active {
+button:active:not(:disabled) {
 	--button-high-color: hsl(var(--theme-color-huesat) 30%);
 	--button-low-color: hsl(var(--theme-color-huesat) 23%);
+}
+
+button:disabled {
+	--button-high-color: hsl(var(--theme-color-huesat) 20%);
+	--button-low-color: hsl(var(--theme-color-huesat) 13%);
+	color: var(--text-color-disabled);
 }
 
 /* Tooltip */
@@ -456,4 +463,15 @@ kbd {
 #setSelectorPage {
 	margin: auto;
 	padding: 0.6em 0.75em;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-template-rows: 1fr 1fr;
+	gap: 0.5em 0.5em;
+	grid-template-areas:
+		"big-button big-button"
+		". .";
+}
+
+#setSelectorPage > .bigButton {
+	grid-area: big-button;
 }
