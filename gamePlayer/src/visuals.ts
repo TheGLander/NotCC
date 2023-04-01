@@ -26,11 +26,13 @@ export function removeBackground(image: HTMLImage): HTMLImage {
 	;[ctx.canvas.width, ctx.canvas.height] = [image.width, image.height]
 	ctx.drawImage(image, 0, 0)
 	const rawData = ctx.getImageData(0, 0, image.width, image.height)
+	const maskColor = rawData.data.slice(0, 4)
 	for (let i = 0; i < rawData.data.length; i += 4)
 		if (
-			rawData.data[i] === rawData.data[0] &&
-			rawData.data[i + 1] === rawData.data[1] &&
-			rawData.data[i + 2] === rawData.data[2]
+			rawData.data[i] === maskColor[0] &&
+			rawData.data[i + 1] === maskColor[1] &&
+			rawData.data[i + 2] === maskColor[2] &&
+			rawData.data[i + 3] === maskColor[3]
 		)
 			rawData.data[i + 3] = 0
 
