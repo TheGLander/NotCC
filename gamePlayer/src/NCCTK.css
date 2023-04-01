@@ -59,12 +59,12 @@ button {
 	);
 }
 
-button:hover:not(:disabled) {
+button:hover:enabled {
 	--button-high-color: hsl(var(--theme-color-huesat) 45%);
 	--button-low-color: hsl(var(--theme-color-huesat) 38%);
 }
 
-button:active:not(:disabled) {
+button:active:enabled {
 	--button-high-color: hsl(var(--theme-color-huesat) 30%);
 	--button-low-color: hsl(var(--theme-color-huesat) 23%);
 }
@@ -149,14 +149,19 @@ button:disabled {
 	flex-direction: row;
 	padding: 0.2em 0.5em;
 	border-radius: 3px;
+}
+.buttonTooltipRow:not([data-disabled]) {
 	cursor: pointer;
 }
 .buttonTooltipRow:focus-visible {
 	outline: none;
 }
-.buttonTooltipRow:hover,
-.buttonTooltipRow:focus-visible {
+.buttonTooltipRow:hover:not([data-disabled]),
+.buttonTooltipRow:focus-visible:not([data-disabled]) {
 	background: var(--secondary-bg);
+}
+.buttonTooltipRow[data-disabled] {
+	color: var(--text-color-disabled);
 }
 .buttonTooltipKey {
 	padding-left: 2em;

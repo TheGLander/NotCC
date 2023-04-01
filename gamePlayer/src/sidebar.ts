@@ -53,6 +53,7 @@ export function openTooltip(
 	tooltipContents: TooltipEntries,
 	at: HTMLElement
 ): void {
+	if (tooltipContents.length === 0) return
 	const tooltipFragment = tooltipTemplate.content.cloneNode(
 		true
 	) as DocumentFragment
@@ -79,10 +80,19 @@ export function openTooltip(
 		}
 		const tooltipRow = document.createElement("div")
 		tooltipRow.classList.add("buttonTooltipRow")
-		tooltipRow.tabIndex = 0
+		// TODO Also dynamically disable entries if the current page doesn't support them.
+		if (tooltipEntry.action === undefined) {
+			tooltipRow.dataset.disabled = ""
+		} else {
+			tooltipRow.tabIndex = 0
 
-		if (firstRow === undefined) {
-			firstRow = tooltipRow
+			tooltipRow.addEventListener("click", () => {
+				tooltipEntry.action?.(pager)
+				closeTooltip()
+			})
+			if (firstRow === undefined) {
+				firstRow = tooltipRow
+			}
 		}
 
 		const tooltipName = document.createElement("div")
@@ -113,10 +123,6 @@ export function openTooltip(
 
 			tooltipRow.appendChild(tooltipShortcut)
 		}
-		tooltipRow.addEventListener("click", () => {
-			tooltipEntry.action?.(pager)
-			closeTooltip()
-		})
 		tooltipInsertionPoint.appendChild(tooltipRow)
 	}
 	tooltipRoot.addEventListener("focusout", ev => {
@@ -124,10 +130,13 @@ export function openTooltip(
 		if (isChildFocused) return
 		closeTooltip()
 	})
-	// Actually, if we have an empty tooltip, there's no point in showing it, is there?
-	if (!firstRow) return
 	at.appendChild(tooltipRoot)
-	firstRow.focus()
+
+	if (firstRow) {
+		firstRow.focus()
+	} else {
+		tooltipInsertionPoint.focus()
+	}
 
 	tooltipRoot.style.animation = `openTooltip 0.2s ease-out`
 }
