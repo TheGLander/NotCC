@@ -650,6 +650,7 @@ export class ScriptRunner {
 				continue
 			}
 			let returnVal: ActionReturnValue
+
 			if (token.type === "operator") {
 				returnVal = scriptOperatorFunctions[token.value].call(this, stack)
 			} else {
@@ -766,4 +767,12 @@ export class ScriptRunner {
 		this.loadScript(fileData, this.scriptInterrupt.path)
 		this.scriptInterrupt = null
 	}
+}
+
+/**
+ * A simple function to tell if the passed text could be considered a C2G script,
+ * based on the first line, and if so, the script name is returned.
+ */
+export function findScriptName(text: string): string | null {
+	return text.match(/^[^"\n]*"([^"\n]*)"/)?.[1] ?? null
 }
