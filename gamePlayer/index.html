@@ -74,7 +74,9 @@
 			<button id="loadDefaultLevel" class="bigButton">
 				Load default level
 			</button>
-			<button id="loadFile" disabled>Load file</button>
+			<input type="file" id="fileLoader" accept=".c2m,.zip" />
+			<button id="loadFile">Load file</button>
+			<input type="file" webkitdirectory id="directoryLoader" />
 			<button id="loadDirectory" disabled>Load directory</button>
 		</main>
 		<script src="/src/index.ts" type="module"></script>

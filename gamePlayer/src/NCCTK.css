@@ -480,3 +480,8 @@ kbd {
 #setSelectorPage > .bigButton {
 	grid-area: big-button;
 }
+
+#fileLoader,
+#directoryLoader {
+	display: none;
+}
