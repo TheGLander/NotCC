@@ -1,5 +1,5 @@
 import { printf } from "fast-printf"
-import { win32 } from "path"
+import { join } from "path"
 import { IScriptState } from "./nccs.pb"
 
 export const C2G_NOTCC_VERSION = "1.0-NotCC"
@@ -158,12 +158,12 @@ type Token =
 	| KeywordToken
 
 /**
- * Joins the segments via the win32 function (which recognizes both \ and /),
- * but then converts the backslashes to the more useful normal slashes.
+ * Joins the segments via the default function (which is guaranteed to recognize
+ * /), and also replacing all backslashes to slashes, so that it works on posix.
  */
 
 export function joinPath(...segments: string[]): string {
-	return win32.join(...segments).replace(/\\/g, "/")
+	return join(...segments.map(part => part.replace(/\\/g, "/")))
 }
 
 /**
