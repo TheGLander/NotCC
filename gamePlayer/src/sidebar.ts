@@ -1,7 +1,6 @@
 import { Pager } from "./pager"
 import isHotkey, { parseHotkey } from "is-hotkey"
 import { setSelectorPage } from "./pages/setSelector"
-import { levelPlayerPage } from "./pages/levelPlayer"
 
 interface TooltipEntry {
 	name: string
@@ -24,24 +23,34 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 	level: [
 		{
 			name: "Reset level",
-			shortcut: "ctrl+r",
+			shortcut: "shift+r",
 			action(pager: Pager): void {
-				// TODO Unify reset for super mode and the level player
-				if (pager.currentPage === levelPlayerPage) {
-					const page = pager.currentPage as typeof levelPlayerPage
-					page.resetLevel(pager)
-				}
+				pager.resetCurrentLevel()
 			},
 		},
 		{ name: "Pause", shortcut: "p" },
 		"breakline",
-		{ name: "Previous level", shortcut: "ctrl+p" },
-		{ name: "Next level", shortcut: "ctrl+n" },
-		{ name: "Level list", shortcut: "ctrl+s" },
+		{
+			name: "Previous level",
+			shortcut: "shift+p",
+			async action(pager: Pager): Promise<void> {
+				await pager.loadPreviousLevel()
+				pager.resetCurrentLevel()
+			},
+		},
+		{
+			name: "Next level",
+			shortcut: "shift+n",
+			async action(pager: Pager): Promise<void> {
+				await pager.loadNextLevel({ type: "skip" })
+				pager.resetCurrentLevel()
+			},
+		},
+		{ name: "Level list", shortcut: "shift+s" },
 	],
 	solution: [],
 	optimization: [],
-	settings: [{ name: "Settings", shortcut: "ctrl+c" }],
+	settings: [{ name: "Settings", shortcut: "shift+c" }],
 	about: [{ name: "About", shortcut: null }],
 }
 
@@ -179,5 +188,12 @@ export function generateShortcutListener(
 		for (const checker of checkerFunctions) {
 			checker(ev)
 		}
+	}
+}
+
+export function setSidebarLevelN(num: string): void {
+	const levelIconText = document.querySelector<HTMLDivElement>("#levelIconText")
+	if (levelIconText) {
+		levelIconText.textContent = num
 	}
 }

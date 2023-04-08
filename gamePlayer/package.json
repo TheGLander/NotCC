@@ -19,6 +19,7 @@
 	"homepage": "https://github.com/TheGLander/NotCC#readme",
 	"devDependencies": {
 		"@types/is-hotkey": "^0.1.7",
+		"@types/path-browserify": "^1.0.0",
 		"base64-js": "^1.5.1",
 		"fast-printf": "^1.6.5",
 		"fflate": "^0.7.1",
@@ -28,5 +29,7 @@
 		"vite": "^4.1.4"
 	},
 	"type": "module",
-	"dependencies": {}
+	"dependencies": {
+		"path-browserify": "^1.0.1"
+	}
 }

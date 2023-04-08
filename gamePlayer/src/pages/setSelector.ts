@@ -1,12 +1,60 @@
-import { LevelData, findScriptName, parseC2M } from "@notcc/logic"
+import {
+	LevelData,
+	LevelSet,
+	LevelSetLoaderFunction,
+	findScriptName,
+	parseC2M,
+} from "@notcc/logic"
 import { Pager } from "../pager"
 import stubLevel from "../data/NotCC.c2m"
 import { levelPlayerPage } from "./levelPlayer"
+import {
+	buildFileListIndex,
+	buildZipIndex,
+	makeFileListFileLoader,
+	makeLoaderWithPrefix,
+	makeZipFileLoader,
+} from "../fileLoaders"
+import { basename, dirname } from "path-browserify"
+
+interface DirEntry {
+	path: string
+	data: string
+}
+
+async function findEntryFilePath(
+	loaderFunction: LevelSetLoaderFunction,
+	fileIndex: string[]
+): Promise<string> {
+	// Use `loaderFunction` and `rootIndex` to figure out which files are entry
+	// scripts (have the header closed string)
+	const c2gFileNames = fileIndex.filter(path => path.endsWith(".c2g"))
+	const c2gDirEntPromises = c2gFileNames.map<Promise<DirEntry>>(async path => {
+		const scriptData = (await loaderFunction(path, false)) as string
+		return { path, data: scriptData }
+	})
+	const maybeC2gFiles = await Promise.all(c2gDirEntPromises)
+	const c2gFiles = maybeC2gFiles.filter(
+		ent => findScriptName(ent.data) !== null
+	)
+
+	if (c2gFiles.length > 1)
+		throw new Error(
+			"There are too many entry C2G files. Only one script may have a closed string on it's first line."
+		)
+	if (c2gFiles.length < 1)
+		throw new Error(
+			"This ZIP archive doesn't contain a script. Are you sure this is the correct file?"
+		)
+	return c2gFiles[0].path
+}
 
 export const setSelectorPage = {
 	pageId: "setSelectorPage",
 	openLevel(pager: Pager, level: LevelData): void {
 		pager.loadedLevel = level
+		pager.loadedSet = null
+		pager.updateShownLevelNumber()
 		pager.openPage(levelPlayerPage)
 	},
 	async loadStubLevel(pager: Pager): Promise<void> {
@@ -14,7 +62,37 @@ export const setSelectorPage = {
 		const level = parseC2M(levelBin, "NotCC.c2m")
 		this.openLevel(pager, level)
 	},
-	loadFile(pager: Pager, fileData: ArrayBuffer, fileName: string): void {
+	async loadSet(
+		pager: Pager,
+		loaderFunction: LevelSetLoaderFunction,
+		fileIndex: string[]
+	): Promise<void> {
+		let filePath = await findEntryFilePath(loaderFunction, fileIndex)
+		const filePrefix = dirname(filePath)
+		// If the zip file has the entry script in a subdirectory instead of the zip
+		// root, prefix all file paths with the entry file
+		if (filePrefix !== "") {
+			loaderFunction = makeLoaderWithPrefix(filePrefix, loaderFunction)
+			filePath = basename(filePath)
+		}
+
+		const set = await LevelSet.constructAsync(filePath, loaderFunction)
+		pager.loadedSet = set
+		// Open the first level
+		pager.loadedLevel = null
+		await pager.loadNextLevel({ type: "skip" })
+		pager.openPage(levelPlayerPage)
+	},
+
+	loadZip(pager: Pager, data: Uint8Array): Promise<void> {
+		const filePaths = buildZipIndex(data)
+		return this.loadSet(pager, makeZipFileLoader(data), filePaths)
+	},
+	async loadFile(
+		pager: Pager,
+		fileData: ArrayBuffer,
+		fileName: string
+	): Promise<void> {
 		const magicString = Array.from(new Uint8Array(fileData).slice(0, 4), num =>
 			String.fromCharCode(num)
 		).join("")
@@ -28,8 +106,7 @@ export const setSelectorPage = {
 			// ZIP
 			magicString === "PK\u{3}\u{4}"
 		) {
-			// TODO Proper prompts
-			alert("Sets aren't supported yet.")
+			await this.loadZip(pager, new Uint8Array(fileData))
 			return
 		} else if (
 			// DAT
@@ -38,6 +115,7 @@ export const setSelectorPage = {
 			magicString === "\xAC\xAA\x03\x00" ||
 			magicString === "\xAC\xAA\x03\x01"
 		) {
+			// TODO Proper prompts
 			alert("DAT files aren't supported, for now.")
 			return
 		} else {
@@ -70,6 +148,18 @@ export const setSelectorPage = {
 		})
 		loadFileButton.addEventListener("click", () => {
 			fileLoader.click()
+		})
+		const loadDirectoryButton =
+			page.querySelector<HTMLButtonElement>("#loadDirectory")!
+		const directoryLoader =
+			page.querySelector<HTMLInputElement>("#directoryLoader")!
+		directoryLoader.addEventListener("input", async () => {
+			if (!directoryLoader.files) return
+			const fileLoader = makeFileListFileLoader(directoryLoader.files)
+			this.loadSet(pager, fileLoader, buildFileListIndex(directoryLoader.files))
+		})
+		loadDirectoryButton.addEventListener("click", () => {
+			directoryLoader.click()
 		})
 	},
 }

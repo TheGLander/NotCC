@@ -4,10 +4,11 @@ import {
 	KeyInputs,
 	LevelData,
 	LevelState,
+	ScriptLegalInventoryTool,
 } from "@notcc/logic"
 import { Pager } from "../pager"
 import Renderer from "../visuals"
-import { AnimationTimer, IntervalTimer } from "../timers"
+import { AnimationTimer, TimeoutIntervalTimer } from "../timers"
 
 const heldKeys: Partial<Record<string, true>> = {}
 
@@ -49,7 +50,7 @@ export const levelPlayerPage = {
 	pageId: "levelPlayerPage",
 	renderer: null as Renderer | null,
 	currentLevel: null as LevelState | null,
-	logicTimer: null as IntervalTimer | null,
+	logicTimer: null as TimeoutIntervalTimer | null,
 	renderTimer: null as AnimationTimer | null,
 	textOutputs: null as TextOutputs | null,
 	completionButtons: null as CompletionButton | null,
@@ -136,11 +137,35 @@ export const levelPlayerPage = {
 			!this.completionButtons.nextLevel
 		)
 			throw new Error("Could not find the completion button elements.")
-		this.completionButtons.nextLevel.addEventListener("click", () => {
-			alert("Oops, sets aren't implemented yet.")
-			this.resetLevel(pager)
+		this.completionButtons.nextLevel.addEventListener("click", async () => {
+			if (!pager.loadedSet) {
+				alert("Congratulations on clearing the level!")
+			} else {
+				const level = this.currentLevel!
+				const playable = level.selectedPlayable!
+				const keys = playable.inventory.keys
+				await pager.loadNextLevel({
+					type: "win",
+					inventoryKeys: {
+						blue: keys.blueKey?.amount ?? 0,
+						green: keys.greenKey?.amount ?? 0,
+						red: keys.redKey?.amount ?? 0,
+						yellow: keys.yellowKey?.amount ?? 0,
+					},
+					lastExitGender: playable.tags.includes("melinda") ? "female" : "male",
+					timeLeft: level.timeLeft,
+					lastExitN: 0, // TODO Track this
+					inventoryTools: playable.inventory.items.map(
+						item => item.id as ScriptLegalInventoryTool
+					),
+					totalScore: 0, // TODO Track this
+				})
+			}
+			if (!pager.loadedLevel) return
+			this.loadLevel(pager.loadedLevel)
 		})
-		this.completionButtons.restart.addEventListener("click", () => {
+		this.completionButtons.restart.addEventListener("click", async () => {
+			await pager.loadNextLevel({ type: "retry" })
 			this.resetLevel(pager)
 		})
 		this.gameOverlay = document.querySelector<HTMLElement>(
@@ -206,7 +231,10 @@ export const levelPlayerPage = {
 			throw new Error("Cannot open the level player page with a level to play.")
 		this.loadLevel(loadedLevel)
 		this.updateTextOutputs()
-		this.logicTimer = new IntervalTimer(this.updateLogic.bind(this), 1 / 60)
+		this.logicTimer = new TimeoutIntervalTimer(
+			this.updateLogic.bind(this),
+			1 / 60
+		)
 		this.renderTimer = new AnimationTimer(this.updateRender.bind(this))
 	},
 	close(): void {

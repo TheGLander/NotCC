@@ -1,6 +1,8 @@
-import { LevelData, LevelSet } from "@notcc/logic"
+import { LevelData, LevelSet, MapInterruptResponse } from "@notcc/logic"
 import { loadingPage } from "./pages/loading"
 import { Tileset } from "./visuals"
+import { levelPlayerPage } from "./pages/levelPlayer"
+import { setSidebarLevelN } from "./sidebar"
 
 export interface Page {
 	pageId: string
@@ -36,5 +38,52 @@ export class Pager {
 		this.currentPage.close?.(this, oldPageElement)
 		oldPageElement.classList.add("closedPage")
 		this._initPage(newPage)
+	}
+	updateShownLevelNumber(): void {
+		setSidebarLevelN(
+			this.loadedSet ? this.loadedSet.currentLevel.toString() : "X"
+		)
+	}
+	async loadNextLevel(action: MapInterruptResponse): Promise<void> {
+		if (!this.loadedSet)
+			throw new Error("Can't load the next level of a set without a set.")
+		const currentRecord = this.loadedSet.seenLevels[this.loadedSet.currentLevel]
+
+		this.loadedSet.lastLevelResult = action
+		const newRecord = await this.loadedSet.getNextRecord()
+		// TODO Only show unique text
+		if (currentRecord && currentRecord.levelInfo.epilogueText) {
+			// TODO Use a text script page?
+			alert(currentRecord.levelInfo.epilogueText)
+		}
+		if (!newRecord) {
+			alert("You've finished the set, congratulations!!")
+			return
+		}
+		if (newRecord && newRecord.levelInfo.prologueText) {
+			alert(newRecord.levelInfo.prologueText)
+		}
+		this.loadedLevel = newRecord.levelData!
+		this.updateShownLevelNumber()
+	}
+	async loadPreviousLevel(): Promise<void> {
+		if (!this.loadedSet)
+			throw new Error("Can't load the previous level of a set without a set.")
+
+		const newRecord = this.loadedSet.getPreviousRecord()
+		// This is the first level of the set
+		if (!newRecord) {
+			return
+		}
+
+		this.loadedLevel = newRecord.levelData!
+		this.updateShownLevelNumber()
+	}
+	resetCurrentLevel(): void {
+		// TODO Do this for Super Mode too
+		if (this.currentPage === levelPlayerPage) {
+			const page = this.currentPage as typeof levelPlayerPage
+			page.resetLevel(this)
+		}
 	}
 }

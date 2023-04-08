@@ -13,4 +13,5 @@ export default defineConfig({
 	},
 	base: "./",
 	assetsInclude: ["**/*.c2m"],
+	resolve: { alias: { path: "path-browserify" } },
 })

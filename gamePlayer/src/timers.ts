@@ -20,6 +20,21 @@ export class IntervalTimer {
 	}
 }
 
+export class TimeoutIntervalTimer {
+	id: number
+	constructor(public callback: AnyFunction, public time: number) {
+		this.nextCall = this.nextCall.bind(this)
+		this.id = setTimeout(this.nextCall, time * 1000)
+	}
+	nextCall(): void {
+		this.id = setTimeout(this.nextCall, this.time * 1000)
+		this.callback()
+	}
+	cancel(): void {
+		clearTimeout(this.id)
+	}
+}
+
 export class AnimationTimer {
 	id: number
 	constructor(public callback: AnyFunction) {
