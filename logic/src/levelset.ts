@@ -190,11 +190,14 @@ export class LevelSet {
 		// CC1, don't have to have continuous level numbers
 		const levelNums = Object.keys(this.seenLevels)
 			.map(numStr => parseInt(numStr, 10))
-			.sort()
+			.sort((a, b) => a - b)
 		const currentIndex = levelNums.indexOf(this.currentLevel)
 		const newLevelN = levelNums[currentIndex - 1]
 		if (!newLevelN) return null
+		const newRecord = this.seenLevels[newLevelN]
 		this.currentLevel = newLevelN
-		return this.seenLevels[newLevelN]
+		// Also set the new script state
+		this.scriptRunner.state = newRecord.levelInfo.scriptState ?? {}
+		return newRecord
 	}
 }
