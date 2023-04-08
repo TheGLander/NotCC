@@ -180,4 +180,21 @@ export class LevelSet {
 			currentLevel: this.currentLevel,
 		}
 	}
+	/**
+	 * Backtracks to the last level number before the current one.
+	 * @returns `null` is returned if there's no previous level
+	 */
+	getPreviousRecord(): LevelSetRecord | null {
+		// Get all of the level numbers, and look at the previous one
+		// The last level isn't just the level - 1, since level numbers, unlike in
+		// CC1, don't have to have continuous level numbers
+		const levelNums = Object.keys(this.seenLevels)
+			.map(numStr => parseInt(numStr, 10))
+			.sort()
+		const currentIndex = levelNums.indexOf(this.currentLevel)
+		const newLevelN = levelNums[currentIndex - 1]
+		if (!newLevelN) return null
+		this.currentLevel = newLevelN
+		return this.seenLevels[newLevelN]
+	}
 }
