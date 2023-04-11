@@ -79,6 +79,7 @@ export const levelPlayerPage = {
 			)
 		this.renderer.level = this.currentLevel
 		this.gameState = GameState.PLAYING
+		this.isPaused = false
 		this.gameOverlay!.setAttribute(
 			"data-game-state",
 			GameState[this.gameState].toLowerCase()
