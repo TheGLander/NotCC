@@ -295,7 +295,7 @@ kbd {
 }
 
 .timerText {
-	grid-area: text;
+	grid-area: top;
 	text-align: center;
 }
 
@@ -376,17 +376,18 @@ kbd {
 	gap: 0px 0px;
 	grid-template:
 		". . ." var(--tile-size)
-		". text ." var(--tile-size)
+		". top ." var(--tile-size)
 		". . ." 0.5fr
-		". stats ." 1fr
+		". middle ." 1fr
 		". . ." 0.5fr
-		". buttons ." calc(var(--tile-size) * 1.5)
+		". bottom ." calc(var(--tile-size) * 1.5)
 		". . ." calc(var(--tile-size) * 0.75)
 		/ 0.15fr 2.7fr 0.15fr;
 	--win-background: radial-gradient(#4406, #660d);
 	--timeout-background: radial-gradient(#0084, #0088);
 	--death-background: radial-gradient(#1004, #2008);
 	--paused-background: radial-gradient(#0004, #0008);
+	--preplay-background: radial-gradient(#0002, #0004);
 }
 
 #levelViewportOverlay[data-game-state="won"] {
@@ -405,13 +406,17 @@ kbd {
 	background-image: var(--paused-background);
 }
 
+#levelViewportOverlay[data-preplay] {
+	background-image: var(--paused-background);
+}
+
 #levelViewportOverlay > * > .statsContainer {
-	grid-area: stats;
+	grid-area: middle;
 	padding: var(--quarter-tile);
 }
 
 #levelViewportOverlay > * > h3 {
-	grid-area: text;
+	grid-area: top;
 	text-align: center;
 	font-size: 300%;
 	margin: 0;
@@ -420,7 +425,7 @@ kbd {
 #levelViewportOverlay > * > .buttonContainer {
 	box-sizing: border-box;
 	justify-content: stretch;
-	grid-area: buttons;
+	grid-area: bottom;
 	gap: var(--quarter-tile);
 	padding: var(--quarter-tile);
 	height: 100%;
@@ -447,6 +452,10 @@ kbd {
 }
 
 #levelViewportOverlay[data-paused] > #overlayPauseContents {
+	display: contents;
+}
+
+#levelViewportOverlay[data-preplay] > #overlayPreplayContents {
 	display: contents;
 }
 

@@ -24,13 +24,21 @@ const keyToInputMap: Record<string, keyof KeyInputs> = {
 	KeyC: "switchPlayable",
 }
 
+function isValidStartKey(code: string): boolean {
+	if (code in keyToInputMap) return true
+	if (code === "Space") return true
+	return false
+}
+
 function setupKeyListener(): void {
-	document.addEventListener("keydown", ev => {
-		heldKeys[ev.code] = true
-	})
-	document.addEventListener("keyup", ev => {
-		delete heldKeys[ev.code]
-	})
+	new KeyListener(
+		ev => {
+			heldKeys[ev.code] = true
+		},
+		ev => {
+			delete heldKeys[ev.code]
+		}
+	)
 }
 
 interface TextOutputs {
@@ -67,10 +75,17 @@ export const levelPlayerPage = {
 	textOutputs: null as TextOutputs | null,
 	completionButtons: null as CompletionButton | null,
 	gameOverlay: null as HTMLElement | null,
+	overlayLevelName: null as HTMLElement | null,
 	viewportArea: null as HTMLElement | null,
 	gameState: GameState.PLAYING,
 	isPaused: false,
-	loadLevel(level: LevelData): void {
+	isPreplay: false,
+	preplayKeyListener: null as KeyListener | null,
+	loadLevel(pager: Pager): void {
+		const level = pager.loadedLevel
+		if (!level)
+			throw new Error("Can't open the page since there isn't a loaded level.")
+
 		this.currentLevel = createLevelFromData(level)
 
 		if (!this.renderer)
@@ -80,17 +95,29 @@ export const levelPlayerPage = {
 		this.renderer.level = this.currentLevel
 		this.gameState = GameState.PLAYING
 		this.isPaused = false
+		this.isPreplay = true
 		this.gameOverlay!.setAttribute(
 			"data-game-state",
 			GameState[this.gameState].toLowerCase()
 		)
 		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
+		setAttributeExistence(this.gameOverlay!, "data-preplay", this.isPreplay)
 		this.renderer.cameraSize = this.currentLevel.cameraType
 		this.renderer.updateTileSize()
 		if (!this.viewportArea)
 			throw new Error(
 				"Cannot set the level camera without knowing where the viewport is."
 			)
+
+		this.preplayKeyListener = new KeyListener((ev: KeyboardEvent) => {
+			if (isValidStartKey(ev.code)) this.endPreplay()
+		})
+		if (this.overlayLevelName) {
+			const levelN = pager.getLevelNumber()
+			this.overlayLevelName.textContent = `${levelN ? `#${levelN}: ` : ""}${
+				level.name ?? "Unnamed level"
+			}`
+		}
 
 		this.viewportArea.style.setProperty(
 			"--level-camera-width",
@@ -100,7 +127,17 @@ export const levelPlayerPage = {
 			"--level-camera-height",
 			this.currentLevel.cameraType.height.toString()
 		)
+		this.updateTextOutputs()
 	},
+	endPreplay(): void {
+		this.isPreplay = false
+		setAttributeExistence(this.gameOverlay!, "data-preplay", this.isPreplay)
+		this.preplayKeyListener?.remove()
+		this.preplayKeyListener = null
+	},
+	/**
+	 * Alias for `loadLevel`, since both do the same thing, but helps code readability
+	 */
 	resetLevel(pager: Pager): void {
 		this.loadLevel(pager.loadedLevel!)
 	},
