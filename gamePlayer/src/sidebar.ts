@@ -1,6 +1,7 @@
 import { Pager } from "./pager"
 import isHotkey, { parseHotkey } from "is-hotkey"
 import { setSelectorPage } from "./pages/setSelector"
+import { levelPlayerPage } from "./pages/levelPlayer"
 
 interface TooltipEntry {
 	name: string
@@ -28,7 +29,16 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 				pager.resetCurrentLevel()
 			},
 		},
-		{ name: "Pause", shortcut: "p" },
+		{
+			name: "Pause",
+			shortcut: "p",
+			action(pager: Pager): void {
+				if (pager.currentPage === levelPlayerPage) {
+					const page = pager.currentPage as typeof levelPlayerPage
+					page.togglePaused()
+				}
+			},
+		},
 		"breakline",
 		{
 			name: "Previous level",

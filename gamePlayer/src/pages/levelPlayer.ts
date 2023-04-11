@@ -46,6 +46,18 @@ interface CompletionButton {
 	explodeJupiter: HTMLElement
 }
 
+function setAttributeExistence(
+	node: HTMLElement,
+	attrName: string,
+	exists: boolean
+): void {
+	if (exists) {
+		node.setAttribute(attrName, "")
+	} else {
+		node.removeAttribute(attrName)
+	}
+}
+
 export const levelPlayerPage = {
 	pageId: "levelPlayerPage",
 	renderer: null as Renderer | null,
@@ -56,8 +68,8 @@ export const levelPlayerPage = {
 	completionButtons: null as CompletionButton | null,
 	gameOverlay: null as HTMLElement | null,
 	viewportArea: null as HTMLElement | null,
-	completionMomentTime: null as number | null,
 	gameState: GameState.PLAYING,
+	isPaused: false,
 	loadLevel(level: LevelData): void {
 		this.currentLevel = createLevelFromData(level)
 
@@ -66,12 +78,12 @@ export const levelPlayerPage = {
 				"The level player page cannot start without the renderer."
 			)
 		this.renderer.level = this.currentLevel
-		this.completionMomentTime = null
 		this.gameState = GameState.PLAYING
-		this.gameOverlay?.setAttribute(
+		this.gameOverlay!.setAttribute(
 			"data-game-state",
 			GameState[this.gameState].toLowerCase()
 		)
+		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
 		this.renderer.cameraSize = this.currentLevel.cameraType
 		this.renderer.updateTileSize()
 		if (!this.viewportArea)
@@ -182,10 +194,11 @@ export const levelPlayerPage = {
 	},
 	updateTextOutputs(): void {
 		if (!this.textOutputs) return
+		if (this.gameState !== GameState.PLAYING) return
 		this.textOutputs.chips.textContent = this.currentLevel!.chipsLeft.toString()
 		this.textOutputs.bonusPoints.textContent =
 			this.currentLevel!.bonusPoints.toString()
-		const currentTime = this.completionMomentTime ?? this.currentLevel!.timeLeft
+		const currentTime = this.currentLevel!.timeLeft
 		this.textOutputs.time.textContent = `${
 			this.currentLevel!.timeFrozen ? "❄" : ""
 		}${Math.ceil(currentTime / 60)}s`
@@ -193,7 +206,7 @@ export const levelPlayerPage = {
 	updateLogic(): void {
 		const level = this.currentLevel
 		if (!level) throw new Error("Cannot update the level without a level.")
-		if (this.gameState === GameState.TIMEOUT) return
+		if (this.gameState === GameState.TIMEOUT || this.isPaused) return
 		level.gameInput = this.getInput()
 		level.tick()
 		this.updateTextOutputs()
@@ -206,7 +219,6 @@ export const levelPlayerPage = {
 				"data-game-state",
 				GameState[this.gameState].toLowerCase()
 			)
-			this.completionMomentTime = level.timeLeft
 			this.findCurrentMainButton()?.focus()
 		}
 	},
@@ -247,5 +259,9 @@ export const levelPlayerPage = {
 			this.renderTimer = null
 		}
 		this.currentLevel = null
+	},
+	togglePaused(): void {
+		this.isPaused = !this.isPaused
+		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
 	},
 }

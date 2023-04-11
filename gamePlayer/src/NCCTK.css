@@ -386,6 +386,7 @@ kbd {
 	--win-background: radial-gradient(#4406, #660d);
 	--timeout-background: radial-gradient(#0084, #0088);
 	--death-background: radial-gradient(#1004, #2008);
+	--paused-background: radial-gradient(#0004, #0008);
 }
 
 #levelViewportOverlay[data-game-state="won"] {
@@ -398,6 +399,10 @@ kbd {
 
 #levelViewportOverlay[data-game-state="death"] {
 	background-image: var(--death-background);
+}
+
+#levelViewportOverlay[data-paused] {
+	background-image: var(--paused-background);
 }
 
 #levelViewportOverlay > * > .statsContainer {
@@ -438,6 +443,10 @@ kbd {
 
 #levelViewportOverlay[data-game-state="death"] > #overlayLoseContents,
 #levelViewportOverlay[data-game-state="timeout"] > #overlayLoseContents {
+	display: contents;
+}
+
+#levelViewportOverlay[data-paused] > #overlayPauseContents {
 	display: contents;
 }
 
