@@ -2,13 +2,14 @@ import {
 	createLevelFromData,
 	GameState,
 	KeyInputs,
-	LevelData,
 	LevelState,
 	ScriptLegalInventoryTool,
 } from "@notcc/logic"
 import { Pager } from "../pager"
 import Renderer from "../visuals"
 import { AnimationTimer, TimeoutIntervalTimer } from "../timers"
+import { KeyListener } from "../keyListener"
+import { setSelectorPage } from "./setSelector"
 
 const heldKeys: Partial<Record<string, true>> = {}
 
@@ -139,7 +140,7 @@ export const levelPlayerPage = {
 	 * Alias for `loadLevel`, since both do the same thing, but helps code readability
 	 */
 	resetLevel(pager: Pager): void {
-		this.loadLevel(pager.loadedLevel!)
+		this.loadLevel(pager)
 	},
 	findCurrentMainButton(): HTMLButtonElement | null {
 		if (!this.gameOverlay)
@@ -187,41 +188,45 @@ export const levelPlayerPage = {
 			!this.completionButtons.nextLevel
 		)
 			throw new Error("Could not find the completion button elements.")
-		this.completionButtons.nextLevel.addEventListener("click", async () => {
-			if (!pager.loadedSet) {
-				alert("Congratulations on clearing the level!")
-			} else {
-				const level = this.currentLevel!
-				const playable = level.selectedPlayable!
-				const keys = playable.inventory.keys
-				await pager.loadNextLevel({
-					type: "win",
-					inventoryKeys: {
-						blue: keys.blueKey?.amount ?? 0,
-						green: keys.greenKey?.amount ?? 0,
-						red: keys.redKey?.amount ?? 0,
-						yellow: keys.yellowKey?.amount ?? 0,
-					},
-					lastExitGender: playable.tags.includes("melinda") ? "female" : "male",
-					timeLeft: level.timeLeft,
-					lastExitN: 0, // TODO Track this
-					inventoryTools: playable.inventory.items.map(
-						item => item.id as ScriptLegalInventoryTool
-					),
-					totalScore: 0, // TODO Track this
-				})
-			}
-			if (!pager.loadedLevel) return
-			this.loadLevel(pager.loadedLevel)
+		this.completionButtons.nextLevel.addEventListener("click", () => {
+			this.openNextLevel(pager)
 		})
 		this.completionButtons.restart.addEventListener("click", async () => {
-			await pager.loadNextLevel({ type: "retry" })
+			if (pager.loadedSet !== null) await pager.loadNextLevel({ type: "retry" })
 			this.resetLevel(pager)
 		})
-		this.gameOverlay = document.querySelector<HTMLElement>(
-			"#levelViewportOverlay"
-		)!
+		this.gameOverlay = page.querySelector<HTMLElement>("#levelViewportOverlay")!
 		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
+		this.overlayLevelName = page.querySelector<HTMLElement>("#overlayLevelName")
+	},
+	async openNextLevel(pager: Pager): Promise<void> {
+		if (!pager.loadedSet) {
+			alert("Congratulations on clearing the level!")
+			pager.openPage(setSelectorPage)
+			return
+		}
+		const level = this.currentLevel!
+		const playable = level.selectedPlayable!
+		const keys = playable.inventory.keys
+		await pager.loadNextLevel({
+			type: "win",
+			inventoryKeys: {
+				blue: keys.blueKey?.amount ?? 0,
+				green: keys.greenKey?.amount ?? 0,
+				red: keys.redKey?.amount ?? 0,
+				yellow: keys.yellowKey?.amount ?? 0,
+			},
+			lastExitGender: playable.tags.includes("melinda") ? "female" : "male",
+			timeLeft: level.timeLeft,
+			lastExitN: 0, // TODO Track this
+			inventoryTools: playable.inventory.items.map(
+				item => item.id as ScriptLegalInventoryTool
+			),
+			totalScore: 0, // TODO Track this
+		})
+
+		if (!pager.loadedLevel) return
+		this.loadLevel(pager)
 	},
 	getInput(): KeyInputs {
 		const keyInputs: Partial<KeyInputs> = {}
@@ -244,7 +249,8 @@ export const levelPlayerPage = {
 	updateLogic(): void {
 		const level = this.currentLevel
 		if (!level) throw new Error("Cannot update the level without a level.")
-		if (this.gameState === GameState.TIMEOUT || this.isPaused) return
+		if (this.gameState === GameState.TIMEOUT || this.isPaused || this.isPreplay)
+			return
 		level.gameInput = this.getInput()
 		level.tick()
 		this.updateTextOutputs()
@@ -279,7 +285,7 @@ export const levelPlayerPage = {
 		const loadedLevel = pager.loadedLevel
 		if (!loadedLevel)
 			throw new Error("Cannot open the level player page with a level to play.")
-		this.loadLevel(loadedLevel)
+		this.loadLevel(pager)
 		this.updateTextOutputs()
 		this.logicTimer = new TimeoutIntervalTimer(
 			this.updateLogic.bind(this),
@@ -296,9 +302,13 @@ export const levelPlayerPage = {
 			this.renderTimer.cancel()
 			this.renderTimer = null
 		}
+		this.preplayKeyListener?.remove()
+		this.preplayKeyListener = null
 		this.currentLevel = null
 	},
 	togglePaused(): void {
+		if (this.gameState !== GameState.PLAYING || this.isPreplay) return
+
 		this.isPaused = !this.isPaused
 		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
 	},
