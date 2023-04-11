@@ -1,4 +1,4 @@
-import { Pager } from "./pager"
+import { Page, Pager } from "./pager"
 import isHotkey, { parseHotkey } from "is-hotkey"
 import { setSelectorPage } from "./pages/setSelector"
 import { levelPlayerPage } from "./pages/levelPlayer"
@@ -7,9 +7,12 @@ interface TooltipEntry {
 	name: string
 	shortcut: string | null
 	action?(pager: Pager): void
+	enabledPages?: Page[]
 }
 
 type TooltipEntries = (TooltipEntry | "breakline")[]
+
+const playerPages = [levelPlayerPage]
 
 export const tooltipGroups: Record<string, TooltipEntries> = {
 	selector: [
@@ -28,6 +31,7 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			action(pager: Pager): void {
 				pager.resetCurrentLevel()
 			},
+			enabledPages: playerPages,
 		},
 		{
 			name: "Pause",
@@ -38,6 +42,7 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 					page.togglePaused()
 				}
 			},
+			enabledPages: [levelPlayerPage],
 		},
 		"breakline",
 		{
@@ -47,6 +52,7 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 				await pager.loadPreviousLevel()
 				pager.resetCurrentLevel()
 			},
+			enabledPages: playerPages,
 		},
 		{
 			name: "Next level",
@@ -55,8 +61,9 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 				await pager.loadNextLevel({ type: "skip" })
 				pager.resetCurrentLevel()
 			},
+			enabledPages: playerPages,
 		},
-		{ name: "Level list", shortcut: "shift+s" },
+		{ name: "Level list", shortcut: "shift+s", enabledPages: playerPages },
 	],
 	solution: [],
 	optimization: [],
@@ -99,8 +106,12 @@ export function openTooltip(
 		}
 		const tooltipRow = document.createElement("div")
 		tooltipRow.classList.add("buttonTooltipRow")
-		// TODO Also dynamically disable entries if the current page doesn't support them.
-		if (tooltipEntry.action === undefined) {
+
+		if (
+			tooltipEntry.action === undefined ||
+			(tooltipEntry.enabledPages &&
+				!tooltipEntry.enabledPages.includes(pager.currentPage))
+		) {
 			tooltipRow.dataset.disabled = ""
 		} else {
 			tooltipRow.tabIndex = 0
