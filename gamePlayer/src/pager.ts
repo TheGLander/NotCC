@@ -81,7 +81,8 @@ export class Pager {
 		this.loadedLevel = newRecord.levelData!
 		this.updateShownLevelNumber()
 	}
-	resetCurrentLevel(): void {
+	async resetCurrentLevel(): Promise<void> {
+		await this.loadNextLevel({ type: "retry" })
 		// TODO Do this for Super Mode too
 		if (this.currentPage === levelPlayerPage) {
 			const page = this.currentPage as typeof levelPlayerPage

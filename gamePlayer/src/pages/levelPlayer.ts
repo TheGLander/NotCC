@@ -69,15 +69,67 @@ function setAttributeExistence(
 
 export const levelPlayerPage = {
 	pageId: "levelPlayerPage",
+	// Binding HTML stuff
 	renderer: null as Renderer | null,
-	currentLevel: null as LevelState | null,
-	logicTimer: null as TimeoutIntervalTimer | null,
-	renderTimer: null as AnimationTimer | null,
 	textOutputs: null as TextOutputs | null,
 	completionButtons: null as CompletionButton | null,
 	gameOverlay: null as HTMLElement | null,
 	overlayLevelName: null as HTMLElement | null,
 	viewportArea: null as HTMLElement | null,
+	setupPage(pager: Pager, page: HTMLElement): void {
+		setupKeyListener()
+		if (!pager.tileset)
+			throw new Error("The level player page cannot be opened with no tileset.")
+		const viewportCanvas = page.querySelector<HTMLCanvasElement>(
+			"#levelViewportCanvas"
+		)!
+		const inventoryCanvas = page.querySelector<HTMLCanvasElement>(
+			"#levelInventoryCanvas"
+		)!
+		this.renderer = new Renderer(pager.tileset, viewportCanvas, inventoryCanvas)
+		this.textOutputs = {
+			chips: page.querySelector("#chipsText")!,
+			time: page.querySelector("#timeLeftText")!,
+			bonusPoints: page.querySelector("#bonusPointsText")!,
+		}
+		if (
+			!this.textOutputs.chips ||
+			!this.textOutputs.time ||
+			!this.textOutputs.bonusPoints
+		)
+			throw new Error("Could not find the text output elements.")
+		this.completionButtons = {
+			restart: page.querySelector("#restartButton")!,
+			explodeJupiter: page.querySelector("#explodeJupiterButton")!,
+			nextLevel: page.querySelector("#nextLevelButton")!,
+			scores: page.querySelector("#scoresButton")!,
+		}
+
+		if (
+			!this.completionButtons.scores ||
+			!this.completionButtons.explodeJupiter ||
+			!this.completionButtons.restart ||
+			!this.completionButtons.nextLevel
+		)
+			throw new Error("Could not find the completion button elements.")
+		this.completionButtons.nextLevel.addEventListener("click", () => {
+			this.openNextLevel(pager)
+		})
+		this.completionButtons.restart.addEventListener("click", async () => {
+			pager.resetCurrentLevel()
+		})
+		this.gameOverlay = page.querySelector<HTMLElement>("#levelViewportOverlay")!
+		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
+		this.overlayLevelName = page.querySelector<HTMLElement>("#overlayLevelName")
+	},
+	// Setting up level state and the game state machine
+	//    Load ->
+	// -> Preplay ->
+	// -> Play .. (one of:)
+	// -> Pause -> Play
+	// -> Win -> Load or Preplay
+	// -> Lose -> Preplay
+	currentLevel: null as LevelState | null,
 	gameState: GameState.PLAYING,
 	isPaused: false,
 	isPreplay: false,
@@ -130,75 +182,26 @@ export const levelPlayerPage = {
 		)
 		this.updateTextOutputs()
 	},
-	endPreplay(): void {
-		this.isPreplay = false
-		setAttributeExistence(this.gameOverlay!, "data-preplay", this.isPreplay)
-		this.preplayKeyListener?.remove()
-		this.preplayKeyListener = null
-	},
 	/**
 	 * Alias for `loadLevel`, since both do the same thing, but helps code readability
 	 */
 	resetLevel(pager: Pager): void {
 		this.loadLevel(pager)
 	},
-	findCurrentMainButton(): HTMLButtonElement | null {
-		if (!this.gameOverlay)
-			throw new Error("The game overlay must be set to find the main button.")
-
-		return (
-			Array.from(
-				this.gameOverlay.querySelectorAll<HTMLButtonElement>(".mainButton")
-			).find(button => button.getBoundingClientRect().height !== 0) ?? null
-		)
+	endPreplay(): void {
+		this.isPreplay = false
+		setAttributeExistence(this.gameOverlay!, "data-preplay", this.isPreplay)
+		this.preplayKeyListener?.remove()
+		this.preplayKeyListener = null
 	},
-	setupPage(pager: Pager, page: HTMLElement): void {
-		setupKeyListener()
-		if (!pager.tileset)
-			throw new Error("The level player page cannot be opened with no tileset.")
-		const viewportCanvas = page.querySelector<HTMLCanvasElement>(
-			"#levelViewportCanvas"
-		)!
-		const inventoryCanvas = page.querySelector<HTMLCanvasElement>(
-			"#levelInventoryCanvas"
-		)!
-		this.renderer = new Renderer(pager.tileset, viewportCanvas, inventoryCanvas)
-		this.textOutputs = {
-			chips: page.querySelector("#chipsText")!,
-			time: page.querySelector("#timeLeftText")!,
-			bonusPoints: page.querySelector("#bonusPointsText")!,
-		}
-		if (
-			!this.textOutputs.chips ||
-			!this.textOutputs.time ||
-			!this.textOutputs.bonusPoints
-		)
-			throw new Error("Could not find the text output elements.")
-		this.completionButtons = {
-			restart: page.querySelector("#restartButton")!,
-			explodeJupiter: page.querySelector("#explodeJupiterButton")!,
-			nextLevel: page.querySelector("#nextLevelButton")!,
-			scores: page.querySelector("#scoresButton")!,
-		}
+	togglePaused(): void {
+		if (this.gameState !== GameState.PLAYING || this.isPreplay) return
 
-		if (
-			!this.completionButtons.scores ||
-			!this.completionButtons.explodeJupiter ||
-			!this.completionButtons.restart ||
-			!this.completionButtons.nextLevel
-		)
-			throw new Error("Could not find the completion button elements.")
-		this.completionButtons.nextLevel.addEventListener("click", () => {
-			this.openNextLevel(pager)
-		})
-		this.completionButtons.restart.addEventListener("click", async () => {
-			if (pager.loadedSet !== null) await pager.loadNextLevel({ type: "retry" })
-			this.resetLevel(pager)
-		})
-		this.gameOverlay = page.querySelector<HTMLElement>("#levelViewportOverlay")!
-		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
-		this.overlayLevelName = page.querySelector<HTMLElement>("#overlayLevelName")
+		this.isPaused = !this.isPaused
+		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
 	},
+	// Transition from win
+
 	async openNextLevel(pager: Pager): Promise<void> {
 		if (!pager.loadedSet) {
 			alert("Congratulations on clearing the level!")
@@ -228,6 +231,25 @@ export const levelPlayerPage = {
 		if (!pager.loadedLevel) return
 		this.loadLevel(pager)
 	},
+	startPostPlay(state: GameState): void {
+		this.gameState = state
+		this.gameOverlay?.setAttribute(
+			"data-game-state",
+			GameState[this.gameState].toLowerCase()
+		)
+		this.findCurrentMainButton()?.focus()
+	},
+	findCurrentMainButton(): HTMLButtonElement | null {
+		if (!this.gameOverlay)
+			throw new Error("The game overlay must be set to find the main button.")
+
+		return (
+			Array.from(
+				this.gameOverlay.querySelectorAll<HTMLButtonElement>(".mainButton")
+			).find(button => button.getBoundingClientRect().height !== 0) ?? null
+		)
+	},
+	// Managing the live level state
 	getInput(): KeyInputs {
 		const keyInputs: Partial<KeyInputs> = {}
 		for (const [key, val] of Object.entries(keyToInputMap)) {
@@ -258,12 +280,7 @@ export const levelPlayerPage = {
 			this.gameState === GameState.PLAYING &&
 			level.gameState !== GameState.PLAYING
 		) {
-			this.gameState = level.gameState
-			this.gameOverlay?.setAttribute(
-				"data-game-state",
-				GameState[this.gameState].toLowerCase()
-			)
-			this.findCurrentMainButton()?.focus()
+			this.startPostPlay(level.gameState)
 		}
 	},
 	updateRender(): void {
@@ -280,10 +297,11 @@ export const levelPlayerPage = {
 		// TODO Make this dynamic, line in LL
 		page.style.setProperty("--tile-scale", "2")
 	},
+	logicTimer: null as TimeoutIntervalTimer | null,
+	renderTimer: null as AnimationTimer | null,
 	open(pager: Pager, page: HTMLElement): void {
 		this.updateTileset(pager, page)
-		const loadedLevel = pager.loadedLevel
-		if (!loadedLevel)
+		if (!pager.loadedLevel)
 			throw new Error("Cannot open the level player page with a level to play.")
 		this.loadLevel(pager)
 		this.updateTextOutputs()
@@ -305,11 +323,5 @@ export const levelPlayerPage = {
 		this.preplayKeyListener?.remove()
 		this.preplayKeyListener = null
 		this.currentLevel = null
-	},
-	togglePaused(): void {
-		if (this.gameState !== GameState.PLAYING || this.isPreplay) return
-
-		this.isPaused = !this.isPaused
-		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
 	},
 }
