@@ -276,25 +276,28 @@ function createSolutionFromArrayBuffer(
 	solutionData: ArrayBuffer
 ): ISolutionInfo {
 	const solution: ISolutionInfo = { levelState: { cc2Data: {} } }
-	let steps = new Uint8Array(100)
-	let currentStep = 0
+	// Our format is mostly the same as CC2, but without the metadata and a
+	// different key order.
 	const view = new AutoReadDataView(solutionData)
 
+	// Use unknown
 	view.skipBytes(1)
 
 	solution.levelState!.randomForceFloorDirection = (view.getUint8() % 4) + 1
 	solution.levelState!.cc2Data!.blobModifier = view.getUint8()
 
-	// The delay before the first input
-	// I think this is actually never used, but it's not a bad idea
-	// This also exists because NotCC has a little different solution structure
-	// Than CC2
+	// Use unknown
 	view.skipBytes(1)
+
+	// Set the maximum length of the solution; the unneeded zeros are trimmed later
+	let steps = new Uint8Array(solutionData.byteLength - 4)
+	let currentStep = 0
+
 	while (view.offset < view.buffer.byteLength) {
 		const newInput = view.getUint8()
 
 		const holdTime =
-			solutionData.byteLength - view.offset === 0 ? Infinity : view.getUint8()
+			solutionData.byteLength === view.offset ? Infinity : view.getUint8()
 		if (holdTime === 0xff) break
 		if (holdTime === 0x00) continue
 
@@ -307,16 +310,17 @@ function createSolutionFromArrayBuffer(
 			(newInput & 0x40) / 0x2 + // Cycle items
 			(newInput & 0x20) * 0x2 // Switch playable
 
-		steps[currentStep] = resolvedInput
-		steps[currentStep + 1] = holdTime
-		currentStep += 2
-		if (currentStep >= steps.byteLength) {
-			const newSteps = new Uint8Array(Math.round(steps.byteLength * 1.5))
-			newSteps.set(steps)
-			steps = newSteps
+		steps[currentStep * 2] = resolvedInput
+		// The unset time should indicate to hold this input forever
+		if (holdTime !== Infinity) {
+			steps[currentStep * 2 + 1] = holdTime
+			currentStep += 1
+		} else {
+			// Half step so that the trimming function doesn't lose the infinite key
+			currentStep += 0.5
 		}
 	}
-	steps = steps.slice(0, currentStep)
+	steps = steps.slice(0, currentStep * 2)
 	solution.steps = [steps]
 	return solution
 }
