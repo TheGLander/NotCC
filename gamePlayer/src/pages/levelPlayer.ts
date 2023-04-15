@@ -76,6 +76,7 @@ export const levelPlayerPage = {
 	gameOverlay: null as HTMLElement | null,
 	overlayLevelName: null as HTMLElement | null,
 	viewportArea: null as HTMLElement | null,
+	hintBox: null as HTMLElement | null,
 	setupPage(pager: Pager, page: HTMLElement): void {
 		setupKeyListener()
 		if (!pager.tileset)
@@ -121,6 +122,7 @@ export const levelPlayerPage = {
 		this.gameOverlay = page.querySelector<HTMLElement>("#levelViewportOverlay")!
 		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
 		this.overlayLevelName = page.querySelector<HTMLElement>("#overlayLevelName")
+		this.hintBox = page.querySelector<HTMLElement>("#hintBox")
 	},
 	// Setting up level state and the game state machine
 	//    Load ->
@@ -267,6 +269,7 @@ export const levelPlayerPage = {
 		this.textOutputs.time.textContent = `${
 			this.currentLevel!.timeFrozen ? "❄" : ""
 		}${Math.ceil(currentTime / 60)}s`
+		this.hintBox!.textContent = this.currentLevel!.getHint() ?? ""
 	},
 	updateLogic(): void {
 		const level = this.currentLevel

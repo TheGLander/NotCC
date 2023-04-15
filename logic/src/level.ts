@@ -148,7 +148,6 @@ export class LevelState {
 	playablesToSwap = false
 	levelStarted = false
 	createdN = 0
-	shownHint: string | null = null
 	/**
 	 * If a level is considered to be in extended mode, despawns don't happen and multiple actors of the same layer can be on the same tile, yay!
 	 */
@@ -326,6 +325,14 @@ export class LevelState {
 		if (typeof blobMod === "number") {
 			this.blobPrngValue = blobMod
 		}
+	}
+	getHint(): string | null {
+		if (!this.selectedPlayable) return null
+		const hintedActor = this.selectedPlayable.tile.findActor(
+			actor => "hint" in actor && !!actor.hint
+		)
+		if (!hintedActor) return null
+		return (hintedActor as any).hint
 	}
 	*tiles(
 		rro = true,

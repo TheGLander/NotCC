@@ -312,24 +312,6 @@ export class Hint extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	onCreation(): void {
-		const selectedPlayable = this.tile.findActor(
-			actor => actor === this.level.selectedPlayable
-		)
-		if (selectedPlayable !== undefined && this.hint) {
-			this.level.shownHint = this.hint
-		}
-	}
-	actorCompletelyJoined(other: Actor): void {
-		if (other === this.level.selectedPlayable && this.hint) {
-			this.level.shownHint = this.hint
-		}
-	}
-	actorLeft(other: Actor): void {
-		if (other === this.level.selectedPlayable) {
-			this.level.shownHint = null
-		}
-	}
 	blockTags = ["normal-monster", "cc1block"]
 }
 

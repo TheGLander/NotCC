@@ -2,7 +2,7 @@ body {
 	font-family: sans-serif;
 	--theme-color-huesat: 212deg 70%;
 	--general-bg: hsl(var(--theme-color-huesat) 20%);
-	--secondary-bg: hsl(var(--theme-color-huesat) 10%);
+	--secondary-bg: hsl(var(--theme-color-huesat) 13%);
 	--page-bg-brightness: 40%;
 	--page-bg-darker-color: hsl(
 		var(--theme-color-huesat) calc(var(--page-bg-brightness) * 100 / 125)
@@ -255,10 +255,11 @@ kbd {
 	margin: auto;
 	display: grid;
 	gap: var(--quarter-tile);
-	grid-template-areas:
-		"viewport stats"
-		"viewport inventory"
-		"viewport hint";
+	grid-template:
+		"viewport stats" min-content
+		"viewport inventory" min-content
+		"viewport hint" 1fr
+		/ min-content min-content;
 	--base-tile-size: 32px;
 	--tile-scale: 2;
 	--tile-size: calc(var(--base-tile-size) * var(--tile-scale));
@@ -479,6 +480,12 @@ kbd {
 	width: calc(var(--tile-size) * 4);
 	height: calc(var(--tile-size) * 2);
 	background-color: azure;
+}
+
+#hintBox {
+	grid-area: hint;
+	background-color: var(--secondary-bg);
+	padding: 0.5em 0.5em;
 }
 
 /* Set selector (stub) */
