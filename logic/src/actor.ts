@@ -137,10 +137,9 @@ export abstract class Actor implements Wirable {
 	dropItemN(id: number, noSideEffect = false): boolean {
 		const itemToDrop = this.inventory.items[id]
 		if (!itemToDrop) return false
-		if (this.despawned)
-			alert(
-				"At this state, the game really should crash, so this is really undefined behavior"
-			)
+		if (this.despawned) {
+			console.warn("Dropping items while despawned in undefined behaviour.")
+		}
 		if (this.tile.hasLayer(itemToDrop.layer)) return false
 		if (itemToDrop.canBeDropped && !itemToDrop.canBeDropped(this)) return false
 		this.inventory.items.splice(id, 1)

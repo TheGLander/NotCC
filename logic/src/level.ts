@@ -58,9 +58,8 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 					actor.tile.position[1] >= level.height) &&
 				!undefinedBehaviorWarningGiven
 			) {
-				// TODO Have some custom modals, alerts are disgusting
-				alert(
-					"!!WARNING!!\nNormally, the game would crash at this point, so this is really undefined behavior."
+				console.warn(
+					"Actors respawning outside of the map is undefined behaviour."
 				)
 				undefinedBehaviorWarningGiven = true
 			}
@@ -149,6 +148,7 @@ export class LevelState {
 	playablesToSwap = false
 	levelStarted = false
 	createdN = 0
+	shownHint: string | null = null
 	/**
 	 * If a level is considered to be in extended mode, despawns don't happen and multiple actors of the same layer can be on the same tile, yay!
 	 */

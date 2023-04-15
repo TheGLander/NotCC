@@ -13,10 +13,6 @@ import type {
 	ParentEndMessage,
 } from "./verifyLevels"
 
-// TODO Refactor hint tile to not use alerts
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-;(globalThis as any).alert = () => {}
-
 if (!parentPort) throw new Error()
 
 let waitForMessageResolver: (() => void) | undefined
