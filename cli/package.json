@@ -4,8 +4,8 @@
 	"description": "A CLI for verifying NotCC solutions!",
 	"main": "./dist/index.js",
 	"scripts": {
-		"dev": "tsc",
-		"watch": "tsc --watch"
+		"build": "tsc",
+		"dev": "tsc --watch"
 	},
 	"bin": {
 		"notcc": "./dist/index.js"

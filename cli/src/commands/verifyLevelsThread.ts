@@ -4,63 +4,56 @@ import {
 	GameState,
 	parseC2M,
 } from "@notcc/logic"
-import { parentPort, MessagePort } from "worker_threads"
+import { parentPort } from "worker_threads"
 import fs from "fs"
-import { WorkerMessage } from "./verifyLevels"
+import type {
+	WorkerMessage,
+	ParentInitialMessage,
+	ParentNewLevelMessage,
+	ParentEndMessage,
+} from "./verifyLevels"
 
 // TODO Refactor hint tile to not use alerts
 // eslint-disable-next-line @typescript-eslint/no-empty-function
-globalThis.alert = () => {}
+;(globalThis as any).alert = () => {}
 
 if (!parentPort) throw new Error()
 
-interface ParentResponse {
-	port: MessagePort
-	byteFiles: SharedArrayBuffer
-}
+let waitForMessageResolver: (() => void) | undefined
 
-function connectToParent(): Promise<ParentResponse> {
-	return new Promise(res => {
-		if (!parentPort) throw new Error()
-		parentPort.on("message", (val: ParentResponse) => {
-			return res(val)
+const queuedMesssages: any[] = []
+
+parentPort.on("message", val => {
+	queuedMesssages.push(val)
+	if (waitForMessageResolver !== undefined) {
+		waitForMessageResolver()
+	}
+})
+
+function waitForMessage(): Promise<any> {
+	if (queuedMesssages.length === 0) {
+		return new Promise(res => {
+			waitForMessageResolver = () => {
+				res(queuedMesssages.shift())
+			}
 		})
-	})
+	}
+	return Promise.resolve(queuedMesssages.shift())
 }
-
 ;(async () => {
-	const response = await connectToParent()
+	const response = (await waitForMessage()) as ParentInitialMessage
 	const sendMessage = (message: WorkerMessage) =>
 		response.port.postMessage(message)
-	const byteFiles = new Uint8Array(response.byteFiles)
-	let levelName: string = "???"
+	let levelName: string | undefined
 
 	console.log = console.warn = (arg1: any, ...args: any[]) => {
 		sendMessage({ type: "log", message: `[${levelName}] ${arg1}` })
 	}
 
-	let bytePos = 0
+	let levelPath: string | null = response.firstLevelPath
 
-	function getNextFilename(): string | null {
-		let latestValue: number = 0
-		for (; latestValue === 0; bytePos++) {
-			if (bytePos >= byteFiles.length) return null
-			latestValue = Atomics.load(byteFiles, bytePos)
-		}
-		bytePos--
-		let filename = ""
-		while (latestValue !== 0) {
-			filename += String.fromCodePoint(latestValue)
-			Atomics.store(byteFiles, bytePos, 0)
-			bytePos++
-			latestValue = Atomics.load(byteFiles, bytePos)
-		}
-		return filename
-	}
-
-	let levelPath: string | null
-
-	while ((levelPath = getNextFilename())) {
+	// eslint-disable-next-line no-constant-condition
+	while (true) {
 		try {
 			const levelBuffer = fs.readFileSync(levelPath, null)
 
@@ -75,7 +68,7 @@ function connectToParent(): Promise<ParentResponse> {
 				throw new Error("Level has no baked solution!")
 
 			let bonusTicks = 60 * 60
-			let lastReply = Date.now()
+
 			level.playbackSolution(levelData.associatedSolution)
 			while (level.gameState === GameState.PLAYING && bonusTicks > 0) {
 				level.tick()
@@ -99,7 +92,14 @@ function connectToParent(): Promise<ParentResponse> {
 				desc: (err as Error).message,
 			})
 		}
+		const response = (await waitForMessage()) as
+			| ParentNewLevelMessage
+			| ParentEndMessage
+
+		if (response.type === "end") {
+			process.exit(0)
+		} else {
+			levelPath = response.levelPath
+		}
 	}
-	sendMessage({ type: "final" })
-	process.exit(0)
 })()

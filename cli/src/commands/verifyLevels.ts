@@ -1,9 +1,9 @@
 import { exit } from "process"
 import { resolveLevelPath } from "../helpers"
-import { MessageChannel, Worker } from "worker_threads"
+import { MessageChannel, MessagePort, Worker } from "worker_threads"
 import { join } from "path"
 import os from "os"
-import chalk from "chalk"
+import pc from "picocolors"
 import ProgressBar from "progress"
 import { ArgumentsCamelCase, Argv } from "yargs"
 
@@ -18,41 +18,31 @@ interface WorkerLevelMessage {
 	type: "level"
 }
 
-interface WorkerExitMessage {
-	type: "final"
-}
-
 interface WorkerLogMessage {
 	type: "log"
 	message: string
 }
 
-export type WorkerMessage =
-	| WorkerLevelMessage
-	| WorkerExitMessage
-	| WorkerLogMessage
+export type WorkerMessage = WorkerLevelMessage | WorkerLogMessage
 
-function createByteArray(arr: string[]): SharedArrayBuffer {
-	const buffer = new SharedArrayBuffer(
-		arr.reduce<number>((acc, val) => acc + val.length + 1, 0)
-	)
-	const byteArr = new Uint8Array(buffer)
-	let position = 0
-	for (const str of arr) {
-		byteArr.set(
-			Array.from(str).map(val => val.codePointAt(0) || 0),
-			position
-		)
-		position += str.length + 1
-	}
+export interface ParentNewLevelMessage {
+	type: "new level"
+	levelPath: string
+}
 
-	return buffer
+export interface ParentEndMessage {
+	type: "end"
+}
+
+export interface ParentInitialMessage {
+	type: "init"
+	port: MessagePort
+	firstLevelPath: string
 }
 
 interface OutcomeStyle {
-	color: "red" | "green" | "redBright"
+	color: "red" | "green" | "yellow"
 	desc: string
-	failure?: boolean
 }
 
 interface WorkerData {
@@ -62,9 +52,9 @@ interface WorkerData {
 
 const outcomeStyles: Record<LevelOutcome, OutcomeStyle> = {
 	success: { color: "green", desc: "Success" },
-	badInput: { color: "red", desc: "Solution killed player", failure: true },
-	noInput: { color: "red", desc: "Ran out of input", failure: true },
-	error: { color: "redBright", desc: "Failed to run level" },
+	badInput: { color: "red", desc: "Solution killed player" },
+	noInput: { color: "red", desc: "Ran out of input" },
+	error: { color: "yellow", desc: "Failed to run level" },
 }
 
 interface Options {
@@ -79,12 +69,12 @@ export async function verifyLevelFiles(
 	const files = resolveLevelPath(...args.files).filter(val =>
 		val.toLowerCase().endsWith(".c2m")
 	)
+	const filesN = files.length
+
 	let toShow: LevelOutcome[]
 	if (args.hide) toShow = levelOutcomes.filter(val => !args.hide!.includes(val))
 	else if (args.show) toShow = args.show
 	else toShow = Array.from(levelOutcomes)
-
-	const byteFiles = createByteArray(files)
 
 	const stats: Record<LevelOutcome, number> = {
 		noInput: 0,
@@ -106,32 +96,31 @@ export async function verifyLevelFiles(
 	for (let i = 0; i < workersN; i++) {
 		const { port1, port2 } = new MessageChannel()
 		const worker = new Worker(join(__dirname, "./verifyLevelsThread.js"))
-		let endWait = () => {}
+		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		let endWait: () => void = () => {}
 		const promise = new Promise<void>(res => {
 			endWait = res
 		})
 
 		workers.push({ worker, promise })
-		worker.postMessage({ byteFiles, port: port1 }, [port1])
+		worker.postMessage(
+			{
+				type: "init",
+				firstLevelPath: files.shift() as string,
+				port: port1,
+			} satisfies ParentInitialMessage,
+			[port1]
+		)
 		port2.on("message", (msg: WorkerMessage) => {
-			if (msg.type === "final") {
-				endWait()
-				return
-			}
 			if (msg.type === "log") {
 				bar.interrupt(msg.message)
 				return
 			}
-			/*console.log(
-				Array.from(new Uint8Array(byteFiles))
-					.map(val => (val === 0 ? "NULL" : String.fromCharCode(val)))
-					.join("")
-			)*/
-			stats[msg.outcome]++
+			stats[msg.outcome] += 1
 			if (toShow.includes(msg.outcome)) {
 				const style = outcomeStyles[msg.outcome]
 				bar.interrupt(
-					chalk[style.color](
+					pc[style.color](
 						`${msg.levelName} - ${style.desc}${
 							msg.desc ? ` (${msg.desc})` : ""
 						}`
@@ -139,6 +128,16 @@ export async function verifyLevelFiles(
 				)
 			}
 			bar.tick()
+			const nextLevel = files.shift()
+			if (nextLevel === undefined) {
+				worker.postMessage({ type: "end" } satisfies ParentEndMessage)
+				endWait()
+			} else {
+				worker.postMessage({
+					type: "new level",
+					levelPath: nextLevel,
+				} satisfies ParentNewLevelMessage)
+			}
 		})
 	}
 
@@ -147,17 +146,15 @@ export async function verifyLevelFiles(
 	await stillWaiting
 
 	console.log(
-		`Success rate: ${(stats.success / files.length) * 100}% (${stats.success}/${
-			files.length
-		})
-Levels which failed to run: ${stats.error} (${
-			(stats.error / files.length) * 100
-		}%)
+		`Success rate: ${(stats.success / filesN) * 100}% (${
+			stats.success
+		}/${filesN})
+Levels which failed to run: ${stats.error} (${(stats.error / filesN) * 100}%)
 Levels whose solutions killed a player: ${stats.badInput} (${
-			(stats.badInput / files.length) * 100
+			(stats.badInput / filesN) * 100
 		}%)
 Levels whose solutions ran out: ${stats.noInput} (${
-			(stats.noInput / files.length) * 100
+			(stats.noInput / filesN) * 100
 		}%)`
 	)
 
