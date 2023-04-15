@@ -14,6 +14,7 @@ import {
 	wirePretick,
 	wireTick,
 } from "./wires"
+import { ISolutionInfo } from "./parsers/nccs.pb"
 
 export enum GameState {
 	PLAYING,
@@ -207,6 +208,9 @@ export class LevelState {
 			this.timeLeft--
 			if (this.timeLeft <= 0) this.gameState = GameState.TIMEOUT
 		}
+		if (this.solutionSteps) {
+			this.gameInput = this.getSolutionMove() ?? decodeSolutionStep(0)
+		}
 		wirePretick.apply(this)
 		this.tickStage = "decision"
 		this.decisionTick(this.subtick !== 2)
@@ -257,8 +261,11 @@ export class LevelState {
 		this.solutionSubticksLeft -= 1
 		if (this.solutionSubticksLeft <= 0) {
 			this.solutionStep += 1
-			this.solutionSubticksLeft =
-				this.solutionSteps[this.solutionStep * 2 + 1] ?? Infinity
+			// If there's no time specified, keep holding it
+			const isInfinite = this.solutionStep * 2 + 1 >= this.solutionSteps.length
+			this.solutionSubticksLeft = isInfinite
+				? Infinity
+				: this.solutionSteps[this.solutionStep * 2 + 1]
 		}
 		const step = this.solutionSteps[this.solutionStep * 2]
 		return decodeSolutionStep(step)
@@ -302,11 +309,23 @@ export class LevelState {
 	solutionSteps?: Uint8Array
 	solutionStep = 0
 	solutionSubticksLeft = 0
-	playbackSolution(solutionSteps: Uint8Array): void {
-		this.solutionSteps = solutionSteps
+	playbackSolution(solution: ISolutionInfo): void {
+		if (!solution.steps)
+			throw new Error("A solution must have sets to play it back.")
+
+		this.solutionSteps = solution.steps[0]
 		// TODO Multiplayer
 		this.solutionStep = 0
-		this.solutionSubticksLeft = solutionSteps[1] + 1
+		this.solutionSubticksLeft = this.solutionSteps[1] + 1
+		const levelState = solution.levelState
+		if (!levelState) return
+		if (typeof levelState.randomForceFloorDirection === "number") {
+			crossLevelData.RFFDirection = levelState.randomForceFloorDirection - 1
+		}
+		const blobMod = levelState.cc2Data?.blobModifier
+		if (typeof blobMod === "number") {
+			this.blobPrngValue = blobMod
+		}
 	}
 	*tiles(
 		rro = true,
