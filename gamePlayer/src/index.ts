@@ -6,7 +6,7 @@ import {
 	onLevelStart,
 } from "@notcc/logic"
 import { Direction } from "@notcc/logic"
-import "./NCCTK.css"
+import "./NCCTK.less"
 import { parseC2M } from "@notcc/logic"
 import { actorDB, keyNameList } from "@notcc/logic"
 import { artDB } from "./const"
