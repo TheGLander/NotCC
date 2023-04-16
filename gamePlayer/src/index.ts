@@ -22,10 +22,12 @@ import "./art"
 import { Pager } from "./pager"
 import { generateShortcutListener, generateTabButtons } from "./sidebar"
 
+import { KeyListener } from "./keyListener"
+
 const pager = new Pager()
 
 generateTabButtons(pager)
-document.addEventListener("keydown", generateShortcutListener(pager))
+new KeyListener(generateShortcutListener(pager))
 
 // Enable crash handling
 window.addEventListener("error", ev =>
