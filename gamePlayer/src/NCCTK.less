@@ -32,6 +32,23 @@ body {
 	}
 }
 
+// Non-firefox custom scrollbar
+
+::-webkit-scrollbar {
+	background: var(--general-bg);
+	width: 0.5em;
+}
+::-webkit-scrollbar-thumb {
+	background: var(--secondary-bg);
+}
+
+// Firefox scrollbar
+
+body {
+	scrollbar-color: var(--secondary-bg) transparent;
+	scrollbar-width: 0.5em;
+}
+
 .container,
 dialog {
 	border-radius: 5px;
