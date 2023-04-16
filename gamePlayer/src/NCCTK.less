@@ -32,9 +32,83 @@ body {
 	}
 }
 
-.container {
+.container,
+dialog {
 	border-radius: 5px;
 	background: var(--general-bg);
+}
+
+dialog {
+	padding: 0;
+	border-width: 1px;
+	color: var(--text-color);
+	&[open] {
+		display: flex;
+		flex-direction: column;
+	}
+	min-width: 33vw;
+	max-width: 75vw;
+	max-height: 75vh;
+	&::backdrop {
+		background-color: #0008;
+	}
+	header,
+	footer {
+		padding: 0.5em;
+		background: var(--secondary-bg);
+	}
+	section {
+		overflow: auto;
+	}
+	footer {
+		display: flex;
+		justify-content: flex-end;
+		button {
+			height: 2em;
+		}
+	}
+}
+
+.tableBorderRadius(@radius) {
+	&:first-child {
+		border-top-left-radius: @radius;
+		border-bottom-left-radius: @radius;
+	}
+	&:last-child {
+		border-top-right-radius: @radius;
+		border-bottom-right-radius: @radius;
+	}
+}
+
+table#levelList {
+	width: 100%;
+	border-spacing: 0;
+
+	thead {
+		position: sticky;
+		top: 0;
+		height: 2.3em;
+		background: var(--general-bg);
+		th {
+			border-bottom: solid 1px white;
+			.tableBorderRadius(5px);
+		}
+	}
+	tbody {
+		tr {
+			&:hover {
+				background: var(--secondary-bg);
+			}
+			cursor: pointer;
+			td {
+				padding: 0.5em;
+				&.levelN {
+					text-align: right;
+				}
+				.tableBorderRadius(5px);
+			}
+		}
+	}
 }
 
 .closedPage {

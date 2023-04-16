@@ -2,6 +2,7 @@ import { Page, Pager } from "./pager"
 import isHotkey, { parseHotkey } from "is-hotkey"
 import { setSelectorPage } from "./pages/setSelector"
 import { levelPlayerPage } from "./pages/levelPlayer"
+import { openLevelListDialog } from "./levelList"
 
 interface TooltipEntry {
 	name: string
@@ -63,7 +64,16 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			},
 			enabledPages: playerPages,
 		},
-		{ name: "Level list", shortcut: "shift+s", enabledPages: playerPages },
+		{
+			name: "Level list",
+			shortcut: "shift+s",
+			action(pager: Pager): void {
+				if (pager.loadedSet) {
+					openLevelListDialog(pager.loadedSet)
+				}
+			},
+			enabledPages: playerPages,
+		},
 	],
 	solution: [],
 	optimization: [],
