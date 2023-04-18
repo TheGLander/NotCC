@@ -1,4 +1,5 @@
 import {
+	AttemptTracker,
 	createLevelFromData,
 	GameState,
 	KeyInputs,
@@ -123,6 +124,7 @@ export const levelPlayerPage = {
 		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
 		this.overlayLevelName = page.querySelector<HTMLElement>("#overlayLevelName")
 		this.hintBox = page.querySelector<HTMLElement>("#hintBox")
+		this.submitAttempt = this.submitAttemptUnbound.bind(this, pager)
 	},
 	// Setting up level state and the game state machine
 	//    Load ->
@@ -173,6 +175,10 @@ export const levelPlayerPage = {
 				level.name ?? "Unnamed level"
 			}`
 		}
+		this.attemptTracker = new AttemptTracker(
+			this.currentLevel.blobPrngValue,
+			pager.loadedSet?.scriptRunner.state
+		)
 
 		this.viewportArea.style.setProperty(
 			"--level-camera-width",
@@ -252,6 +258,12 @@ export const levelPlayerPage = {
 		)
 	},
 	// Managing the live level state
+	attemptTracker: null as AttemptTracker | null,
+	submitAttemptUnbound(pager: Pager): void {
+		const level = this.currentLevel!
+		pager.saveAttempt(this.attemptTracker!.endAttempt(level))
+	},
+	submitAttempt: null as (() => void) | null,
 	getInput(): KeyInputs {
 		const keyInputs: Partial<KeyInputs> = {}
 		for (const [key, val] of Object.entries(keyToInputMap)) {
@@ -277,6 +289,7 @@ export const levelPlayerPage = {
 		if (this.gameState === GameState.TIMEOUT || this.isPaused || this.isPreplay)
 			return
 		level.gameInput = this.getInput()
+		this.attemptTracker!.recordAttemptStep(level.gameInput)
 		level.tick()
 		this.updateTextOutputs()
 		if (
@@ -284,6 +297,7 @@ export const levelPlayerPage = {
 			level.gameState !== GameState.PLAYING
 		) {
 			this.startPostPlay(level.gameState)
+			this.submitAttempt?.()
 		}
 	},
 	updateRender(): void {

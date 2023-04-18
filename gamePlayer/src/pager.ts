@@ -3,6 +3,8 @@ import { loadingPage } from "./pages/loading"
 import { Tileset } from "./visuals"
 import { levelPlayerPage } from "./pages/levelPlayer"
 import { setSidebarLevelN } from "./sidebar"
+import { protobuf } from "@notcc/logic"
+import { saveSolution } from "./saveData"
 
 export interface Page {
 	pageId: string
@@ -90,5 +92,21 @@ export class Pager {
 			const page = this.currentPage as typeof levelPlayerPage
 			page.resetLevel(this)
 		}
+	}
+	saveAttempt(attempt: protobuf.IAttemptInfo): void {
+		if (!this.loadedSet) return
+		const levelInfo =
+			this.loadedSet.seenLevels[this.loadedSet.currentLevel]?.levelInfo
+		if (!levelInfo)
+			throw new Error("The current level doesn't have a level record, somehow.")
+
+		levelInfo.attempts ??= []
+		levelInfo.attempts.push(attempt)
+		const scriptState = this.loadedSet.scriptRunner.state
+		const scriptTitle = scriptState.scriptTitle
+		if (!scriptTitle)
+			throw new Error("The loaded set does not have an identifier set.")
+
+		saveSolution(this.loadedSet.toSetInfo(), scriptTitle)
 	}
 }
