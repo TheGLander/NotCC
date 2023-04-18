@@ -156,17 +156,25 @@ export abstract class Playable extends Actor {
 				? Decision.NONE
 				: this.moveDecision
 	}
+	deathReason?: string
 	destroy(other?: Actor | null, anim?: string | null): boolean {
 		if (!super.destroy(other, anim)) return false
-		if (this.level.playables.includes(this))
+		if (this.level.playables.includes(this)) {
 			this.level.playables.splice(this.level.playables.indexOf(this), 1)
+		}
+		this.deathReason = other?.id
 		this.level.gameState = GameState.DEATH
 		return true
 	}
 	replaceWith(other: typeof actorDB[string]): Actor {
-		const newActor = super.replaceWith(other)
-		if (this.level.selectedPlayable === this)
-			this.level.selectedPlayable = newActor as Playable
+		const newActor = super.replaceWith(other) as Playable
+		// `replaceWith` calls `destroy`, which is usually considered death, but
+		// transformation isn't death, so actually undo all of the death reporting
+		// the `destroy` did.
+		delete this.deathReason
+		if (this.level.selectedPlayable === this) {
+			this.level.selectedPlayable = newActor
+		}
 		this.level.gameState = GameState.PLAYING
 		return newActor
 	}
