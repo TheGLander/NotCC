@@ -74,7 +74,7 @@ export class Pager {
 		if (!this.loadedSet)
 			throw new Error("Can't load the previous level of a set without a set.")
 
-		const newRecord = this.loadedSet.getPreviousRecord()
+		const newRecord = await this.loadedSet.getPreviousRecord()
 		// This is the first level of the set
 		if (!newRecord) {
 			return

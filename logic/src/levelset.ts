@@ -184,7 +184,7 @@ export class LevelSet {
 	 * Backtracks to the last level number before the current one.
 	 * @returns `null` is returned if there's no previous level
 	 */
-	getPreviousRecord(): LevelSetRecord | null {
+	async getPreviousRecord(): Promise<LevelSetRecord | null> {
 		// Get all of the level numbers, and look at the previous one
 		// The last level isn't just the level - 1, since level numbers, unlike in
 		// CC1, don't have to have continuous level numbers
@@ -198,6 +198,12 @@ export class LevelSet {
 		this.currentLevel = newLevelN
 		// Also set the new script state
 		this.scriptRunner.state = newRecord.levelInfo.scriptState ?? {}
+		const scriptPath = this.scriptRunner.state.scriptPath
+		if (!scriptPath)
+			throw new Error("The last level record doesn't have a script path set.")
+
+		const scriptData = (await this.loaderFunction(scriptPath, false)) as string
+		this.scriptRunner.loadScript(scriptData, scriptPath)
 		return newRecord
 	}
 }
