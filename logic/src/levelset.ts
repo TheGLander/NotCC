@@ -80,11 +80,41 @@ export class LevelSet {
 		}
 	}
 	static async constructAsync(
+		setData: ISetInfo,
+		loaderFunction: LevelSetLoaderFunction
+	): Promise<LevelSet>
+	static async constructAsync(
 		mainScriptPath: string,
 		loaderFunction: LevelSetLoaderFunction
+	): Promise<LevelSet>
+	static async constructAsync(
+		setDataOrMainScriptPath: string | ISetInfo,
+		loaderFunction: LevelSetLoaderFunction
 	): Promise<LevelSet> {
-		const scriptData = (await loaderFunction(mainScriptPath, false)) as string
-		return new this(mainScriptPath, scriptData, loaderFunction)
+		let scriptPath: string
+		if (typeof setDataOrMainScriptPath === "string") {
+			scriptPath = setDataOrMainScriptPath
+		} else {
+			const levelN = setDataOrMainScriptPath.currentLevel
+			if (typeof levelN !== "number")
+				throw new Error("The set data must have a current level set.")
+			const levelData = setDataOrMainScriptPath.levels?.find(
+				lvl => typeof lvl.levelNumber === "number" && lvl.levelNumber === levelN
+			)
+			const setScriptPath = levelData?.scriptState?.scriptPath
+			if (typeof setScriptPath !== "string")
+				throw new Error("The set level does not have a script path set.")
+
+			scriptPath = setScriptPath
+		}
+		const scriptData = (await loaderFunction(scriptPath, false)) as string
+		return new this(
+			// This is false, but Typescript for some reason doesn't like passing a
+			// union here?
+			setDataOrMainScriptPath as string,
+			scriptData,
+			loaderFunction
+		)
 	}
 	lastLevelResult?: MapInterruptResponse
 	async getNextRecord(): Promise<LevelSetRecord | null> {
