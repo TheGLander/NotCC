@@ -8,7 +8,7 @@ function makeFilePrefix(type: string) {
 	return `NotCC ${type}: `
 }
 
-export function saveSolution(
+export async function saveSetInfo(
 	solution: protobuf.ISetInfo,
 	fileName: string
 ): Promise<void> {
@@ -16,13 +16,12 @@ export function saveSolution(
 		`${makeFilePrefix("solution")}${fileName}`,
 		compressToUTF16(JSON.stringify(solution))
 	)
-	return Promise.resolve()
 }
 
-export function loadSolution(fileName: string): Promise<string> {
+export async function loadSetInfo(fileName: string): Promise<string> {
 	const compressedData = localStorage.getItem(
 		`${makeFilePrefix("solution")}${fileName}`
 	)
 	if (!compressedData) throw new Error(`File not fould: ${fileName}`)
-	return Promise.resolve(JSON.parse(decompressFromUTF16(compressedData)))
+	return JSON.parse(decompressFromUTF16(compressedData))
 }

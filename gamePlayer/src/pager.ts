@@ -4,7 +4,7 @@ import { Tileset } from "./visuals"
 import { levelPlayerPage } from "./pages/levelPlayer"
 import { setSidebarLevelN } from "./sidebar"
 import { protobuf } from "@notcc/logic"
-import { saveSolution } from "./saveData"
+import { saveSetInfo } from "./saveData"
 
 export interface Page {
 	pageId: string
@@ -107,6 +107,6 @@ export class Pager {
 		if (!scriptTitle)
 			throw new Error("The loaded set does not have an identifier set.")
 
-		saveSolution(this.loadedSet.toSetInfo(), scriptTitle)
+		saveSetInfo(this.loadedSet.toSetInfo(), scriptTitle)
 	}
 }

@@ -16,6 +16,7 @@ import {
 	makeZipFileLoader,
 } from "../fileLoaders"
 import { basename, dirname } from "path-browserify"
+import { loadSetInfo } from "../saveData"
 
 interface DirEntry {
 	path: string
@@ -76,7 +77,19 @@ export const setSelectorPage = {
 			filePath = basename(filePath)
 		}
 
-		const set = await LevelSet.constructAsync(filePath, loaderFunction)
+		const fileData = (await loaderFunction(filePath, false)) as string
+		const scriptTitle = findScriptName(fileData)!
+
+		const setInfo = await loadSetInfo(scriptTitle).catch(() => null)
+
+		let set: LevelSet
+
+		if (setInfo !== null) {
+			set = await LevelSet.constructAsync(setInfo, loaderFunction)
+		} else {
+			set = await LevelSet.constructAsync(filePath, loaderFunction)
+		}
+
 		pager.loadedSet = set
 		// Open the first level
 		pager.loadedLevel = null

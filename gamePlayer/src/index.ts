@@ -23,7 +23,7 @@ import { Pager } from "./pager"
 import { generateShortcutListener, generateTabButtons } from "./sidebar"
 
 import { KeyListener } from "./keyListener"
-import { loadSolution, saveSolution } from "./saveData"
+import { loadSetInfo, saveSetInfo } from "./saveData"
 
 const pager = new Pager()
 
@@ -63,8 +63,8 @@ const exportObject = {
 	Item,
 	//setColorScheme,
 	pager,
-	loadSolution,
-	saveSolution,
+	loadSolution: loadSetInfo,
+	saveSolution: saveSetInfo,
 }
 
 ;(globalThis as any).NotCC = exportObject
