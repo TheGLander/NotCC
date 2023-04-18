@@ -105,10 +105,10 @@ export class AttemptTracker {
 					(level.timeLeft * 3 + level.subtick) * (1000 / 60)
 				),
 			}
+			this.currentAttempt.solution!.steps = [
+				this.attemptSteps.slice(0, this.currentStep * 2 + 1),
+			]
 		}
-		this.currentAttempt.solution!.steps = [
-			this.attemptSteps.slice(this.currentStep * 2),
-		]
 
 		return this.currentAttempt
 	}
