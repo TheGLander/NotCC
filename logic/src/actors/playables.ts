@@ -56,7 +56,14 @@ export abstract class Playable extends Actor {
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
-	shouldDie(other: Actor) {
+	getCanMove(): boolean {
+		return (
+			this.level.selectedPlayable === this &&
+			(!this.slidingState ||
+				(this.slidingState === SlidingState.WEAK && this.hasOverride))
+		)
+	}
+	shouldDie(other: Actor): boolean {
 		// Can't be killed by a block we're pulling
 		return !other.isPulled
 	}
@@ -68,11 +75,7 @@ export abstract class Playable extends Actor {
 
 		// TODO Split screen
 
-		const canMove =
-			this.level.selectedPlayable === this &&
-			(!this.slidingState ||
-				(this.slidingState === SlidingState.WEAK && this.hasOverride)) &&
-			!forcedOnly
+		const canMove = this.getCanMove() && !forcedOnly
 
 		if (this.level.selectedPlayable === this && !forcedOnly) {
 			if (
