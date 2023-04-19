@@ -228,15 +228,35 @@ export class LevelSet {
 		const newLevelN = levelNums[currentIndex - 1]
 		if (!newLevelN) return null
 		const newRecord = this.seenLevels[newLevelN]
+		const scriptLevelN = newRecord.levelInfo.scriptState?.variables?.level ?? 0
+
+		if (scriptLevelN !== newLevelN)
+			throw new Error(
+				"Internal discrepency detected: script `level` variable and level record number don't match up."
+			)
+		const scriptPath = newRecord.levelInfo.scriptState?.scriptPath
+		const filePath = newRecord.levelInfo.levelFilePath
+		if (!scriptPath || !filePath)
+			throw new Error(
+				"The last level record doesn't have a script and map path set."
+			)
+
+		// After all of the sanity checks and preparations, apply the actual changes
+
 		this.currentLevel = newLevelN
-		// Also set the new script state
-		this.scriptRunner.state = newRecord.levelInfo.scriptState ?? {}
-		const scriptPath = this.scriptRunner.state.scriptPath
-		if (!scriptPath)
-			throw new Error("The last level record doesn't have a script path set.")
+		this.scriptRunner.state = clone(newRecord.levelInfo.scriptState!)
+
+		// Reload the script file, in case a `chain` happened between the current
+		// and next level
 
 		const scriptData = (await this.loaderFunction(scriptPath, false)) as string
 		this.scriptRunner.loadScript(scriptData, scriptPath)
+
+		// Make the interrupt the previous level should have
+		this.scriptRunner.scriptInterrupt = {
+			type: "map",
+			path: filePath,
+		}
 		return newRecord
 	}
 }
