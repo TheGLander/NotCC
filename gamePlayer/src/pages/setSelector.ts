@@ -152,12 +152,13 @@ export const setSelectorPage = {
 		})
 		const loadFileButton = page.querySelector<HTMLButtonElement>("#loadFile")!
 		const fileLoader = page.querySelector<HTMLInputElement>("#fileLoader")!
-		fileLoader.addEventListener("input", async () => {
+		fileLoader.addEventListener("change", async () => {
 			// There should ever be one file here
 			const file = fileLoader.files?.[0]
 			if (!file) return
 			const arrayBuffer = await file.arrayBuffer()
 			this.loadFile(pager, arrayBuffer, file.name)
+			directoryLoader.value = ""
 		})
 		loadFileButton.addEventListener("click", () => {
 			fileLoader.click()
@@ -166,10 +167,11 @@ export const setSelectorPage = {
 			page.querySelector<HTMLButtonElement>("#loadDirectory")!
 		const directoryLoader =
 			page.querySelector<HTMLInputElement>("#directoryLoader")!
-		directoryLoader.addEventListener("input", async () => {
+		directoryLoader.addEventListener("change", async () => {
 			if (!directoryLoader.files) return
 			const fileLoader = makeFileListFileLoader(directoryLoader.files)
 			this.loadSet(pager, fileLoader, buildFileListIndex(directoryLoader.files))
+			directoryLoader.value = ""
 		})
 		loadDirectoryButton.addEventListener("click", () => {
 			directoryLoader.click()
