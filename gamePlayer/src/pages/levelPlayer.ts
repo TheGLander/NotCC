@@ -118,7 +118,7 @@ export const levelPlayerPage = {
 			this.openNextLevel(pager)
 		})
 		this.completionButtons.restart.addEventListener("click", async () => {
-			pager.resetCurrentLevel()
+			pager.resetLevel()
 		})
 		this.gameOverlay = page.querySelector<HTMLElement>("#levelViewportOverlay")!
 		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
@@ -189,12 +189,6 @@ export const levelPlayerPage = {
 			this.currentLevel.cameraType.height.toString()
 		)
 		this.updateTextOutputs()
-	},
-	/**
-	 * Alias for `loadLevel`, since both do the same thing, but helps code readability
-	 */
-	resetLevel(pager: Pager): void {
-		this.loadLevel(pager)
 	},
 	endPreplay(): void {
 		this.isPreplay = false

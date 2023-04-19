@@ -83,14 +83,23 @@ export class Pager {
 		this.loadedLevel = newRecord.levelData!
 		this.updateShownLevelNumber()
 	}
-	async resetCurrentLevel(): Promise<void> {
+	/**
+	 * Resets the current level, complete with rerunning the script
+	 */
+	async resetLevel(): Promise<void> {
 		if (this.loadedSet) {
 			await this.loadNextLevel({ type: "retry" })
 		}
+		await this.reloadLevel()
+	}
+	/**
+	 * Reload level by asking the current page to re-make the `loadedLevel`.
+	 */
+	async reloadLevel(): Promise<void> {
 		// TODO Do this for Super Mode too
 		if (this.currentPage === levelPlayerPage) {
 			const page = this.currentPage as typeof levelPlayerPage
-			page.resetLevel(this)
+			page.loadLevel(this)
 		}
 	}
 	saveAttempt(attempt: protobuf.IAttemptInfo): void {

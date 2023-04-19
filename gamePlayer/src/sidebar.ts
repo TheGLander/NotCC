@@ -30,7 +30,7 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			name: "Reset level",
 			shortcut: "shift+r",
 			action(pager: Pager): void {
-				pager.resetCurrentLevel()
+				pager.resetLevel()
 			},
 			enabledPages: playerPages,
 		},
@@ -51,7 +51,7 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			shortcut: "shift+p",
 			async action(pager: Pager): Promise<void> {
 				await pager.loadPreviousLevel()
-				pager.resetCurrentLevel()
+				pager.reloadLevel()
 			},
 			enabledPages: playerPages,
 		},
@@ -60,7 +60,7 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			shortcut: "shift+n",
 			async action(pager: Pager): Promise<void> {
 				await pager.loadNextLevel({ type: "skip" })
-				pager.resetCurrentLevel()
+				pager.reloadLevel()
 			},
 			enabledPages: playerPages,
 		},
