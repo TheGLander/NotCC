@@ -94,6 +94,12 @@ export const setSelectorPage = {
 		// Open the first level
 		pager.loadedLevel = null
 		await pager.loadNextLevel({ type: "skip" })
+		// Oh, this set doesn't have levels...
+		if (pager.loadedLevel === null)
+			throw new Error(
+				"This set doesn't have levels, or the saved set info is broken."
+			)
+
 		pager.openPage(levelPlayerPage)
 	},
 
