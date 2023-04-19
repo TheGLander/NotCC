@@ -123,8 +123,9 @@ export class LevelSet {
 				throw new Error("An action for the current map must be set.")
 			this.scriptRunner.handleMapInterrupt(this.lastLevelResult)
 		}
-		const lastLevel = this.seenLevels[this.currentLevel]
-		let prologue: string | undefined
+		const lastLevel = this.seenLevels[this.currentLevel]?.levelInfo
+		let prologue: string | undefined = ""
+		let lastEpilogue: string | undefined = ""
 
 		let interrupt: ScriptInterrupt | null
 
@@ -133,11 +134,9 @@ export class LevelSet {
 			// Handle interrupts
 			if (interrupt?.type === "script") {
 				if (!lastLevel) {
-					prologue ??= ""
 					prologue += interrupt.text
 				} else {
-					lastLevel.levelInfo.epilogueText ??= ""
-					lastLevel.levelInfo.epilogueText += interrupt.text
+					lastEpilogue += interrupt.text
 				}
 				this.scriptRunner.scriptInterrupt = null
 			} else if (interrupt?.type === "chain") {
@@ -159,6 +158,10 @@ export class LevelSet {
 		this.currentLevel = levelN
 
 		const existingRecord = this.seenLevels[levelN]
+
+		if (lastLevel) {
+			lastLevel.epilogueText = lastEpilogue
+		}
 
 		const record: LevelSetRecord = {
 			levelInfo: {
