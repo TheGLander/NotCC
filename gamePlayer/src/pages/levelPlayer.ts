@@ -137,8 +137,10 @@ export const levelPlayerPage = {
 	gameState: GameState.PLAYING,
 	isPaused: false,
 	isPreplay: false,
+	isGz: false,
 	preplayKeyListener: null as KeyListener | null,
 	loadLevel(pager: Pager): void {
+		if (pager.loadedSet?.inPostGame) return
 		const level = pager.loadedLevel
 		if (!level)
 			throw new Error("Can't open the page since there isn't a loaded level.")
@@ -152,13 +154,9 @@ export const levelPlayerPage = {
 		this.renderer.level = this.currentLevel
 		this.gameState = GameState.PLAYING
 		this.isPaused = false
+		this.isGz = false
 		this.isPreplay = true
-		this.gameOverlay!.setAttribute(
-			"data-game-state",
-			GameState[this.gameState].toLowerCase()
-		)
-		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
-		setAttributeExistence(this.gameOverlay!, "data-preplay", this.isPreplay)
+		this.updateOverlayState()
 		this.renderer.cameraSize = this.currentLevel.cameraType
 		this.renderer.updateTileSize()
 		if (!this.viewportArea)
@@ -190,17 +188,27 @@ export const levelPlayerPage = {
 		)
 		this.updateTextOutputs()
 	},
+	updateOverlayState(): void {
+		this.gameOverlay!.setAttribute(
+			"data-game-state",
+			GameState[this.gameState].toLowerCase()
+		)
+		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
+		setAttributeExistence(this.gameOverlay!, "data-preplay", this.isPreplay)
+		setAttributeExistence(this.gameOverlay!, "data-gz", this.isGz)
+	},
 	endPreplay(): void {
 		this.isPreplay = false
-		setAttributeExistence(this.gameOverlay!, "data-preplay", this.isPreplay)
+		this.updateOverlayState()
 		this.preplayKeyListener?.remove()
 		this.preplayKeyListener = null
 	},
 	togglePaused(): void {
-		if (this.gameState !== GameState.PLAYING || this.isPreplay) return
+		if (this.gameState !== GameState.PLAYING || this.isPreplay || this.isGz)
+			return
 
 		this.isPaused = !this.isPaused
-		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
+		this.updateOverlayState()
 	},
 	// Transition from win
 
@@ -235,10 +243,7 @@ export const levelPlayerPage = {
 	},
 	startPostPlay(state: GameState): void {
 		this.gameState = state
-		this.gameOverlay?.setAttribute(
-			"data-game-state",
-			GameState[this.gameState].toLowerCase()
-		)
+		this.updateOverlayState()
 		this.findCurrentMainButton()?.focus()
 	},
 	findCurrentMainButton(): HTMLButtonElement | null {
@@ -280,7 +285,12 @@ export const levelPlayerPage = {
 	updateLogic(): void {
 		const level = this.currentLevel
 		if (!level) throw new Error("Cannot update the level without a level.")
-		if (this.gameState === GameState.TIMEOUT || this.isPaused || this.isPreplay)
+		if (
+			this.gameState === GameState.TIMEOUT ||
+			this.isPaused ||
+			this.isPreplay ||
+			this.isGz
+		)
 			return
 		level.gameInput = this.getInput()
 		this.attemptTracker!.recordAttemptStep(level.gameInput)
@@ -334,5 +344,17 @@ export const levelPlayerPage = {
 		this.preplayKeyListener?.remove()
 		this.preplayKeyListener = null
 		this.currentLevel = null
+	},
+	showInterlude(_pager: Pager, text: string): Promise<void> {
+		// TODO Use a text script page?
+		alert(text)
+		return Promise.resolve()
+	},
+	showGz(): void {
+		this.isGz = true
+		this.isPaused = false
+		this.isPreplay = false
+		this.gameState = GameState.PLAYING
+		this.updateOverlayState()
 	},
 }

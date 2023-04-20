@@ -23,6 +23,7 @@ export class LevelSet {
 	seenLevels: Record<number, LevelSetRecord>
 	scriptRunner: ScriptRunner
 	currentLevel: number
+	inPostGame = false
 	constructor(
 		mainScriptPath: string,
 		scriptData: string,
@@ -118,6 +119,8 @@ export class LevelSet {
 	}
 	lastLevelResult?: MapInterruptResponse
 	async getNextRecord(): Promise<LevelSetRecord | null> {
+		if (this.inPostGame) return null
+
 		if (this.scriptRunner.scriptInterrupt) {
 			if (!this.lastLevelResult)
 				throw new Error("An action for the current map must be set.")
@@ -152,7 +155,10 @@ export class LevelSet {
 		const recordInterrupt = interrupt as
 			| (ScriptInterrupt & { type: "map" })
 			| null
-		if (recordInterrupt === null) return null
+		if (recordInterrupt === null) {
+			this.inPostGame = true
+			return null
+		}
 
 		const levelN = this.scriptRunner.state.variables?.level ?? 0
 		this.currentLevel = levelN
@@ -218,14 +224,22 @@ export class LevelSet {
 	 * @returns `null` is returned if there's no previous level
 	 */
 	async getPreviousRecord(): Promise<LevelSetRecord | null> {
-		// Get all of the level numbers, and look at the previous one
-		// The last level isn't just the level - 1, since level numbers, unlike in
-		// CC1, don't have to have continuous level numbers
-		const levelNums = Object.keys(this.seenLevels)
-			.map(numStr => parseInt(numStr, 10))
-			.sort((a, b) => a - b)
-		const currentIndex = levelNums.indexOf(this.currentLevel)
-		const newLevelN = levelNums[currentIndex - 1]
+		let newLevelN: number
+		if (this.inPostGame) {
+			// If we're in postgame, return to the last level (technically, the
+			// scriptrunner *is* in the level after the last one, but the levelset
+			// considers this to be it's own state, which **DOESN'T** get saved.)
+			newLevelN = this.currentLevel
+		} else {
+			// Get all of the level numbers, and look at the previous one
+			// The last level isn't just the level - 1, since level numbers, unlike in
+			// CC1, don't have to have continuous level numbers
+			const levelNums = Object.keys(this.seenLevels)
+				.map(numStr => parseInt(numStr, 10))
+				.sort((a, b) => a - b)
+			const currentIndex = levelNums.indexOf(this.currentLevel)
+			newLevelN = levelNums[currentIndex - 1]
+		}
 		if (!newLevelN) return null
 		const newRecord = this.seenLevels[newLevelN]
 		const scriptLevelN = newRecord.levelInfo.scriptState?.variables?.level ?? 0
@@ -242,6 +256,9 @@ export class LevelSet {
 			)
 
 		// After all of the sanity checks and preparations, apply the actual changes
+
+		// If we were in postgame before, we aren't anymore!
+		this.inPostGame = false
 
 		this.currentLevel = newLevelN
 		this.scriptRunner.state = clone(newRecord.levelInfo.scriptState!)

@@ -453,6 +453,17 @@ kbd {
 			display: contents;
 		}
 	}
+	&[data-gz] {
+		background-image: radial-gradient(transparent, var(--general-bg) 70%),
+			repeating-radial-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00 30%);
+		background-position-x: calc(var(--tile-size) * -5);
+		background-position-y: calc(var(--tile-size) * -8.5);
+		background-size: 200% 200%;
+
+		#overlayGzContents {
+			display: contents;
+		}
+	}
 	> * {
 		display: none;
 		h3 {

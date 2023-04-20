@@ -1,7 +1,6 @@
 import { LevelData, LevelSet, MapInterruptResponse } from "@notcc/logic"
 import { loadingPage } from "./pages/loading"
 import { Tileset } from "./visuals"
-import { levelPlayerPage } from "./pages/levelPlayer"
 import { setSidebarLevelN } from "./sidebar"
 import { protobuf } from "@notcc/logic"
 import { saveSetInfo } from "./saveData"
@@ -12,6 +11,9 @@ export interface Page {
 	setupPage?: (pager: Pager, page: HTMLElement) => void
 	open?: (pager: Pager, page: HTMLElement) => void
 	close?: (pager: Pager, page: HTMLElement) => void
+	showInterlude?: (pager: Pager, text: string) => Promise<void>
+	showGz?: (pager: Pager) => void
+	loadLevel?: (page: Pager) => void
 }
 
 export class Pager {
@@ -57,18 +59,24 @@ export class Pager {
 		const newRecord = await this.loadedSet.getNextRecord()
 		// TODO Only show unique text
 		if (currentRecord && currentRecord.levelInfo.epilogueText) {
-			// TODO Use a text script page?
-			alert(currentRecord.levelInfo.epilogueText)
-		}
-		if (!newRecord) {
-			alert("You've finished the set, congratulations!!")
-			return
+			await this.currentPage.showInterlude?.(
+				this,
+				currentRecord.levelInfo.epilogueText
+			)
 		}
 		if (newRecord && newRecord.levelInfo.prologueText) {
-			alert(newRecord.levelInfo.prologueText)
+			await this.currentPage.showInterlude?.(
+				this,
+				newRecord.levelInfo.prologueText
+			)
 		}
-		this.loadedLevel = newRecord.levelData!
+		this.loadedLevel = newRecord
+			? newRecord.levelData!
+			: currentRecord.levelData!
 		this.updateShownLevelNumber()
+		if (!newRecord) {
+			this.currentPage.showGz?.(this)
+		}
 	}
 	async loadPreviousLevel(): Promise<void> {
 		if (!this.loadedSet)
@@ -96,11 +104,7 @@ export class Pager {
 	 * Reload level by asking the current page to re-make the `loadedLevel`.
 	 */
 	async reloadLevel(): Promise<void> {
-		// TODO Do this for Super Mode too
-		if (this.currentPage === levelPlayerPage) {
-			const page = this.currentPage as typeof levelPlayerPage
-			page.loadLevel(this)
-		}
+		this.currentPage.loadLevel?.(this)
 	}
 	saveAttempt(attempt: protobuf.IAttemptInfo): void {
 		if (!this.loadedSet) return
