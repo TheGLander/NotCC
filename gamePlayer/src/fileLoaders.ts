@@ -2,6 +2,10 @@ import { LevelSetLoaderFunction } from "@notcc/logic"
 import { AsyncUnzipOptions, Unzipped, unzip, unzipSync } from "fflate"
 import { join, normalize } from "path-browserify"
 
+function getFilePath(file: File): string {
+	return (file.webkitRelativePath ?? file.name).toLowerCase()
+}
+
 function unzipAsync(
 	zipData: ArrayBuffer,
 	options?: AsyncUnzipOptions
@@ -22,11 +26,12 @@ async function unzipFileAsync(
 	fileName: string
 ): Promise<Uint8Array> {
 	const unzipped = await unzipAsync(zipData, {
-		filter: zipInfo => zipInfo.name === fileName,
+		filter: zipInfo => zipInfo.name.toLowerCase() === fileName.toLowerCase(),
 	})
-	if (!unzipped[fileName])
+	const unzippedData = Object.values(unzipped)
+	if (unzippedData.length < 1)
 		throw new Error(`No such file ${fileName} in the zip archive.`)
-	return unzipped[fileName]
+	return unzippedData[0]
 }
 
 export function buildZipIndex(zipData: ArrayBuffer): string[] {
@@ -35,7 +40,7 @@ export function buildZipIndex(zipData: ArrayBuffer): string[] {
 	// about the contents, for now
 	unzipSync(new Uint8Array(zipData), {
 		filter: zipInfo => {
-			filePaths.push(zipInfo.name)
+			filePaths.push(zipInfo.name.toLowerCase())
 			return false
 		},
 	})
@@ -48,7 +53,7 @@ export function makeZipFileLoader(
 	// This is Latin-1
 	const decoder = new TextDecoder("iso-8859-1")
 	return async (path: string, binary: boolean) => {
-		const fileData = await unzipFileAsync(zipData, path)
+		const fileData = await unzipFileAsync(zipData, path.toLowerCase())
 		if (binary) return fileData.buffer
 		return decoder.decode(fileData)
 	}
@@ -61,17 +66,17 @@ export function makeFileListFileLoader(
 	const decoder = new TextDecoder("iso-8859-1")
 	const files: Record<string, File> = {}
 	for (const file of Array.from(fileList)) {
-		files[file.webkitRelativePath ?? file.name] = file
+		files[getFilePath(file)] = file
 	}
 	return async (path: string, binary: boolean) => {
-		const fileData = await files[path].arrayBuffer()
+		const fileData = await files[path.toLowerCase()].arrayBuffer()
 		if (binary) return fileData
 		return decoder.decode(fileData)
 	}
 }
 
 export function buildFileListIndex(fileList: FileList): string[] {
-	return Array.from(fileList).map(file => file.webkitRelativePath ?? file.name)
+	return Array.from(fileList).map(file => getFilePath(file))
 }
 
 export function makeLoaderWithPrefix(
