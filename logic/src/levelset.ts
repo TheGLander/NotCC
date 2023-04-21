@@ -274,6 +274,9 @@ export class LevelSet {
 			type: "map",
 			path: filePath,
 		}
+
+		await this.verifyLevelDataAvailability(newLevelN)
+
 		return newRecord
 	}
 }

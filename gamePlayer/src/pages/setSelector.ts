@@ -93,7 +93,12 @@ export const setSelectorPage = {
 		pager.loadedSet = set
 		// Open the first level
 		pager.loadedLevel = null
-		await pager.loadNextLevel({ type: "skip" })
+		await pager.loadNextLevel({ type: "retry" })
+		if (pager.loadedSet.inPostGame) {
+			// Whoops, we're in post-game
+			// Load the last level instead of crashing
+			await pager.loadPreviousLevel()
+		}
 		// Oh, this set doesn't have levels...
 		if (pager.loadedLevel === null)
 			throw new Error(
