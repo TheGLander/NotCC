@@ -91,9 +91,10 @@ export const setSelectorPage = {
 		}
 
 		pager.loadedSet = set
-		// Open the first level
-		pager.loadedLevel = null
-		await pager.loadNextLevel({ type: "retry" })
+		await set.verifyLevelDataAvailability(set.currentLevel)
+		// Open the current level
+		pager.loadedLevel = set.seenLevels[set.currentLevel].levelData!
+
 		if (pager.loadedSet.inPostGame) {
 			// Whoops, we're in post-game
 			// Load the last level instead of crashing

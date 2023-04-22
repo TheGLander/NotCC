@@ -71,13 +71,20 @@ export class LevelSet {
 					return [lvl.levelNumber, { levelInfo: lvl }]
 				})
 			)
-			const currentScriptState =
-				this.seenLevels[this.currentLevel].levelInfo.scriptState
+			const currentLevelInfo = this.seenLevels[this.currentLevel]?.levelInfo
+			if (!currentLevelInfo || !currentLevelInfo.levelFilePath)
+				throw new Error("Given set info doesn't have current level info.")
+
 			this.scriptRunner = new ScriptRunner(
 				scriptData,
-				currentScriptState?.scriptPath ?? undefined,
-				currentScriptState ?? undefined
+				currentLevelInfo.scriptState?.scriptPath ?? undefined,
+				clone(currentLevelInfo.scriptState) ?? undefined
 			)
+			// Recreate the interrupt the current level should have
+			this.scriptRunner.scriptInterrupt = {
+				type: "map",
+				path: currentLevelInfo.levelFilePath,
+			}
 		}
 	}
 	static async constructAsync(
