@@ -8,13 +8,39 @@ function makeFilePrefix(type: string) {
 	return `NotCC ${type}: `
 }
 
+const base64EncodedUI8Prefix = "\x7F\x00B64\x00\x7F"
+
+function encodeBinaryBase64(bin: Uint8Array): string {
+	return btoa(String.fromCharCode.apply(null, Array.from(bin)))
+}
+
+function decodeBinaryBase64(b64: string): Uint8Array {
+	return Uint8Array.from(atob(b64), char => char.charCodeAt(0))
+}
+
+function jsonStringifyUI8(data: any): string {
+	return JSON.stringify(data, (_key, val) =>
+		val instanceof Uint8Array
+			? `${base64EncodedUI8Prefix}${encodeBinaryBase64(val)}`
+			: val
+	)
+}
+
+function jsonParseUI8(data: any): string {
+	return JSON.parse(data, (_key, val) =>
+		typeof val === "string" && val.startsWith(base64EncodedUI8Prefix)
+			? decodeBinaryBase64(val.slice(base64EncodedUI8Prefix.length))
+			: val
+	)
+}
+
 export async function saveSetInfo(
 	solution: protobuf.ISetInfo,
 	fileName: string
 ): Promise<void> {
 	localStorage.setItem(
 		`${makeFilePrefix("solution")}${fileName}`,
-		compressToUTF16(JSON.stringify(solution))
+		compressToUTF16(jsonStringifyUI8(solution))
 	)
 }
 
@@ -23,5 +49,5 @@ export async function loadSetInfo(fileName: string): Promise<string> {
 		`${makeFilePrefix("solution")}${fileName}`
 	)
 	if (!compressedData) throw new Error(`File not fould: ${fileName}`)
-	return JSON.parse(decompressFromUTF16(compressedData))
+	return jsonParseUI8(decompressFromUTF16(compressedData))
 }
