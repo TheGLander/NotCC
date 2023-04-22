@@ -3,6 +3,7 @@ import isHotkey, { parseHotkey } from "is-hotkey"
 import { setSelectorPage } from "./pages/setSelector"
 import { levelPlayerPage } from "./pages/levelPlayer"
 import { openLevelListDialog } from "./levelList"
+import { protobuf } from "@notcc/logic"
 
 interface TooltipEntry {
 	name: string
@@ -11,9 +12,60 @@ interface TooltipEntry {
 	enabledPages?: Page[]
 }
 
-type TooltipEntries = (TooltipEntry | "breakline")[]
+type BasicTooltipEntry = TooltipEntry | "breakline"
+
+type TooltipEntryGenerator = (pager: Pager) => BasicTooltipEntry[]
+
+type TooltipEntries = (BasicTooltipEntry | TooltipEntryGenerator)[]
 
 const playerPages = [levelPlayerPage]
+
+interface TTSolutionEntry {
+	title: string
+	solution: protobuf.ISolutionInfo
+}
+
+function durationToSeconds(dur: protobuf.google.protobuf.IDuration): number {
+	return (
+		((dur.seconds as number) ?? 0) +
+		(dur.nanos ? (dur.nanos as number) / 1_000_000 : 0)
+	)
+}
+
+function generateSolutionTooltipEntries(pager: Pager): BasicTooltipEntry[] {
+	if (!pager.loadedLevel) return [{ name: "No level loaded.", shortcut: null }]
+	const shownSolutions: TTSolutionEntry[] = []
+	const builtinSolution = pager.loadedLevel?.associatedSolution
+	if (builtinSolution) {
+		shownSolutions.push({ title: "Built-in", solution: builtinSolution })
+	}
+	if (pager.loadedSet) {
+		const levelRecord = pager.loadedSet.seenLevels[pager.loadedSet.currentLevel]
+		const attempts = levelRecord.levelInfo.attempts
+		if (attempts) {
+			for (const attempt of attempts) {
+				if (attempt.failReason || !attempt.solution) continue
+				shownSolutions.push({ solution: attempt.solution, title: "Saved" })
+			}
+		}
+	}
+
+	if (shownSolutions.length === 0)
+		return [{ name: "No solutions found.", shortcut: null }]
+	return shownSolutions.map(solEntry => {
+		const timeLeft = solEntry.solution.outcome?.timeLeft
+		return {
+			name: `${solEntry.title} - ${
+				timeLeft ? `${Math.ceil(durationToSeconds(timeLeft))}s` : "???s"
+			}`,
+			shortcut: null,
+			action() {
+				// TODO
+				alert("Whoo playing back a solutoin")
+			},
+		}
+	})
+}
 
 export const tooltipGroups: Record<string, TooltipEntries> = {
 	selector: [
@@ -75,7 +127,11 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			enabledPages: playerPages,
 		},
 	],
-	solution: [],
+	solution: [
+		generateSolutionTooltipEntries,
+		"breakline",
+		{ name: "All attempts", shortcut: "shift+a" },
+	],
 	optimization: [],
 	settings: [{ name: "Settings", shortcut: "shift+c" }],
 	about: [{ name: "About", shortcut: null }],
@@ -108,8 +164,11 @@ export function openTooltip(
 			tooltipRoot.remove()
 		})
 	}
+	const basicTooltipEntries = tooltipContents
+		.map(ent => (typeof ent === "function" ? ent(pager) : [ent]))
+		.reduce((acc, ent) => acc.concat(...ent), [])
 
-	for (const tooltipEntry of tooltipContents) {
+	for (const tooltipEntry of basicTooltipEntries) {
 		if (tooltipEntry === "breakline") {
 			tooltipInsertionPoint.appendChild(document.createElement("hr"))
 			continue
