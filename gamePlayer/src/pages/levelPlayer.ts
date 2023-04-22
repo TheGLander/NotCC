@@ -263,8 +263,9 @@ export const levelPlayerPage = {
 	// Managing the live level state
 	attemptTracker: null as AttemptTracker | null,
 	submitAttemptUnbound(pager: Pager): void {
+		if (!this.attemptTracker) return
 		const level = this.currentLevel!
-		pager.saveAttempt(this.attemptTracker!.endAttempt(level))
+		pager.saveAttempt(this.attemptTracker.endAttempt(level))
 	},
 	submitAttempt: null as (() => void) | null,
 	getInput(): KeyInputs {
@@ -297,7 +298,7 @@ export const levelPlayerPage = {
 		)
 			return
 		level.gameInput = this.getInput()
-		this.attemptTracker!.recordAttemptStep(level.gameInput)
+		this.attemptTracker?.recordAttemptStep(level.gameInput)
 		level.tick()
 		this.updateTextOutputs()
 		if (
@@ -363,6 +364,7 @@ export const levelPlayerPage = {
 	},
 	async loadSolution(pager: Pager, sol: protobuf.ISolutionInfo): Promise<void> {
 		this.loadLevel(pager)
+		this.attemptTracker = null
 		this.currentLevel!.playbackSolution(sol)
 		this.basePage!.classList.add("solutionPlayback")
 		this.endPreplay()
