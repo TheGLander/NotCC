@@ -49,8 +49,11 @@ export class AttemptTracker {
 			throw new Error(
 				"Can't reallocate the step array due to no current attempt.."
 			)
+		let newLength = this.attemptSteps.length * 1.5
+		// Makes sure we always have space to save the last time amount
+		if (newLength % 2 !== 0) newLength += 1
 
-		const newArr = new Uint8Array(this.attemptSteps.length * 1.5)
+		const newArr = new Uint8Array(newLength)
 		newArr.set(this.attemptSteps)
 		this.attemptSteps = newArr
 	}
