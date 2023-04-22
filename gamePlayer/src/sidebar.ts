@@ -60,8 +60,7 @@ function generateSolutionTooltipEntries(pager: Pager): BasicTooltipEntry[] {
 			}`,
 			shortcut: null,
 			action() {
-				// TODO
-				alert("Whoo playing back a solutoin")
+				pager.loadSolution(solEntry.solution)
 			},
 		}
 	})

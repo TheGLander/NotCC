@@ -5,6 +5,7 @@ import {
 	KeyInputs,
 	LevelState,
 	ScriptLegalInventoryTool,
+	protobuf,
 } from "@notcc/logic"
 import { Pager } from "../pager"
 import Renderer from "../visuals"
@@ -71,6 +72,7 @@ function setAttributeExistence(
 export const levelPlayerPage = {
 	pageId: "levelPlayerPage",
 	// Binding HTML stuff
+	basePage: null as HTMLElement | null,
 	renderer: null as Renderer | null,
 	textOutputs: null as TextOutputs | null,
 	completionButtons: null as CompletionButton | null,
@@ -82,6 +84,7 @@ export const levelPlayerPage = {
 		setupKeyListener()
 		if (!pager.tileset)
 			throw new Error("The level player page cannot be opened with no tileset.")
+		this.basePage = page
 		const viewportCanvas = page.querySelector<HTMLCanvasElement>(
 			"#levelViewportCanvas"
 		)!
@@ -140,6 +143,7 @@ export const levelPlayerPage = {
 	isGz: false,
 	preplayKeyListener: null as KeyListener | null,
 	loadLevel(pager: Pager): void {
+		this.basePage!.classList.remove("solutionPlayback")
 		if (pager.loadedSet?.inPostGame) return
 		const level = pager.loadedLevel
 		if (!level)
@@ -356,5 +360,11 @@ export const levelPlayerPage = {
 		this.isPreplay = false
 		this.gameState = GameState.PLAYING
 		this.updateOverlayState()
+	},
+	async loadSolution(pager: Pager, sol: protobuf.ISolutionInfo): Promise<void> {
+		this.loadLevel(pager)
+		this.currentLevel!.playbackSolution(sol)
+		this.basePage!.classList.add("solutionPlayback")
+		this.endPreplay()
 	},
 }

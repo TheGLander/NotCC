@@ -347,6 +347,16 @@ kbd {
 	--tile-scale: 2;
 	--tile-size: calc(var(--base-tile-size) * var(--tile-scale));
 	--quarter-tile: calc(var(--tile-size) / 4);
+	&.solutionPlayback {
+		background: repeating-linear-gradient(
+				45deg,
+				transparent 0%,
+				transparent 10%,
+				#ff0b 10%,
+				#ff0b 20%
+			),
+			var(--general-bg);
+	}
 	.stats {
 		grid-area: stats;
 		display: grid;

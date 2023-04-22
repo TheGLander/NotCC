@@ -14,6 +14,7 @@ export interface Page {
 	showInterlude?: (pager: Pager, text: string) => Promise<void>
 	showGz?: (pager: Pager) => void
 	loadLevel?: (page: Pager) => void
+	loadSolution?: (pager: Pager, sol: protobuf.ISolutionInfo) => Promise<void>
 }
 
 export class Pager {
@@ -121,5 +122,10 @@ export class Pager {
 			throw new Error("The loaded set does not have an identifier set.")
 
 		saveSetInfo(this.loadedSet.toSetInfo(), scriptTitle)
+	}
+	async loadSolution(sol: protobuf.ISolutionInfo): Promise<void> {
+		if (!this.currentPage.loadSolution)
+			throw new Error("Current page doesn't support solution playback.")
+		await this.currentPage.loadSolution(this, sol)
 	}
 }
