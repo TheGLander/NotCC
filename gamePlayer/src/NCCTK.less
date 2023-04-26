@@ -32,6 +32,11 @@ body {
 	}
 }
 
+// TODO Come up with a better color for links
+a {
+	color: var(--text-color);
+}
+
 // Non-firefox custom scrollbar
 
 ::-webkit-scrollbar {
@@ -452,9 +457,16 @@ kbd {
 		}
 	}
 	&[data-paused] {
-		background-image: radial-gradient(#0004, #0008);
+		background: var(--general-bg);
 		#overlayPauseContents {
 			display: contents;
+			.container {
+				background: var(--secondary-bg);
+			}
+			h4 {
+				margin-top: 0.3em;
+				margin-bottom: 0.7em;
+			}
 		}
 	}
 	&[data-preplay] {

@@ -50,11 +50,14 @@ interface TextOutputs {
 	bonusPoints: HTMLElement
 }
 
-interface CompletionButton {
+interface OverlayButtons {
 	restart: HTMLElement
 	nextLevel: HTMLElement
 	scores: HTMLElement
 	explodeJupiter: HTMLElement
+	unpause: HTMLElement
+	gzLeveList: HTMLElement
+	gzSetSelector: HTMLElement
 }
 
 function setAttributeExistence(
@@ -75,7 +78,7 @@ export const levelPlayerPage = {
 	basePage: null as HTMLElement | null,
 	renderer: null as Renderer | null,
 	textOutputs: null as TextOutputs | null,
-	completionButtons: null as CompletionButton | null,
+	overlayButtons: null as OverlayButtons | null,
 	gameOverlay: null as HTMLElement | null,
 	overlayLevelName: null as HTMLElement | null,
 	viewportArea: null as HTMLElement | null,
@@ -103,25 +106,34 @@ export const levelPlayerPage = {
 			!this.textOutputs.bonusPoints
 		)
 			throw new Error("Could not find the text output elements.")
-		this.completionButtons = {
+		this.overlayButtons = {
 			restart: page.querySelector("#restartButton")!,
 			explodeJupiter: page.querySelector("#explodeJupiterButton")!,
 			nextLevel: page.querySelector("#nextLevelButton")!,
 			scores: page.querySelector("#scoresButton")!,
+			unpause: page.querySelector("#unpauseButton")!,
+			gzLeveList: page.querySelector("#gzLevelListButton")!,
+			gzSetSelector: page.querySelector("#gzSetSelectorButton")!,
 		}
 
 		if (
-			!this.completionButtons.scores ||
-			!this.completionButtons.explodeJupiter ||
-			!this.completionButtons.restart ||
-			!this.completionButtons.nextLevel
+			!this.overlayButtons.scores ||
+			!this.overlayButtons.explodeJupiter ||
+			!this.overlayButtons.restart ||
+			!this.overlayButtons.nextLevel ||
+			!this.overlayButtons.unpause ||
+			!this.overlayButtons.gzLeveList ||
+			!this.overlayButtons.gzSetSelector
 		)
 			throw new Error("Could not find the completion button elements.")
-		this.completionButtons.nextLevel.addEventListener("click", () => {
+		this.overlayButtons.nextLevel.addEventListener("click", () => {
 			this.openNextLevel(pager)
 		})
-		this.completionButtons.restart.addEventListener("click", async () => {
+		this.overlayButtons.restart.addEventListener("click", async () => {
 			pager.resetLevel()
+		})
+		this.overlayButtons.unpause.addEventListener("click", async () => {
+			this.togglePaused()
 		})
 		this.gameOverlay = page.querySelector<HTMLElement>("#levelViewportOverlay")!
 		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
