@@ -286,4 +286,40 @@ export class LevelSet {
 
 		return newRecord
 	}
+	/**
+	 * Figures out the level record this levelset is currently at and returns it.
+	 * Should only be used right after constructing this set. Reloading the
+	 * current record after restarting should be done by passing the retry
+	 * `map` interrupt to `getNextLevel` instead.
+	 */
+	async getCurrentRecord(): Promise<LevelSetRecord> {
+		if (Object.keys(this.seenLevels).length === 0) {
+			// If we have seen no levels, this must be a new set, so just open the
+			// first level
+			const record = await this.getNextRecord()
+			if (record === null) {
+				throw new Error("This set appears to have no levels.")
+			}
+			return record
+		} else {
+			// This set already has data. Just verify that the level data exists and
+			// return the `currentLevel` level record.
+			let record: LevelSetRecord | null = this.seenLevels[this.currentLevel]
+			if (record === null) {
+				// Try loading the level before this one. This may be an incorrectly
+				// written save in postgame. (Have to get the next record first, to
+				// detect if we're in postgame)
+				const nextRecord = await this.getNextRecord()
+				if (nextRecord === null && this.inPostGame) {
+					record = await this.getPreviousRecord()
+				}
+				if (record === null)
+					throw new Error(
+						"This set appears to currently be on an non-existent level."
+					)
+			}
+			await this.verifyLevelDataAvailability(this.currentLevel)
+			return record
+		}
+	}
 }

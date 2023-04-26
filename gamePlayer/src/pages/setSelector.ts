@@ -91,15 +91,9 @@ export const setSelectorPage = {
 		}
 
 		pager.loadedSet = set
-		await set.verifyLevelDataAvailability(set.currentLevel)
-		// Open the current level
-		pager.loadedLevel = set.seenLevels[set.currentLevel].levelData!
+		const record = await set.getCurrentRecord()
+		pager.loadedLevel = record.levelData!
 
-		if (pager.loadedSet.inPostGame) {
-			// Whoops, we're in post-game
-			// Load the last level instead of crashing
-			await pager.loadPreviousLevel()
-		}
 		// Oh, this set doesn't have levels...
 		if (pager.loadedLevel === null)
 			throw new Error(
