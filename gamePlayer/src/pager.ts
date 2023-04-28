@@ -44,12 +44,22 @@ export class Pager {
 		oldPageElement.classList.add("closedPage")
 		this._initPage(newPage)
 	}
-	getLevelNumber(): number | null {
-		return this.loadedSet ? this.loadedSet.currentLevel : null
+	getLevelNumber(): number | "not in set" | "not in level" {
+		if (this.loadedSet) return this.loadedSet.currentLevel
+		if (this.loadedLevel) return "not in set"
+		return "not in level"
 	}
 	updateShownLevelNumber(): void {
 		const levelN = this.getLevelNumber()
-		setSidebarLevelN(levelN === null ? "X" : levelN.toString())
+		let levelText: string
+		if (typeof levelN === "number") {
+			levelText = levelN.toString()
+		} else if (levelN === "not in set") {
+			levelText = "X"
+		} else {
+			levelText = "?"
+		}
+		setSidebarLevelN(levelText)
 	}
 	async loadNextLevel(action: MapInterruptResponse): Promise<void> {
 		if (!this.loadedSet)

@@ -185,4 +185,9 @@ export const setSelectorPage = {
 			directoryLoader.click()
 		})
 	},
+	open(pager: Pager): void {
+		pager.loadedLevel = null
+		pager.loadedSet = null
+		pager.updateShownLevelNumber()
+	},
 }
