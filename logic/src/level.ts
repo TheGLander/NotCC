@@ -94,7 +94,7 @@ onLevelDecisionTick.push(level => {
 })
 
 export const releasableKeys = ["drop", "rotateInv", "switchPlayable"] as const
-type ReleasableKeys = typeof releasableKeys[number]
+type ReleasableKeys = (typeof releasableKeys)[number]
 
 export function decodeSolutionStep(step: number): KeyInputs {
 	return {
@@ -370,7 +370,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 		level.blob4PatternsMode = data.blobMode === 4
 	}
 	level.cameraType = data.camera
-	level.timeLeft = data.timeLimit * 60
+	level.timeLeft = Math.max(0, data.timeLimit * 60 - 1)
 	if (data.playablesRequiredToExit !== "all")
 		level.playablesLeft = data.playablesRequiredToExit
 	if (data.extraChipsRequired) level.chipsRequired = data.extraChipsRequired
