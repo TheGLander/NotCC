@@ -22,8 +22,8 @@ import "./art"
 import { Pager } from "./pager"
 import { generateShortcutListener, generateTabButtons } from "./sidebar"
 
-import { KeyListener } from "./keyListener"
 import { loadSetInfo, saveSetInfo } from "./saveData"
+import { KeyListener } from "./utils"
 
 const pager = new Pager()
 

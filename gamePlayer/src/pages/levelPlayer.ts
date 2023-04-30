@@ -9,8 +9,7 @@ import {
 } from "@notcc/logic"
 import { Pager } from "../pager"
 import Renderer from "../visuals"
-import { AnimationTimer, TimeoutIntervalTimer } from "../timers"
-import { KeyListener } from "../keyListener"
+import { AnimationTimer, TimeoutIntervalTimer, KeyListener } from "../utils"
 import { setSelectorPage } from "./setSelector"
 
 const heldKeys: Partial<Record<string, true>> = {}

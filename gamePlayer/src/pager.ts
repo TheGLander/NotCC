@@ -4,8 +4,9 @@ import { Tileset } from "./visuals"
 import { setSidebarLevelN } from "./sidebar"
 import { protobuf } from "@notcc/logic"
 import { loadSettings, saveSetInfo, saveSettings } from "./saveData"
-import { Settings, ThemeColors, applyTheme, defaultSettings } from "./settings"
+import { Settings, defaultSettings } from "./settings"
 import rfdc from "rfdc"
+import { ThemeColors, applyTheme } from "./themes"
 
 const clone = rfdc()
 
