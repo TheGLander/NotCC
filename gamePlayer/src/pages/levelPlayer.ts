@@ -185,9 +185,9 @@ export const levelPlayerPage = {
 		})
 		if (this.overlayLevelName) {
 			const levelN = pager.getLevelNumber()
-			this.overlayLevelName.textContent = `${levelN ? `#${levelN}: ` : ""}${
-				level.name ?? "Unnamed level"
-			}`
+			this.overlayLevelName.textContent = `${
+				levelN !== "not in set" ? `#${levelN}: ` : ""
+			}${level.name ?? "Unnamed level"}`
 		}
 		this.attemptTracker = new AttemptTracker(
 			this.currentLevel.blobPrngValue,
@@ -324,10 +324,17 @@ export const levelPlayerPage = {
 	updateRender(): void {
 		this.renderer!.frame()
 	},
-	updateTileset(pager: Pager, page: HTMLElement): void {
+	updateTileset(pager: Pager): void {
 		if (!pager.tileset)
 			throw new Error("Can't update the tileset without a tileset.")
-		if (!this.renderer) throw new Error("Can't update ")
+		if (!this.renderer)
+			throw new Error("Can't update the tileset without a renderer.")
+		const page = this.basePage
+		if (!page)
+			throw new Error("Can't update the tileset wihout being opened first.")
+
+		this.renderer.tileset = pager.tileset
+		this.renderer.updateTileSize()
 		page.style.setProperty(
 			"--base-tile-size",
 			`${pager.tileset.tileSize.toString()}px`
@@ -337,11 +344,11 @@ export const levelPlayerPage = {
 	},
 	logicTimer: null as TimeoutIntervalTimer | null,
 	renderTimer: null as AnimationTimer | null,
-	open(pager: Pager, page: HTMLElement): void {
-		this.updateTileset(pager, page)
+	open(pager: Pager): void {
 		if (!pager.loadedLevel)
 			throw new Error("Cannot open the level player page with a level to play.")
 		this.loadLevel(pager)
+		this.updateTileset(pager)
 		this.updateTextOutputs()
 		this.logicTimer = new TimeoutIntervalTimer(
 			this.updateLogic.bind(this),
