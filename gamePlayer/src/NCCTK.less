@@ -1,6 +1,4 @@
-body {
-	font-family: sans-serif;
-	--theme-color-huesat: 212deg 70%;
+.colorCalculations {
 	--general-bg: hsl(var(--theme-color-huesat) 20%);
 	--secondary-bg: hsl(var(--theme-color-huesat) 13%);
 	--page-bg-brightness: 40%;
@@ -10,6 +8,18 @@ body {
 	--page-bg-lighter-color: hsl(
 		var(--theme-color-huesat) calc(var(--page-bg-brightness) * 125 / 100)
 	);
+	--background-gradient: linear-gradient(
+		to top left,
+		var(--page-bg-darker-color),
+		var(--page-bg-lighter-color)
+	);
+	color: var(--text-color);
+}
+
+body {
+	font-family: sans-serif;
+	--theme-color-huesat: 212deg 70%;
+	.colorCalculations();
 	--text-color: hsl(0, 0%, 85%);
 	--text-color-disabled: hsl(0, 0%, 40%);
 	--icon-color: var(--text-color);
@@ -17,18 +27,13 @@ body {
 	--time-unknown: hsl(210, 100%, 50%);
 	--time-better: hsl(120, 100%, 25%);
 	--time-worse: hsl(0, 100%, 40%);
-	color: var(--text-color);
 	&.gameBody {
 		margin: 0;
 		display: flex;
 		flex-direction: row;
 		width: 100vw;
 		height: 100vh;
-		background: linear-gradient(
-			to top left,
-			var(--page-bg-darker-color),
-			var(--page-bg-lighter-color)
-		);
+		background: var(--background-gradient);
 	}
 }
 
@@ -85,6 +90,7 @@ dialog {
 	footer {
 		display: flex;
 		justify-content: flex-end;
+		gap: 0.5em;
 		button {
 			height: 2em;
 		}
@@ -130,6 +136,28 @@ table#levelList {
 				.tableBorderRadius(5px);
 			}
 		}
+	}
+}
+
+dialog.textDialog section {
+	padding-left: 1em;
+	.preference {
+		display: flex;
+		justify-content: space-between;
+		width: 60%;
+		margin: 0.5rem;
+	}
+}
+
+button.themeButton {
+	.colorCalculations();
+	padding: 0.2em;
+	.themeCircle {
+		width: 1.3em;
+		height: 1.3em;
+		border-radius: 50%;
+		background: var(--background-gradient);
+		border: solid 0.25em var(--text-color);
 	}
 }
 

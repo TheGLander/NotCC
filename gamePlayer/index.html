@@ -52,6 +52,43 @@
 
 			<footer><button class="closeButton">Ok</button></footer>
 		</dialog>
+		<dialog id="themeSelectorDialog" class="textDialog">
+			<form method="dialog">
+				<header>Theme select</header>
+				<section>
+					<div class="preference">
+						<label for="themeHue">Hue:</label>
+						<input id="themeHue" type="range" min="0" max="360" />
+					</div>
+					<div class="preference">
+						<label for="themeSaturation">Saturation:</label>
+						<input id="themeSaturation" type="range" min="0" max="100" />
+					</div>
+				</section>
+				<footer>
+					<button value="ok" type="submit">Ok</button>
+					<button value="cancel" type="submit">Cancel</button>
+				</footer>
+			</form>
+		</dialog>
+		<dialog id="settingsDialog" class="textDialog">
+			<form method="dialog">
+				<header>Settings</header>
+				<section>
+					<h3>Visuals</h3>
+					<div class="preference">
+						<label for="mainTheme">Main theme:</label>
+						<button type="button" id="mainTheme" class="themeButton">
+							<div class="themeCircle"></div>
+						</button>
+					</div>
+				</section>
+				<footer>
+					<button value="ok" type="submit">Ok</button>
+					<button value="cancel" type="submit">Cancel</button>
+				</footer>
+			</form>
+		</dialog>
 		<main id="loadingPage" class="container"><p>Loading, standy...</p></main>
 		<main id="levelPlayerPage" class="container closedPage">
 			<div class="viewportArea">

@@ -4,6 +4,7 @@ import { setSelectorPage } from "./pages/setSelector"
 import { levelPlayerPage } from "./pages/levelPlayer"
 import { openLevelListDialog } from "./levelList"
 import { protobuf } from "@notcc/logic"
+import { openSettingsDialog } from "./settings"
 
 interface TooltipEntry {
 	name: string
@@ -132,7 +133,15 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 		{ name: "All attempts", shortcut: "shift+a" },
 	],
 	optimization: [],
-	settings: [{ name: "Settings", shortcut: "shift+c" }],
+	settings: [
+		{
+			name: "Settings",
+			shortcut: "shift+c",
+			action(pager: Pager): void {
+				openSettingsDialog(pager)
+			},
+		},
+	],
 	about: [{ name: "About", shortcut: null }],
 }
 

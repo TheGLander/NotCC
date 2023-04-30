@@ -3,7 +3,11 @@ import { loadingPage } from "./pages/loading"
 import { Tileset } from "./visuals"
 import { setSidebarLevelN } from "./sidebar"
 import { protobuf } from "@notcc/logic"
-import { saveSetInfo } from "./saveData"
+import { loadSettings, saveSetInfo, saveSettings } from "./saveData"
+import { Settings, ThemeColors, applyTheme, defaultSettings } from "./settings"
+import rfdc from "rfdc"
+
+const clone = rfdc()
 
 export interface Page {
 	pageId: string
@@ -11,6 +15,7 @@ export interface Page {
 	setupPage?: (pager: Pager, page: HTMLElement) => void
 	open?: (pager: Pager, page: HTMLElement) => void
 	close?: (pager: Pager, page: HTMLElement) => void
+	updateTileset?: (pager: Pager) => void
 	showInterlude?: (pager: Pager, text: string) => Promise<void>
 	showGz?: (pager: Pager) => void
 	loadLevel?: (page: Pager) => void
@@ -22,6 +27,7 @@ export class Pager {
 	loadedSet: LevelSet | null = null
 	loadedLevel: LevelData | null = null
 	tileset: Tileset | null = null
+	settings: Settings = clone(defaultSettings)
 	constructor() {
 		this._initPage(loadingPage)
 	}
@@ -137,5 +143,23 @@ export class Pager {
 		if (!this.currentPage.loadSolution)
 			throw new Error("Current page doesn't support solution playback.")
 		await this.currentPage.loadSolution(this, sol)
+	}
+	setTheme(theme: ThemeColors): void {
+		applyTheme(document.body, theme)
+	}
+	updateTheme(): void {
+		this.setTheme(this.settings.mainTheme)
+	}
+	reloadSettings(): void {
+		this.updateTheme()
+	}
+	async saveSettings(newSettings: Settings): Promise<void> {
+		this.settings = newSettings
+		this.reloadSettings()
+		await saveSettings(this.settings)
+	}
+	async loadSettings(): Promise<void> {
+		this.settings = await loadSettings()
+		this.reloadSettings()
 	}
 }

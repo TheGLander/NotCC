@@ -1,11 +1,12 @@
 import { protobuf } from "@notcc/logic"
 import { compressToUTF16, decompressFromUTF16 } from "lz-string"
+import { Settings } from "./settings"
 
 // NOTE: This is structured this way so that the Neutralino-based Desktop
 // version can swap out localStorage for native FS API seamlessly.
 
 function makeFilePrefix(type: string) {
-	return `NotCC ${type}: `
+	return `NotCC ${type}`
 }
 
 const base64EncodedUI8Prefix = "\x7F\x00B64\x00\x7F"
@@ -39,15 +40,25 @@ export async function saveSetInfo(
 	fileName: string
 ): Promise<void> {
 	localStorage.setItem(
-		`${makeFilePrefix("solution")}${fileName}`,
+		`${makeFilePrefix("solution")}: ${fileName}`,
 		compressToUTF16(jsonStringifyUI8(solution))
 	)
 }
 
 export async function loadSetInfo(fileName: string): Promise<string> {
 	const compressedData = localStorage.getItem(
-		`${makeFilePrefix("solution")}${fileName}`
+		`${makeFilePrefix("solution")}: ${fileName}`
 	)
 	if (!compressedData) throw new Error(`File not fould: ${fileName}`)
 	return jsonParseUI8(decompressFromUTF16(compressedData))
+}
+
+export async function saveSettings(settings: Settings): Promise<void> {
+	localStorage.setItem(makeFilePrefix("settings"), JSON.stringify(settings))
+}
+
+export async function loadSettings(): Promise<Settings> {
+	const settings = localStorage.getItem(makeFilePrefix("settings"))
+	if (!settings) throw new Error("Settings file not found")
+	return JSON.parse(settings)
 }
