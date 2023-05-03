@@ -34,7 +34,7 @@ export function makeLevelStateInfo(
 
 export class AttemptTracker {
 	currentAttempt: IAttemptInfo
-	attemptStartTime: number = performance.now()
+	attemptStartTime: number = Date.now()
 	currentStep = -1
 
 	attemptSteps: Uint8Array = new Uint8Array(100)
@@ -88,7 +88,7 @@ export class AttemptTracker {
 		)
 			throw new Error("The attempt must start before it can end.")
 		this.currentAttempt.attemptLength = msToProtoTime(
-			performance.now() - this.attemptStartTime
+			Date.now() - this.attemptStartTime
 		)
 		if (level.gameState !== GameState.WON) {
 			// If we didn't win, scrap the solution info

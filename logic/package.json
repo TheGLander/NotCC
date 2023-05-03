@@ -7,13 +7,13 @@
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build-proto": "yarn pbjs -t json-module src/parsers/nccs.proto -o src/parsers/nccs.pb.js && yarn build-proto-types",
-		"build-proto-types": "yarn pbjs -t static-module src/parsers/nccs.proto -o tmp_nccs.js && yarn pbts -o src/parsers/nccs.pb.d.ts tmp_nccs.js;rm tmp_nccs.js",
-		"build": "yarn build-proto && tsc",
+		"build-proto": "pbjs -t json-module src/parsers/nccs.proto -o src/parsers/nccs.pb.js && pnpm build-proto-types",
+		"build-proto-types": "pbjs -t static-module src/parsers/nccs.proto -o tmp_nccs.js && pbts -o src/parsers/nccs.pb.d.ts tmp_nccs.js;rm tmp_nccs.js",
+		"build": "pnpm build-proto && tsc",
 		"watch": "tsc --watch --declaration",
 		"copy-proto-files": "cp ./src/parsers/*.pb.* ./dist/parsers",
-		"build:prod": "rm -rf dist && yarn build && yarn copy-proto-files",
-		"publish": "yarn build:prod"
+		"build:prod": "rm -rf dist && pnpm build && pnpm copy-proto-files",
+		"publish": "pnpm build:prod"
 	},
 	"repository": {
 		"type": "git",
@@ -26,6 +26,8 @@
 	},
 	"homepage": "https://github.com/TheGLander/NotCC#readme",
 	"devDependencies": {
+		"@types/node": "^15.3.0",
+		"long": "^5.2.3",
 		"protobufjs-cli": "^1.1.1",
 		"typescript": "^4.7.3"
 	},

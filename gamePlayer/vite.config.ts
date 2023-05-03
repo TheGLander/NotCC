@@ -1,4 +1,5 @@
 import { defineConfig } from "vite"
+import { join } from "path"
 
 export default defineConfig({
 	optimizeDeps: {
@@ -13,6 +14,8 @@ export default defineConfig({
 	},
 	base: "./",
 	assetsInclude: ["**/*.c2m"],
-	resolve: { alias: { path: "path-browserify" } },
+	resolve: {
+		alias: { path: join(process.cwd(), "node_modules/path-browserify") },
+	},
 	esbuild: { sourcemap: false },
 })

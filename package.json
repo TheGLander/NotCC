@@ -5,20 +5,10 @@
 		"@typescript-eslint/eslint-plugin": "^4.19.0",
 		"@typescript-eslint/parser": "^4.19.0",
 		"eslint": "^7.0.0",
-		"eslint-config-prettier": "^8.1.0"
+		"eslint-config-prettier": "^8.1.0",
+		"typescript": "^5.0.4"
 	},
 	"scripts": {
-		"build-web": "yarn && yarn workspace @notcc/logic run build:prod && yarn workspace @notcc/player build"
-	},
-	"workspaces": {
-		"packages": [
-			"cli",
-			"gamePlayer",
-			"logic"
-		],
-		"nohoist": [
-			"**/path",
-			"**/path/**"
-		]
+		"build-web": "pnpm i && pnpm --filter @notcc/logic run build:prod && pnpm --filter @notcc/player build"
 	}
 }
