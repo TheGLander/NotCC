@@ -13,6 +13,17 @@
 				<div class="tooltipBox container buttonTooltipBox"></div>
 			</div>
 		</template>
+		<template id="tilesetInfoTemplate">
+			<span>
+				<h3 id="tsetTitle">Tile World</h3>
+				<p id="tsetDescription">Blah bleh bloh</p>
+				<p>
+					By: <span id="tsetCredits">48px</span><br />
+					Tile size: <span id="tsetTileSize">48px</span><br />
+					Wire width: <span id="tsetWireWidth">2px</span>
+				</p>
+			</span>
+		</template>
 		<nav class="sidebar container">
 			<div title="Set Selector" class="sidebarButton" id="selectorTab">
 				<img src="./tabIcons/leaf.svg" tabindex="0" draggable="false" />
@@ -64,6 +75,27 @@
 						<label for="themeSaturation">Saturation:</label>
 						<input id="themeSaturation" type="range" min="0" max="100" />
 					</div>
+				</section>
+				<footer>
+					<button value="ok" type="submit">Ok</button>
+					<button value="cancel" type="submit">Cancel</button>
+				</footer>
+			</form>
+		</dialog>
+		<dialog id="tilesetSelectorDialog">
+			<form method="dialog">
+				<header>Tileset select</header>
+				<section>
+					<table id="tilesetList">
+						<thead>
+							<tr>
+								<th rowspan="1" style="width: 10%">Selected</th>
+								<th rowspan="1">Preview</th>
+								<th rowspan="1">Info</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
 				</section>
 				<footer>
 					<button value="ok" type="submit">Ok</button>

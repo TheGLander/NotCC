@@ -24,6 +24,7 @@ import { generateShortcutListener, generateTabButtons } from "./sidebar"
 
 import { loadSetInfo, saveSetInfo } from "./saveData"
 import { KeyListener } from "./utils"
+import { openTilesetSelectortDialog } from "./tilesets"
 
 const pager = new Pager()
 
@@ -65,6 +66,7 @@ const exportObject = {
 	pager,
 	loadSolution: loadSetInfo,
 	saveSolution: saveSetInfo,
+	openTilesetSelectortDialog,
 }
 
 ;(globalThis as any).NotCC = exportObject

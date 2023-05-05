@@ -7,10 +7,12 @@ const clone = rfdc()
 
 export interface Settings {
 	mainTheme: ThemeColors
+	tileset: string
 }
 
 export const defaultSettings: Settings = {
 	mainTheme: { hue: 212, saturation: 80 },
+	tileset: "cga16",
 }
 
 const settingsDialog =

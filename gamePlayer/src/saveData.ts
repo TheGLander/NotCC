@@ -1,6 +1,7 @@
 import { protobuf } from "@notcc/logic"
 import { compressToUTF16, decompressFromUTF16 } from "lz-string"
 import { Settings } from "./settings"
+import { fetchImage } from "./visuals"
 
 // NOTE: This is structured this way so that the Neutralino-based Desktop
 // version can swap out localStorage for native FS API seamlessly.
@@ -61,4 +62,30 @@ export async function loadSettings(): Promise<Settings> {
 	const settings = localStorage.getItem(makeFilePrefix("settings"))
 	if (!settings) throw new Error("Settings file not found")
 	return JSON.parse(settings)
+}
+
+export async function saveImage(
+	image: HTMLCanvasElement,
+	fileName: string
+): Promise<void> {
+	localStorage.setItem(
+		`${makeFilePrefix("image")}: ${fileName}`,
+		image.toDataURL("image/png")
+	)
+}
+
+export async function loadImage(fileName: string): Promise<HTMLCanvasElement> {
+	const imageData = localStorage.getItem(
+		`${makeFilePrefix("image")}: ${fileName}`
+	)
+	if (imageData === null) throw new Error("Image not found")
+
+	const img = await fetchImage(imageData)
+	// Redraw this onto a canvas to not have a huge `src` property
+	const canvas = document.createElement("canvas")
+	canvas.width = img.naturalWidth
+	canvas.height = img.naturalHeight
+	const ctx = canvas.getContext("2d")!
+	ctx.drawImage(img, 0, 0)
+	return canvas
 }
