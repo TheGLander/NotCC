@@ -53,8 +53,8 @@ const builtInTilesets: BuiltinTilesetMetadata[] = [
 		type: "built-in",
 		identifier: "cga16",
 		title: "CGA (16 colors)",
-		description: `How this game might've looked like if it were released in the 1980s.
-		Not to be confused with the 4-color CC1 CGA tileset.`,
+		description: `This is how this game might have looked like if it were released in the 1980s.
+		Not to be confused with the 4-color CC1 tileset also named CGA.`,
 		credits: "G lander",
 		tileSize: 8,
 		wireWidth: 2 / 8,
