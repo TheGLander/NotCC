@@ -1,5 +1,5 @@
 import cc2ImageFormat from "../cc2ImageFormat"
-import tilesetImage from "../data/img/tiles.png"
+import tilesetImage from "../tilesets/tworld.png"
 import { Pager } from "../pager"
 import {
 	generateActorFrames,

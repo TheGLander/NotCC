@@ -1,6 +1,6 @@
 import { findScriptName, parseC2M } from "@notcc/logic"
 import { Pager } from "../pager"
-import stubLevel from "../data/NotCC.c2m"
+import stubLevel from "../levels/NotCC.c2m"
 import {
 	buildFileListIndex,
 	buildZipIndex,
