@@ -7,9 +7,9 @@ import { Wirable, WireOverlapMode, Wires } from "@notcc/logic"
 import { Tile } from "@notcc/logic"
 import { keyNameList } from "@notcc/logic"
 
-type HTMLImage = HTMLImageElement | HTMLCanvasElement
+export type HTMLImage = HTMLImageElement | HTMLCanvasElement
 
-export function loadImage(link: string): Promise<HTMLImage> {
+export function fetchImage(link: string): Promise<HTMLImageElement> {
 	return new Promise((res, rej) => {
 		const img = new Image()
 		img.addEventListener("load", () => res(img))
@@ -166,10 +166,8 @@ export default class Renderer {
 	updateTileSize(): void {
 		if (!this.level || !this.cameraSize)
 			throw new Error("Can't update the tile size without a level!")
-		this.viewportCanvas.width =
-			this.level.cameraType.width * this.tileset.tileSize
-		this.viewportCanvas.height =
-			this.level.cameraType.height * this.tileset.tileSize
+		this.viewportCanvas.width = this.cameraSize.width * this.tileset.tileSize
+		this.viewportCanvas.height = this.cameraSize.height * this.tileset.tileSize
 	}
 	getArt(actor: Actor): ActorArtList {
 		let art = artDB[actor.id]
@@ -226,8 +224,7 @@ export default class Renderer {
 	updateItems(): void {
 		if (!this.level || !this.level.selectedPlayable)
 			throw new Error("Can't update the inventory without a playable!")
-		if (!this.itemCanvas || !this.itemCtx)
-			throw new Error("The inventory canvas is unset!")
+		if (!this.itemCanvas || !this.itemCtx) return
 		const tileSize = this.tileset.tileSize
 		const player = this.level.selectedPlayable
 		const expectedWidth = player.inventory.itemMax * tileSize

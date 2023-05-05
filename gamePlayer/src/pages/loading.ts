@@ -3,7 +3,7 @@ import tilesetImage from "../tilesets/tworld.png"
 import { Pager } from "../pager"
 import {
 	generateActorFrames,
-	loadImage,
+	fetchImage,
 	removeBackground,
 	Tileset,
 } from "../visuals"
@@ -17,7 +17,7 @@ export const loadingPage = {
 		} catch {
 			// Didn't load settings. Fine if this is the first time we're opening the game
 		}
-		const tillesetImage = await loadImage(tilesetImage)
+		const tillesetImage = await fetchImage(tilesetImage)
 		const filteredImage = removeBackground(tillesetImage)
 		const frameMap = generateActorFrames(cc2ImageFormat)
 		const tileset: Tileset = {
