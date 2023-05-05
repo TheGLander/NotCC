@@ -1,16 +1,27 @@
 import tworldTileset from "./tworld.png"
 import cga16Tileset from "./cga16.png"
 import previewLevel from "../levels/tilesetPreview.c2m"
-import { instanciateTemplate, makeTd, resetListeners } from "../utils"
+import {
+	instanciateTemplate,
+	makeImagefromBlob,
+	fetchImage,
+	makeTd,
+	reencodeImage,
+	resetListeners,
+} from "../utils"
 
 import Renderer, {
 	HTMLImage,
 	Tileset,
-	fetchImage,
 	generateActorFrames,
 	removeBackground,
 } from "../visuals"
-import { loadImage } from "../saveData"
+import {
+	loadAllTilesets,
+	loadTileset,
+	removeTileset,
+	saveTileset,
+} from "../saveData"
 import cc2ImageFormat from "../cc2ImageFormat"
 import { createLevelFromData, parseC2M } from "@notcc/logic"
 import { Pager } from "../pager"
@@ -32,6 +43,7 @@ export interface BuiltinTilesetMetadata extends SourcelessTilesetMetadata {
 
 export interface ExternalTilesetMetadata extends SourcelessTilesetMetadata {
 	type: "external"
+	imageData: string
 }
 
 export type TilesetMetadata = BuiltinTilesetMetadata | ExternalTilesetMetadata
@@ -66,8 +78,12 @@ export async function fetchTileset(tset: TilesetMetadata): Promise<HTMLImage> {
 	if (tset.type === "built-in") {
 		return await fetchImage(tset.link)
 	} else {
-		return await loadImage(tset.identifier)
+		return await fetchImage(tset.imageData)
 	}
+}
+
+async function getAllTilesets(): Promise<TilesetMetadata[]> {
+	return (builtInTilesets as TilesetMetadata[]).concat(await loadAllTilesets())
 }
 
 export async function makeTilesetFromMetadata(
@@ -84,18 +100,26 @@ export async function makeTilesetFromMetadata(
 	}
 }
 
-export function getTilesetMetadataFromIdentifier(
+export async function getTilesetMetadataFromIdentifier(
 	identifier: string
-): TilesetMetadata | null {
-	return builtInTilesets.find(meta => meta.identifier === identifier) ?? null
+): Promise<TilesetMetadata | null> {
+	return (
+		(builtInTilesets as TilesetMetadata[])
+			.concat(await loadAllTilesets())
+			.find(meta => meta.identifier === identifier) ?? null
+	)
 }
 
 export async function updatePagerTileset(pager: Pager): Promise<void> {
-	let tilesetMeta = getTilesetMetadataFromIdentifier(pager.settings.tileset)
+	let tilesetMeta = await getTilesetMetadataFromIdentifier(
+		pager.settings.tileset
+	)
 	if (tilesetMeta === null) {
 		// Uh oh, the current tileset doesn't exist
 		// Try again with the default one
-		tilesetMeta = getTilesetMetadataFromIdentifier(defaultSettings.tileset)
+		tilesetMeta = await getTilesetMetadataFromIdentifier(
+			defaultSettings.tileset
+		)
 		if (tilesetMeta === null) {
 			// Welp. I guess something is really wrong.
 			throw new Error("Can't find any tileset metadata")
@@ -145,32 +169,98 @@ async function makeTsetPreview(tsetMeta: TilesetMetadata) {
 	return canvas
 }
 
+const customTilesetLoader = document.querySelector<HTMLInputElement>(
+	"#customTilesetLoader"
+)!
+
+function promptCustomTilesetImage(): Promise<HTMLImageElement> {
+	return new Promise((res, rej) => {
+		customTilesetLoader.value = ""
+		const tilesetListener = async () => {
+			customTilesetLoader.removeEventListener("change", tilesetListener)
+			const file = customTilesetLoader.files?.[0]
+			customTilesetLoader.value = ""
+			if (!file) return
+			const image = await makeImagefromBlob(file)
+			if (image.naturalHeight !== image.naturalWidth * 2) {
+				alert("This doesn't seem like a CC2 tileset.")
+				return rej()
+			}
+			res(image)
+		}
+		customTilesetLoader.addEventListener("change", tilesetListener)
+		customTilesetLoader.click()
+	})
+}
+
+async function saveImageAsTileset(image: HTMLImageElement): Promise<void> {
+	const tileSize = image.naturalWidth / 16
+	const nowTime = Date.now()
+	const identifier = `custom ${nowTime}`
+	// TODO Somehow determine the wire width??
+	const tset: ExternalTilesetMetadata = {
+		type: "external",
+		identifier: `custom ${nowTime}`,
+		title: "A custom tileset",
+		description: "This is a custom tileset",
+		credits: "Unknown",
+		tileSize,
+		wireWidth: 2 / 32,
+		imageData: reencodeImage(image).toDataURL("image/png"),
+	}
+	await saveTileset(tset, identifier)
+}
+
 export async function openTilesetSelectortDialog(
 	currentTileset: string
 ): Promise<string | null> {
 	resetListeners(tilesetSelectDialog)
 	const tableBody = tilesetSelectDialog.querySelector("tbody")!
-	// Nuke all current data
-	tableBody.textContent = ""
-	for (const tset of builtInTilesets) {
-		const row = document.createElement("tr")
-		row.tabIndex = -1
-		const radioButton = document.createElement("input")
-		radioButton.tabIndex = 0
-		radioButton.type = "radio"
-		radioButton.name = "tileset"
-		radioButton.value = tset.identifier
-		if (currentTileset === radioButton.value) {
-			radioButton.checked = true
+
+	async function makeTilesetList(): Promise<void> {
+		const allTilesets = await getAllTilesets()
+		// Nuke all current data
+		tableBody.textContent = ""
+		for (const tset of allTilesets) {
+			const row = document.createElement("tr")
+			const radioButton = document.createElement("input")
+			radioButton.tabIndex = 0
+			radioButton.type = "radio"
+			radioButton.name = "tileset"
+			radioButton.value = tset.identifier
+			if (currentTileset === radioButton.value) {
+				radioButton.checked = true
+			}
+			row.appendChild(makeTd(radioButton))
+			row.appendChild(makeTd(await makeTsetPreview(tset)))
+			row.appendChild(makeTd(makeTsetInfo(tset)))
+			if (tset.type === "external") {
+				const removeButton = document.createElement("button")
+				removeButton.classList.add("removeTilesetButton")
+				removeButton.textContent = "❌"
+				removeButton.type = "button"
+				removeButton.addEventListener("click", () => {
+					removeTileset(tset.identifier).then(makeTilesetList)
+				})
+				row.appendChild(makeTd(removeButton))
+			}
+			tableBody.appendChild(row)
+			row.addEventListener("click", () => {
+				radioButton.click()
+			})
 		}
-		row.appendChild(makeTd(radioButton))
-		row.appendChild(makeTd(await makeTsetPreview(tset)))
-		row.appendChild(makeTd(makeTsetInfo(tset)))
-		tableBody.appendChild(row)
-		row.addEventListener("click", () => {
-			radioButton.click()
-		})
 	}
+
+	await makeTilesetList()
+
+	const addButton =
+		tilesetSelectDialog.querySelector<HTMLButtonElement>("#addTilesetButton")!
+	addButton.addEventListener("click", () => {
+		promptCustomTilesetImage()
+			.then(image => saveImageAsTileset(image))
+			.then(makeTilesetList)
+	})
+
 	return new Promise(res => {
 		const closeListener = () => {
 			const dialogForm = tilesetSelectDialog.querySelector("form")!

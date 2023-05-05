@@ -9,15 +9,6 @@ import { keyNameList } from "@notcc/logic"
 
 export type HTMLImage = HTMLImageElement | HTMLCanvasElement
 
-export function fetchImage(link: string): Promise<HTMLImageElement> {
-	return new Promise((res, rej) => {
-		const img = new Image()
-		img.addEventListener("load", () => res(img))
-		img.addEventListener("error", err => rej(err.error))
-		img.src = link
-	})
-}
-
 export function removeBackground(image: HTMLImage): HTMLImage {
 	const ctx = document
 		.createElement("canvas")

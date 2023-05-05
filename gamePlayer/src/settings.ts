@@ -3,6 +3,7 @@ import rfdc from "rfdc"
 import { ThemeColors, applyTheme, openThemeSelectorDialog } from "./themes"
 import { resetListeners } from "./utils"
 import {
+	ExternalTilesetMetadata,
 	getTilesetMetadataFromIdentifier,
 	openTilesetSelectortDialog,
 } from "./tilesets"
@@ -59,8 +60,10 @@ export function openSettingsDialog(pager: Pager): void {
 					newSettings.tileset = tset
 				}
 			}),
-		() => {
-			const tsetMeta = getTilesetMetadataFromIdentifier(newSettings.tileset)
+		async () => {
+			const tsetMeta = await getTilesetMetadataFromIdentifier(
+				newSettings.tileset
+			)
 			currentTilesetText.textContent = tsetMeta?.title ?? "Unknown tileset"
 		}
 	)

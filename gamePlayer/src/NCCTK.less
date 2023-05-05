@@ -95,6 +95,11 @@ dialog {
 			height: 2em;
 		}
 	}
+	// Prevent a REALLY annoying layout problem where a dialog doesn't get
+	// overrflow set correctly due to the extra form layer
+	form[method="dialog"] {
+		display: contents;
+	}
 }
 
 .tableBorderRadius(@radius) {
@@ -142,6 +147,30 @@ table {
 			}
 		}
 	}
+	tfoot {
+		position: sticky;
+		bottom: 0;
+		height: 2.3em;
+		background: var(--general-bg);
+		td {
+			border-top: solid 1px white;
+			.tableBorderRadius(5px);
+			border-bottom-right-radius: 0px !important;
+			border-bottom-left-radius: 0px !important;
+		}
+	}
+}
+
+#addTilesetButton {
+	margin-right: 1em;
+	margin-left: auto;
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+	display: block;
+}
+
+.removeTilesetButton {
+	display: block;
 }
 
 .tsetPreviewCanvas {
@@ -575,6 +604,7 @@ kbd {
 }
 
 #fileLoader,
-#directoryLoader {
+#directoryLoader,
+#customTilesetLoader {
 	display: none;
 }

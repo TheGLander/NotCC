@@ -119,3 +119,28 @@ export function makeTd(
 	}
 	return td
 }
+
+export async function makeImagefromBlob(
+	imageBlob: Blob
+): Promise<HTMLImageElement> {
+	const url = URL.createObjectURL(imageBlob)
+	return fetchImage(url).finally(() => URL.revokeObjectURL(url))
+}
+
+export function fetchImage(link: string): Promise<HTMLImageElement> {
+	return new Promise((res, rej) => {
+		const img = new Image()
+		img.addEventListener("load", () => res(img))
+		img.addEventListener("error", err => rej(err.error))
+		img.src = link
+	})
+}
+
+export function reencodeImage(image: HTMLImageElement): HTMLCanvasElement {
+	const canvas = document.createElement("canvas")
+	canvas.width = image.naturalWidth
+	canvas.height = image.naturalHeight
+	const ctx = canvas.getContext("2d")!
+	ctx.drawImage(image, 0, 0)
+	return canvas
+}

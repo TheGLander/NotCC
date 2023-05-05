@@ -81,17 +81,27 @@
 		</dialog>
 		<dialog id="tilesetSelectorDialog">
 			<form method="dialog">
+				<input type="file" id="customTilesetLoader" />
+
 				<header>Tileset select</header>
 				<section>
 					<table id="tilesetList">
 						<thead>
 							<tr>
-								<th rowspan="1" style="width: 10%">Selected</th>
-								<th rowspan="1">Preview</th>
-								<th rowspan="1">Info</th>
+								<th style="width: 10%">Selected</th>
+								<th>Preview</th>
+								<th>Info</th>
+								<th></th>
 							</tr>
 						</thead>
 						<tbody></tbody>
+						<tfoot id="externalTilesetFooter">
+							<tr>
+								<td colspan="4">
+									<button id="addTilesetButton" type="button">+ Tileset</button>
+								</td>
+							</tr>
+						</tfoot>
 					</table>
 				</section>
 				<footer>

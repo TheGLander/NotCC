@@ -1,7 +1,7 @@
 import { protobuf } from "@notcc/logic"
 import { compressToUTF16, decompressFromUTF16 } from "lz-string"
 import { Settings } from "./settings"
-import { fetchImage } from "./visuals"
+import { ExternalTilesetMetadata } from "./tilesets"
 
 // NOTE: This is structured this way so that the Neutralino-based Desktop
 // version can swap out localStorage for native FS API seamlessly.
@@ -64,28 +64,40 @@ export async function loadSettings(): Promise<Settings> {
 	return JSON.parse(settings)
 }
 
-export async function saveImage(
-	image: HTMLCanvasElement,
+export async function saveTileset(
+	tileset: ExternalTilesetMetadata,
 	fileName: string
 ): Promise<void> {
 	localStorage.setItem(
-		`${makeFilePrefix("image")}: ${fileName}`,
-		image.toDataURL("image/png")
+		`${makeFilePrefix("tileset")}: ${fileName}`,
+		JSON.stringify(tileset)
 	)
 }
 
-export async function loadImage(fileName: string): Promise<HTMLCanvasElement> {
-	const imageData = localStorage.getItem(
-		`${makeFilePrefix("image")}: ${fileName}`
+export async function loadTileset(
+	fileName: string
+): Promise<ExternalTilesetMetadata> {
+	const tilesetData = localStorage.getItem(
+		`${makeFilePrefix("tileset")}: ${fileName}`
 	)
-	if (imageData === null) throw new Error("Image not found")
+	if (tilesetData === null) throw new Error("Tileset not found")
 
-	const img = await fetchImage(imageData)
-	// Redraw this onto a canvas to not have a huge `src` property
-	const canvas = document.createElement("canvas")
-	canvas.width = img.naturalWidth
-	canvas.height = img.naturalHeight
-	const ctx = canvas.getContext("2d")!
-	ctx.drawImage(img, 0, 0)
-	return canvas
+	return JSON.parse(tilesetData)
+}
+
+export async function loadAllTilesets(): Promise<ExternalTilesetMetadata[]> {
+	const tsets: ExternalTilesetMetadata[] = []
+	for (const recordName in localStorage) {
+		const tsetPrefix = `${makeFilePrefix("tileset")}: `
+		if (!recordName.startsWith(tsetPrefix)) continue
+		const tset = await loadTileset(recordName.slice(tsetPrefix.length))
+		tsets.push(tset)
+	}
+	return tsets
+}
+
+export async function removeTileset(fileName: string): Promise<void> {
+	const deleteSuccess =
+		delete localStorage[`${makeFilePrefix("tileset")}: ${fileName}`]
+	if (!deleteSuccess) throw new Error("Couldn't delete file.")
 }
