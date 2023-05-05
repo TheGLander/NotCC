@@ -5,6 +5,7 @@ import { levelPlayerPage } from "./pages/levelPlayer"
 import { openLevelListDialog } from "./levelList"
 import { protobuf } from "@notcc/logic"
 import { openSettingsDialog } from "./settings"
+import { instanciateTemplate } from "./utils"
 
 interface TooltipEntry {
 	name: string
@@ -154,11 +155,7 @@ export function openTooltip(
 	at: HTMLElement
 ): void {
 	if (tooltipContents.length === 0) return
-	const tooltipFragment = tooltipTemplate.content.cloneNode(
-		true
-	) as DocumentFragment
-	// Explicitly get the tooltip root so that we can actually attach events
-	const tooltipRoot = tooltipFragment.firstElementChild! as HTMLDivElement
+	const tooltipRoot = instanciateTemplate(tooltipTemplate)
 	const tooltipInsertionPoint =
 		tooltipRoot.querySelector<HTMLDivElement>(".buttonTooltipBox")!
 

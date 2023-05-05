@@ -96,3 +96,26 @@ export function resetListeners(el: HTMLElement): void {
 	// eslint-disable-next-line no-self-assign
 	el.innerHTML = el.innerHTML
 }
+
+export function instanciateTemplate<T extends HTMLElement>(
+	template: HTMLTemplateElement
+): T {
+	const fragment = template.content.cloneNode(true) as DocumentFragment
+	return fragment.firstElementChild! as T
+}
+
+export function makeTd(
+	contents: string | HTMLElement,
+	className?: string
+): HTMLTableCellElement {
+	const td = document.createElement("td")
+	if (typeof contents === "string") {
+		td.textContent = contents
+	} else {
+		td.appendChild(contents)
+	}
+	if (className !== undefined) {
+		td.className = className
+	}
+	return td
+}

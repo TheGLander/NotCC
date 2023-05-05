@@ -1,17 +1,8 @@
 import { LevelSet } from "@notcc/logic"
+import { makeTd } from "./utils"
 
 const levelListDialog =
 	document.querySelector<HTMLDialogElement>("#levelListDialog")!
-
-function makeTd(contents: string, className?: string): HTMLTableCellElement {
-	const td = document.createElement("td")
-	td.textContent = contents
-	if (className !== undefined) {
-		td.className = className
-	}
-	return td
-}
-
 export function openLevelListDialog(set: LevelSet): void {
 	const sortedLevels = Object.values(set.seenLevels)
 		.map(record => record.levelInfo)
