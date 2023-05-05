@@ -8,7 +8,7 @@ import {
 	protobuf,
 } from "@notcc/logic"
 import { Pager } from "../pager"
-import Renderer, { Tileset } from "../visuals"
+import Renderer from "../visuals"
 import { AnimationTimer, TimeoutIntervalTimer, KeyListener } from "../utils"
 import { setSelectorPage } from "./setSelector"
 

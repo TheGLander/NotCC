@@ -16,12 +16,7 @@ import Renderer, {
 	generateActorFrames,
 	removeBackground,
 } from "../visuals"
-import {
-	loadAllTilesets,
-	loadTileset,
-	removeTileset,
-	saveTileset,
-} from "../saveData"
+import { loadAllTilesets, removeTileset, saveTileset } from "../saveData"
 import cc2ImageFormat from "../cc2ImageFormat"
 import { createLevelFromData, parseC2M } from "@notcc/logic"
 import { Pager } from "../pager"

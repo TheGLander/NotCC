@@ -3,7 +3,6 @@ import rfdc from "rfdc"
 import { ThemeColors, applyTheme, openThemeSelectorDialog } from "./themes"
 import { resetListeners } from "./utils"
 import {
-	ExternalTilesetMetadata,
 	getTilesetMetadataFromIdentifier,
 	openTilesetSelectortDialog,
 } from "./tilesets"
