@@ -139,6 +139,9 @@ export const levelPlayerPage = {
 		this.overlayLevelName = page.querySelector<HTMLElement>("#overlayLevelName")
 		this.hintBox = page.querySelector<HTMLElement>("#hintBox")
 		this.submitAttempt = this.submitAttemptUnbound.bind(this, pager)
+		window.addEventListener("resize", () => {
+			this.updateTileScale()
+		})
 	},
 	// Setting up level state and the game state machine
 	//    Load ->
@@ -338,8 +341,53 @@ export const levelPlayerPage = {
 			"--base-tile-size",
 			`${pager.tileset.tileSize.toString()}px`
 		)
-		// TODO Make this dynamic, line in LL
-		page.style.setProperty("--tile-scale", "2")
+		this.updateTileScale()
+	},
+	determineTileScale(): number {
+		if (!this.renderer || !this.renderer.cameraSize)
+			throw new Error("Can't determine the tile scale without the renderer.")
+
+		const bodySize = document.body.getBoundingClientRect()
+		let availableWidth = bodySize.width,
+			// eslint-disable-next-line prefer-const
+			availableHeight = bodySize.height
+
+		const tileSize = this.renderer.tileset.tileSize
+
+		const sidebarWidth = document
+			.querySelector(".sidebar")!
+			.getBoundingClientRect().width
+
+		availableWidth -= sidebarWidth
+
+		const playerTWidth =
+				0.25 + // Padding
+				this.renderer.cameraSize.width + // Camera size
+				0.25 + // Gap
+				4 + // Inventory
+				0.25, // Padding
+			playerTHeight =
+				0.25 + // Padding
+				this.renderer.cameraSize.height + // Camera size
+				0.25 // Padding
+		const playerBaseWidth = playerTWidth * tileSize,
+			playerBaseHeight = playerTHeight * tileSize
+
+		let scale = Math.min(
+			availableWidth / playerBaseWidth,
+			availableHeight / playerBaseHeight
+		)
+		scale *= window.devicePixelRatio
+		scale *= 0.95
+		scale = Math.floor(scale)
+		return scale
+	},
+	updateTileScale(): void {
+		const page = this.basePage
+		page!.style.setProperty(
+			"--tile-scale",
+			this.determineTileScale().toString()
+		)
 	},
 	logicTimer: null as TimeoutIntervalTimer | null,
 	renderTimer: null as AnimationTimer | null,
