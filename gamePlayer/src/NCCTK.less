@@ -152,12 +152,15 @@ table {
 
 dialog.textDialog section {
 	padding-left: 1em;
-	.preference {
-		display: flex;
-		justify-content: space-between;
-		width: 60%;
-		margin: 0.5rem;
-	}
+}
+
+.preferences {
+	display: grid;
+	grid: auto-flow / auto auto;
+	gap: 0.5em;
+	margin-top: 1em;
+	margin-right: 1em;
+	margin-bottom: 1em;
 }
 
 button.themeButton {

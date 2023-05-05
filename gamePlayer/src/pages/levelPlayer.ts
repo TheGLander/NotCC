@@ -8,7 +8,7 @@ import {
 	protobuf,
 } from "@notcc/logic"
 import { Pager } from "../pager"
-import Renderer from "../visuals"
+import Renderer, { Tileset } from "../visuals"
 import { AnimationTimer, TimeoutIntervalTimer, KeyListener } from "../utils"
 import { setSelectorPage } from "./setSelector"
 
@@ -323,7 +323,7 @@ export const levelPlayerPage = {
 	updateRender(): void {
 		this.renderer!.frame()
 	},
-	updateTileset(pager: Pager): void {
+	reloadTileset(pager: Pager): void {
 		if (!pager.tileset)
 			throw new Error("Can't update the tileset without a tileset.")
 		if (!this.renderer)
@@ -347,7 +347,7 @@ export const levelPlayerPage = {
 		if (!pager.loadedLevel)
 			throw new Error("Cannot open the level player page with a level to play.")
 		this.loadLevel(pager)
-		this.updateTileset(pager)
+		this.reloadTileset(pager)
 		this.updateTextOutputs()
 		this.logicTimer = new TimeoutIntervalTimer(
 			this.updateLogic.bind(this),

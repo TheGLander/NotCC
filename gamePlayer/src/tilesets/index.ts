@@ -13,6 +13,8 @@ import Renderer, {
 import { loadImage } from "../saveData"
 import cc2ImageFormat from "../cc2ImageFormat"
 import { createLevelFromData, parseC2M } from "@notcc/logic"
+import { Pager } from "../pager"
+import { defaultSettings } from "../settings"
 
 export interface SourcelessTilesetMetadata {
 	identifier: string
@@ -82,6 +84,28 @@ export async function makeTilesetFromMetadata(
 	}
 }
 
+export function getTilesetMetadataFromIdentifier(
+	identifier: string
+): TilesetMetadata | null {
+	return builtInTilesets.find(meta => meta.identifier === identifier) ?? null
+}
+
+export async function updatePagerTileset(pager: Pager): Promise<void> {
+	let tilesetMeta = getTilesetMetadataFromIdentifier(pager.settings.tileset)
+	if (tilesetMeta === null) {
+		// Uh oh, the current tileset doesn't exist
+		// Try again with the default one
+		tilesetMeta = getTilesetMetadataFromIdentifier(defaultSettings.tileset)
+		if (tilesetMeta === null) {
+			// Welp. I guess something is really wrong.
+			throw new Error("Can't find any tileset metadata")
+		}
+	}
+
+	const tileset = await makeTilesetFromMetadata(tilesetMeta)
+	pager.tileset = tileset
+}
+
 const tilesetSelectDialog = document.querySelector<HTMLDialogElement>(
 	"#tilesetSelectorDialog"
 )!
@@ -123,7 +147,7 @@ async function makeTsetPreview(tsetMeta: TilesetMetadata) {
 
 export async function openTilesetSelectortDialog(
 	currentTileset: string
-): Promise<string> {
+): Promise<string | null> {
 	resetListeners(tilesetSelectDialog)
 	const tableBody = tilesetSelectDialog.querySelector("tbody")!
 	// Nuke all current data
@@ -153,7 +177,7 @@ export async function openTilesetSelectortDialog(
 			const tilesetSelection = dialogForm.elements.namedItem(
 				"tileset"
 			) as RadioNodeList
-			res(tilesetSelection.value)
+			res(tilesetSelection.value === "" ? null : tilesetSelection.value)
 			tilesetSelectDialog.removeEventListener("close", closeListener)
 		}
 

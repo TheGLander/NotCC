@@ -7,6 +7,7 @@ import { loadSettings, saveSetInfo, saveSettings } from "./saveData"
 import { Settings, defaultSettings } from "./settings"
 import rfdc from "rfdc"
 import { ThemeColors, applyTheme } from "./themes"
+import { updatePagerTileset } from "./tilesets"
 
 const clone = rfdc()
 
@@ -21,6 +22,7 @@ export interface Page {
 	showGz?: (pager: Pager) => void
 	loadLevel?: (page: Pager) => void
 	loadSolution?: (pager: Pager, sol: protobuf.ISolutionInfo) => Promise<void>
+	reloadTileset?: (pager: Pager) => void
 }
 
 export class Pager {
@@ -151,13 +153,15 @@ export class Pager {
 	updateTheme(): void {
 		this.setTheme(this.settings.mainTheme)
 	}
-	reloadSettings(): void {
+	async reloadSettings(): Promise<void> {
 		this.updateTheme()
+		await updatePagerTileset(this)
+		this.currentPage.reloadTileset?.(this)
 	}
 	async saveSettings(newSettings: Settings): Promise<void> {
 		this.settings = newSettings
-		this.reloadSettings()
 		await saveSettings(this.settings)
+		await this.reloadSettings()
 	}
 	async loadSettings(): Promise<void> {
 		this.settings = await loadSettings()

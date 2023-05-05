@@ -2,6 +2,10 @@ import { Pager } from "./pager"
 import rfdc from "rfdc"
 import { ThemeColors, applyTheme, openThemeSelectorDialog } from "./themes"
 import { resetListeners } from "./utils"
+import {
+	getTilesetMetadataFromIdentifier,
+	openTilesetSelectortDialog,
+} from "./tilesets"
 
 const clone = rfdc()
 
@@ -21,18 +25,45 @@ const settingsDialog =
 export function openSettingsDialog(pager: Pager): void {
 	resetListeners(settingsDialog)
 	const newSettings = clone(pager.settings)
-
-	const mainThemeButton =
-		document.querySelector<HTMLButtonElement>("#mainTheme")!
-	mainThemeButton.addEventListener("click", () => {
-		openThemeSelectorDialog(newSettings.mainTheme, pager).then(color => {
-			if (color !== null) {
-				newSettings.mainTheme = color
-			}
-			applyTheme(mainThemeButton, newSettings.mainTheme)
+	function makeSettingsPreference(
+		id: string,
+		call: () => Promise<void>,
+		apply: (el: HTMLButtonElement) => void
+	): void {
+		const button = settingsDialog.querySelector<HTMLButtonElement>(`#${id}`)!
+		button.addEventListener("click", async () => {
+			await call()
+			apply(button)
 		})
-	})
-	applyTheme(mainThemeButton, newSettings.mainTheme)
+		apply(button)
+	}
+	makeSettingsPreference(
+		"mainTheme",
+		() =>
+			openThemeSelectorDialog(newSettings.mainTheme, pager).then(color => {
+				if (color !== null) {
+					newSettings.mainTheme = color
+				}
+			}),
+		el => applyTheme(el, newSettings.mainTheme)
+	)
+
+	const currentTilesetText = settingsDialog.querySelector<HTMLSpanElement>(
+		"#currentTilesetText"
+	)!
+	makeSettingsPreference(
+		"currentTileset",
+		() =>
+			openTilesetSelectortDialog(newSettings.tileset).then(tset => {
+				if (tset !== null) {
+					newSettings.tileset = tset
+				}
+			}),
+		() => {
+			const tsetMeta = getTilesetMetadataFromIdentifier(newSettings.tileset)
+			currentTilesetText.textContent = tsetMeta?.title ?? "Unknown tileset"
+		}
+	)
 
 	const closeListener = () => {
 		if (settingsDialog.returnValue === "ok") {

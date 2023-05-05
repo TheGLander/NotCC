@@ -66,15 +66,12 @@
 		<dialog id="themeSelectorDialog" class="textDialog">
 			<form method="dialog">
 				<header>Theme select</header>
-				<section>
-					<div class="preference">
-						<label for="themeHue">Hue:</label>
-						<input id="themeHue" type="range" min="0" max="360" />
-					</div>
-					<div class="preference">
-						<label for="themeSaturation">Saturation:</label>
-						<input id="themeSaturation" type="range" min="0" max="100" />
-					</div>
+				<section class="preferences">
+					<label for="themeHue">Hue:</label>
+					<input id="themeHue" type="range" min="0" max="360" />
+
+					<label for="themeSaturation">Saturation:</label>
+					<input id="themeSaturation" type="range" min="0" max="100" />
 				</section>
 				<footer>
 					<button value="ok" type="submit">Ok</button>
@@ -108,11 +105,19 @@
 				<header>Settings</header>
 				<section>
 					<h3>Visuals</h3>
-					<div class="preference">
+					<div class="preferences">
 						<label for="mainTheme">Main theme:</label>
-						<button type="button" id="mainTheme" class="themeButton">
-							<div class="themeCircle"></div>
-						</button>
+						<span
+							><button type="button" id="mainTheme" class="themeButton">
+								<div class="themeCircle"></div>
+							</button>
+						</span>
+
+						<label for="currentTileset">Tileset:</label>
+						<span>
+							<b id="currentTilesetText">CGA17000</b>
+							<button type="button" id="currentTileset">Change tileset</button>
+						</span>
 					</div>
 				</section>
 				<footer>

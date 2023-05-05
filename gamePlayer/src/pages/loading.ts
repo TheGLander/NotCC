@@ -1,12 +1,5 @@
-import cc2ImageFormat from "../cc2ImageFormat"
-import tilesetImage from "../tilesets/tworld.png"
 import { Pager } from "../pager"
-import {
-	generateActorFrames,
-	fetchImage,
-	removeBackground,
-	Tileset,
-} from "../visuals"
+import { updatePagerTileset } from "../tilesets"
 import { setSelectorPage } from "./setSelector"
 
 export const loadingPage = {
@@ -17,16 +10,9 @@ export const loadingPage = {
 		} catch {
 			// Didn't load settings. Fine if this is the first time we're opening the game
 		}
-		const tillesetImage = await fetchImage(tilesetImage)
-		const filteredImage = removeBackground(tillesetImage)
-		const frameMap = generateActorFrames(cc2ImageFormat)
-		const tileset: Tileset = {
-			frameMap,
-			image: filteredImage,
-			tileSize: 32,
-			wireWidth: 2,
-		}
-		pager.tileset = tileset
+
+		await updatePagerTileset(pager)
+
 		pager.openPage(setSelectorPage)
 	},
 }
