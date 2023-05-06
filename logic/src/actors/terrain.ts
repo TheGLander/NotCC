@@ -452,19 +452,22 @@ export class CloneMachine extends Actor {
 	// Cloning with rotation happens at the start of the tick (pre-wire tick), so the extra cooldown is not needed
 	clone(attemptToRotate: boolean): void {
 		this.isCloning = true
-		for (const clonee of [...this.tile[Layer.MOVABLE]]) {
+		for (let clonee of [...this.tile[Layer.MOVABLE]]) {
 			if (clonee.cooldown) continue
 			if (clonee._internalStep(clonee.direction)) {
 				clonee.cooldown--
 			} else {
+				if (clonee.newActor) clonee = clonee.newActor
 				const ogDir = clonee.direction
 				if (attemptToRotate) {
-					for (let i = 1; i <= 3; i++)
+					for (let i = 1; i <= 3; i++) {
 						if (clonee._internalStep((ogDir + i) % 4)) {
 							clonee.cooldown--
 
 							break
 						}
+						if (clonee.newActor) clonee = clonee.newActor
+					}
 				}
 				if (clonee.cooldown === 0) {
 					clonee.direction = ogDir
