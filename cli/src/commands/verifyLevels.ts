@@ -6,10 +6,28 @@ import os from "os"
 import pc from "picocolors"
 import ProgressBar from "progress"
 import { ArgumentsCamelCase, Argv } from "yargs"
+import { WriteStream } from "tty"
+
+/**
+ * A hack for `progress` which explodes if the current environment is not a TTY.
+ */
+function mockStreamAsTTY(stream: WriteStream): void {
+	if (stream.isTTY) return
+	const tty = WriteStream.prototype
+	for (const key in tty) {
+		if (key in stream) continue
+		// @ts-expect-error Come on
+		stream[key] = tty[key]
+	}
+	stream.columns = 80
+}
+
+mockStreamAsTTY(process.stdout)
+mockStreamAsTTY(process.stderr)
 
 const levelOutcomes = ["success", "noInput", "badInput", "error"] as const
 
-type LevelOutcome = typeof levelOutcomes[number]
+type LevelOutcome = (typeof levelOutcomes)[number]
 
 interface WorkerLevelMessage {
 	levelName: string

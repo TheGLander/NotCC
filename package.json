@@ -6,10 +6,12 @@
 		"@typescript-eslint/parser": "^4.19.0",
 		"eslint": "^7.0.0",
 		"eslint-config-prettier": "^8.1.0",
-		"typescript": "^5.0.4"
+		"typescript": "^5.0.4",
+		"zx": "^7.2.2"
 	},
 	"scripts": {
 		"build-web": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build",
-		"build-cli": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/cli build"
+		"build-cli": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/cli build",
+		"test": "zx ./testing.mjs"
 	}
 }
