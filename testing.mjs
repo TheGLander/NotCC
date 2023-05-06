@@ -21,6 +21,8 @@ async function downloadSet(setName) {
 
 await fs.mkdirp(setsDirectory)
 
+let failed = false
+
 for (const setName of setsToTest) {
 	const setPath = path.join(setsDirectory, setName)
 	const setExists = await fs.exists(setPath)
@@ -31,4 +33,11 @@ for (const setName of setsToTest) {
 	}
 	const verifyProcess = $`pnpm notcc verify ${setPath} --hide success`
 	await verifyProcess.nothrow()
+	if (verifyProcess.exitCode !== 0) {
+		failed = true
+	}
+}
+
+if (failed) {
+	process.exit(1)
 }

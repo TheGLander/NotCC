@@ -176,7 +176,7 @@ Levels whose solutions ran out: ${stats.noInput} (${
 		}%)`
 	)
 
-	exit(files.length - stats.success)
+	exit(1 + ((files.length - stats.success) % 255))
 }
 
 export default (yargs: Argv) =>
