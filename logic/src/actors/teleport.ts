@@ -148,13 +148,7 @@ export class BlueTeleport extends Teleport implements BlueTeleportTarget {
 	isBusy(other: Actor): boolean {
 		return (
 			this.tile.hasLayer(Layer.MOVABLE) ||
-			!other.checkCollisionFromTile(
-				this.tile,
-				other.direction,
-				true,
-				false,
-				false
-			)
+			!other.checkCollisionFromTile(this.tile, other.direction, false, false)
 		)
 	}
 	id = "teleportBlue"
@@ -200,7 +194,6 @@ export class RedTeleport extends Teleport {
 						other.checkCollisionFromTile(
 							teleport.tile,
 							(other.direction + offset) % 4,
-							true,
 							false,
 							false
 						)
@@ -280,7 +273,6 @@ export class GreenTeleport extends Teleport {
 						other.checkCollisionFromTile(
 							teleport.tile,
 							(dir + offset) % 4,
-							true,
 							false,
 							false
 						)
@@ -335,7 +327,6 @@ export class YellowTeleport extends Teleport implements Item {
 				other.checkCollisionFromTile(
 					teleport.tile,
 					other.direction,
-					true,
 					false,
 					false
 				)

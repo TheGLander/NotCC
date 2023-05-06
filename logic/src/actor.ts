@@ -209,7 +209,7 @@ export abstract class Actor implements Wirable {
 		if (!directions || directions.length === 0) return
 
 		for (const direction of directions)
-			if (this.checkCollision(direction, true)) {
+			if (this.checkCollision(direction)) {
 				// Yeah, we can go here
 				this.moveDecision = direction + 1
 				return
@@ -388,19 +388,8 @@ export abstract class Actor implements Wirable {
 	 * @param pushBlocks If true, it will push blocks
 	 * @returns If the actor *can* move in that direction
 	 */
-	checkCollision(
-		direction: Direction,
-		pushBlocks = true,
-		exitOnly = false,
-		pull = true
-	): boolean {
-		return this.checkCollisionFromTile(
-			this.tile,
-			direction,
-			pushBlocks,
-			exitOnly,
-			pull
-		)
+	checkCollision(direction: Direction, exitOnly = false, pull = true): boolean {
+		return this.checkCollisionFromTile(this.tile, direction, exitOnly, pull)
 	}
 	/**
 	 * Checks if a specific actor can move in a certain direction to a certain tile
@@ -414,7 +403,6 @@ export abstract class Actor implements Wirable {
 		this: Actor,
 		fromTile: Tile,
 		direction: Direction,
-		pushBlocks = true,
 		exitOnly = false,
 		pull = true
 	): boolean {
@@ -492,16 +480,11 @@ export abstract class Actor implements Wirable {
 				}
 				return false
 			}
-			if (
-				pushable.cooldown ||
-				!pushable.checkCollision(direction, pushBlocks)
-			) {
+			if (pushable.cooldown || !pushable.checkCollision(direction)) {
 				this.level.resolvedCollisionCheckDirection = direction
 				return false
 			}
-			if (pushBlocks) {
-				if (pushable._internalStep(direction)) pushable.cooldown--
-			}
+			if (pushable._internalStep(direction)) pushable.cooldown--
 		}
 		this.level.resolvedCollisionCheckDirection = direction
 		if (pull && this.getCompleteTags("tags").includes("pulling")) {
@@ -511,7 +494,6 @@ export abstract class Actor implements Wirable {
 				if (pulledActor.cooldown && pulledActor.moveSpeed) return false
 
 				if (
-					!pushBlocks ||
 					(pulledActor.pendingDecisionLockedIn && pulledActor.isPulled) ||
 					!pulledActor.getCompleteTags("tags").includes("block") ||
 					(pulledActor.canBePushed && !pulledActor.canBePushed(this, direction))
@@ -650,7 +632,7 @@ export abstract class Actor implements Wirable {
 		)
 			return false
 		if (other.pendingDecisionLockedIn) return false
-		return other.checkCollision(direction, true, true)
+		return other.checkCollision(direction, true)
 	}
 	/**
 	 * Called when a new actor enters the tile, must return the number to divide the speed by
