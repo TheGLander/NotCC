@@ -6,24 +6,6 @@ import os from "os"
 import pc from "picocolors"
 import ProgressBar from "progress"
 import { ArgumentsCamelCase, Argv } from "yargs"
-import { WriteStream } from "tty"
-
-/**
- * A hack for `progress` which explodes if the current environment is not a TTY.
- */
-function mockStreamAsTTY(stream: WriteStream): void {
-	if (stream.isTTY) return
-	const tty = WriteStream.prototype
-	for (const key in tty) {
-		if (key in stream) continue
-		// @ts-expect-error Come on
-		stream[key] = tty[key]
-	}
-	stream.columns = 80
-}
-
-mockStreamAsTTY(process.stdout)
-mockStreamAsTTY(process.stderr)
 
 const levelOutcomes = ["success", "noInput", "badInput", "error"] as const
 
@@ -78,7 +60,65 @@ const outcomeStyles: Record<LevelOutcome, OutcomeStyle> = {
 interface Options {
 	show?: LevelOutcome[]
 	hide?: LevelOutcome[]
+	ci?: boolean
 	files: string[]
+}
+
+interface VerifyOutputs {
+	logMessage(message: string): void
+	levelComplete(msg: WorkerLevelMessage): void
+}
+
+function makeBarOutput(filesN: number, toShow: LevelOutcome[]): VerifyOutputs {
+	const bar = new ProgressBar(
+		":bar :current/:total (:percent) :rate lvl/s",
+		filesN
+	)
+
+	return {
+		levelComplete(msg) {
+			if (toShow.includes(msg.outcome)) {
+				const style = outcomeStyles[msg.outcome]
+				bar.interrupt(
+					pc[style.color](
+						`${msg.levelName} - ${style.desc}${
+							msg.desc ? ` (${msg.desc})` : ""
+						}`
+					)
+				)
+			}
+			bar.tick()
+		},
+		logMessage(message) {
+			bar.interrupt(message)
+		},
+	}
+}
+
+/**
+ * The test output will log numbers every TEST_OUTPUT_INTERVAL level completions.
+ */
+const CI_OUTPUT_INTERVAL = 100
+
+function makeCiOutput(stats: Record<LevelOutcome, number>): VerifyOutputs {
+	let totalComplete = 0
+	return {
+		levelComplete() {
+			totalComplete += 1
+			if (totalComplete % CI_OUTPUT_INTERVAL === 0) {
+				console.log(
+					`${pc.green(stats.success)} ✅
+${pc.red(stats.badInput)} ❌
+${pc.blue(stats.noInput)} 💤
+${pc.yellow(stats.error)} 💥
+`
+				)
+			}
+		},
+		logMessage(message) {
+			console.log(message)
+		},
+	}
 }
 
 export async function verifyLevelFiles(
@@ -100,15 +140,11 @@ export async function verifyLevelFiles(
 		badInput: 0,
 		success: 0,
 	}
+	const output = args.ci ? makeCiOutput(stats) : makeBarOutput(filesN, toShow)
 
 	const workers: WorkerData[] = []
 
-	const bar = new ProgressBar(
-		":bar :current/:total (:percent) :rate lvl/s",
-		files.length
-	)
-
-	const workersN = Math.min(files.length, os.cpus().length)
+	const workersN = Math.min(filesN, os.cpus().length)
 
 	console.log(`Creating ${workersN} workers...`)
 	for (let i = 0; i < workersN; i++) {
@@ -131,21 +167,12 @@ export async function verifyLevelFiles(
 		)
 		port2.on("message", (msg: WorkerMessage) => {
 			if (msg.type === "log") {
-				bar.interrupt(msg.message)
+				output.logMessage(msg.message)
 				return
 			}
 			stats[msg.outcome] += 1
-			if (toShow.includes(msg.outcome)) {
-				const style = outcomeStyles[msg.outcome]
-				bar.interrupt(
-					pc[style.color](
-						`${msg.levelName} - ${style.desc}${
-							msg.desc ? ` (${msg.desc})` : ""
-						}`
-					)
-				)
-			}
-			bar.tick()
+			output.levelComplete(msg)
+
 			const nextLevel = files.shift()
 			if (nextLevel === undefined) {
 				worker.postMessage({ type: "end" } satisfies ParentEndMessage)
@@ -176,7 +203,10 @@ Levels whose solutions ran out: ${stats.noInput} (${
 		}%)`
 	)
 
-	exit(1 + ((files.length - stats.success) % 255))
+	const failureN = filesN - stats.success
+	const exitCode = failureN === 0 ? 0 : 1 + (failureN % 255)
+
+	exit(exitCode)
 }
 
 export default (yargs: Argv) =>
@@ -196,6 +226,11 @@ export default (yargs: Argv) =>
 				.choices("show", levelOutcomes)
 				.option("hide", { describe: "The result types to hide" })
 				.choices("hide", levelOutcomes)
+				.option("ci", {
+					describe:
+						"Whenever to log intermediate stats in a non-TTY compatible manner",
+				})
+				.conflicts("ci", ["show", "hide"])
 				.usage("notcc verify <files>"),
 		verifyLevelFiles
 	)

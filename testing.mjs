@@ -31,7 +31,7 @@ for (const setName of setsToTest) {
 		echo(chalk.yellow(`Looks like "${setName}" isn't cached, downloading...`))
 		await downloadSet(setName)
 	}
-	const verifyProcess = $`pnpm notcc verify ${setPath} --hide success`
+	const verifyProcess = $`pnpm notcc verify ${setPath} --hide success --ci`
 	await verifyProcess.nothrow()
 	if (verifyProcess.exitCode !== 0) {
 		failed = true
