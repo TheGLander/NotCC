@@ -461,9 +461,10 @@ export abstract class Actor implements Wirable {
 			Layer.ITEM,
 		])
 			for (let blockActor of newTile[layer]) {
-				for (const item of this.inventory.items)
+				for (const item of this.inventory.items) {
 					item.onCarrierBump?.(this, blockActor, direction)
-				if (blockActor.newActor) blockActor = blockActor.newActor
+					if (blockActor.newActor) blockActor = blockActor.newActor
+				}
 				blockActor.bumped?.(this, direction)
 				this.bumpedActor?.(blockActor, direction, false)
 				if (blockActor._internalBlocks(this, direction))
@@ -696,7 +697,7 @@ export abstract class Actor implements Wirable {
 	 * Called each subtick if anything is on this (called at cooldown time (move time))
 	 */
 	actorOnTile?(other: Actor): void
-	replaceWith(other: typeof actorDB[string], customData?: string): Actor {
+	replaceWith(other: (typeof actorDB)[string], customData?: string): Actor {
 		const decidingPos = this.level.decidingActors.indexOf(this)
 		this.destroy(null, null)
 		const newActor = new other(
