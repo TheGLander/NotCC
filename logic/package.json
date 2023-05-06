@@ -9,11 +9,11 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build-proto": "pbjs -t json-module src/parsers/nccs.proto -o src/parsers/nccs.pb.js && pnpm build-proto-types",
 		"build-proto-types": "pbjs -t static-module src/parsers/nccs.proto -o tmp_nccs.js && pbts -o src/parsers/nccs.pb.d.ts tmp_nccs.js;rm tmp_nccs.js",
-		"build": "pnpm build-proto && tsc",
-		"watch": "tsc --watch --declaration",
+		"build-src": "tsc",
+		"dev": "tsc --watch --declaration",
 		"copy-proto-files": "cp ./src/parsers/*.pb.* ./dist/parsers",
-		"build:prod": "rm -rf dist && pnpm build && pnpm copy-proto-files",
-		"publish": "pnpm build:prod"
+		"build": "rm -rf dist && pnpm build-proto && pnpm build-src && pnpm copy-proto-files",
+		"publish": "pnpm build"
 	},
 	"repository": {
 		"type": "git",

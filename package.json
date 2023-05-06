@@ -9,6 +9,7 @@
 		"typescript": "^5.0.4"
 	},
 	"scripts": {
-		"build-web": "pnpm i && pnpm --filter @notcc/logic run build:prod && pnpm --filter @notcc/player build"
+		"build-web": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build",
+		"build-cli": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/cli build"
 	}
 }
