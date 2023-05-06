@@ -64,28 +64,61 @@ interface Options {
 	files: string[]
 }
 
+abstract class VerifyStats {
+	constructor(public total: number) {}
+	abstract getTextStats(): string
+	abstract addLevel(msg: WorkerLevelMessage): string
+	abstract getExitCode(): number
+}
+
+class VerifyStatsBasic extends VerifyStats {
+	success = 0
+	badInput = 0
+	noInput = 0
+	error = 0
+	getTextStats(): string {
+		const roundedPercent = (num: number) => {
+			return Math.round((num / this.total) * 1000) / 10
+		}
+		return `${this.total} Total
+${pc.green(`${this.success} (${roundedPercent(this.success)}%)`)} ✅
+${pc.red(`${this.badInput} (${roundedPercent(this.badInput)}%)`)} ❌
+${pc.blue(`${this.noInput} (${roundedPercent(this.noInput)}%)`)} 💤
+${pc.yellow(`${this.error} (${roundedPercent(this.error)}%)`)} 💥`
+	}
+	addLevel(msg: WorkerLevelMessage): string {
+		this[msg.outcome] += 1
+		const style = outcomeStyles[msg.outcome]
+		return pc[style.color](
+			`${msg.levelName} - ${style.desc}${msg.desc ? ` (${msg.desc})` : ""}`
+		)
+	}
+	getExitCode(): number {
+		const failureN = this.total - this.success
+		const exitCode = failureN === 0 ? 0 : 1 + (failureN % 255)
+		return exitCode
+	}
+}
+
 interface VerifyOutputs {
 	logMessage(message: string): void
 	levelComplete(msg: WorkerLevelMessage): void
 }
 
-function makeBarOutput(filesN: number, toShow: LevelOutcome[]): VerifyOutputs {
+function makeBarOutput(
+	stats: VerifyStats,
+	toShow: LevelOutcome[]
+): VerifyOutputs {
 	const bar = new ProgressBar(
 		":bar :current/:total (:percent) :rate lvl/s",
-		filesN
+		stats.total
 	)
 
 	return {
 		levelComplete(msg) {
+			const levelInfo = stats.addLevel(msg)
 			if (toShow.includes(msg.outcome)) {
-				const style = outcomeStyles[msg.outcome]
-				bar.interrupt(
-					pc[style.color](
-						`${msg.levelName} - ${style.desc}${
-							msg.desc ? ` (${msg.desc})` : ""
-						}`
-					)
-				)
+				bar.interrupt(levelInfo)
 			}
 			bar.tick()
 		},
@@ -100,19 +133,14 @@ function makeBarOutput(filesN: number, toShow: LevelOutcome[]): VerifyOutputs {
  */
 const CI_OUTPUT_INTERVAL = 100
 
-function makeCiOutput(stats: Record<LevelOutcome, number>): VerifyOutputs {
+function makeCiOutput(stats: VerifyStats): VerifyOutputs {
 	let totalComplete = 0
 	return {
-		levelComplete() {
+		levelComplete(msg: WorkerLevelMessage) {
 			totalComplete += 1
+			stats.addLevel(msg)
 			if (totalComplete % CI_OUTPUT_INTERVAL === 0) {
-				console.log(
-					`${pc.green(stats.success)} ✅
-${pc.red(stats.badInput)} ❌
-${pc.blue(stats.noInput)} 💤
-${pc.yellow(stats.error)} 💥
-`
-				)
+				console.log(stats.getTextStats())
 			}
 		},
 		logMessage(message) {
@@ -134,13 +162,8 @@ export async function verifyLevelFiles(
 	else if (args.show) toShow = args.show
 	else toShow = Array.from(levelOutcomes)
 
-	const stats: Record<LevelOutcome, number> = {
-		noInput: 0,
-		error: 0,
-		badInput: 0,
-		success: 0,
-	}
-	const output = args.ci ? makeCiOutput(stats) : makeBarOutput(filesN, toShow)
+	const stats = new VerifyStatsBasic(filesN)
+	const output = args.ci ? makeCiOutput(stats) : makeBarOutput(stats, toShow)
 
 	const workers: WorkerData[] = []
 
@@ -170,7 +193,6 @@ export async function verifyLevelFiles(
 				output.logMessage(msg.message)
 				return
 			}
-			stats[msg.outcome] += 1
 			output.levelComplete(msg)
 
 			const nextLevel = files.shift()
@@ -190,23 +212,9 @@ export async function verifyLevelFiles(
 
 	await stillWaiting
 
-	console.log(
-		`Success rate: ${(stats.success / filesN) * 100}% (${
-			stats.success
-		}/${filesN})
-Levels which failed to run: ${stats.error} (${(stats.error / filesN) * 100}%)
-Levels whose solutions killed a player: ${stats.badInput} (${
-			(stats.badInput / filesN) * 100
-		}%)
-Levels whose solutions ran out: ${stats.noInput} (${
-			(stats.noInput / filesN) * 100
-		}%)`
-	)
+	console.log(stats.getTextStats())
 
-	const failureN = filesN - stats.success
-	const exitCode = failureN === 0 ? 0 : 1 + (failureN % 255)
-
-	exit(exitCode)
+	exit(stats.getExitCode())
 }
 
 export default (yargs: Argv) =>
