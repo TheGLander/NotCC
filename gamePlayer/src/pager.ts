@@ -165,6 +165,7 @@ export class Pager {
 	}
 	async loadSettings(): Promise<void> {
 		this.settings = await loadSettings()
+		this.settings = { ...defaultSettings, ...this.settings }
 		this.reloadSettings()
 	}
 }
