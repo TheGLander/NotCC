@@ -377,7 +377,6 @@ export const levelPlayerPage = {
 			availableWidth / playerBaseWidth,
 			availableHeight / playerBaseHeight
 		)
-		scale *= window.devicePixelRatio
 		scale *= 0.95
 		scale = Math.floor(scale)
 		return scale
