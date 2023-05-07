@@ -36,6 +36,17 @@ function waitForMessage(): Promise<any> {
 	}
 	return Promise.resolve(queuedMesssages.shift())
 }
+
+function convertDespawnMessageToStandard(message: string): string | null {
+	const match = message.match(
+		/A despawn has happened at \((\d+), (\d+)\). \((Overwritten|Deleted)\)/
+	)
+	if (!match) return null
+	return `(${match[1]}, ${match[2]}) ${
+		match[3] === "Overwritten" ? "replace" : "delete"
+	}`
+}
+
 ;(async () => {
 	const response = (await waitForMessage()) as ParentInitialMessage
 	const sendMessage = (message: WorkerMessage) =>
@@ -43,7 +54,13 @@ function waitForMessage(): Promise<any> {
 	let levelName: string | undefined
 
 	console.log = console.warn = (arg1: any, ...args: any[]) => {
-		sendMessage({ type: "log", message: `[${levelName}] ${arg1}` })
+		// If this a despawn warning, send it under a different message type
+		const despawn = convertDespawnMessageToStandard(arg1)
+		if (despawn) {
+			sendMessage({ type: "despawn", level: levelName!, message: despawn })
+		} else {
+			sendMessage({ type: "log", message: `[${levelName}] ${arg1}` })
+		}
 	}
 
 	let levelPath: string | null = response.firstLevelPath

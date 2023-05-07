@@ -6,6 +6,8 @@ import os from "os"
 import pc from "picocolors"
 import ProgressBar from "progress"
 import { ArgumentsCamelCase, Argv } from "yargs"
+import { decode } from "ini"
+import { readFile } from "fs/promises"
 
 const levelOutcomes = ["success", "noInput", "badInput", "error"] as const
 
@@ -23,7 +25,16 @@ interface WorkerLogMessage {
 	message: string
 }
 
-export type WorkerMessage = WorkerLevelMessage | WorkerLogMessage
+interface WorkerDespawnMesasage {
+	type: "despawn"
+	message: string
+	level: string
+}
+
+export type WorkerMessage =
+	| WorkerLevelMessage
+	| WorkerLogMessage
+	| WorkerDespawnMesasage
 
 export interface ParentNewLevelMessage {
 	type: "new level"
@@ -58,17 +69,29 @@ const outcomeStyles: Record<LevelOutcome, OutcomeStyle> = {
 }
 
 interface Options {
-	show?: LevelOutcome[]
-	hide?: LevelOutcome[]
-	ci?: boolean
+	verbose: boolean
+	ci: boolean
 	files: string[]
+	sync?: string
 }
 
 abstract class VerifyStats {
 	constructor(public total: number) {}
+	success = 0
+	roundedPercent(num: number): number {
+		return Math.round((num / this.total) * 1000) / 10
+	}
 	abstract getTextStats(): string
-	abstract addLevel(msg: WorkerLevelMessage): string
-	abstract getExitCode(): number
+	abstract addLevel(
+		msg: WorkerLevelMessage
+	): [meesage: string, verboseOnly: boolean]
+	abstract addDespawn(msg: WorkerDespawnMesasage): void
+
+	getExitCode(): number {
+		const failureN = this.total - this.success
+		const exitCode = failureN === 0 ? 0 : 1 + ((failureN - 1) % 255)
+		return exitCode
+	}
 }
 
 class VerifyStatsBasic extends VerifyStats {
@@ -77,26 +100,108 @@ class VerifyStatsBasic extends VerifyStats {
 	noInput = 0
 	error = 0
 	getTextStats(): string {
-		const roundedPercent = (num: number) => {
-			return Math.round((num / this.total) * 1000) / 10
-		}
 		return `${this.total} Total
-${pc.green(`${this.success} (${roundedPercent(this.success)}%)`)} ✅
-${pc.red(`${this.badInput} (${roundedPercent(this.badInput)}%)`)} ❌
-${pc.blue(`${this.noInput} (${roundedPercent(this.noInput)}%)`)} 💤
-${pc.yellow(`${this.error} (${roundedPercent(this.error)}%)`)} 💥`
+${pc.green(`${this.success} (${this.roundedPercent(this.success)}%)`)} ✅
+${pc.red(`${this.badInput} (${this.roundedPercent(this.badInput)}%)`)} ❌
+${pc.blue(`${this.noInput} (${this.roundedPercent(this.noInput)}%)`)} 💤
+${pc.yellow(`${this.error} (${this.roundedPercent(this.error)}%)`)} 💥`
 	}
-	addLevel(msg: WorkerLevelMessage): string {
+	addLevel(msg: WorkerLevelMessage): [string, boolean] {
 		this[msg.outcome] += 1
 		const style = outcomeStyles[msg.outcome]
-		return pc[style.color](
-			`${msg.levelName} - ${style.desc}${msg.desc ? ` (${msg.desc})` : ""}`
-		)
+		return [
+			pc[style.color](
+				`${msg.levelName} - ${style.desc}${msg.desc ? ` (${msg.desc})` : ""}`
+			),
+			msg.outcome === "success",
+		]
 	}
-	getExitCode(): number {
-		const failureN = this.total - this.success
-		const exitCode = failureN === 0 ? 0 : 1 + (failureN % 255)
-		return exitCode
+	addDespawn(msg: WorkerDespawnMesasage): void {
+		console.warn(`[${msg.level}] ${msg.message}`)
+	}
+}
+
+function arraysEqual<T>(aArr: T[], bArr: T[]): boolean {
+	if (aArr.length === 0 || bArr.length === 0) {
+		return aArr.length === bArr.length
+	}
+	return aArr.every((a, i) => a === bArr[i])
+}
+
+export interface SyncfileConstraints {
+	outcome: LevelOutcome
+	despawns?: `(${number}, ${number}) ${"delete" | "replace"}`[]
+}
+
+export type Syncfile = {
+	_default: SyncfileConstraints
+} & Partial<Record<string, SyncfileConstraints>>
+
+class VerifyStatsSync extends VerifyStats {
+	success = 0
+	mismatch = 0
+	constructor(total: number, public sync: Syncfile) {
+		super(total)
+	}
+	getTextStats(): string {
+		return `${this.total} Total
+${pc.green(`${this.success} (${this.roundedPercent(this.success)}%)`)} ✅
+${pc.red(`${this.mismatch} (${this.roundedPercent(this.mismatch)}%)`)} ❌`
+	}
+	getConstraintsForLevel(level: string): SyncfileConstraints {
+		if (level in this.sync) return this.sync[level]!
+		return this.sync._default
+	}
+	despawns: Partial<Record<string, string[]>> = {}
+	addDespawn(msg: WorkerDespawnMesasage): void {
+		let despawnArray: string[]
+		if (msg.level in this.despawns) {
+			despawnArray = this.despawns[msg.level]!
+		} else {
+			despawnArray = this.despawns[msg.level] = []
+		}
+		despawnArray.push(msg.message)
+	}
+	addLevel(msg: WorkerLevelMessage): [string, boolean] {
+		const mismatchReasons: string[] = []
+		const constraints = this.getConstraintsForLevel(msg.levelName)
+
+		if (constraints.outcome !== msg.outcome) {
+			mismatchReasons.push(
+				`Expected ${constraints.outcome}, got ${msg.outcome}.`
+			)
+		}
+
+		const levelDespawns = this.despawns[msg.levelName]
+
+		const despawnsMatch = arraysEqual(
+			levelDespawns ?? [],
+			constraints.despawns ?? []
+		)
+		if (!despawnsMatch) {
+			mismatchReasons.push(
+				`Expected [${(constraints.despawns ?? []).join(", ")}], got [${(
+					levelDespawns ?? []
+				).join(", ")}]`
+			)
+		}
+		delete this.despawns[msg.levelName]
+
+		const mismatch = mismatchReasons.length > 0
+
+		const style = outcomeStyles[mismatch ? "badInput" : "success"]
+		if (!mismatch) {
+			this.success += 1
+			return [pc[style.color](`${msg.levelName} - Success`), true]
+		}
+
+		this.mismatch += 1
+		return [
+			pc[style.color](
+				mismatchReasons.map(reason => `${msg.levelName} - ${reason}`).join("\n")
+			),
+			false,
+		]
 	}
 }
 
@@ -105,10 +210,7 @@ interface VerifyOutputs {
 	levelComplete(msg: WorkerLevelMessage): void
 }
 
-function makeBarOutput(
-	stats: VerifyStats,
-	toShow: LevelOutcome[]
-): VerifyOutputs {
+function makeBarOutput(stats: VerifyStats, verbose: boolean): VerifyOutputs {
 	const bar = new ProgressBar(
 		":bar :current/:total (:percent) :rate lvl/s",
 		stats.total
@@ -116,9 +218,9 @@ function makeBarOutput(
 
 	return {
 		levelComplete(msg) {
-			const levelInfo = stats.addLevel(msg)
-			if (toShow.includes(msg.outcome)) {
-				bar.interrupt(levelInfo)
+			const [message, verboseOnly] = stats.addLevel(msg)
+			if (!verboseOnly || verbose) {
+				bar.interrupt(message)
 			}
 			bar.tick()
 		},
@@ -133,12 +235,15 @@ function makeBarOutput(
  */
 const CI_OUTPUT_INTERVAL = 100
 
-function makeCiOutput(stats: VerifyStats): VerifyOutputs {
+function makeCiOutput(stats: VerifyStats, verbose: boolean): VerifyOutputs {
 	let totalComplete = 0
 	return {
 		levelComplete(msg: WorkerLevelMessage) {
 			totalComplete += 1
-			stats.addLevel(msg)
+			const [message] = stats.addLevel(msg)
+			if (verbose) {
+				console.log(message)
+			}
 			if (totalComplete % CI_OUTPUT_INTERVAL === 0) {
 				console.log(stats.getTextStats())
 			}
@@ -157,13 +262,19 @@ export async function verifyLevelFiles(
 	)
 	const filesN = files.length
 
-	let toShow: LevelOutcome[]
-	if (args.hide) toShow = levelOutcomes.filter(val => !args.hide!.includes(val))
-	else if (args.show) toShow = args.show
-	else toShow = Array.from(levelOutcomes)
+	let syncfile: Syncfile | undefined
 
-	const stats = new VerifyStatsBasic(filesN)
-	const output = args.ci ? makeCiOutput(stats) : makeBarOutput(stats, toShow)
+	if (args.sync) {
+		const syncData = await readFile(args.sync, "utf-8")
+		syncfile = decode(syncData) as Syncfile
+	}
+
+	const stats = syncfile
+		? new VerifyStatsSync(filesN, syncfile)
+		: new VerifyStatsBasic(filesN)
+	const output = args.ci
+		? makeCiOutput(stats, args.verbose)
+		: makeBarOutput(stats, args.verbose)
 
 	const workers: WorkerData[] = []
 
@@ -191,6 +302,10 @@ export async function verifyLevelFiles(
 		port2.on("message", (msg: WorkerMessage) => {
 			if (msg.type === "log") {
 				output.logMessage(msg.message)
+				return
+			}
+			if (msg.type === "despawn") {
+				stats.addDespawn?.(msg)
 				return
 			}
 			output.levelComplete(msg)
@@ -229,16 +344,19 @@ export default (yargs: Argv) =>
 					coerce: files => (files instanceof Array ? files : [files]),
 				})
 				.demandOption("files")
-				.option("show", { describe: "The result types to show" })
-				.conflicts("show", "hide")
-				.choices("show", levelOutcomes)
-				.option("hide", { describe: "The result types to hide" })
-				.choices("hide", levelOutcomes)
+				.option("verbose", {
+					describe:
+						"If set, prints successful levels too, instead of just the failed ones.",
+				})
 				.option("ci", {
 					describe:
 						"Whenever to log intermediate stats in a non-TTY compatible manner",
+					type: "boolean",
 				})
-				.conflicts("ci", ["show", "hide"])
+				.option("sync", {
+					description: "Path to syncfiles to use",
+					type: "string",
+				})
 				.usage("notcc verify <files>"),
 		verifyLevelFiles
 	)

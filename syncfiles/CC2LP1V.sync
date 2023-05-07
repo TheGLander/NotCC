@@ -1,0 +1,53 @@
+[_default]
+outcome=success
+[MISERABLE ANTICLIMAX]
+outcome=badInput
+[VENETIAN DEMOLITION]
+outcome=badInput
+[149 IS A MEANINGLESS NUMBER]
+outcome=badInput
+[THE BIG STONE(D)]
+outcome=badInput
+[WHAT'S NEW IS OLD]
+outcome=success
+despawns[] = (8, 11) replace
+despawns[] = (8, 11) delete
+despawns[] = (4, 11) replace
+despawns[] = (4, 11) delete
+despawns[] = (8, 6) replace
+despawns[] = (8, 6) delete
+# TODO implement whatever tiles these levels need
+[NON-LAYER DIMENSION]
+outcome=error
+[SIDE EFFECTS OF RADIOACTIVITY]
+outcome=error
+[CREATURE FROM ANOTHER WORLD]
+outcome=noInput
+[PUZZLE BLASTER]
+outcome=success
+despawns[] = (2, 1) replace
+despawns[] = (2, 1) delete
+[BLOCK DELETION]
+outcome=success
+despawns[] = (2, 3) replace
+despawns[] = (1, 2) replace
+despawns[] = (2, 1) replace
+despawns[] = (3, 2) replace
+despawns[] = (2, 8) replace
+despawns[] = (1, 7) replace
+despawns[] = (2, 6) replace
+despawns[] = (3, 7) replace
+despawns[] = (7, 8) replace
+despawns[] = (6, 7) replace
+despawns[] = (7, 6) replace
+despawns[] = (8, 7) replace
+despawns[] = (7, 3) replace
+despawns[] = (6, 2) replace
+despawns[] = (7, 1) replace
+despawns[] = (8, 2) replace
+[OVERGROWN HEDGE MAZE]
+outcome=success
+despawns[] = (13, 19) replace
+despawns[] = (13, 19) delete
+[ICE BLOCK SPEED TEAM]
+outcome=badInput
