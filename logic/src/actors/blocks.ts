@@ -1,8 +1,8 @@
-import { Actor } from "../actor"
-import { Layer } from "../tile"
-import { actorDB } from "../const"
-import { Water, Dirt, Ice } from "./terrain"
-import { Direction } from "../helpers"
+import { Actor } from "../actor.js"
+import { Layer } from "../tile.js"
+import { actorDB } from "../const.js"
+import { Water, Dirt, Ice } from "./terrain.js"
+import { Direction } from "../helpers.js"
 
 export class DirtBlock extends Actor {
 	id = "dirtBlock"

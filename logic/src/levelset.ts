@@ -3,9 +3,9 @@ import {
 	ScriptRunner,
 	MapInterruptResponse,
 	ScriptInterrupt,
-} from "./parsers/c2g"
-import { LevelData, parseC2M } from "./parsers/c2m"
-import { ILevelInfo, ISetInfo } from "./parsers/nccs.pb"
+} from "./parsers/c2g.js"
+import { LevelData, parseC2M } from "./parsers/c2m.js"
+import { ILevelInfo, ISetInfo } from "./parsers/nccs.pb.js"
 
 export interface LevelSetRecord {
 	levelData?: LevelData

@@ -1,13 +1,17 @@
-import { CrossLevelDataInterface, KeyInputs, encodeSolutionStep } from "./level"
-import { GameState } from "./level"
-import { LevelState } from "./level"
-import { crossLevelData } from "./level"
+import {
+	CrossLevelDataInterface,
+	KeyInputs,
+	encodeSolutionStep,
+} from "./level.js"
+import { GameState } from "./level.js"
+import { LevelState } from "./level.js"
+import { crossLevelData } from "./level.js"
 import {
 	IAttemptInfo,
 	ILevelStateInfo,
 	IScriptState,
 	google,
-} from "./parsers/nccs.pb"
+} from "./parsers/nccs.pb.js"
 
 // The two interfaces are structually equivalent, so just output both!
 export function msToProtoTime(

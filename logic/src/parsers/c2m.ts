@@ -1,8 +1,8 @@
-import AutoReadDataView from "./autoReader"
-import { Direction, Field } from "../helpers"
-import data, { cc2Tile } from "./c2mData"
+import AutoReadDataView from "./autoReader.js"
+import { Direction, Field } from "../helpers.js"
+import data, { cc2Tile } from "./c2mData.js"
 import rfdc from "rfdc"
-import { ISolutionInfo } from "./nccs.pb"
+import { ISolutionInfo } from "./nccs.pb.js"
 
 export interface CameraType {
 	width: number

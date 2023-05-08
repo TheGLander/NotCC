@@ -1,13 +1,16 @@
 import { exit } from "process"
-import { resolveLevelPath } from "../helpers"
+import { resolveLevelPath } from "../helpers.js"
 import { MessageChannel, MessagePort, Worker } from "worker_threads"
-import { join } from "path"
+import { join, dirname } from "path"
 import os from "os"
 import pc from "picocolors"
 import ProgressBar from "progress"
 import { ArgumentsCamelCase, Argv } from "yargs"
 import { decode } from "ini"
 import { readFile } from "fs/promises"
+import { fileURLToPath } from "url"
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const levelOutcomes = ["success", "noInput", "badInput", "error"] as const
 

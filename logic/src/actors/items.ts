@@ -1,11 +1,11 @@
-import { Layer } from "../tile"
-import { Actor, matchTags, SlidingState } from "../actor"
-import { actorDB, keyNameList } from "../const"
-import { LevelState } from "../level"
-import { LitTNT, RollingBowlingBall } from "./monsters"
-import { Explosion } from "./animation"
-import { Direction } from "../helpers"
-import { SteelWall } from "./walls"
+import { Layer } from "../tile.js"
+import { Actor, matchTags, SlidingState } from "../actor.js"
+import { actorDB, keyNameList } from "../const.js"
+import { LevelState } from "../level.js"
+import { LitTNT, RollingBowlingBall } from "./monsters.js"
+import { Explosion } from "./animation.js"
+import { Direction } from "../helpers.js"
+import { SteelWall } from "./walls.js"
 
 export const enum ItemDestination {
 	NONE,

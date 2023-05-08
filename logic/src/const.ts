@@ -1,6 +1,6 @@
-import { Actor } from "./actor"
-import { Direction } from "./helpers"
-import { LevelState } from "./level"
+import { Actor } from "./actor.js"
+import { Direction } from "./helpers.js"
+import { LevelState } from "./level.js"
 
 /**
  * An object which matched IDs and and actor classes, is used for loading level actors

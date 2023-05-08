@@ -1,6 +1,6 @@
 import { printf } from "fast-printf"
 import { join } from "path"
-import { IScriptState } from "./nccs.pb"
+import { IScriptState } from "./nccs.pb.js"
 
 export const C2G_NOTCC_VERSION = "1.0-NotCC"
 
@@ -52,10 +52,10 @@ export const scriptDirectives = [
 	"script",
 ] as const
 
-export type ScriptDirective = typeof scriptDirectives[number]
+export type ScriptDirective = (typeof scriptDirectives)[number]
 
 export type ScriptVariableState = Partial<
-	Record<Exclude<typeof scriptVariables[number], "line" | "score">, number>
+	Record<Exclude<(typeof scriptVariables)[number], "line" | "score">, number>
 >
 
 export type ScriptMusicState = {
@@ -82,8 +82,8 @@ export const scriptConstants = {
 type ScriptKeyword =
 	| keyof typeof scriptConstants
 	| ScriptDirective
-	| typeof scriptBrokenKeywords[number]
-	| typeof scriptVariables[number]
+	| (typeof scriptBrokenKeywords)[number]
+	| (typeof scriptVariables)[number]
 
 const scriptKeywords = [
 	...Object.keys(scriptConstants),
@@ -112,7 +112,7 @@ const scriptOperators = [
 	"^",
 ] as const
 
-type ScriptOperators = typeof scriptOperators[number]
+type ScriptOperators = (typeof scriptOperators)[number]
 
 interface StringToken {
 	type: "string"
@@ -383,7 +383,7 @@ const scriptOperatorFunctions: Record<
 // Typescript stuff
 const isVariable = (
 	varName: string
-): varName is typeof scriptVariables[number] =>
+): varName is (typeof scriptVariables)[number] =>
 	scriptVariables.includes(varName as keyof ScriptVariableState)
 const isConstant = (varName: string): varName is keyof typeof scriptConstants =>
 	varName in scriptConstants
@@ -422,7 +422,8 @@ export const scriptLegalInventoryTools = [
 	"hook",
 ] as const
 
-export type ScriptLegalInventoryTool = typeof scriptLegalInventoryTools[number]
+export type ScriptLegalInventoryTool =
+	(typeof scriptLegalInventoryTools)[number]
 
 export type MapInterruptResponse =
 	| {

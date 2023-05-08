@@ -1,8 +1,8 @@
-import { Actor } from "../actor"
-import { Layer } from "../tile"
-import { Direction } from "../helpers"
-import { Key } from "./items"
-import { actorDB } from "../const"
+import { Actor } from "../actor.js"
+import { Layer } from "../tile.js"
+import { Direction } from "../helpers.js"
+import { Key } from "./items.js"
+import { actorDB } from "../const.js"
 
 export class NoSign extends Actor {
 	id = "noSign"

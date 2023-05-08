@@ -1,8 +1,8 @@
-import { Direction } from "./helpers"
-import { Actor } from "./actor"
-import { LevelState } from "./level"
-import { Tile, Layer } from "./tile"
-import { iterableFindIndex } from "./iterableHelpers"
+import { Direction } from "./helpers.js"
+import { Actor } from "./actor.js"
+import { LevelState } from "./level.js"
+import { Tile, Layer } from "./tile.js"
+import { iterableFindIndex } from "./iterableHelpers.js"
 
 export interface Wirable {
 	wires: number

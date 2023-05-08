@@ -1,5 +1,5 @@
 import { ScriptRunner, C2G_NOTCC_VERSION, ScriptInterrupt } from "@notcc/logic"
-import { errorAndExit } from "../helpers"
+import { errorAndExit } from "../helpers.js"
 import { createInterface } from "readline"
 import fs from "fs"
 import { resolve } from "path"

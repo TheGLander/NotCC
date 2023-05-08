@@ -1,10 +1,10 @@
-import { Actor, matchTags } from "../actor"
-import { Layer } from "../tile"
-import { actorDB } from "../const"
-import { Direction, hasOwnProperty } from "../helpers"
-import { Playable } from "./playables"
-import { WireOverlapMode } from "../wires"
-import { crossLevelData, onLevelAfterTick } from "../level"
+import { Actor, matchTags } from "../actor.js"
+import { Layer } from "../tile.js"
+import { actorDB } from "../const.js"
+import { Direction, hasOwnProperty } from "../helpers.js"
+import { Playable } from "./playables.js"
+import { WireOverlapMode } from "../wires.js"
+import { crossLevelData, onLevelAfterTick } from "../level.js"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall", "tinnable"]

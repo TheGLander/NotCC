@@ -1,7 +1,7 @@
-import AutoReadDataView from "./autoReader"
-import { ISetInfo, SetInfo } from "./nccs.pb"
+import AutoReadDataView from "./autoReader.js"
+import { ISetInfo, SetInfo } from "./nccs.pb.js"
 
-export * as protobuf from "./nccs.pb"
+export * as protobuf from "./nccs.pb.js"
 
 const MAGIC_STRING = "NCCS"
 const NCCS_VERSION = "1.0"
@@ -28,7 +28,7 @@ export function writeNCCS(saveData: ISetInfo): Uint8Array {
 	return finalData
 }
 
-export function parseNCCS(data: ArrayBuffer): SetInfo {
+export function parseNCCS(data: ArrayBuffer): ISetInfo {
 	const view = new AutoReadDataView(data)
 	const magicText = view.getString(4)
 	if (magicText !== MAGIC_STRING) throw new Error("Missing magic string")

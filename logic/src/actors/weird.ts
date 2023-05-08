@@ -1,6 +1,6 @@
-import { Actor } from "../actor"
-import { Layer } from "../tile"
-import { actorDB } from "../const"
+import { Actor } from "../actor.js"
+import { Layer } from "../tile.js"
+import { actorDB } from "../const.js"
 
 // Weird "good job CC2" tiles
 

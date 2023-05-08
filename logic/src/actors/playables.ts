@@ -1,9 +1,9 @@
-import { Actor, SlidingState } from "../actor"
-import { Layer } from "../tile"
-import { Direction, relativeToAbsolute } from "../helpers"
-import { GameState, KeyInputs, LevelState, onLevelAfterTick } from "../level"
-import { Decision, actorDB } from "../const"
-import { Item } from "./items"
+import { Actor, SlidingState } from "../actor.js"
+import { Layer } from "../tile.js"
+import { Direction, relativeToAbsolute } from "../helpers.js"
+import { GameState, KeyInputs, LevelState, onLevelAfterTick } from "../level.js"
+import { Decision, actorDB } from "../const.js"
+import { Item } from "./items.js"
 
 export function getMovementDirections(
 	input: KeyInputs
@@ -169,7 +169,7 @@ export abstract class Playable extends Actor {
 		this.level.gameState = GameState.DEATH
 		return true
 	}
-	replaceWith(other: typeof actorDB[string]): Actor {
+	replaceWith(other: (typeof actorDB)[string]): Actor {
 		const newActor = super.replaceWith(other) as Playable
 		// `replaceWith` calls `destroy`, which is usually considered death, but
 		// transformation isn't death, so actually undo all of the death reporting

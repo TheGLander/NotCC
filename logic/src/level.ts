@@ -1,11 +1,11 @@
-import { Actor } from "./actor"
-import { Field, Direction } from "./helpers"
-import { Playable } from "./actors/playables"
-import { Tile } from "./tile"
-import { Layer } from "./tile"
-import type { LevelData, CameraType } from "./parsers/c2m"
-import { actorDB, Decision } from "./const"
-import { iterableIndexOf, iterableSome } from "./iterableHelpers"
+import { Actor } from "./actor.js"
+import { Field, Direction } from "./helpers.js"
+import { Playable } from "./actors/playables.js"
+import { Tile } from "./tile.js"
+import { Layer } from "./tile.js"
+import type { LevelData, CameraType } from "./parsers/c2m.js"
+import { actorDB, Decision } from "./const.js"
+import { iterableIndexOf, iterableSome } from "./iterableHelpers.js"
 import {
 	buildCircuits,
 	CircuitCity,
@@ -13,8 +13,8 @@ import {
 	Wirable,
 	wirePretick,
 	wireTick,
-} from "./wires"
-import { ISolutionInfo } from "./parsers/nccs.pb"
+} from "./wires.js"
+import { ISolutionInfo } from "./parsers/nccs.pb.js"
 
 export enum GameState {
 	PLAYING,

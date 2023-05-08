@@ -1,11 +1,16 @@
-import { LevelState, crossLevelData } from "./level"
-import { Decision, actorDB } from "./const"
-import { Direction, hasOwnProperty } from "./helpers"
-import { Layer, Tile } from "./tile"
-import { Item, Key } from "./actors/items"
-import { CircuitCity, isWired, Wirable, WireOverlapMode, Wires } from "./wires"
-import { Playable } from "./actors"
-import { iterableIndexOf } from "./iterableHelpers"
+import { LevelState, crossLevelData } from "./level.js"
+import { Decision, actorDB } from "./const.js"
+import { Direction, hasOwnProperty } from "./helpers.js"
+import { Layer, Tile } from "./tile.js"
+import { Item, Key } from "./actors/items.js"
+import {
+	CircuitCity,
+	isWired,
+	Wirable,
+	WireOverlapMode,
+	
+} from "./wires.js"
+import { iterableIndexOf } from "./iterableHelpers.js"
 
 /**
  * Current state of sliding, playables can escape weak sliding.

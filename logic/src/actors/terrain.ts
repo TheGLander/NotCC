@@ -1,27 +1,26 @@
-import { Actor, SlidingState } from "../actor"
-import { Layer } from "../tile"
-import { actorDB } from "../const"
-import { Wall } from "./walls"
-import { matchTags } from "../actor"
-import { Playable } from "./playables"
+import { Actor, SlidingState } from "../actor.js"
+import { Layer } from "../tile.js"
+import { actorDB } from "../const.js"
+import { Wall } from "./walls.js"
+import { matchTags } from "../actor.js"
+import { Playable } from "./playables.js"
 import {
 	GameState,
 	LevelState,
 	crossLevelData,
 	onLevelDecisionTick,
 	onLevelWireTick,
-} from "../level"
-import { Direction, Field, hasOwnProperty } from "../helpers"
+} from "../level.js"
+import { Direction, Field, hasOwnProperty } from "../helpers.js"
 import {
 	CircuitCity,
 	dirToWire,
-	isWired,
 	WireOverlapMode,
 	Wires,
 	wireToDir,
-} from "../wires"
-import { BlueTeleportTarget, doBlueTeleport } from "./teleport"
-import { iterableIncludes } from "../iterableHelpers"
+} from "../wires.js"
+import { BlueTeleportTarget, doBlueTeleport } from "./teleport.js"
+import { iterableIncludes } from "../iterableHelpers.js"
 
 export class LetterTile extends Actor {
 	id = "letterTile"
@@ -177,7 +176,7 @@ export class ForceFloorRandom extends Actor {
 		return 2
 	}
 }
-declare module "../level" {
+declare module "../level.js" {
 	export interface CrossLevelDataInterface {
 		RFFDirection: Direction
 	}
@@ -779,7 +778,7 @@ onLevelWireTick.push(level => {
 	}
 })
 
-declare module "../level" {
+declare module "../level.js" {
 	export interface CrossLevelDataInterface {
 		logicGateTeleportPurgatory: Field<Actor>
 	}

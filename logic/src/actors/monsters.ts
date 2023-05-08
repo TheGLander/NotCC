@@ -1,15 +1,11 @@
-import { Actor, matchTags } from "../actor"
-import { Layer } from "../tile"
-import { Direction, hasOwnProperty, relativeToAbsolute } from "../helpers"
-import { actorDB, Decision } from "../const"
-import { Fire } from "./terrain"
-import { Tile } from "../tile"
-import {
-	iterableFind,
-	iterableIncludes,
-	iterableSome,
-} from "../iterableHelpers"
-import { crossLevelData, onLevelAfterTick } from "../level"
+import { Actor, matchTags } from "../actor.js"
+import { Layer } from "../tile.js"
+import { Direction, hasOwnProperty, relativeToAbsolute } from "../helpers.js"
+import { actorDB, Decision } from "../const.js"
+import { Fire } from "./terrain.js"
+import { Tile } from "../tile.js"
+import { iterableFind, iterableSome } from "../iterableHelpers.js"
+import { crossLevelData, onLevelAfterTick } from "../level.js"
 
 export abstract class Monster extends Actor {
 	blocks(): true {
@@ -416,7 +412,7 @@ export class Rover extends Monster {
 	pushTags = ["block"]
 	blockedByTags = ["canopy"]
 	moveSpeed = 8
-	emulatedMonster: typeof roverMimicOrder[number] = roverMimicOrder[0]
+	emulatedMonster: (typeof roverMimicOrder)[number] = roverMimicOrder[0]
 	decisionsUntilNext = 32
 	decideMovement(): Direction[] {
 		this.decisionsUntilNext--

@@ -11,7 +11,7 @@ import type {
 	ParentInitialMessage,
 	ParentNewLevelMessage,
 	ParentEndMessage,
-} from "./verifyLevels"
+} from "./verifyLevels.js"
 
 if (!parentPort) throw new Error()
 

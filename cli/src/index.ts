@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import yargsF from "yargs/yargs"
 import { hideBin } from "yargs/helpers"
-import commands from "./commands"
+import commands from "./commands/index.js"
 
 let yargs = yargsF(hideBin(process.argv))
 

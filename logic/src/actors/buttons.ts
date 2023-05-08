@@ -1,10 +1,9 @@
-import { Actor } from "../actor"
-import { Layer } from "../tile"
-import { actorDB, Decision } from "../const"
-import { LevelState } from "../level"
-import { Tile } from "../tile"
-import { getTileWirable, WireOverlapMode } from "../wires"
-import { crossLevelData, onLevelStart } from "../level"
+import { Actor } from "../actor.js"
+import { Layer } from "../tile.js"
+import { actorDB, Decision } from "../const.js"
+import { Tile } from "../tile.js"
+import { getTileWirable, WireOverlapMode } from "../wires.js"
+import { crossLevelData, onLevelStart } from "../level.js"
 
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
@@ -48,9 +47,9 @@ export function globalComplexButtonFactory(color: string) {
 	}
 }
 
-declare module "../level" {
+declare module "../level.js" {
 	export interface CrossLevelDataInterface {
-		greenButtonPressed: boolean
+		greenButtonPressed: Partial<boolean>
 	}
 }
 class ButtonGreen extends globalButtonFactory("green") {
@@ -64,7 +63,7 @@ onLevelStart.push(() => (crossLevelData.greenButtonPressed = false))
 
 actorDB["buttonGreen"] = ButtonGreen
 
-declare module "../level" {
+declare module "../level.js" {
 	export interface CrossLevelDataInterface {
 		blueButtonPressed: boolean
 	}
@@ -81,7 +80,7 @@ onLevelStart.push(() => (crossLevelData.blueButtonPressed = false))
 actorDB["buttonBlue"] = ButtonBlue
 
 actorDB["complexButtonYellow"] = globalComplexButtonFactory("yellow")
-declare module "../level" {
+declare module "../level.js" {
 	export interface CrossLevelDataInterface {
 		currentYellowButtonPress: Decision
 	}

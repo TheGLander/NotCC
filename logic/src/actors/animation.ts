@@ -1,8 +1,8 @@
-import { Actor, SlidingState } from "../actor"
-import { Layer } from "../tile"
-import { actorDB, Decision } from "../const"
-import { LevelState } from "../level"
-import { Direction } from "../helpers"
+import { Actor, SlidingState } from "../actor.js"
+import { Layer } from "../tile.js"
+import { actorDB, Decision } from "../const.js"
+import { LevelState } from "../level.js"
+import { Direction } from "../helpers.js"
 
 export abstract class Animation extends Actor {
 	animationCooldown = 16

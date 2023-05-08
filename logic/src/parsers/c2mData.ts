@@ -1,4 +1,4 @@
-import { Direction } from "../helpers"
+import { Direction } from "../helpers.js"
 
 const cc2Tiles = [
 	[["combinationTile", 0, "0,0"]],
@@ -151,7 +151,7 @@ const cc2Tiles = [
 ] as const
 
 export type cc2TileNames =
-	| Exclude<typeof cc2Tiles[number][0], undefined>[0]
+	| Exclude<(typeof cc2Tiles)[number][0], undefined>[0]
 	// Indirect tile additions
 	| "canopy"
 	| "andGate"

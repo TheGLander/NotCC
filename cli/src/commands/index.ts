@@ -1,5 +1,5 @@
-import c2gShell from "./c2gShell"
-import statLevel from "./statLevel"
-import verifyLevels from "./verifyLevels"
+import c2gShell from "./c2gShell.js"
+import statLevel from "./statLevel.js"
+import verifyLevels from "./verifyLevels.js"
 
 export default [c2gShell, statLevel, verifyLevels]

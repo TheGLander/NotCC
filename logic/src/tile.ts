@@ -1,7 +1,7 @@
-import { Actor } from "./actor"
-import { LevelState, crossLevelData } from "./level"
-import { Direction } from "./helpers"
-import { CircuitCity, Wirable, WireOverlapMode, Wires } from "./wires"
+import { Actor } from "./actor.js"
+import { LevelState, crossLevelData } from "./level.js"
+import { Direction } from "./helpers.js"
+import { CircuitCity, Wirable, WireOverlapMode, Wires } from "./wires.js"
 
 export enum Layer {
 	STATIONARY, // Terrain, etc.

@@ -1,10 +1,15 @@
-import { Actor, SlidingState } from "../actor"
-import { Layer, Tile } from "../tile"
-import { actorDB } from "../const"
-import { Playable } from "./playables"
-import { Item, ItemDestination } from "./items"
-import { iterableFind, iterableIncludes } from "../iterableHelpers"
-import { CircuitCity, getTileWirable, WireOverlapMode, Wires } from "../wires"
+import { Actor, SlidingState } from "../actor.js"
+import { Layer, Tile } from "../tile.js"
+import { actorDB } from "../const.js"
+import { Playable } from "./playables.js"
+import { Item, ItemDestination } from "./items.js"
+import { iterableFind, iterableIncludes } from "../iterableHelpers.js"
+import {
+	CircuitCity,
+	getTileWirable,
+	WireOverlapMode,
+	Wires,
+} from "../wires.js"
 
 function findNextTeleport<T extends Actor>(
 	teleport: T,
