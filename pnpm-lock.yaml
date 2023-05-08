@@ -87,6 +87,9 @@ importers:
       base64-js:
         specifier: ^1.5.1
         version: 1.5.1
+      dialog-polyfill:
+        specifier: ^0.5.6
+        version: 0.5.6
       fast-printf:
         specifier: ^1.6.5
         version: 1.6.9
@@ -896,6 +899,10 @@ packages:
 
   /deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
+    dev: true
+
+  /dialog-polyfill@0.5.6:
+    resolution: {integrity: sha512-ZbVDJI9uvxPAKze6z146rmfUZjBqNEwcnFTVamQzXH+svluiV7swmVIGr7miwADgfgt1G2JQIytypM9fbyhX4w==}
     dev: true
 
   /dir-glob@3.0.1:

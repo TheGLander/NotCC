@@ -6,7 +6,6 @@ import {
 	onLevelStart,
 } from "@notcc/logic"
 import { Direction } from "@notcc/logic"
-import "./NCCTK.less"
 import { parseC2M } from "@notcc/logic"
 import { actorDB, keyNameList } from "@notcc/logic"
 import { artDB } from "./const"
@@ -25,6 +24,15 @@ import { generateShortcutListener, generateTabButtons } from "./sidebar"
 import { loadSetInfo, saveSetInfo } from "./saveData"
 import { KeyListener } from "./utils"
 import { openTilesetSelectortDialog } from "./tilesets"
+
+import "dialog-polyfill/dialog-polyfill.css"
+import dialogPolyfill from "dialog-polyfill"
+
+for (const dialog of Array.from(document.querySelectorAll("dialog"))) {
+	dialogPolyfill.registerDialog(dialog)
+}
+
+import "./NCCTK.less"
 
 const pager = new Pager()
 

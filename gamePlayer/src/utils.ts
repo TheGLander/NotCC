@@ -51,7 +51,7 @@ export class AnimationTimer {
 }
 
 function isModalPresent(): boolean {
-	return !!document.querySelector(":modal")
+	return !!document.querySelector("dialog[open]")
 }
 
 export class KeyListener {
