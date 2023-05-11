@@ -76,7 +76,7 @@ actorDB["doorGreen"] = doorFactory("green")
 
 actorDB["doorYellow"] = doorFactory("yellow")
 
-const shortDirNames = ["u", "r", "d", "l"]
+const shortDirNames = "URDL"
 
 export class ThinWall extends Actor {
 	id = "thinWall"

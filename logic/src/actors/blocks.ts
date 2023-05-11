@@ -111,7 +111,7 @@ export class DirectionalBlock extends Actor {
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
-	legalDirections = Array.from(this.customData).map(val => "URLD".indexOf(val))
+	legalDirections = Array.from(this.customData).map(val => "URDL".indexOf(val))
 	blocks(): boolean {
 		return true
 	}
