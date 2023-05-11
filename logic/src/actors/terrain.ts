@@ -421,11 +421,12 @@ onLevelDecisionTick.push(level => {
 	}
 })
 
-// TODO CC1 clone machines, direction arrows on clone machine
+// TODO CC1 clone machines
 export class CloneMachine extends Actor {
 	id = "cloneMachine"
 	isCloning = false
 	tags = ["machinery"]
+	cloneArrows = Array.from(this.customData).map(val => "URLD".indexOf(val))
 	// Always block boomer actors
 	blockTags = ["cc1block", "normal-monster", "real-playable"]
 	getLayer(): Layer {

@@ -122,7 +122,8 @@ function createFieldFromArrayBuffer(
 							additions.unshift([
 								"thinWall",
 								0,
-								["u", "r", "d", "l", "c"]
+								"URDLC"
+									.split("")
 									.filter((_val, i) => !!((2 ** i) & options))
 									.join(""),
 							])
@@ -132,10 +133,9 @@ function createFieldFromArrayBuffer(
 					}
 					case "directionalBlock": {
 						const options = view.getUint8()
-						const directions = ["u", "r", "d", "l"]
 						tile[2] = ""
 						for (let j = 0; j < 4; j++)
-							if (getBit(options, j)) tile[2] += directions[j]
+							if (getBit(options, j)) tile[2] += "URDL"[j]
 						break
 					}
 					// By default custom tiles are green
@@ -179,10 +179,9 @@ function createFieldFromArrayBuffer(
 								tiles.unshift(...modTiles)
 								break
 							case "cloneMachine": {
-								const directions = ["u", "r", "d", "l"]
 								modTiles[0][2] = ""
 								for (let j = 0; j < 4; j++)
-									if (getBit(options, j)) modTiles[0][2] += directions[j]
+									if (getBit(options, j)) modTiles[0][2] += "URDL"[j]
 								tiles.unshift(...modTiles)
 								break
 							}
