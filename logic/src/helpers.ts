@@ -8,6 +8,7 @@ export enum Direction {
 	DOWN,
 	LEFT,
 }
+export type DirectionString = "UP" | "RIGHT" | "DOWN" | "LEFT"
 
 const absoluteEnums = [
 	{ FORWARD: 0, RIGHT: 1, BACKWARD: 2, LEFT: 3 },

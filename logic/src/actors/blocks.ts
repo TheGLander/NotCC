@@ -111,7 +111,7 @@ export class DirectionalBlock extends Actor {
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
-	legalDirections = Array.from(this.customData).map(val => "urdl".indexOf(val))
+	legalDirections = Array.from(this.customData).map(val => "URLD".indexOf(val))
 	blocks(): boolean {
 		return true
 	}
@@ -152,7 +152,7 @@ export class DirectionalBlock extends Actor {
 	rebuildCustomData(): void {
 		this.customData = ""
 		for (const dir of this.legalDirections) {
-			this.customData += "urdl"[dir]
+			this.customData += "URLD"[dir]
 		}
 	}
 	onRedirect(delta: number): void {
