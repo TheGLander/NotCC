@@ -334,6 +334,12 @@ export class LevelState {
 		if (!hintedActor) return null
 		return (hintedActor as any).hint
 	}
+	getPerspective(): boolean {
+		return (
+			!!this.selectedPlayable &&
+			this.selectedPlayable.getCompleteTags("tags").includes("can-see-secrets")
+		)
+	}
 	*tiles(
 		rro = true,
 		relativeTo: [number, number] = [0, 0]
