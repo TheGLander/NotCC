@@ -81,7 +81,7 @@ const shortDirNames = "URDL"
 export class ThinWall extends Actor {
 	id = "thinWall"
 	tags = ["thinWall"].concat(
-		this.customData.includes("c") ? ["canopy", "blocks-tnt"] : []
+		this.customData.includes("C") ? ["canopy", "blocks-tnt"] : []
 	)
 	allowedDirections = Array.from(this.customData)
 		.map(val =>
@@ -92,7 +92,7 @@ export class ThinWall extends Actor {
 		if (this.tags.includes("canopy")) {
 			// Remove all traces of the canopy
 			this.tags = ["thinWall"]
-			this.customData = this.customData.split("c").join("")
+			this.customData = this.customData.split("C").join("")
 			return false
 		}
 		return true
