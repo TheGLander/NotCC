@@ -8,9 +8,9 @@ import {
 	protobuf,
 } from "@notcc/logic"
 import { Pager } from "../pager"
-import Renderer from "../visuals"
 import { AnimationTimer, TimeoutIntervalTimer, KeyListener } from "../utils"
 import { setSelectorPage } from "./setSelector"
+import { Renderer } from "../renderer"
 
 const heldKeys: Partial<Record<string, true>> = {}
 

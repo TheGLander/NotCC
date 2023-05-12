@@ -1,20 +1,27 @@
-import { ActorArt, Tileset } from "./visuals"
-import { Actor, Wirable } from "@notcc/logic"
+import { Renderer, ArtContext, SpecialArt } from "./renderer"
+import { Actor } from "@notcc/logic"
 
-export type Falsy = false | undefined | 0 | null | ""
+export const stateFuncs: Record<string, (actor: Actor) => string> = {}
 
-type ArtFunc<T = Actor> =
-	| ActorArt
-	| (ActorArt | Falsy)[]
-	| ((actor: T, tileset: Tileset) => ActorArt | (ActorArt | Falsy)[])
-
-export const artDB: Record<string, ArtFunc> & {
-	floor?: ArtFunc<Wirable | undefined>
-} = {}
-
-export function setArtForActor<T extends Actor>(
+export function registerStateFunction<T>(
 	id: string,
-	art: ArtFunc<T>
+	func: (actor: T) => string
 ): void {
-	artDB[id] = art as ArtFunc<Actor>
+	stateFuncs[id] = func as (typeof stateFuncs)[string]
+}
+
+export const specialFuncs: Record<
+	string,
+	(this: Renderer, ctx: ArtContext, art: SpecialArt) => void
+> = {}
+
+export function registerSpecialFunction<T>(
+	id: string,
+	func: (
+		this: Renderer,
+		ctx: ArtContext & { actor: T },
+		art: SpecialArt
+	) => void
+): void {
+	specialFuncs[id] = func as (typeof specialFuncs)[string]
 }

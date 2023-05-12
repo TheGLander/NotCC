@@ -1,6 +1,6 @@
 import { LevelData, LevelSet, MapInterruptResponse } from "@notcc/logic"
 import { loadingPage } from "./pages/loading"
-import { Tileset } from "./visuals"
+import { Tileset } from "./renderer"
 import { setSidebarLevelN } from "./sidebar"
 import { protobuf } from "@notcc/logic"
 import { loadSettings, saveSetInfo, saveSettings } from "./saveData"

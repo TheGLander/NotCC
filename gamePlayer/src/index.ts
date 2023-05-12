@@ -8,7 +8,6 @@ import {
 import { Direction } from "@notcc/logic"
 import { parseC2M } from "@notcc/logic"
 import { actorDB, keyNameList } from "@notcc/logic"
-import { artDB } from "./const"
 import { parseNCCS, writeNCCS } from "@notcc/logic"
 import { ScriptRunner } from "@notcc/logic"
 import { Actor } from "@notcc/logic"
@@ -16,8 +15,6 @@ import { Item } from "@notcc/logic"
 
 import "@notcc/logic"
 
-import "./visuals"
-import "./art"
 import { Pager } from "./pager"
 import { generateShortcutListener, generateTabButtons } from "./sidebar"
 
@@ -66,7 +63,6 @@ const exportObject = {
 	onLevelAfterTick,
 	onLevelStart,
 	crossLevelData,
-	artDB,
 	createLevelFromData,
 	Actor,
 	Item,

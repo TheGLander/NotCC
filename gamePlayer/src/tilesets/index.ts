@@ -10,14 +10,9 @@ import {
 	resetListeners,
 } from "../utils"
 
-import Renderer, {
-	HTMLImage,
-	Tileset,
-	generateActorFrames,
-	removeBackground,
-} from "../visuals"
+import { HTMLImage, Renderer, Tileset, removeBackground } from "../renderer"
 import { loadAllTilesets, removeTileset, saveTileset } from "../saveData"
-import cc2ImageFormat from "../cc2ImageFormat"
+import { cc2ArtSet } from "../cc2ArtSet"
 import { createLevelFromData, parseC2M } from "@notcc/logic"
 import { Pager } from "../pager"
 import { defaultSettings } from "../settings"
@@ -88,7 +83,7 @@ export async function makeTilesetFromMetadata(
 	tsetImage = removeBackground(tsetImage)
 	return {
 		// TODO Add custom framemaps
-		frameMap: generateActorFrames(cc2ImageFormat),
+		art: cc2ArtSet,
 		image: tsetImage,
 		tileSize: tset.tileSize,
 		wireWidth: tset.wireWidth,
