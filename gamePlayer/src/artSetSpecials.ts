@@ -5,7 +5,6 @@ import {
 	CustomFloor,
 	CustomWall,
 	Direction,
-	DirectionString,
 	DirectionalBlock,
 	FlameJet,
 	InvisibleWall,
@@ -14,9 +13,20 @@ import {
 	ThinWall,
 	Tile,
 	Trap,
+	WireOverlapMode,
 } from "@notcc/logic"
 import { registerSpecialFunction, registerStateFunction } from "./const"
 import { Art, Frame, Position, Size, SpecialArt, ctxToDir } from "./renderer"
+
+function bitfieldToDirs(bitfield: number): Direction[] {
+	const directions: Direction[] = []
+	for (let dir = Direction.UP; dir <= Direction.LEFT; dir += 1) {
+		if ((bitfield & (1 << dir)) !== 0) {
+			directions.push(dir)
+		}
+	}
+	return directions
+}
 
 function getPlayableState(actor: Playable): string {
 	const inWater = actor.tile.findActor(actor =>
@@ -55,9 +65,43 @@ registerSpecialFunction<Tile | [number, number] | Actor>(
 			: ctx.actor instanceof Tile
 			? ctx.actor.position
 			: ctx.actor.tile.position
-		//const wires = Array.isArray(ctx.actor) ? 0 : ctx.actor.wires
-
+		const wires = Array.isArray(ctx.actor) ? 0 : ctx.actor.wires
+		const wireTunnels = Array.isArray(ctx.actor) ? 0 : ctx.actor.wireTunnels
 		this.tileBlit(ctx, pos, spArt.base)
+		// If we don't have anything else to draw, don't draw the overlay
+		// TODO Wire tunnels are drawn on top of everything else, so maybe they
+		// don't cause the base to be drawn?
+		if (wires === 0 && wireTunnels === 0) {
+			return
+		}
+		const crossWires =
+			(ctx.actor.wireOverlapMode === WireOverlapMode.CROSS &&
+				ctx.actor.wires === 0b1111) ||
+			ctx.actor.wireOverlapMode === WireOverlapMode.ALWAYS_CROSS
+		if (crossWires) {
+			this.drawWireBase(
+				ctx,
+				pos,
+				wires & 0b0101,
+				(ctx.actor.poweredWires & 0b0101) !== 0
+			)
+			this.drawWireBase(
+				ctx,
+				pos,
+				wires & 0b1010,
+				(ctx.actor.poweredWires & 0b1010) !== 0
+			)
+		} else {
+			this.drawWireBase(ctx, pos, wires, ctx.actor.poweredWires !== 0)
+		}
+		this.tileBlit(ctx, pos, crossWires ? spArt.overlapCross : spArt.overlap)
+		this.drawCompositionalSides(
+			ctx,
+			pos,
+			this.tileset.art.wireTunnel,
+			0.25,
+			bitfieldToDirs(wireTunnels)
+		)
 	}
 )
 interface ArrowsSpecialArt extends SpecialArt {
@@ -66,13 +110,6 @@ interface ArrowsSpecialArt extends SpecialArt {
 	DOWN: Frame
 	LEFT: Frame
 	CENTER: Frame
-}
-
-const arrowOffsets: Record<DirectionString, Position> = {
-	UP: [0, 0],
-	RIGHT: [0.75, 0],
-	DOWN: [0, 0.75],
-	LEFT: [0, 0],
 }
 
 registerSpecialFunction<CloneMachine | DirectionalBlock>(
@@ -84,16 +121,7 @@ registerSpecialFunction<CloneMachine | DirectionalBlock>(
 			"legalDirections" in ctx.actor
 				? ctx.actor.legalDirections
 				: ctx.actor.cloneArrows
-		for (const directionN of directions) {
-			const direction = Direction[directionN] as DirectionString
-			const offset = arrowOffsets[direction]
-			this.tileBlit(
-				ctx,
-				[pos[0] + offset[0], pos[1] + offset[1]],
-				spArt[direction],
-				direction === "UP" || direction === "DOWN" ? [1, 0.25] : [0.25, 1]
-			)
-		}
+		this.drawCompositionalSides(ctx, pos, spArt, 0.25, directions)
 		this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], spArt.CENTER, [0.5, 0.5])
 	}
 )
@@ -153,8 +181,7 @@ registerSpecialFunction<Actor>("perspective", function (ctx, art) {
 	this.drawArt(ctx, perspective ? spArt.revealed : spArt.default)
 })
 
-// freeform wires, letters
-// wires in general
+// TODO letters
 
 interface ThinWallsSpecialArt extends SpecialArt {
 	UP: Frame
@@ -162,31 +189,17 @@ interface ThinWallsSpecialArt extends SpecialArt {
 	DOWN: Frame
 	LEFT: Frame
 }
-
-const thinWallOffsets: Record<DirectionString, Position> = {
-	UP: [0, 0],
-	RIGHT: [0.5, 0],
-	DOWN: [0, 0.5],
-	LEFT: [0, 0],
-}
-
 registerSpecialFunction<ThinWall>("thin walls", function (ctx, art) {
 	const spArt = art as ThinWallsSpecialArt
 	const pos = ctx.actor.getVisualPosition()
-	for (let dirN = Direction.UP; dirN <= Direction.LEFT; dirN += 1) {
-		const hasDir = ctx.actor.allowedDirections & (1 << dirN)
-		const dir = Direction[dirN] as DirectionString
-		if (!hasDir) continue
-		const cropSize: Size = dir === "UP" || dir === "DOWN" ? [1, 0.5] : [0.5, 1]
-		const frame = spArt[dir]
-		const offset = thinWallOffsets[dir]
-		this.tileBlit(
-			ctx,
-			[pos[0] + offset[0], pos[1] + offset[1]],
-			frame,
-			cropSize
-		)
-	}
+
+	this.drawCompositionalSides(
+		ctx,
+		pos,
+		spArt,
+		0.5,
+		bitfieldToDirs(ctx.actor.allowedDirections)
+	)
 })
 
 registerStateFunction<ThinWall>("thinWall", actor =>

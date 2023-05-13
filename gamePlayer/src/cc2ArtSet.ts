@@ -14,12 +14,13 @@ export const cc2ArtSet: ArtSet = {
 		[13, 26],
 		[15, 26],
 	],
-	wireTunnel: [
-		[14, 11],
-		[14.75, 11],
-		[14, 11.75],
-		[14, 11],
-	],
+	wireTunnel: {
+		type: "directic",
+		UP: [14, 11],
+		RIGHT: [14.75, 11],
+		DOWN: [14, 11.75],
+		LEFT: [14, 11],
+	},
 	letters: {
 		"0": [8, 0],
 		"1": [8.5, 0],

@@ -115,7 +115,7 @@ export interface ArtSet {
 	currentPlayerMarker: Frame
 	wireBase: Frame
 	wire: [StaticArt, StaticArt]
-	wireTunnel: [StaticArt, StaticArt, StaticArt, StaticArt]
+	wireTunnel: DirecticArt
 	letters: Record<string, StaticArt>
 	artMap: Record<string, Art>
 }
@@ -207,7 +207,7 @@ export class Renderer {
 		state: boolean
 	): void {
 		const frame = this.tileset.art.wire[state ? 1 : 0]
-		const radius = this.tileset.wireWidth
+		const radius = this.tileset.wireWidth / 2
 		const cropStart: Position = [0.5 - radius, 0.5 - radius]
 		const cropEnd: Position = [0.5 + radius, 0.5 + radius]
 		if (wires & Wires.UP) {
@@ -232,6 +232,35 @@ export class Renderer {
 			[frame[0] + cropStart[0], frame[1] + cropStart[1]],
 			cropSize
 		)
+	}
+	/**
+	 * Generalized logic of drawing directional block and clone machine arrows
+	 * @param width The length from the side of the tile to crop to get the
+	 * required tile
+	 */
+	drawCompositionalSides(
+		ctx: ArtContext,
+		pos: Position,
+		art: Record<DirectionString, Frame>,
+		width: number,
+		drawnDirections: Direction[]
+	): void {
+		for (const direction of drawnDirections) {
+			const offset =
+				direction === Direction.RIGHT
+					? [1 - width, 0]
+					: direction === Direction.DOWN
+					? [0, 1 - width]
+					: [0, 0]
+			this.tileBlit(
+				ctx,
+				[pos[0] + offset[0], pos[1] + offset[1]],
+				art[Direction[direction] as DirectionString],
+				direction === Direction.UP || direction === Direction.DOWN
+					? [1, width]
+					: [width, 1]
+			)
+		}
 	}
 	drawStatic(ctx: ArtContext, art: StaticArt): void {
 		const pos = ctx.actor.getVisualPosition()
