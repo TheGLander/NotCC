@@ -84,6 +84,10 @@ export const cc2ArtSet: ArtSet = {
 		"]": [14, 0.5],
 		"^": [14.5, 0.5],
 		_: [15, 0.5],
+		UP: [14, 31],
+		RIGHT: [14.5, 31],
+		DOWN: [15, 31],
+		LEFT: [15.5, 31],
 	},
 	artMap: {
 		chip: {
@@ -228,7 +232,7 @@ export const cc2ArtSet: ArtSet = {
 				CENTER: [8.25, 31.25],
 			},
 		},
-		framedFloor: {
+		letterTile: {
 			type: "overlay",
 			bottom: [2, 2],
 			top: { type: "special", specialType: "letters" },

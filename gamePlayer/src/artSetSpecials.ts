@@ -334,3 +334,11 @@ registerSpecialFunction<Rover>("rover antenna", function (ctx, art) {
 	const frame = spArt[ctxToDir(ctx)]
 	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
 })
+
+registerSpecialFunction<Actor>("letters", function (ctx) {
+	const pos = ctx.actor.getVisualPosition()
+	// A space doesn't render anything
+	if (ctx.actor.customData === " ") return
+	const frame = this.tileset.art.letters[ctx.actor.customData]
+	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
+})
