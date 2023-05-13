@@ -228,7 +228,7 @@ function createFieldFromArrayBuffer(
 									modTiles[0][1] = options - 0x40
 								} else if (options <= 0xe7) {
 									modTiles[0][0] = "voodooTile"
-									modTiles[0][2] = options.toString()
+									modTiles[0][2] = (options + 0x118).toString()
 								} else {
 									// Let's assume it's rendered as nothing, for now
 									modTiles[0][0] = "voodooTile"

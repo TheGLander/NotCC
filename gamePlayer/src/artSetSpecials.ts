@@ -13,6 +13,7 @@ import {
 	ThinWall,
 	Tile,
 	Trap,
+	VoodooTile,
 	WireOverlapMode,
 } from "@notcc/logic"
 import { registerSpecialFunction, registerStateFunction } from "./const"
@@ -272,4 +273,14 @@ registerSpecialFunction<StretchSpecialArt>("stretch", function (ctx, art) {
 	}
 	const frame = frames[Math.floor(progress * frames.length)]
 	this.tileBlit(ctx, [pos[0] + offset[0], pos[1] + offset[1]], frame, cropSize)
+})
+
+registerSpecialFunction<VoodooTile>("voodoo", function (ctx) {
+	if (ctx.actor.tileOffset === null) return
+	const pos = ctx.actor.getVisualPosition()
+	const frame: Frame = [
+		ctx.actor.tileOffset % 0x10,
+		Math.floor(ctx.actor.tileOffset / 0x10),
+	]
+	this.tileBlit(ctx, pos, frame)
 })
