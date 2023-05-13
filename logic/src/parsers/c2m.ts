@@ -195,7 +195,15 @@ function createFieldFromArrayBuffer(
 								tiles.unshift(...modTiles)
 								break
 							case "notGate": {
-								if (options < 0x18) {
+								// Map of the logic gate space (ranged inclusive):
+								// 0x00 - 0x17 - Most logic gates
+								// 0x18 - 0x1D - Voodoo tile - nothing rendered
+								// 0x1E - 0x27 - Counters
+								// 0x28 - 0x3F - Glitched counters
+								// 0x40 - 0x43 - CCW latches
+								// 0x44 - 0xE7 - Voodoo tiles - corresponding tileset index
+								// 0xE8 - 0xFFFFFFFF - "Nothing"
+								if (options <= 0x17) {
 									modTiles[0][0] = (
 										[
 											"notGate",
@@ -207,21 +215,25 @@ function createFieldFromArrayBuffer(
 										] as const
 									)[(options & ~0b11) >> 2]
 									modTiles[0][1] = options & 0x3
-								} else if (options >= 0x40 && options < 0x44) {
-									modTiles[0][0] = "latchGateMirror"
-									modTiles[0][1] = options - 0x40
-								} else if (options >= 0x1e && options <= 0x27) {
+								} else if (options <= 0x1d) {
+									modTiles[0][0] = "voodooTile"
+									modTiles[0][2] = ""
+								} else if (options <= 0x27) {
 									modTiles[0][0] = "counterGate"
 									modTiles[0][2] = (options - 0x1e).toString()
-								} else if (options >= 0x18 && options <= 0x1d)
-									modTiles[0][0] = "combinationTile"
-								else if (options >= 43) {
+								} else if (options <= 0x3f) {
+									throw new Error("Glitched counter gates not supported")
+								} else if (options <= 0x43) {
+									modTiles[0][0] = "latchGateMirror"
+									modTiles[0][1] = options - 0x40
+								} else if (options <= 0xe7) {
 									modTiles[0][0] = "voodooTile"
 									modTiles[0][2] = options.toString()
-								} else
-									throw new Error(
-										"You are trying to create a wire-based voodoo tile, which is not yet supported!"
-									)
+								} else {
+									// Let's assume it's rendered as nothing, for now
+									modTiles[0][0] = "voodooTile"
+									modTiles[0][2] = ""
+								}
 								tiles.push(...modTiles)
 								break
 							}

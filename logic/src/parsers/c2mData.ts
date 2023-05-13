@@ -1,7 +1,7 @@
 import { Direction } from "../helpers.js"
 
 const cc2Tiles = [
-	[["combinationTile", 0, "0,0"]],
+	[["voodooTile", 0, "0"]],
 	[],
 	[["wall"]],
 	[["ice"]],
