@@ -326,7 +326,10 @@ export class Renderer {
 	}
 	drawActor(ctx: ArtSessionContext, actor: Actor): void {
 		const art = this.tileset.art.artMap[actor.id]
-		if (art === undefined) throw new Error(`No art for actor ${actor.id}.`)
+		if (art === undefined) {
+			console.warn(`No art for actor ${actor.id}.`)
+			return
+		}
 		return this.drawArt({ ...ctx, actor }, art)
 	}
 
