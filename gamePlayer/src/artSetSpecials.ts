@@ -10,6 +10,7 @@ import {
 	InvisibleWall,
 	LitTNT,
 	Playable,
+	Railroad,
 	ThinWall,
 	Tile,
 	Trap,
@@ -283,4 +284,36 @@ registerSpecialFunction<VoodooTile>("voodoo", function (ctx) {
 		Math.floor(ctx.actor.tileOffset / 0x10),
 	]
 	this.tileBlit(ctx, pos, frame)
+})
+
+interface RailroadSpecialArt extends SpecialArt {
+	toggleMark: Frame
+	wood: Record<string, Frame>
+	rail: Record<string, Frame>
+	toggleRail: Record<string, Frame>
+}
+
+registerSpecialFunction<Railroad>("railroad", function (ctx, art) {
+	const spArt = art as RailroadSpecialArt
+	const pos = ctx.actor.getVisualPosition()
+	for (const dir of ctx.actor.baseRedirects) {
+		this.tileBlit(ctx, pos, spArt.wood[dir])
+	}
+	for (const dir of ctx.actor.baseRedirects) {
+		if (ctx.actor.isSwitch) {
+			if (dir === ctx.actor.activeTrack) continue
+			this.tileBlit(ctx, pos, spArt.toggleRail[dir])
+		} else {
+			this.tileBlit(ctx, pos, spArt.rail[dir])
+		}
+	}
+	if (
+		ctx.actor.isSwitch &&
+		ctx.actor.baseRedirects.includes(ctx.actor.activeTrack)
+	) {
+		this.tileBlit(ctx, pos, spArt.rail[ctx.actor.activeTrack])
+	}
+	if (ctx.actor.isSwitch) {
+		this.tileBlit(ctx, pos, spArt.toggleMark)
+	}
 })
