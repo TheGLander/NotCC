@@ -258,19 +258,23 @@ export const cc2ArtSet: ArtSet = {
 			},
 		},
 		greenBomb: {
-			type: "overlay",
-			bottom: [6, 4],
-			top: {
-				type: "special",
-				specialType: "fuse",
-				duration: 16,
-				frames: [
-					[7, 4],
-					[7.5, 4],
-					[7, 4.5],
-					[7.5, 4.5],
-				],
+			type: "state",
+			bomb: {
+				type: "overlay",
+				bottom: [6, 4],
+				top: {
+					type: "special",
+					specialType: "fuse",
+					duration: 16,
+					frames: [
+						[7, 4],
+						[7.5, 4],
+						[7, 4.5],
+						[7.5, 4.5],
+					],
+				},
 			},
+			echip: [9, 3],
 		},
 		exit: { type: "animated", duration: 16, frames: frange([6, 2], [9, 2]) },
 		iceBlock: {
@@ -287,7 +291,6 @@ export const cc2ArtSet: ArtSet = {
 			10: [14, 2],
 			"*2": [15, 2],
 		},
-		echipGreen: [9, 3],
 		customFloor: {
 			type: "state",
 			green: [8, 4],
@@ -412,7 +415,8 @@ export const cc2ArtSet: ArtSet = {
 				[4, 17],
 			],
 		},
-		bowlingBall: {
+		bowlingBall: [6, 17],
+		bowlingBallRolling: {
 			type: "animated",
 			duration: "steps",
 			frames: [

@@ -342,3 +342,5 @@ registerSpecialFunction<Actor>("letters", function (ctx) {
 	const frame = this.tileset.art.letters[ctx.actor.customData]
 	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
 })
+
+registerStateFunction<Actor>("greenBomb", actor => actor.customData)
