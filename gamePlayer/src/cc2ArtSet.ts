@@ -173,10 +173,14 @@ export const cc2ArtSet: ArtSet = {
 		keyGreen: [7, 1],
 
 		blueWall: {
-			type: "special",
-			specialType: "perspective",
-			default: [0, 10],
-			revealed: [10, 31],
+			type: "state",
+			real: [0, 10],
+			fake: {
+				type: "special",
+				specialType: "perspective",
+				default: [0, 10],
+				revealed: [10, 31],
+			},
 		},
 		invisibleWall: {
 			type: "special",

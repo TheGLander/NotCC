@@ -193,6 +193,7 @@ registerStateFunction<ThinWall>("thinWall", actor =>
 	actor.getCompleteTags("tags").includes("canopy") ? "canopy" : "nothing"
 )
 
+registerStateFunction<Actor>("blueWall", actor => actor.customData)
 registerStateFunction<Actor>("greenWall", actor =>
 	actor.customData === "fake" &&
 	actor.tile.findActor(iterActor => iterActor.layer > actor.layer)
