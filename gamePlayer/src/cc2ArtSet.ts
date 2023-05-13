@@ -779,54 +779,70 @@ export const cc2ArtSet: ArtSet = {
 		},
 		railroadSign: [3, 31],
 		rover: {
-			type: "special",
-			specialType: "rover",
-			teethRed: [
-				[0, 18],
-				[8, 18],
-			],
-			glider: frange([0, 18], [7, 18]),
-			centipede: [
-				[1, 18],
-				[3, 18],
-				[5, 18],
-				[7, 18],
-			],
-			fireball: frange([7, 18], [0, 18]),
-			ant: [
-				[7, 18],
-				[4, 18],
-				[3, 18],
-				[1, 18],
-			],
-			ball: [
-				[0, 18],
-				[4, 18],
-			],
-			teethBlue: [
-				[0, 18],
-				[9, 18],
-			],
-			walker: [
-				[8, 18],
-				[9, 18],
-			],
-			antennaUP: [
-				[10, 18],
-				[10.5, 18.5],
-			],
-			antennaRIGHT: [
-				[10.5, 18],
-				[11, 18.5],
-			],
-			antennaDown: [
-				[10.5, 18.5],
-				[11.5, 19],
-			],
-			antennaLeft: [
-				[10, 18.5],
-				[10.5, 19],
-			],
+			type: "overlay",
+			bottom: {
+				type: "state",
+				teethRed: {
+					type: "animated",
+					duration: 16,
+					frames: [
+						[0, 18],
+						[8, 18],
+					],
+				},
+				teethBlue: {
+					type: "animated",
+					duration: 15,
+					frames: [
+						[0, 18],
+						[9, 18],
+					],
+				},
+				ball: {
+					type: "animated",
+					duration: 16,
+					frames: [
+						[0, 18],
+						[4, 18],
+					],
+				},
+				walker: {
+					type: "animated",
+					duration: 16,
+					frames: [
+						[8, 18],
+						[9, 18],
+					],
+				},
+				glider: {
+					type: "animated",
+					duration: 32,
+					frames: frange([0, 18], [7, 18]),
+				},
+				centipede: {
+					type: "animated",
+					duration: 16,
+					frames: frange([0, 18], [7, 18]),
+				},
+				fireball: {
+					type: "animated",
+					duration: 32,
+					frames: frange([7, 18], [0, 18]),
+				},
+				ant: {
+					type: "animated",
+					duration: 16,
+					frames: frange([7, 18], [0, 18]),
+				},
+			},
+			top: {
+				type: "special",
+				specialType: "rover antenna",
+				UP: [10, 18],
+				RIGHT: [10.5, 18],
+				LEFT: [10, 18.5],
+				DOWN: [10.5, 18.5],
+			},
 		},
 		ghost: {
 			type: "directic",

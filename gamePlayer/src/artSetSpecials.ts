@@ -11,6 +11,7 @@ import {
 	LitTNT,
 	Playable,
 	Railroad,
+	Rover,
 	ThinWall,
 	Tile,
 	Trap,
@@ -316,4 +317,20 @@ registerSpecialFunction<Railroad>("railroad", function (ctx, art) {
 	if (ctx.actor.isSwitch) {
 		this.tileBlit(ctx, pos, spArt.toggleMark)
 	}
+})
+
+registerStateFunction<Rover>("rover", actor => actor.emulatedMonster)
+
+interface RoverAntennaSpecialArt extends SpecialArt {
+	UP: Frame
+	RIGHT: Frame
+	DOWN: Frame
+	LEFT: Frame
+}
+
+registerSpecialFunction<Rover>("rover antenna", function (ctx, art) {
+	const spArt = art as RoverAntennaSpecialArt
+	const pos = ctx.actor.getVisualPosition()
+	const frame = spArt[ctxToDir(ctx)]
+	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
 })
