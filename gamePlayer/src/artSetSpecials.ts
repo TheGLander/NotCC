@@ -119,7 +119,7 @@ registerSpecialFunction<CloneMachine | DirectionalBlock>(
 	"arrows",
 	function (ctx, art) {
 		const spArt = art as ArrowsSpecialArt
-		const pos = ctx.actor.getVisualPosition()
+		const pos = this.getPosition(ctx)
 		const directions =
 			"legalDirections" in ctx.actor
 				? ctx.actor.legalDirections
@@ -149,7 +149,7 @@ registerSpecialFunction<Actor>("scrolling", function (ctx, art) {
 		baseFrames[0][0] + offset[0] * offsetMult,
 		baseFrames[0][1] + offset[1] * offsetMult,
 	]
-	const pos = ctx.actor.getVisualPosition()
+	const pos = this.getPosition(ctx)
 	this.tileBlit(ctx, pos, frame)
 })
 
@@ -163,7 +163,7 @@ registerSpecialFunction<Actor>("fuse", function (ctx, art) {
 	const frameN = Math.floor(
 		spArt.frames.length * ((ctx.ticks / spArt.duration) % 1)
 	)
-	const pos = ctx.actor.getVisualPosition()
+	const pos = this.getPosition(ctx)
 	this.tileBlit(ctx, [pos[0] + 0.5, pos[1]], spArt.frames[frameN], [0.5, 0.5])
 })
 
@@ -194,7 +194,7 @@ interface ThinWallsSpecialArt extends SpecialArt {
 }
 registerSpecialFunction<ThinWall>("thin walls", function (ctx, art) {
 	const spArt = art as ThinWallsSpecialArt
-	const pos = ctx.actor.getVisualPosition()
+	const pos = this.getPosition(ctx)
 
 	this.drawCompositionalSides(
 		ctx,
@@ -279,7 +279,7 @@ registerSpecialFunction<StretchSpecialArt>("stretch", function (ctx, art) {
 
 registerSpecialFunction<VoodooTile>("voodoo", function (ctx) {
 	if (ctx.actor.tileOffset === null) return
-	const pos = ctx.actor.getVisualPosition()
+	const pos = this.getPosition(ctx)
 	const frame: Frame = [
 		ctx.actor.tileOffset % 0x10,
 		Math.floor(ctx.actor.tileOffset / 0x10),
@@ -296,7 +296,7 @@ interface RailroadSpecialArt extends SpecialArt {
 
 registerSpecialFunction<Railroad>("railroad", function (ctx, art) {
 	const spArt = art as RailroadSpecialArt
-	const pos = ctx.actor.getVisualPosition()
+	const pos = this.getPosition(ctx)
 	for (const dir of ctx.actor.baseRedirects) {
 		this.tileBlit(ctx, pos, spArt.wood[dir])
 	}
@@ -330,13 +330,13 @@ interface RoverAntennaSpecialArt extends SpecialArt {
 
 registerSpecialFunction<Rover>("rover antenna", function (ctx, art) {
 	const spArt = art as RoverAntennaSpecialArt
-	const pos = ctx.actor.getVisualPosition()
+	const pos = this.getPosition(ctx)
 	const frame = spArt[ctxToDir(ctx)]
 	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
 })
 
 registerSpecialFunction<Actor>("letters", function (ctx) {
-	const pos = ctx.actor.getVisualPosition()
+	const pos = this.getPosition(ctx)
 	// A space doesn't render anything
 	if (ctx.actor.customData === " ") return
 	const frame = this.tileset.art.letters[ctx.actor.customData]

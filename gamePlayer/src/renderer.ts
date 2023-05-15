@@ -139,6 +139,7 @@ export interface ArtContext {
 	actor: Actor
 	ticks: number
 	offset: Position
+	noOffset?: boolean
 }
 export type ArtSessionContext = Omit<ArtContext, "actor">
 
@@ -262,9 +263,11 @@ export class Renderer {
 			)
 		}
 	}
+	getPosition(ctx: ArtContext): Position {
+		return ctx.noOffset ? [0, 0] : ctx.actor.getVisualPosition()
+	}
 	drawStatic(ctx: ArtContext, art: StaticArt): void {
-		const pos = ctx.actor.getVisualPosition()
-		this.tileBlit(ctx, pos, art)
+		this.tileBlit(ctx, this.getPosition(ctx), art)
 	}
 	drawDirectic(ctx: ArtContext, art: DirecticArt): void {
 		this.drawArt(ctx, art[ctxToDir(ctx)])
@@ -292,7 +295,7 @@ export class Renderer {
 		this.drawArt(ctx, art.top)
 	}
 	drawWires(ctx: ArtContext, art: WiresArt): void {
-		const pos = ctx.actor.getVisualPosition()
+		const pos = this.getPosition(ctx)
 		this.tileBlit(ctx, pos, this.tileset.art.wireBase)
 		this.drawWireBase(ctx, pos, ctx.actor.wires, false)
 		this.drawWireBase(ctx, pos, ctx.actor.poweredWires & ctx.actor.wires, true)
@@ -376,6 +379,7 @@ export class Renderer {
 			ticks: 0,
 			tileSize,
 			offset: [0, 0],
+			noOffset: true,
 		}
 
 		for (let index = 0; index < player.inventory.itemMax * 2; index++) {
