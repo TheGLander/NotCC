@@ -18,9 +18,18 @@ import {
 	Trap,
 	VoodooTile,
 	WireOverlapMode,
+	Wires,
 } from "@notcc/logic"
 import { registerSpecialFunction, registerStateFunction } from "./const"
-import { Art, Frame, Position, Size, SpecialArt, ctxToDir } from "./renderer"
+import {
+	Art,
+	DirecticArt,
+	Frame,
+	Position,
+	Size,
+	SpecialArt,
+	ctxToDir,
+} from "./renderer"
 
 function bitfieldToDirs(bitfield: number): Direction[] {
 	const directions: Direction[] = []
@@ -370,4 +379,47 @@ registerSpecialFunction<CounterGate>("counter", function (ctx, art) {
 		spArt[ctx.actor.memory as unknown as "0"],
 		[0.75, 1]
 	)
+})
+
+interface LogicGateSpecialArt extends SpecialArt {
+	UP: Frame
+	RIGHT: Frame
+	DOWN: Frame
+	LEFT: Frame
+}
+
+function rotateWires(wires: number, dir: Direction): number {
+	return ((wires << dir) | (wires >> (4 - dir))) & 0b1111
+}
+
+registerSpecialFunction("logic gate", function (ctx, art) {
+	const spArt = art as LogicGateSpecialArt
+	const pos = this.getPosition(ctx)
+	const poweredWires = ctx.actor.wires & ctx.actor.poweredWires
+	// Figure out which wires correspond to the which gate parts.
+	const gateHead = rotateWires(0b0001, ctx.actor.direction)
+	const gateRight = rotateWires(0b0010, ctx.actor.direction)
+	const gateBack = rotateWires(0b0100, ctx.actor.direction)
+	const gateLeft = rotateWires(0b1000, ctx.actor.direction)
+
+	// Blit left and right as if they are also connected to the back,
+	// to have the bends in some tilesets
+	// Draw the left side first, the right one has control over the middle
+	this.drawWireBase(
+		ctx,
+		pos,
+		gateLeft | gateBack,
+		(gateLeft & poweredWires) !== 0
+	)
+	this.drawWireBase(
+		ctx,
+		pos,
+		gateRight | gateBack,
+		(gateRight & poweredWires) !== 0
+	)
+
+	// And last, draw the output
+	this.drawWireBase(ctx, pos, gateHead, (poweredWires & gateHead) !== 0)
+	// Now, just draw the base
+	this.tileBlit(ctx, pos, spArt[ctxToDir(ctx)])
 })

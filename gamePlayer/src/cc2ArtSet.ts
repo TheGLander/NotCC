@@ -888,12 +888,14 @@ export const cc2ArtSet: ArtSet = {
 			},
 		},
 		notGate: {
-			type: "special",
-			specialType: "logic gate",
-			UP: [0, 25],
-			RIGHT: [1, 25],
-			DOWN: [2, 25],
-			LEFT: [3, 25],
+			type: "wires",
+			top: {
+				type: "directic",
+				UP: [0, 25],
+				RIGHT: [1, 25],
+				DOWN: [2, 25],
+				LEFT: [3, 25],
+			},
 		},
 		andGate: {
 			type: "special",
