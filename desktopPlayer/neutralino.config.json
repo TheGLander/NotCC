@@ -11,7 +11,7 @@
 		"window": {
 			"title": "NotCC",
 			"icon": "/webDist/iconBig.png",
-			"enableInspector": true,
+			"enableInspector": false,
 			"resizable": true,
 			"exitProcessOnClose": true
 		}
