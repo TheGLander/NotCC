@@ -18,18 +18,9 @@ import {
 	Trap,
 	VoodooTile,
 	WireOverlapMode,
-	Wires,
 } from "@notcc/logic"
 import { registerSpecialFunction, registerStateFunction } from "./const"
-import {
-	Art,
-	DirecticArt,
-	Frame,
-	Position,
-	Size,
-	SpecialArt,
-	ctxToDir,
-} from "./renderer"
+import { Art, Frame, Position, Size, SpecialArt, ctxToDir } from "./renderer"
 
 function bitfieldToDirs(bitfield: number): Direction[] {
 	const directions: Direction[] = []
