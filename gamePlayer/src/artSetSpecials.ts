@@ -2,6 +2,7 @@ import {
 	Actor,
 	BonusFlag,
 	CloneMachine,
+	CounterGate,
 	CustomFloor,
 	CustomWall,
 	Direction,
@@ -344,3 +345,29 @@ registerSpecialFunction<Actor>("letters", function (ctx) {
 })
 
 registerStateFunction<Actor>("greenBomb", actor => actor.customData)
+
+interface CounterSpecialArt extends SpecialArt {
+	0: Frame
+	1: Frame
+	2: Frame
+	3: Frame
+	4: Frame
+	5: Frame
+	6: Frame
+	7: Frame
+	8: Frame
+	9: Frame
+	"-": Frame
+	"": Frame
+}
+
+registerSpecialFunction<CounterGate>("counter", function (ctx, art) {
+	const spArt = art as CounterSpecialArt
+	const pos = this.getPosition(ctx)
+	this.tileBlit(
+		ctx,
+		[pos[0] + 0.125, pos[1]],
+		spArt[ctx.actor.memory as unknown as "0"],
+		[0.75, 1]
+	)
+})
