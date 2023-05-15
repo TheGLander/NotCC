@@ -356,13 +356,18 @@ export class Renderer {
 			this.tileset.art.floor
 		)
 	}
-	drawActor(ctx: ArtSessionContext, actor: Actor): void {
+	drawActor(ctxSession: ArtSessionContext, actor: Actor): void {
 		const art = this.tileset.art.artMap[actor.id]
 		if (art === undefined) {
 			console.warn(`No art for actor ${actor.id}.`)
 			return
 		}
-		return this.drawArt({ ...ctx, actor }, art)
+		const ctx = { ...ctxSession, actor }
+		if (actor === actor.level.selectedPlayable) {
+			const pos = this.getPosition(ctx)
+			this.tileBlit(ctx, pos, this.tileset.art.currentPlayerMarker)
+		}
+		this.drawArt(ctx, art)
 	}
 
 	updateItems(): void {
