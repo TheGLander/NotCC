@@ -1,0 +1,13 @@
+{
+	"name": "desktop-player",
+	"version": "1.0.0",
+	"description": "The desktop runner of the web game player.",
+	"scripts": {
+		"build": "neu update && neu build",
+		"dev": "neu run",
+		"prepublish": "neu update"
+	},
+	"devDependencies": {
+		"@neutralinojs/neu": "^9.5.0"
+	}
+}

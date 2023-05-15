@@ -144,3 +144,7 @@ export function reencodeImage(image: HTMLImageElement): HTMLCanvasElement {
 	ctx.drawImage(image, 0, 0)
 	return canvas
 }
+
+export function isDesktop(): boolean {
+	return import.meta.env.VITE_BUILD_TYPE === "desktop"
+}

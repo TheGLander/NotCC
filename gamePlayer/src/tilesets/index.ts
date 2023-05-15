@@ -33,7 +33,7 @@ export interface BuiltinTilesetMetadata extends SourcelessTilesetMetadata {
 
 export interface ExternalTilesetMetadata extends SourcelessTilesetMetadata {
 	type: "external"
-	imageData: string
+	image: HTMLCanvasElement
 }
 
 export type TilesetMetadata = BuiltinTilesetMetadata | ExternalTilesetMetadata
@@ -68,7 +68,7 @@ export async function fetchTileset(tset: TilesetMetadata): Promise<HTMLImage> {
 	if (tset.type === "built-in") {
 		return await fetchImage(tset.link)
 	} else {
-		return await fetchImage(tset.imageData)
+		return tset.image
 	}
 }
 
@@ -186,7 +186,6 @@ function promptCustomTilesetImage(): Promise<HTMLImageElement> {
 async function saveImageAsTileset(image: HTMLImageElement): Promise<void> {
 	const tileSize = image.naturalWidth / 16
 	const nowTime = Date.now()
-	const identifier = `custom ${nowTime}`
 	// TODO Somehow determine the wire width??
 	const tset: ExternalTilesetMetadata = {
 		type: "external",
@@ -196,9 +195,9 @@ async function saveImageAsTileset(image: HTMLImageElement): Promise<void> {
 		credits: "Unknown",
 		tileSize,
 		wireWidth: 2 / 32,
-		imageData: reencodeImage(image).toDataURL("image/png"),
+		image: reencodeImage(image),
 	}
-	await saveTileset(tset, identifier)
+	await saveTileset(tset)
 }
 
 export async function openTilesetSelectortDialog(
