@@ -152,7 +152,7 @@ export class DirectionalBlock extends Actor {
 	rebuildCustomData(): void {
 		this.customData = ""
 		for (const dir of this.legalDirections) {
-			this.customData += "URLD"[dir]
+			this.customData += "URDL"[dir]
 		}
 	}
 	onRedirect(delta: number): void {
