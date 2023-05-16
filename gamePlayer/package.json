@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "vite --force",
 		"build": "tsc && vite build --force",
+		"build-desktop": "VITE_BUILD_TYPE=desktop pnpm build",
 		"preview": "vite preview"
 	},
 	"repository": {

@@ -1,13 +1,14 @@
 {
-	"name": "desktop-player",
+	"name": "@notcc/desktop-player",
 	"version": "1.0.0",
 	"description": "The desktop runner of the web game player.",
 	"scripts": {
-		"build": "neu update && neu build",
+		"build": "zx makeDists.mjs",
 		"dev": "neu run",
 		"prepublish": "neu update"
 	},
-	"devDependencies": {
+	"dependencies": {
+		"zx": "^7.2.2",
 		"@neutralinojs/neu": "^9.5.0"
 	}
 }

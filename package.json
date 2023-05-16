@@ -12,6 +12,7 @@
 	},
 	"scripts": {
 		"build-web": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build",
+		"build-desktop": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build-desktop && pnpm --filter @notcc/desktop-player build",
 		"build-cli": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/cli build && pnpm i",
 		"test": "zx ./testing.mjs"
 	}
