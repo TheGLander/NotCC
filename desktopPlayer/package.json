@@ -4,6 +4,7 @@
 	"description": "The desktop runner of the web game player.",
 	"scripts": {
 		"build": "zx makeDists.mjs",
+		"build-zip": "pnpm build && rm NotCC.zip && zip -r NotCC.zip artifacts",
 		"dev": "neu run",
 		"prepublish": "neu update"
 	},

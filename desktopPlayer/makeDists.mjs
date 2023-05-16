@@ -30,7 +30,10 @@ await fs.copy(
 await fs.chmod(path.join(macBinPath, distributionName), 0o755)
 await fs.copy(resourcesNeuPath, path.join(macBinPath, "resources.neu"))
 
-console.log("Making distribution zip")
+console.log("Making artifacts directory")
+
+await fs.remove("artifacts")
+await fs.mkdirp("artifacts")
 
 const toCopyBinaries = [
 	[`${distributionName}-linux_x64`, `${distributionName}-linux`],
