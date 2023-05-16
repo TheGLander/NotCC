@@ -37,22 +37,24 @@ function jsonStringifyExtended(data: any): string {
 
 async function walkObjectAsync(
 	obj: object,
-	transform: (key: string, val: any) => Promise<any>
+	transform: (val: any) => Promise<any>
 ): Promise<object> {
-	const newObj: any = {}
-	for (const [key, val] of Object.entries(obj)) {
-		if (typeof val === "object" && val !== null) {
-			newObj[key] = await walkObjectAsync(val, transform)
-		} else {
-			newObj[key] = await transform(key, val)
-		}
+	if (Array.isArray(obj)) {
+		return Promise.all(obj.map(item => walkObjectAsync(item, transform)))
 	}
-	return newObj
+	if (typeof obj === "object" && obj !== null) {
+		const newObj: any = {}
+		for (const [key, val] of Object.entries(obj)) {
+			newObj[key] = await walkObjectAsync(val, transform)
+		}
+		return newObj
+	}
+	return transform(obj)
 }
 
 function jsonParseExtended(data: string): Promise<any> {
 	const vanillaData = JSON.parse(data)
-	return walkObjectAsync(vanillaData, async (_key, val) => {
+	return walkObjectAsync(vanillaData, async val => {
 		if (typeof val === "string") {
 			if (val.startsWith(base64EncodedUI8Prefix)) {
 				return decodeBinaryBase64(val.slice(base64EncodedUI8Prefix.length))
