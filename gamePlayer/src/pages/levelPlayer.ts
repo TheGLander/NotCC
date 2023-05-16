@@ -26,19 +26,29 @@ const keyToInputMap: Record<string, keyof KeyInputs> = {
 	KeyC: "switchPlayable",
 }
 
+function isValidKey(code: string): boolean {
+	return code in keyToInputMap
+}
+
 function isValidStartKey(code: string): boolean {
-	if (code in keyToInputMap) return true
-	if (code === "Space") return true
-	return false
+	return isValidKey(code) || code === "Space"
 }
 
 function setupKeyListener(): void {
 	new KeyListener(
 		ev => {
-			heldKeys[ev.code] = true
+			if (isValidKey(ev.code)) {
+				ev.preventDefault()
+				ev.stopPropagation()
+				heldKeys[ev.code] = true
+			}
 		},
 		ev => {
-			delete heldKeys[ev.code]
+			if (isValidKey(ev.code)) {
+				ev.preventDefault()
+				ev.stopPropagation()
+				delete heldKeys[ev.code]
+			}
 		}
 	)
 }
@@ -183,7 +193,11 @@ export const levelPlayerPage = {
 			)
 
 		this.preplayKeyListener = new KeyListener((ev: KeyboardEvent) => {
-			if (isValidStartKey(ev.code)) this.endPreplay()
+			if (isValidStartKey(ev.code)) {
+				ev.preventDefault()
+				ev.stopPropagation()
+				this.endPreplay()
+			}
 		})
 		if (this.overlayLevelName) {
 			const levelN = pager.getLevelNumber()
