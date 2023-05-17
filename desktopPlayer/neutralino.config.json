@@ -10,7 +10,7 @@
 	"modes": {
 		"window": {
 			"title": "NotCC",
-			"icon": "/webDist/iconBig.png",
+			"icon": "/webDist/iconDesktop.png",
 			"enableInspector": false,
 			"resizable": true,
 			"exitProcessOnClose": true

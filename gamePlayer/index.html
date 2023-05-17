@@ -201,14 +201,19 @@
 			<canvas class="pixelCanvas" id="levelInventoryCanvas"></canvas>
 			<div class="container" id="hintBox"></div>
 		</main>
-		<main class="container closedPage" id="setSelectorPage">
-			<button id="loadDefaultLevel" class="bigButton">
-				Load default level
-			</button>
-			<input type="file" id="fileLoader" accept=".c2m,.zip" />
-			<button id="loadFile">Load file</button>
-			<input type="file" webkitdirectory id="directoryLoader" />
-			<button id="loadDirectory">Load directory</button>
+		<main class="closedPage" id="setSelectorPage">
+			<header class="container">
+				<img src="./iconBig.png" />
+				<h1>NotCC</h1>
+				<p>A to-be scoreboard-legal Chip's Challenge 2® emulator.</p>
+			</header>
+			<div id="fileLoaderBar" class="container">
+				<p>Load external files:</p>
+				<button id="loadFile">Load file</button>
+				<button id="loadDirectory">Load directory</button>
+				<input type="file" id="fileLoader" accept=".c2m,.zip" />
+				<input type="file" webkitdirectory id="directoryLoader" />
+			</div>
 		</main>
 
 		<script src="/src/index.ts" type="module"></script>

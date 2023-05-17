@@ -587,17 +587,60 @@ kbd {
 /* Set selector (stub) */
 
 #setSelectorPage {
-	margin: auto;
-	padding: 0.6em 0.75em;
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	grid-template-rows: 1fr 1fr;
-	gap: 0.5em 0.5em;
-	grid-template-areas:
-		"big-button big-button"
-		". .";
-	.bigButton {
-		grid-area: big-button;
+	flex: 1;
+	margin: 1em;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	header {
+		width: fit-content;
+		padding: 0.6em 0.75em;
+		margin-top: 1em;
+		margin-bottom: 1em;
+		display: grid;
+		grid:
+			"image  title  "
+			"image  tagline";
+		gap: 0 1em;
+		img {
+			grid-area: image;
+		}
+		h1,
+		p {
+			margin: 0;
+			height: 1em;
+		}
+		h1 {
+			grid-area: title;
+			font-weight: normal;
+			font-size: 8em;
+		}
+		p {
+			grid-area: tagline;
+			justify-self: center;
+		}
+	}
+
+	#fileLoaderBar {
+		width: 100%;
+		align-self: center;
+		box-sizing: border-box;
+		padding: 0.6em 0.75em;
+		display: grid;
+		grid:
+			"text text" min-content
+			"file dirs" 1fr
+			/ 1fr 1fr;
+		p {
+			grid-area: text;
+			margin: 0;
+			margin-bottom: 0.25em;
+			font-size: 1.5em;
+		}
+		button {
+			height: 4em;
+		}
+		gap: 0 0.5em;
 	}
 }
 

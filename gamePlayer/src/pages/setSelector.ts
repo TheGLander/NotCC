@@ -66,11 +66,6 @@ export const setSelectorPage = {
 		}
 	},
 	setupPage(pager: Pager, page: HTMLElement): void {
-		const loadDefaultLevelButton =
-			page.querySelector<HTMLButtonElement>("#loadDefaultLevel")!
-		loadDefaultLevelButton.addEventListener("click", () => {
-			this.loadStubLevel(pager)
-		})
 		const loadFileButton = page.querySelector<HTMLButtonElement>("#loadFile")!
 		const fileLoader = page.querySelector<HTMLInputElement>("#fileLoader")!
 		fileLoader.value = ""
