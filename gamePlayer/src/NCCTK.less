@@ -34,6 +34,7 @@ body {
 		width: 100vw;
 		height: 100vh;
 		background: var(--background-gradient);
+		overflow: none;
 	}
 }
 
@@ -59,13 +60,14 @@ body {
 	scrollbar-width: 0.5em;
 }
 
-.container,
-dialog {
+.container {
 	border-radius: 5px;
 	background: var(--general-bg);
+	padding: 0.6em 0.75em;
 }
 
 dialog {
+	.container();
 	padding: 0;
 	border-width: 1px;
 	color: var(--text-color);
@@ -254,10 +256,9 @@ button {
 	user-select: none;
 
 	.tooltipBox {
-		border-radius: 5px;
+		.container();
 		flex-shrink: 0;
 		backdrop-filter: blur(3px);
-		padding: 0.6em 0.75em;
 	}
 	.tooltipTriangle {
 		width: 0;
@@ -353,6 +354,7 @@ kbd {
 
 .sidebar {
 	border-radius: 0px;
+	padding: 0;
 	width: 8em;
 	height: 100%;
 	display: flex;
@@ -587,14 +589,14 @@ kbd {
 /* Set selector (stub) */
 
 #setSelectorPage {
+	overflow-y: auto;
 	flex: 1;
-	margin: 1em;
+	padding: 1em;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	header {
 		width: fit-content;
-		padding: 0.6em 0.75em;
 		margin-top: 1em;
 		margin-bottom: 1em;
 		display: grid;
@@ -618,6 +620,7 @@ kbd {
 		p {
 			grid-area: tagline;
 			justify-self: center;
+			font-size: 0.95em;
 		}
 	}
 
@@ -625,7 +628,6 @@ kbd {
 		width: 100%;
 		align-self: center;
 		box-sizing: border-box;
-		padding: 0.6em 0.75em;
 		display: grid;
 		grid:
 			"text text" min-content
@@ -641,6 +643,26 @@ kbd {
 			height: 4em;
 		}
 		gap: 0 0.5em;
+	}
+	#setList {
+		display: grid;
+		width: 90%;
+		gap: 1em;
+		grid: auto-flow / repeat(auto-fit, minmax(calc(320px + 0.75em * 2), 1fr));
+		li {
+			list-style: none;
+			img {
+				width: 320px;
+				height: 320px;
+				display: block;
+				margin: auto;
+				object-fit: none;
+			}
+			cursor: pointer;
+			&:hover {
+				background: var(--secondary-bg);
+			}
+		}
 	}
 }
 
