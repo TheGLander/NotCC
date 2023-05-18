@@ -1,13 +1,80 @@
-import { findScriptName, parseC2M } from "@notcc/logic"
+import {
+	LevelSet,
+	createLevelFromData,
+	findScriptName,
+	parseC2M,
+} from "@notcc/logic"
 import { Pager } from "../pager"
 import stubLevel from "../levels/NotCC.c2m"
 import {
 	buildFileListIndex,
 	buildZipIndex,
 	makeFileListFileLoader,
+	makeHttpFileLoader,
 	makeZipFileLoader,
 } from "../fileLoaders"
-import { loadSet, openLevel } from "../levelLoading"
+import { findEntryFilePath, loadSet, openLevel } from "../levelLoading"
+import { getGbSets } from "../gliderbotSets"
+import { GliderbotSet } from "../gliderbotSets"
+import { Renderer, Tileset } from "../renderer"
+import { instanciateTemplate } from "../utils"
+import { SetListPreviewLevel } from "../settings"
+
+async function makeLevelSetPreview(
+	tileset: Tileset,
+	set: GliderbotSet
+): Promise<HTMLCanvasElement | null> {
+	const levelSet = await LevelSet.constructAsync(
+		set.mainScript,
+		makeHttpFileLoader(set.rootDirectory)
+	)
+	const levelRecord = await levelSet.getNextRecord()
+	if (!levelRecord) return null
+	const levelData = levelRecord.levelData!
+	const level = createLevelFromData(levelData)
+	const canvas = document.createElement("canvas")
+	const renderer = new Renderer(tileset, canvas)
+	renderer.viewportCanvas = canvas
+	renderer.level = level
+	renderer.cameraSize = level.cameraType
+	renderer.updateTileSize()
+	renderer.frame()
+	return canvas
+}
+
+async function makeSetListItem(
+	this: typeof setSelectorPage,
+	tileset: Tileset | undefined,
+	previewLevel: SetListPreviewLevel,
+	set: GliderbotSet
+): Promise<HTMLLIElement> {
+	const setListItem = instanciateTemplate<HTMLLIElement>(
+		this.setListItemTemlpate!
+	)
+	setListItem.setAttribute("data-set-url", set.rootDirectory)
+	setListItem.setAttribute("data-main-script", set.mainScript)
+	const setPreviewContainer =
+		setListItem.querySelector<HTMLDivElement>(".setPreview")!
+	if (previewLevel === "level preview") {
+		const levelCanvas = await makeLevelSetPreview(tileset!, set)
+		if (levelCanvas) {
+			setPreviewContainer.appendChild(levelCanvas)
+			setPreviewContainer.style.setProperty(
+				"--camera-width",
+				(levelCanvas.width / tileset!.tileSize).toString()
+			)
+			setPreviewContainer.style.setProperty(
+				"--camera-height",
+				(levelCanvas.height / tileset!.tileSize).toString()
+			)
+		} else setPreviewContainer.remove()
+	} else setPreviewContainer.remove()
+	const setNameEl = setListItem.querySelector(".setName")!
+	setNameEl.textContent = set.title
+	const setDescriptionEl = setListItem.querySelector(".setDescription")!
+	setDescriptionEl.textContent = "This sure is a set!"
+	return setListItem
+}
 
 export const setSelectorPage = {
 	pageId: "setSelectorPage",
@@ -18,9 +85,10 @@ export const setSelectorPage = {
 		openLevel(pager, level)
 	},
 
-	loadZip(pager: Pager, data: Uint8Array): Promise<void> {
+	async loadZip(pager: Pager, data: Uint8Array): Promise<void> {
 		const filePaths = buildZipIndex(data)
-		return loadSet(pager, makeZipFileLoader(data), filePaths)
+		const loader = makeZipFileLoader(data)
+		return loadSet(pager, loader, await findEntryFilePath(loader, filePaths))
 	},
 	async loadFile(
 		pager: Pager,
@@ -65,6 +133,8 @@ export const setSelectorPage = {
 			}
 		}
 	},
+	setListEl: null as HTMLUListElement | null,
+	setListItemTemlpate: null as HTMLTemplateElement | null,
 	setupPage(pager: Pager, page: HTMLElement): void {
 		const loadFileButton = page.querySelector<HTMLButtonElement>("#loadFile")!
 		const fileLoader = page.querySelector<HTMLInputElement>("#fileLoader")!
@@ -88,16 +158,71 @@ export const setSelectorPage = {
 		directoryLoader.addEventListener("change", async () => {
 			if (!directoryLoader.files) return
 			const fileLoader = makeFileListFileLoader(directoryLoader.files)
-			loadSet(pager, fileLoader, buildFileListIndex(directoryLoader.files))
+			const scriptPath = findEntryFilePath(
+				fileLoader,
+				buildFileListIndex(directoryLoader.files)
+			)
 			directoryLoader.value = ""
+			await loadSet(pager, fileLoader, await scriptPath)
 		})
 		loadDirectoryButton.addEventListener("click", () => {
 			directoryLoader.click()
 		})
+		this.setListEl = page.querySelector<HTMLUListElement>("#setList")
+		this.setListItemTemlpate = page.querySelector<HTMLTemplateElement>(
+			"#setListItemTemplate"
+		)
+		if (!this.setListEl || !this.setListItemTemlpate) {
+			throw new Error("Can't find a required document element.")
+		}
+		// Specifically not `await`ed, so that it can load in the background
+		this.buildSetList(pager)
 	},
 	open(pager: Pager): void {
 		pager.loadedLevel = null
 		pager.loadedSet = null
 		pager.updateShownLevelNumber()
+	},
+	cachedSets: null as GliderbotSet[] | null,
+	async buildSetList(pager: Pager): Promise<void> {
+		if (this.cachedSets === null) {
+			const sets = await getGbSets()
+			this.cachedSets = sets
+		}
+		const previewLevel = pager.settings.setListPreviewLevel
+		if (!pager.tileset && previewLevel === "level preview")
+			throw new Error("Can't build the set list without a tileset")
+		if (!this.setListEl)
+			throw new Error("Can't build a set list without the set list element")
+		if (!this.setListItemTemlpate)
+			throw new Error(
+				"Can't build a set list without the set list item template"
+			)
+		for (const child of Array.from(this.setListEl.children)) {
+			child.remove()
+		}
+		const setListElementPromises: Promise<void>[] = []
+		for (const set of this.cachedSets) {
+			setListElementPromises.push(
+				makeSetListItem
+					.call(this, pager.tileset!, previewLevel, set)
+					.then(li => {
+						li.addEventListener("click", () => {
+							loadSet(
+								pager,
+								makeHttpFileLoader(li.getAttribute("data-set-url")!),
+								li.getAttribute("data-main-script")!
+							)
+						})
+						this.setListEl!.appendChild(li)
+					})
+			)
+		}
+		await Promise.allSettled(setListElementPromises)
+	},
+	reloadTileset(pager: Pager): void {
+		if (this.cachedSets) {
+			this.buildSetList(pager)
+		}
 	},
 }

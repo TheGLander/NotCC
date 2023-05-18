@@ -27,6 +27,7 @@ body {
 	--time-unknown: hsl(210, 100%, 50%);
 	--time-better: hsl(120, 100%, 25%);
 	--time-worse: hsl(0, 100%, 40%);
+	--standard-tile-size: 32px;
 	&.gameBody {
 		margin: 0;
 		display: flex;
@@ -176,7 +177,7 @@ table {
 }
 
 .tsetPreviewCanvas {
-	width: calc(5 * 32px);
+	width: calc(5 * var(--standard-tile-size));
 }
 
 dialog.textDialog section {
@@ -471,9 +472,7 @@ kbd {
 	}
 }
 
-/* Misc game player sections */
-
-.pixelCanvas {
+canvas {
 	image-rendering: optimizeSpeed;
 	image-rendering: -moz-crisp-edges;
 	image-rendering: -webkit-crisp-edges;
@@ -648,18 +647,24 @@ kbd {
 		display: grid;
 		width: 90%;
 		gap: 1em;
-		grid: auto-flow / repeat(auto-fit, minmax(calc(320px + 0.75em * 2), 1fr));
+		grid: auto-flow / repeat(
+				auto-fit,
+				minmax(calc(var(--standard-tile-size) * 10 + 0.75em * 2), 1fr)
+			);
 		li {
 			list-style: none;
-			img {
-				width: 320px;
-				height: 320px;
-				display: block;
+			.setPreview {
+				width: calc(var(--standard-tile-size) * var(--camera-width));
+				height: calc(var(--standard-tile-size) * var(--camera-height));
 				margin: auto;
-				object-fit: none;
+				canvas {
+					width: 100%;
+					object-fit: contain;
+				}
 			}
 			cursor: pointer;
-			&:hover {
+			&:hover,
+			&:focus-visible {
 				background: var(--secondary-bg);
 			}
 		}

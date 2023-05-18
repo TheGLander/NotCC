@@ -1,7 +1,7 @@
 import { findScriptName } from "@notcc/logic"
 import { basename, join } from "path-browserify"
 
-const censoredSetNames: string[] = ["CC1STEAM", "steamcc1", "cc2"]
+const censoredSetNames: string[] = ["CC1STEAM", "steamcc1", "cc1cropped", "cc2"]
 
 const listingRegex = /<a href="(?!\.\.\/")(.+)">.+<\/a>\s+(.+:..)/g
 const gliderbotWebsite = "https://bitbusters.club/gliderbot/sets/cc2/"
@@ -65,10 +65,10 @@ async function scanNginxIndex(
 		const entryName = match[1]
 		const lastEdited = new Date(match[2])
 		if (entryName.endsWith("/")) {
-			if (censoredSetNames.includes(entryName)) continue
+			if (censoredSetNames.includes(entryName.slice(0, -1))) continue
 			// This is a directory
 			childPromises.push(
-				scanNginxIndex(`${dirPath}/${entryName}`, directory).then(ent => {
+				scanNginxIndex(entryName, directory).then(ent => {
 					ent.lastEdited = lastEdited
 					directory.contents[entryName] = ent
 				})
@@ -94,7 +94,7 @@ async function findGbSet(dir: NginxDirectory): Promise<GliderbotSet | null> {
 		return {
 			mainScript: file.name,
 			title: scriptTitle,
-			rootDirectory: dir.getPath(),
+			rootDirectory: `${gliderbotWebsite}${dir.getPath()}/`,
 		}
 	}
 	return null

@@ -14,7 +14,7 @@ interface DirEntry {
 	data: string
 }
 
-async function findEntryFilePath(
+export async function findEntryFilePath(
 	loaderFunction: LevelSetLoaderFunction,
 	fileIndex: string[]
 ): Promise<string> {
@@ -50,19 +50,18 @@ export function openLevel(pager: Pager, level: LevelData): void {
 export async function loadSet(
 	pager: Pager,
 	loaderFunction: LevelSetLoaderFunction,
-	fileIndex: string[]
+	scriptFile: string
 ): Promise<void> {
-	let filePath = await findEntryFilePath(loaderFunction, fileIndex)
-	const filePrefix = dirname(filePath)
+	const filePrefix = dirname(scriptFile)
 	// If the zip file has the entry script in a subdirectory instead of the zip
 	// root, prefix all file paths with the entry file
-	if (filePrefix !== "") {
+	if (filePrefix !== ".") {
 		loaderFunction = makeLoaderWithPrefix(filePrefix, loaderFunction)
-		filePath = basename(filePath)
+		scriptFile = basename(scriptFile)
 	}
 
-	const fileData = (await loaderFunction(filePath, false)) as string
-	const scriptTitle = findScriptName(fileData)!
+	const scriptData = (await loaderFunction(scriptFile, false)) as string
+	const scriptTitle = findScriptName(scriptData)!
 
 	const setInfo = await loadSetInfo(scriptTitle).catch(() => null)
 
@@ -71,7 +70,7 @@ export async function loadSet(
 	if (setInfo !== null) {
 		set = await LevelSet.constructAsync(setInfo, loaderFunction)
 	} else {
-		set = await LevelSet.constructAsync(filePath, loaderFunction)
+		set = await LevelSet.constructAsync(scriptFile, loaderFunction)
 	}
 
 	pager.loadedSet = set

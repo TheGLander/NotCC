@@ -3,7 +3,7 @@ import { AsyncUnzipOptions, Unzipped, unzip, unzipSync } from "fflate"
 import { join, normalize } from "path-browserify"
 
 function getFilePath(file: File): string {
-	return (file.webkitRelativePath ?? file.name).toLowerCase()
+	return file.webkitRelativePath ?? file.name
 }
 
 function unzipAsync(
@@ -66,12 +66,20 @@ export function makeFileListFileLoader(
 	const decoder = new TextDecoder("iso-8859-1")
 	const files: Record<string, File> = {}
 	for (const file of Array.from(fileList)) {
-		files[getFilePath(file)] = file
+		files[getFilePath(file).toLowerCase()] = file
 	}
 	return async (path: string, binary: boolean) => {
 		const fileData = await files[path.toLowerCase()].arrayBuffer()
 		if (binary) return fileData
 		return decoder.decode(fileData)
+	}
+}
+
+export function makeHttpFileLoader(url: string): LevelSetLoaderFunction {
+	return async (path: string, binary: boolean) => {
+		const fileData = await fetch(`${url}${path}`)
+		if (binary) return await fileData.arrayBuffer()
+		return await fileData.text()
 	}
 }
 
