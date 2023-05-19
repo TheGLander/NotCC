@@ -191,7 +191,7 @@ export const levelPlayerPage = {
 			throw new Error(
 				"Cannot set the level camera without knowing where the viewport is."
 			)
-
+		this.preplayKeyListener?.remove()
 		this.preplayKeyListener = new KeyListener((ev: KeyboardEvent) => {
 			if (isValidStartKey(ev.code)) {
 				ev.preventDefault()
