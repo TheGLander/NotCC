@@ -1,4 +1,8 @@
-import { findScriptName } from "@notcc/logic"
+import {
+	findScriptName,
+	parseScriptMetadata,
+	ScriptMetadata,
+} from "@notcc/logic"
 import { basename, join } from "path-browserify"
 
 const censoredSetNames: string[] = ["CC1STEAM", "steamcc1", "cc1cropped", "cc2"]
@@ -7,7 +11,8 @@ const listingRegex = /<a href="(?!\.\.\/")(.+)">.+<\/a>\s+(.+:..)/g
 const gliderbotWebsite = "https://bitbusters.club/gliderbot/sets/cc2/"
 
 export interface GliderbotSet {
-	title: string
+	metadata: ScriptMetadata
+	hasPreviewImage: boolean
 	mainScript: string
 	rootDirectory: string
 }
@@ -91,10 +96,12 @@ async function findGbSet(dir: NginxDirectory): Promise<GliderbotSet | null> {
 		const scriptTitle = findScriptName(scriptText)
 		// A c2g file without a title. Could possibly be a `chain`-able helper script
 		if (!scriptTitle) continue
+		const metadata = parseScriptMetadata(scriptText)
 		return {
 			mainScript: file.name,
-			title: scriptTitle,
+			metadata,
 			rootDirectory: `${gliderbotWebsite}${dir.getPath()}/`,
+			hasPreviewImage: "preview.png" in dir.contents,
 		}
 	}
 	return null

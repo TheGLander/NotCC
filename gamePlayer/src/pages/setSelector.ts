@@ -16,8 +16,8 @@ import {
 import { findEntryFilePath, loadSet, openLevel } from "../levelLoading"
 import { getGbSets } from "../gliderbotSets"
 import { GliderbotSet } from "../gliderbotSets"
-import { Renderer, Tileset } from "../renderer"
-import { instanciateTemplate } from "../utils"
+import { HTMLImage, Renderer, Tileset } from "../renderer"
+import { fetchImage, instanciateTemplate } from "../utils"
 import { SetListPreviewLevel } from "../settings"
 
 async function makeLevelSetPreview(
@@ -42,10 +42,39 @@ async function makeLevelSetPreview(
 	return canvas
 }
 
+async function getSetThumbnail(
+	tileset: Tileset,
+	set: GliderbotSet
+): Promise<HTMLImage | null> {
+	const thumbnailType = set.metadata.thumbnail
+	if (thumbnailType === undefined || thumbnailType === "image") {
+		try {
+			if (!set.hasPreviewImage) throw new Error("No preview.png file")
+			const imageUrl = `${set.rootDirectory}/preview.png`
+			const image = await fetchImage(imageUrl)
+			return image
+		} catch (err) {
+			if (thumbnailType === "image") {
+				console.error("Failed to fetch image preview")
+				console.error(err)
+				return null
+			}
+		}
+	}
+	try {
+		const setPreview = await makeLevelSetPreview(tileset, set)
+		return setPreview
+	} catch (err) {
+		console.error("Failed to create a levelset preview.")
+		console.error(err)
+		return null
+	}
+}
+
 async function makeSetListItem(
 	this: typeof setSelectorPage,
 	tileset: Tileset | undefined,
-	previewLevel: SetListPreviewLevel,
+	thumbnailLevel: SetListPreviewLevel,
 	set: GliderbotSet
 ): Promise<HTMLLIElement> {
 	const setListItem = instanciateTemplate<HTMLLIElement>(
@@ -53,26 +82,48 @@ async function makeSetListItem(
 	)
 	setListItem.setAttribute("data-set-url", set.rootDirectory)
 	setListItem.setAttribute("data-main-script", set.mainScript)
-	const setPreviewContainer =
-		setListItem.querySelector<HTMLDivElement>(".setPreview")!
-	if (previewLevel === "level preview") {
-		const levelCanvas = await makeLevelSetPreview(tileset!, set)
-		if (levelCanvas) {
-			setPreviewContainer.appendChild(levelCanvas)
-			setPreviewContainer.style.setProperty(
+	const setThumbnailContainer =
+		setListItem.querySelector<HTMLDivElement>(".setThumbnail")!
+	if (thumbnailLevel === "level preview") {
+		const thumbnail = await getSetThumbnail(tileset!, set)
+		if (thumbnail !== null) {
+			const width =
+				thumbnail instanceof HTMLImageElement
+					? thumbnail.naturalWidth
+					: thumbnail.width
+			const height =
+				thumbnail instanceof HTMLImageElement
+					? thumbnail.naturalHeight
+					: thumbnail.height
+			let cameraWidth = width / tileset!.tileSize
+			let cameraHeight = height / tileset!.tileSize
+			if (cameraWidth > 10) cameraWidth = 10
+			if (cameraHeight > 10) cameraHeight = 10
+			setThumbnailContainer.style.setProperty(
 				"--camera-width",
-				(levelCanvas.width / tileset!.tileSize).toString()
+				cameraWidth.toString()
 			)
-			setPreviewContainer.style.setProperty(
+			setThumbnailContainer.style.setProperty(
 				"--camera-height",
-				(levelCanvas.height / tileset!.tileSize).toString()
+				cameraHeight.toString()
 			)
-		} else setPreviewContainer.remove()
-	} else setPreviewContainer.remove()
-	const setNameEl = setListItem.querySelector(".setName")!
-	setNameEl.textContent = set.title
-	const setDescriptionEl = setListItem.querySelector(".setDescription")!
-	setDescriptionEl.textContent = "This sure is a set!"
+			setThumbnailContainer.appendChild(thumbnail)
+		} else setThumbnailContainer.remove()
+	} else setThumbnailContainer.remove()
+	const meta = set.metadata
+	function addStringFact(className: string, value: string | undefined): void {
+		const el = setListItem.querySelector<HTMLSpanElement>(`.${className}`)!
+		if (value === undefined) {
+			el.remove()
+		} else {
+			const inputEl = el.querySelector("span")!
+			inputEl.textContent = value
+		}
+	}
+	addStringFact("setName", meta.title)
+	addStringFact("setBy", meta.by)
+	addStringFact("setDifficulty", meta.difficulty?.toString())
+	addStringFact("setDescription", meta.description)
 	return setListItem
 }
 

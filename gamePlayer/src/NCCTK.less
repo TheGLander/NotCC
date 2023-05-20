@@ -653,12 +653,15 @@ canvas {
 			);
 		li {
 			list-style: none;
-			.setPreview {
+			height: fit-content;
+			.setThumbnail {
 				width: calc(var(--standard-tile-size) * var(--camera-width));
 				height: calc(var(--standard-tile-size) * var(--camera-height));
 				margin: auto;
-				canvas {
+				canvas,
+				img {
 					width: 100%;
+					height: 100%;
 					object-fit: contain;
 				}
 			}
