@@ -1,5 +1,6 @@
 import {
 	Actor,
+	Animation,
 	BonusFlag,
 	CloneMachine,
 	CounterGate,
@@ -62,13 +63,13 @@ interface FreeformWiresSpecialArt extends SpecialArt {
 
 registerSpecialFunction<Tile | [number, number] | Actor>(
 	"freeform wires",
-	function (ctx, art) {
+	function(ctx, art) {
 		const spArt = art as FreeformWiresSpecialArt
 		const pos = Array.isArray(ctx.actor)
 			? ctx.actor
 			: ctx.actor instanceof Tile
-			? ctx.actor.position
-			: ctx.actor.tile.position
+				? ctx.actor.position
+				: ctx.actor.tile.position
 		const wires = Array.isArray(ctx.actor) ? 0 : ctx.actor.wires
 		const wireTunnels = Array.isArray(ctx.actor) ? 0 : ctx.actor.wireTunnels
 		this.tileBlit(ctx, pos, spArt.base)
@@ -118,7 +119,7 @@ interface ArrowsSpecialArt extends SpecialArt {
 
 registerSpecialFunction<CloneMachine | DirectionalBlock>(
 	"arrows",
-	function (ctx, art) {
+	function(ctx, art) {
 		const spArt = art as ArrowsSpecialArt
 		const pos = this.getPosition(ctx)
 		const directions =
@@ -138,7 +139,7 @@ interface ScrollingSpecialArt extends SpecialArt {
 	LEFT: [Frame, Frame]
 }
 
-registerSpecialFunction<Actor>("scrolling", function (ctx, art) {
+registerSpecialFunction<Actor>("scrolling", function(ctx, art) {
 	const spArt = art as ScrollingSpecialArt
 	const offsetMult = (ctx.ticks / spArt.duration) % 1
 	const baseFrames = spArt[ctxToDir(ctx)]
@@ -159,7 +160,7 @@ interface FuseSpecialArt extends SpecialArt {
 	frames: Frame[]
 }
 
-registerSpecialFunction<Actor>("fuse", function (ctx, art) {
+registerSpecialFunction<Actor>("fuse", function(ctx, art) {
 	const spArt = art as FuseSpecialArt
 	const frameN = Math.floor(
 		spArt.frames.length * ((ctx.ticks / spArt.duration) % 1)
@@ -174,7 +175,7 @@ interface PerspectiveSpecialArt extends SpecialArt {
 	revealed: Art
 }
 
-registerSpecialFunction<Actor>("perspective", function (ctx, art) {
+registerSpecialFunction<Actor>("perspective", function(ctx, art) {
 	const spArt = art as PerspectiveSpecialArt
 	let perspective = ctx.actor.level.getPerspective()
 	if (perspective && spArt.somethingUnderneathOnly) {
@@ -193,7 +194,7 @@ interface ThinWallsSpecialArt extends SpecialArt {
 	DOWN: Frame
 	LEFT: Frame
 }
-registerSpecialFunction<ThinWall>("thin walls", function (ctx, art) {
+registerSpecialFunction<ThinWall>("thin walls", function(ctx, art) {
 	const spArt = art as ThinWallsSpecialArt
 	const pos = this.getPosition(ctx)
 
@@ -213,7 +214,7 @@ registerStateFunction<ThinWall>("thinWall", actor =>
 registerStateFunction<Actor>("blueWall", actor => actor.customData)
 registerStateFunction<Actor>("greenWall", actor =>
 	actor.customData === "fake" &&
-	actor.tile.findActor(iterActor => iterActor.layer > actor.layer)
+		actor.tile.findActor(iterActor => iterActor.layer > actor.layer)
 		? "stepped"
 		: actor.customData
 )
@@ -237,7 +238,7 @@ interface StretchSpecialArt extends SpecialArt {
 	horizontal: Frame[]
 }
 
-registerSpecialFunction<StretchSpecialArt>("stretch", function (ctx, art) {
+registerSpecialFunction<StretchSpecialArt>("stretch", function(ctx, art) {
 	const spArt = art as StretchSpecialArt
 	if (ctx.actor.cooldown === 0) {
 		this.drawArt(ctx, spArt.idle)
@@ -278,7 +279,7 @@ registerSpecialFunction<StretchSpecialArt>("stretch", function (ctx, art) {
 	this.tileBlit(ctx, [pos[0] + offset[0], pos[1] + offset[1]], frame, cropSize)
 })
 
-registerSpecialFunction<VoodooTile>("voodoo", function (ctx) {
+registerSpecialFunction<VoodooTile>("voodoo", function(ctx) {
 	if (ctx.actor.tileOffset === null) return
 	const pos = this.getPosition(ctx)
 	const frame: Frame = [
@@ -295,7 +296,7 @@ interface RailroadSpecialArt extends SpecialArt {
 	toggleRail: Record<string, Frame>
 }
 
-registerSpecialFunction<Railroad>("railroad", function (ctx, art) {
+registerSpecialFunction<Railroad>("railroad", function(ctx, art) {
 	const spArt = art as RailroadSpecialArt
 	const pos = this.getPosition(ctx)
 	for (const dir of ctx.actor.baseRedirects) {
@@ -329,14 +330,14 @@ interface RoverAntennaSpecialArt extends SpecialArt {
 	LEFT: Frame
 }
 
-registerSpecialFunction<Rover>("rover antenna", function (ctx, art) {
+registerSpecialFunction<Rover>("rover antenna", function(ctx, art) {
 	const spArt = art as RoverAntennaSpecialArt
 	const pos = this.getPosition(ctx)
 	const frame = spArt[ctxToDir(ctx)]
 	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
 })
 
-registerSpecialFunction<Actor>("letters", function (ctx) {
+registerSpecialFunction<Actor>("letters", function(ctx) {
 	const pos = this.getPosition(ctx)
 	// A space doesn't render anything
 	if (ctx.actor.customData === " ") return
@@ -361,7 +362,7 @@ interface CounterSpecialArt extends SpecialArt {
 	"": Frame
 }
 
-registerSpecialFunction<CounterGate>("counter", function (ctx, art) {
+registerSpecialFunction<CounterGate>("counter", function(ctx, art) {
 	const spArt = art as CounterSpecialArt
 	const pos = this.getPosition(ctx)
 	this.tileBlit(
@@ -383,7 +384,7 @@ function rotateWires(wires: number, dir: Direction): number {
 	return ((wires << dir) | (wires >> (4 - dir))) & 0b1111
 }
 
-registerSpecialFunction("logic gate", function (ctx, art) {
+registerSpecialFunction("logic gate", function(ctx, art) {
 	const spArt = art as LogicGateSpecialArt
 	const pos = this.getPosition(ctx)
 	const poweredWires = ctx.actor.wires & ctx.actor.poweredWires
@@ -414,3 +415,12 @@ registerSpecialFunction("logic gate", function (ctx, art) {
 	// Now, just draw the base
 	this.tileBlit(ctx, pos, spArt[ctxToDir(ctx)])
 })
+
+function animationStateFunction(actor: Animation): string {
+	return Math.floor(
+		(1 - actor.animationCooldown / actor.animationLength) * 4
+	).toString()
+}
+
+registerStateFunction("splashAnim", animationStateFunction)
+registerStateFunction("explosionAnim", animationStateFunction)
