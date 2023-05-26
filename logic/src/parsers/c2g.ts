@@ -158,25 +158,25 @@ type Token =
 	| KeywordToken
 
 /**
-	* Joins the segments via the default function (which is guaranteed to recognize
-	* /), and also replacing all backslashes to slashes, so that it works on posix.
-	*/
+ * Joins the segments via the default function (which is guaranteed to recognize
+ * /), and also replacing all backslashes to slashes, so that it works on posix.
+ */
 
 export function joinPath(...segments: string[]): string {
 	return join(...segments.map(part => part.replace(/\\/g, "/")))
 }
 
 /**
-	* What should the interpreter do after this directive?
-	* `"consume nothing"` pushes the directive onto the stack, as if it's a broken identifier.
-	* This behaviour is mostly used for error conditions.
-	*
-	* `"consume token"` is the most common return type. It doesn't push the directive's token onto the stack,
-	* but continues on with the line.
-	*
-	* `"consume line"` forces the interpreter to stop executing the current line.
-	* This is used for interruptive directives, such as `chain`, `map`, and `edit`.
-	*/
+ * What should the interpreter do after this directive?
+ * `"consume nothing"` pushes the directive onto the stack, as if it's a broken identifier.
+ * This behaviour is mostly used for error conditions.
+ *
+ * `"consume token"` is the most common return type. It doesn't push the directive's token onto the stack,
+ * but continues on with the line.
+ *
+ * `"consume line"` forces the interpreter to stop executing the current line.
+ * This is used for interruptive directives, such as `chain`, `map`, and `edit`.
+ */
 type ActionReturnValue = "consume line" | "consume token" | "consume nothing"
 
 // The return value is whenether to terminate the current line
@@ -270,9 +270,9 @@ const scriptDirectiveFunctions: Record<
 			}
 			this.state.music = isPath
 				? {
-					repeating: isRepeating,
-					path: joinPath(this.state.fsPosition ?? "", str),
-				}
+						repeating: isRepeating,
+						path: joinPath(this.state.fsPosition ?? "", str),
+				  }
 				: { repeating: isRepeating, id: str }
 			return "consume token"
 		} else {
@@ -325,7 +325,7 @@ const scriptDirectiveFunctions: Record<
 function makeSimpleOperator(
 	func: (a: number, b: number) => number
 ): (this: ScriptRunner, stack: Token[]) => ActionReturnValue {
-	return function(stack: Token[]) {
+	return function (stack: Token[]) {
 		// Where there are less than 2 tokens, the operator itself is treated as a value
 		if (stack.length < 2) return "consume nothing"
 		const b = this.getTokenValue(stack.pop() as Token)
@@ -392,9 +392,9 @@ const isDirective = (varName: string): varName is ScriptDirective =>
 
 export type ScriptInterrupt =
 	| {
-		type: "chain" | "map"
-		path: string
-	}
+			type: "chain" | "map"
+			path: string
+	  }
 	| { type: "script"; text: string }
 
 export interface ScriptMusic {
@@ -427,14 +427,14 @@ export type ScriptLegalInventoryTool =
 
 export type MapInterruptResponse =
 	| {
-		type: "win"
-		totalScore: number
-		lastExitGender: "male" | "female"
-		lastExitN: number
-		inventoryTools: ScriptLegalInventoryTool[]
-		inventoryKeys: Record<"red" | "green" | "blue" | "yellow", number>
-		timeLeft: number
-	}
+			type: "win"
+			totalScore: number
+			lastExitGender: "male" | "female"
+			lastExitN: number
+			inventoryTools: ScriptLegalInventoryTool[]
+			inventoryKeys: Record<"red" | "green" | "blue" | "yellow", number>
+			timeLeft: number
+	  }
 	| { type: "retry" }
 	| { type: "skip" }
 
@@ -771,9 +771,9 @@ export class ScriptRunner {
 }
 
 /**
-	* A simple function to tell if the passed text could be considered a C2G script,
-	* based on the first line, and if so, the script name is returned.
-	*/
+ * A simple function to tell if the passed text could be considered a C2G script,
+ * based on the first line, and if so, the script name is returned.
+ */
 export function findScriptName(text: string): string | null {
 	return text.match(/^[^"\n]*"([^"\n]*)"/)?.[1] ?? null
 }

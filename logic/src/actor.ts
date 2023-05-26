@@ -3,13 +3,7 @@ import { Decision, actorDB } from "./const.js"
 import { Direction, hasOwnProperty } from "./helpers.js"
 import { Layer, Tile } from "./tile.js"
 import { Item, Key } from "./actors/items.js"
-import {
-	CircuitCity,
-	isWired,
-	Wirable,
-	WireOverlapMode,
-	
-} from "./wires.js"
+import { CircuitCity, isWired, Wirable, WireOverlapMode } from "./wires.js"
 import { iterableIndexOf } from "./iterableHelpers.js"
 
 /**

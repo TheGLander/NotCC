@@ -14,8 +14,8 @@ export function getMovementDirections(
 		const direction =
 			Direction[directionName.toUpperCase() as "UP" | "RIGHT" | "DOWN" | "LEFT"]
 		/**
-			* Type of the direction, 0 is vertical, 1 is horizontal (Not a pseudo-boolean)
-			*/
+		 * Type of the direction, 0 is vertical, 1 is horizontal (Not a pseudo-boolean)
+		 */
 		const dirType = direction % 2
 		if (directions[dirType] === undefined) directions[dirType] = direction
 		// If we have a counter-direction, reset the direction type
@@ -87,8 +87,8 @@ export abstract class Playable extends Actor {
 				this.level.releasedKeys.switchPlayable = true
 				this.level.selectedPlayable =
 					this.level.playables[
-					(this.level.playables.indexOf(this.level.selectedPlayable) + 1) %
-					this.level.playables.length
+						(this.level.playables.indexOf(this.level.selectedPlayable) + 1) %
+							this.level.playables.length
 					]
 			}
 			if (

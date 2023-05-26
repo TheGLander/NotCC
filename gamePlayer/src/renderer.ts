@@ -14,7 +14,7 @@ export function removeBackground(image: HTMLImage): HTMLImage {
 		.createElement("canvas")
 		.getContext("2d", { willReadFrequently: true })
 	if (!ctx) throw new Error("Couldn't create tileset canvas")
-		;[ctx.canvas.width, ctx.canvas.height] = [image.width, image.height]
+	;[ctx.canvas.width, ctx.canvas.height] = [image.width, image.height]
 	ctx.drawImage(image, 0, 0)
 	const rawData = ctx.getImageData(0, 0, image.width, image.height)
 	const maskColor = rawData.data.slice(0, 4)
@@ -91,13 +91,13 @@ export type SpecialArt = {
 	specialType: string
 } & {
 	[arg: string]:
-	| Art
-	| Frame[]
-	| string
-	| undefined
-	| boolean
-	| number
-	| Record<string, Art>
+		| Art
+		| Frame[]
+		| string
+		| undefined
+		| boolean
+		| number
+		| Record<string, Art>
 }
 export type Art =
 	| StaticArt
@@ -235,10 +235,10 @@ export class Renderer {
 		)
 	}
 	/**
-		* Generalized logic of drawing directional block and clone machine arrows
-		* @param width The length from the side of the tile to crop to get the
-		* required tile
-		*/
+	 * Generalized logic of drawing directional block and clone machine arrows
+	 * @param width The length from the side of the tile to crop to get the
+	 * required tile
+	 */
 	drawCompositionalSides(
 		ctx: ArtContext,
 		pos: Position,
@@ -251,8 +251,8 @@ export class Renderer {
 				direction === Direction.RIGHT
 					? [1 - width, 0]
 					: direction === Direction.DOWN
-						? [0, 1 - width]
-						: [0, 0]
+					? [0, 1 - width]
+					: [0, 0]
 			this.tileBlit(
 				ctx,
 				[pos[0] + offset[0], pos[1] + offset[1]],
