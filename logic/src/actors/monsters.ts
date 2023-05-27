@@ -439,6 +439,7 @@ export class MirrorChip extends Monster {
 		"chip",
 		"movable",
 		"can-reuse-key-green",
+		"plays-block-push-sfx",
 	]
 	pushTags = ["block"]
 	id = "mirrorChip"
@@ -465,6 +466,7 @@ export class MirrorMelinda extends Monster {
 		"melinda",
 		"movable",
 		"can-reuse-key-yellow",
+		"plays-block-push-sfx",
 	]
 	pushTags = ["block"]
 	ignoreTags = ["ice"]

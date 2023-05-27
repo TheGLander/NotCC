@@ -153,6 +153,9 @@ export abstract class Playable extends Actor {
 			}
 			this.hasOverride = bonked && this.slidingState === SlidingState.WEAK
 			if (bonked && this === this.level.selectedPlayable) {
+				if (!this.playerBonked) {
+					this.level.sfxManager?.playOnce("bump")
+				}
 				this.playerBonked = true
 			}
 		}

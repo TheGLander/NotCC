@@ -65,6 +65,7 @@ export abstract class Teleport extends Actor {
 		if (other.bonked) other.slidingState = SlidingState.NONE
 		if (!this.shouldProcessThing) return
 		this.shouldProcessThing = false
+		this.level.sfxManager?.playOnce("teleport")
 		this.onTeleport(other)
 	}
 

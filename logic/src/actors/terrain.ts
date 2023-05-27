@@ -50,6 +50,21 @@ export class Ice extends Actor {
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 	}
+	actorCompletelyJoinedIgnored(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playOnce("slide step")
+		}
+	}
+	actorLeft(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playContinuous("ice slide")
+		}
+	}
+	actorCompletelyLeft(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.stopContinuous("ice slide")
+		}
+	}
 	actorOnTile(other: Actor): void {
 		if (other._internalIgnores(this)) return
 		if (!other.bonked) return
@@ -77,6 +92,21 @@ export class IceCorner extends Actor {
 	}
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
+	}
+	actorCompletelyJoinedIgnored(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playOnce("slide step")
+		}
+	}
+	actorLeft(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playContinuous("ice slide")
+		}
+	}
+	actorCompletelyLeft(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.stopContinuous("ice slide")
+		}
 	}
 	actorOnTile(other: Actor): void {
 		if (other._internalIgnores(this)) return
@@ -118,8 +148,21 @@ export class ForceFloor extends Actor {
 		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playContinuous("force floor")
+		}
 		if (other.getCompleteTags("tags").includes("block"))
 			other.slidingState = SlidingState.WEAK
+	}
+	actorCompletelyJoinedIgnored(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playOnce("slide step")
+		}
+	}
+	actorLeft(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playContinuous("force floor")
+		}
 	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
@@ -153,9 +196,21 @@ export class ForceFloorRandom extends Actor {
 		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
-		// Kinda a bad hack, but makes pushing sliding blocks work
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playContinuous("force floor")
+		}
 		if (other.getCompleteTags("tags").includes("block"))
 			other.slidingState = SlidingState.WEAK
+	}
+	actorCompletelyJoinedIgnored(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playOnce("slide step")
+		}
+	}
+	actorLeft(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("real-playable")) {
+			this.level.sfxManager?.playContinuous("force floor")
+		}
 	}
 	actorOnTile(other: Actor): void {
 		if (other.layer !== Layer.MOVABLE) return
@@ -198,6 +253,7 @@ export class RecessedWall extends Actor {
 		if (this.tile.hasLayer(Layer.MOVABLE)) return
 		this.destroy(this, null)
 		new Wall(this.level, this.tile.position)
+		this.level.sfxManager?.playOnce("recessed wall")
 	}
 }
 
@@ -221,6 +277,11 @@ export class Water extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
+	actorCompletelyJoinedIgnored(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("playable")) {
+			this.level.sfxManager?.playOnce("water step")
+		}
+	}
 	actorCompletelyJoined(other: Actor): void {
 		other.destroy(this, "splash")
 	}
@@ -236,6 +297,7 @@ export class Dirt extends Actor {
 	}
 	blockTags = ["cc1block", "normal-monster", "melinda"]
 	actorCompletelyJoined(): void {
+		this.level.sfxManager?.playOnce("dirt clear")
 		this.destroy(this, null)
 	}
 }
@@ -270,6 +332,7 @@ export class Exit extends Actor {
 			other.destroy(this, null)
 			this.level.gameState = GameState.PLAYING
 			this.level.playablesLeft--
+			this.level.sfxManager?.playOnce(`win ${other.id}`)
 		}
 	}
 }
@@ -285,7 +348,10 @@ export class EChipGate extends Actor {
 	}
 	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
-		if (this.level.chipsLeft === 0) this.destroy(other, null)
+		if (this.level.chipsLeft === 0) {
+			this.destroy(other, null)
+			this.level.sfxManager?.playOnce("socket unlock")
+		}
 	}
 	blocks(): boolean {
 		return this.level.chipsLeft !== 0
@@ -323,6 +389,11 @@ export class Fire extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
+	actorCompletelyJoinedIgnored(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("playable")) {
+			this.level.sfxManager?.playOnce("fire step")
+		}
+	}
 	actorCompletelyJoined(other: Actor): void {
 		if (!other.getCompleteTags("tags").includes("meltable-block"))
 			other.destroy(this)
@@ -345,6 +416,7 @@ export class ThiefTool extends Actor {
 				return
 			}
 		}
+		this.level.sfxManager?.playOnce("robbed")
 		other.inventory.items = []
 		this.level.bonusPoints = Math.floor(this.level.bonusPoints / 2)
 	}
@@ -366,6 +438,7 @@ export class ThiefKey extends Actor {
 				return
 			}
 		}
+		this.level.sfxManager?.playOnce("robbed")
 		other.inventory.keys = {}
 		this.level.bonusPoints = Math.floor(this.level.bonusPoints / 2)
 	}

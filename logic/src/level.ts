@@ -93,6 +93,12 @@ onLevelDecisionTick.push(level => {
 	}
 })
 
+export interface SfxManager {
+	playContinuous(sfx: string): void
+	stopContinuous(sfx: string): void
+	playOnce(sfx: string): void
+}
+
 export const releasableKeys = ["drop", "rotateInv", "switchPlayable"] as const
 type ReleasableKeys = (typeof releasableKeys)[number]
 
@@ -362,6 +368,7 @@ export class LevelState {
 	circuitInputs: Actor[] = []
 	circuitOutputs: Wirable[] = []
 	circuitOutputStates: Map<Wirable, boolean> = new Map()
+	sfxManager: SfxManager | null = null
 }
 
 export function createLevelFromData(data: LevelData): LevelState {

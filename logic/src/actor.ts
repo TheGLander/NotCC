@@ -282,6 +282,7 @@ export abstract class Actor implements Wirable {
 	 * Called when another actor leaves the current tile
 	 */
 	actorLeft?(other: Actor): void
+	actorCompletelyLeft?(other: Actor): void
 	/**
 	 * Called when another actor joins the current tile
 	 */
@@ -290,6 +291,7 @@ export abstract class Actor implements Wirable {
 	 * Called when another actor stops moving after joining a tile
 	 */
 	actorCompletelyJoined?(other: Actor): void
+	actorCompletelyJoinedIgnored?(other: Actor): void
 	/**
 	 * Called when this actor steps on a new tile
 	 */
@@ -341,6 +343,14 @@ export abstract class Actor implements Wirable {
 	enterTile(noOnTile = false): void {
 		let thisActor: Actor = this
 		this.noSlidingBonk = false
+		if (thisActor.oldTile) {
+			for (const actor of thisActor.oldTile.allActorsReverse) {
+				if (!thisActor._internalIgnores(actor)) {
+					actor.actorCompletelyLeft?.(thisActor)
+					if (thisActor.newActor) thisActor = thisActor.newActor
+				}
+			}
+		}
 		for (const actor of thisActor.tile.allActorsReverse) {
 			if (actor === thisActor) continue
 			const notIgnores = !thisActor._internalIgnores(actor)
@@ -348,8 +358,8 @@ export abstract class Actor implements Wirable {
 				this.noSlidingBonk = true
 			if (this.noSlidingBonk && hasOwnProperty(this, "hasOverride"))
 				this.hasOverride = true
-			if (notIgnores && actor.actorCompletelyJoined)
-				actor.actorCompletelyJoined(thisActor)
+			if (notIgnores) actor.actorCompletelyJoined?.(thisActor)
+			else actor.actorCompletelyJoinedIgnored?.(thisActor)
 			if (thisActor.newActor) thisActor = thisActor.newActor
 			if (!noOnTile && actor.actorOnTile) {
 				actor.actorOnTile(thisActor)
@@ -483,7 +493,11 @@ export abstract class Actor implements Wirable {
 				this.level.resolvedCollisionCheckDirection = direction
 				return false
 			}
-			if (pushable._internalStep(direction)) pushable.cooldown--
+			if (pushable._internalStep(direction)) {
+				pushable.cooldown--
+				if (this.getCompleteTags("tags").includes("plays-block-push-sfx"))
+					this.level.sfxManager?.playOnce("block push")
+			}
 		}
 		this.level.resolvedCollisionCheckDirection = direction
 		if (pull && this.getCompleteTags("tags").includes("pulling")) {

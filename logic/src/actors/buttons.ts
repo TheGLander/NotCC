@@ -13,6 +13,8 @@ export function globalButtonFactory(color: string) {
 			return Layer.STATIONARY
 		}
 		actorCompletelyJoined(): void {
+			this.level.sfxManager?.playOnce("button press")
+
 			for (const actor of this.level.actors)
 				if (actor.caresButtonColors.includes(color))
 					actor.buttonPressed?.(color)
@@ -35,6 +37,8 @@ export function globalComplexButtonFactory(color: string) {
 			return Layer.STATIONARY
 		}
 		actorCompletelyJoined(other: Actor): void {
+			this.level.sfxManager?.playOnce("button press")
+
 			for (const actor of this.level.actors)
 				if (actor.caresButtonColors.includes(color))
 					actor.buttonPressed?.(color, other.direction.toString())
@@ -134,6 +138,7 @@ export function ROConnectedButtonFactory(
 				this.connectedActor?.buttonPressed?.(color, "init")
 		}
 		actorCompletelyJoined(): void {
+			this.level.sfxManager?.playOnce("button press")
 			if (!this.connectedActor?.exists) this.connectedActor = null
 			this.connectedActor?.buttonPressed?.(color)
 		}
@@ -194,6 +199,7 @@ export function diamondConnectedButtonFactory(color: string) {
 				}
 		}
 		actorCompletelyJoined(): void {
+			this.level.sfxManager?.playOnce("button press")
 			if (!this.connectedActor?.exists) this.connectedActor = null
 			this.connectedActor?.buttonPressed?.(color)
 		}
@@ -213,6 +219,9 @@ export class ButtonPurple extends Actor {
 		return Layer.STATIONARY
 	}
 	wireOverlapMode = WireOverlapMode.NONE
+	actorCompletelyJoined(): void {
+		this.level.sfxManager?.playOnce("button press")
+	}
 	actorOnTile(actor: Actor): void {
 		if (actor.layer !== Layer.MOVABLE) return
 		this.poweringWires = 0b1111
@@ -234,6 +243,9 @@ export class ButtonBlack extends Actor {
 	}
 	wireOverlapMode = WireOverlapMode.ALWAYS_CROSS
 	poweringWires = 0b1111
+	actorCompletelyJoined(): void {
+		this.level.sfxManager?.playOnce("button press")
+	}
 	processOutput() {
 		for (const movable of this.tile[Layer.MOVABLE]) {
 			if (movable.cooldown <= 0) {
@@ -257,6 +269,8 @@ export class ToggleSwitch extends Actor {
 	}
 
 	actorCompletelyJoined(): void {
+		this.level.sfxManager?.playOnce("button press")
+
 		this.customData = this.customData === "on" ? "off" : "on"
 	}
 	wireOverlapMode = WireOverlapMode.NONE
@@ -278,6 +292,8 @@ export class ButtonGray extends Actor {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(): void {
+		this.level.sfxManager?.playOnce("button press")
+
 		for (let y = -2; y <= 2; y++) {
 			for (let x = -2; x <= 2; x++) {
 				const tile = this.level.field[this.tile.x + x]?.[this.tile.y + y]

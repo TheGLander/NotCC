@@ -50,6 +50,9 @@ export abstract class Item extends Actor {
 		)
 			return false
 		this.destroy(other, null)
+		if (other.getCompleteTags("tags").includes("playable")) {
+			this.level.sfxManager?.playOnce("item get")
+		}
 		switch (this.destination) {
 			case ItemDestination.KEY:
 				if (!other.inventory.keys[this.id])

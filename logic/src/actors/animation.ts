@@ -9,6 +9,7 @@ export abstract class Animation extends Actor {
 	animationLength = 16
 	moveSpeed = 0
 	blockTags = ["real-playable"]
+	abstract getSfx(): string
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -24,6 +25,7 @@ export abstract class Animation extends Actor {
 			this.animationLength += 3
 			this.animationCooldown--
 		}
+		level.sfxManager?.playOnce(this.getSfx())
 	}
 	_internalDecide(): void {
 		this.pendingDecision = this.moveDecision = Decision.NONE
@@ -46,12 +48,18 @@ export abstract class Animation extends Actor {
 
 export class Explosion extends Animation {
 	id = "explosionAnim"
+	getSfx(): string {
+		return "explosion"
+	}
 }
 
 actorDB["explosionAnim"] = Explosion
 
 export class Splash extends Animation {
 	id = "splashAnim"
+	getSfx(): string {
+		return "splash"
+	}
 }
 
 actorDB["splashAnim"] = Splash

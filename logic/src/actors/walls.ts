@@ -150,6 +150,9 @@ export class AppearingWall extends Actor {
 			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
 		)
 			return
+		if (other.getCompleteTags("tags").includes("playable")) {
+			this.level.sfxManager?.playOnce("bump")
+		}
 		this.destroy(null, null)
 		new Wall(this.level, this.tile.position)
 	}
@@ -176,7 +179,12 @@ export class BlueWall extends Actor {
 		)
 			return
 		this.destroy(null, null)
-		if (this.customData === "real") new Wall(this.level, this.tile.position)
+		if (other.getCompleteTags("tags").includes("playable")) {
+			this.level.sfxManager?.playOnce("bump")
+		}
+		if (this.customData === "real") {
+			new Wall(this.level, this.tile.position)
+		}
 	}
 }
 
