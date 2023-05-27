@@ -11,6 +11,7 @@ import { Pager } from "../pager"
 import { AnimationTimer, TimeoutIntervalTimer, KeyListener } from "../utils"
 import { setSelectorPage } from "./setSelector"
 import { Renderer } from "../renderer"
+import { AudioSfxManager } from "../sfx"
 
 const heldKeys: Partial<Record<string, true>> = {}
 
@@ -152,6 +153,9 @@ export const levelPlayerPage = {
 		window.addEventListener("resize", () => {
 			this.updateTileScale()
 		})
+		this.sfxManager = new AudioSfxManager()
+		// TODO Pre-fetch sfx and sfx customization
+		this.sfxManager.fetchDefaultSounds("./defoSfx")
 	},
 	// Setting up level state and the game state machine
 	//    Load ->
@@ -166,6 +170,7 @@ export const levelPlayerPage = {
 	isPreplay: false,
 	isGz: false,
 	preplayKeyListener: null as KeyListener | null,
+	sfxManager: null as AudioSfxManager | null,
 	loadLevel(pager: Pager): void {
 		this.basePage!.classList.remove("solutionPlayback")
 		if (pager.loadedSet?.inPostGame) return
@@ -180,6 +185,8 @@ export const levelPlayerPage = {
 				"The level player page cannot start without the renderer."
 			)
 		this.renderer.level = this.currentLevel
+		this.currentLevel.sfxManager = this.sfxManager
+		this.sfxManager?.stopAllSfx()
 		this.gameState = GameState.PLAYING
 		this.isPaused = false
 		this.isGz = false

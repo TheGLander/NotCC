@@ -161,7 +161,7 @@ export class ForceFloor extends Actor {
 	}
 	actorLeft(other: Actor): void {
 		if (other.getCompleteTags("tags").includes("real-playable")) {
-			this.level.sfxManager?.playContinuous("force floor")
+			this.level.sfxManager?.stopContinuous("force floor")
 		}
 	}
 	actorOnTile(other: Actor): void {
@@ -209,7 +209,7 @@ export class ForceFloorRandom extends Actor {
 	}
 	actorLeft(other: Actor): void {
 		if (other.getCompleteTags("tags").includes("real-playable")) {
-			this.level.sfxManager?.playContinuous("force floor")
+			this.level.sfxManager?.stopContinuous("force floor")
 		}
 	}
 	actorOnTile(other: Actor): void {
@@ -746,7 +746,10 @@ export class Transmogrifier extends Actor {
 				transmogValue = other.transmogrifierTarget
 			else if (typeof other.transmogrifierTarget === "function")
 				transmogValue = other.transmogrifierTarget()
-		if (transmogValue) other.replaceWith(actorDB[transmogValue])
+		if (transmogValue) {
+			other.replaceWith(actorDB[transmogValue])
+			this.level.sfxManager?.playOnce("teleport")
+		}
 	}
 }
 

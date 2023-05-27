@@ -73,6 +73,7 @@ export abstract class Playable extends Actor {
 		this.moveDecision = Decision.NONE
 		if (this.cooldown) return
 		this.isPushing = false
+		const wasBonked = this.playerBonked
 		if (!forcedOnly) this.playerBonked = false
 
 		// TODO Split screen
@@ -153,7 +154,7 @@ export abstract class Playable extends Actor {
 			}
 			this.hasOverride = bonked && this.slidingState === SlidingState.WEAK
 			if (bonked && this === this.level.selectedPlayable) {
-				if (!this.playerBonked) {
+				if (!wasBonked) {
 					this.level.sfxManager?.playOnce("bump")
 				}
 				this.playerBonked = true
@@ -210,6 +211,7 @@ export class Chip extends Playable {
 		"chip",
 		"can-reuse-key-green",
 		"scares-teeth-blue",
+		"plays-block-push-sfx",
 	]
 	transmogrifierTarget = "melinda"
 	id = "chip"
@@ -224,6 +226,7 @@ export class Melinda extends Playable {
 		"melinda",
 		"can-reuse-key-yellow",
 		"scares-teeth-red",
+		"plays-block-push-sfx",
 	]
 	transmogrifierTarget = "chip"
 	id = "melinda"

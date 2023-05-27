@@ -226,7 +226,9 @@ export class RedTeleport extends Teleport {
 			else other.slidingState = SlidingState.NONE
 		}
 		if (!this.shouldProcessThing) return
+		this.level.sfxManager?.playOnce("teleport")
 		this.shouldProcessThing = false
+
 		this.onTeleport(other)
 	}
 	wireOverlapMode = WireOverlapMode.NONE

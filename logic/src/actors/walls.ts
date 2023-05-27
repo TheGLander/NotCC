@@ -61,6 +61,9 @@ function doorFactory(color: string) {
 		}
 		actorCompletelyJoined(other: Actor): void {
 			if (!other.inventory.keys[`key${sentenceCaseName}`]?.amount) return
+			if (other.getCompleteTags("tags").includes("playable")) {
+				this.level.sfxManager?.playOnce("door unlock")
+			}
 			other.inventory.keys[`key${sentenceCaseName}`].amount--
 			other.inventory.keys[`key${sentenceCaseName}`].type.keyUsed?.(other)
 			this.destroy(null, null)
@@ -286,6 +289,9 @@ export class Swivel extends Actor {
 		if (actor.direction === this.direction) this.direction++
 		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
 		this.direction %= 4
+		if (actor.getCompleteTags("tags").includes("playable")) {
+			this.level.sfxManager?.playOnce("door unlock")
+		}
 	}
 	pulse(): void {
 		this.direction += 1
