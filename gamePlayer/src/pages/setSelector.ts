@@ -18,7 +18,6 @@ import { getGbSets } from "../gliderbotSets"
 import { GliderbotSet } from "../gliderbotSets"
 import { HTMLImage, Renderer, Tileset } from "../renderer"
 import { fetchImage, instanciateTemplate } from "../utils"
-import { SetListPreviewLevel } from "../settings"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,
@@ -71,62 +70,7 @@ async function getSetThumbnail(
 	}
 }
 
-async function makeSetListItem(
-	this: typeof setSelectorPage,
-	tileset: Tileset | undefined,
-	thumbnailLevel: SetListPreviewLevel,
-	set: GliderbotSet
-): Promise<HTMLLIElement> {
-	const setListItem = instanciateTemplate<HTMLLIElement>(
-		this.setListItemTemlpate!
-	)
-	setListItem.setAttribute("data-set-url", set.rootDirectory)
-	setListItem.setAttribute("data-main-script", set.mainScript)
-	const setThumbnailContainer =
-		setListItem.querySelector<HTMLDivElement>(".setThumbnail")!
-	if (thumbnailLevel === "level preview") {
-		const thumbnail = await getSetThumbnail(tileset!, set)
-		if (thumbnail !== null) {
-			const width =
-				thumbnail instanceof HTMLImageElement
-					? thumbnail.naturalWidth
-					: thumbnail.width
-			const height =
-				thumbnail instanceof HTMLImageElement
-					? thumbnail.naturalHeight
-					: thumbnail.height
-			let cameraWidth = width / tileset!.tileSize
-			let cameraHeight = height / tileset!.tileSize
-			if (cameraWidth > 10) cameraWidth = 10
-			if (cameraHeight > 10) cameraHeight = 10
-			setThumbnailContainer.style.setProperty(
-				"--camera-width",
-				cameraWidth.toString()
-			)
-			setThumbnailContainer.style.setProperty(
-				"--camera-height",
-				cameraHeight.toString()
-			)
-			setThumbnailContainer.appendChild(thumbnail)
-		} else setThumbnailContainer.remove()
-	} else setThumbnailContainer.remove()
-	const meta = set.metadata
-	function addStringFact(className: string, value: string | undefined): void {
-		const el = setListItem.querySelector<HTMLSpanElement>(`.${className}`)!
-		if (value === undefined) {
-			el.remove()
-		} else {
-			const inputEl = el.querySelector("span")!
-			inputEl.textContent = value
-		}
-	}
-	addStringFact("setName", meta.title)
-	addStringFact("setBy", meta.by)
-	addStringFact("setDifficulty", meta.difficulty?.toString())
-	addStringFact("setDescription", meta.description)
-	return setListItem
-}
-
+// async function
 export const setSelectorPage = {
 	pageId: "setSelectorPage",
 
@@ -235,14 +179,63 @@ export const setSelectorPage = {
 		pager.updateShownLevelNumber()
 	},
 	cachedSets: null as GliderbotSet[] | null,
+	async makeSetListItem(
+		tileset: Tileset | null,
+		set: GliderbotSet
+	): Promise<HTMLLIElement> {
+		const setListItem = instanciateTemplate<HTMLLIElement>(
+			this.setListItemTemlpate!
+		)
+		setListItem.setAttribute("data-set-url", set.rootDirectory)
+		setListItem.setAttribute("data-main-script", set.mainScript)
+		const setThumbnailContainer =
+			setListItem.querySelector<HTMLDivElement>(".setThumbnail")!
+		const thumbnail = await getSetThumbnail(tileset!, set)
+		if (thumbnail !== null) {
+			const width =
+				thumbnail instanceof HTMLImageElement
+					? thumbnail.naturalWidth
+					: thumbnail.width
+			const height =
+				thumbnail instanceof HTMLImageElement
+					? thumbnail.naturalHeight
+					: thumbnail.height
+			let cameraWidth = width / tileset!.tileSize
+			let cameraHeight = height / tileset!.tileSize
+			if (cameraWidth > 10) cameraWidth = 10
+			if (cameraHeight > 10) cameraHeight = 10
+			setThumbnailContainer.style.setProperty(
+				"--camera-width",
+				cameraWidth.toString()
+			)
+			setThumbnailContainer.style.setProperty(
+				"--camera-height",
+				cameraHeight.toString()
+			)
+			setThumbnailContainer.appendChild(thumbnail)
+		} else setThumbnailContainer.remove()
+		const meta = set.metadata
+		function addStringFact(className: string, value: string | undefined): void {
+			const el = setListItem.querySelector<HTMLSpanElement>(`.${className}`)!
+			if (value === undefined) {
+				el.remove()
+			} else {
+				const inputEl = el.querySelector("span")!
+				inputEl.textContent = value
+			}
+		}
+		addStringFact("setName", meta.title)
+		addStringFact("setBy", meta.by)
+		addStringFact("setDifficulty", meta.difficulty?.toString())
+		addStringFact("setDescription", meta.description)
+		return setListItem
+	},
+
 	async buildSetList(pager: Pager): Promise<void> {
 		if (this.cachedSets === null) {
 			const sets = await getGbSets()
 			this.cachedSets = sets
 		}
-		const previewLevel = pager.settings.setListPreviewLevel
-		if (!pager.tileset && previewLevel === "level preview")
-			throw new Error("Can't build the set list without a tileset")
 		if (!this.setListEl)
 			throw new Error("Can't build a set list without the set list element")
 		if (!this.setListItemTemlpate)
@@ -255,18 +248,16 @@ export const setSelectorPage = {
 		const setListElementPromises: Promise<void>[] = []
 		for (const set of this.cachedSets) {
 			setListElementPromises.push(
-				makeSetListItem
-					.call(this, pager.tileset!, previewLevel, set)
-					.then(li => {
-						li.addEventListener("click", () => {
-							loadSet(
-								pager,
-								makeHttpFileLoader(li.getAttribute("data-set-url")!),
-								li.getAttribute("data-main-script")!
-							)
-						})
-						this.setListEl!.appendChild(li)
+				this.makeSetListItem(pager.tileset, set).then(li => {
+					li.addEventListener("click", () => {
+						loadSet(
+							pager,
+							makeHttpFileLoader(li.getAttribute("data-set-url")!),
+							li.getAttribute("data-main-script")!
+						)
 					})
+					this.setListEl!.appendChild(li)
+				})
 			)
 		}
 		await Promise.allSettled(setListElementPromises)
