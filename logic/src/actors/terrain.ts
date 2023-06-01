@@ -630,6 +630,7 @@ export class GreenBomb extends Actor {
 		} else if (other.getCompleteTags("tags").includes("real-playable")) {
 			this.destroy(null, null)
 			this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
+			this.level.sfxManager?.playOnce("item get")
 		}
 	}
 	greenToggle(): void {
