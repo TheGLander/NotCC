@@ -84,4 +84,5 @@ export async function loadSet(
 		)
 
 	pager.openPage(levelPlayerPage)
+	pager.updateShownLevelNumber()
 }
