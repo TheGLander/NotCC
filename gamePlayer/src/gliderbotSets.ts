@@ -15,6 +15,21 @@ export interface GliderbotSet {
 	hasPreviewImage: boolean
 	mainScript: string
 	rootDirectory: string
+	lastChanged: Date
+}
+
+function getMetadataPriority(set: GliderbotSet): number {
+	let priority = 0
+	if (set.metadata.listingPriority === "top") priority += 100
+	if (set.metadata.listingPriority === "bottom") priority -= 100
+	// Unlisted sets should be sorted out by getGbSets
+	if (set.metadata.description !== undefined) priority += 2
+	else if (set.hasPreviewImage) priority += 1
+	return priority
+}
+
+export function metadataComparator(a: GliderbotSet, b: GliderbotSet): number {
+	return getMetadataPriority(a) - getMetadataPriority(b)
 }
 
 class NginxNode {
@@ -102,6 +117,7 @@ async function findGbSet(dir: NginxDirectory): Promise<GliderbotSet | null> {
 			metadata,
 			rootDirectory: `${gliderbotWebsite}${dir.getPath()}/`,
 			hasPreviewImage: "preview.png" in dir.contents,
+			lastChanged: dir.lastEdited!,
 		}
 	}
 	return null
@@ -115,6 +131,7 @@ export async function getGbSets(): Promise<GliderbotSet[]> {
 		setPromises.push(findGbSet(setDir))
 	}
 	return (await Promise.all(setPromises)).filter(
-		(set): set is GliderbotSet => set !== null
+		(set): set is GliderbotSet =>
+			set !== null && set.metadata.listingPriority !== "unlisted"
 	)
 }

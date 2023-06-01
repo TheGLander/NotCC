@@ -14,10 +14,15 @@ import {
 	makeZipFileLoader,
 } from "../fileLoaders"
 import { findEntryFilePath, loadSet, openLevel } from "../levelLoading"
-import { getGbSets } from "../gliderbotSets"
+import { getGbSets, metadataComparator } from "../gliderbotSets"
 import { GliderbotSet } from "../gliderbotSets"
 import { HTMLImage, Renderer, Tileset } from "../renderer"
-import { fetchImage, instanciateTemplate } from "../utils"
+import {
+	Comparator,
+	fetchImage,
+	instanciateTemplate,
+	mergeComparators,
+} from "../utils"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,
@@ -70,7 +75,18 @@ async function getSetThumbnail(
 	}
 }
 
-// async function
+const sortMethods = ["Last update", "Alphabetical"] as const
+type SortMethod = (typeof sortMethods)[number]
+
+const sortMethodComparators: Record<SortMethod, Comparator<GliderbotSet>> = {
+	"Last update"(a, b) {
+		return +a.lastChanged - +b.lastChanged
+	},
+	Alphabetical(a, b) {
+		return a.metadata.title.localeCompare(b.metadata.title)
+	},
+}
+
 export const setSelectorPage = {
 	pageId: "setSelectorPage",
 
@@ -129,7 +145,7 @@ export const setSelectorPage = {
 		}
 	},
 	setListEl: null as HTMLUListElement | null,
-	setListItemTemlpate: null as HTMLTemplateElement | null,
+	setLiTemlpate: null as HTMLTemplateElement | null,
 	setupPage(pager: Pager, page: HTMLElement): void {
 		const loadFileButton = page.querySelector<HTMLButtonElement>("#loadFile")!
 		const fileLoader = page.querySelector<HTMLInputElement>("#fileLoader")!
@@ -164,34 +180,31 @@ export const setSelectorPage = {
 			directoryLoader.click()
 		})
 		this.setListEl = page.querySelector<HTMLUListElement>("#setList")
-		this.setListItemTemlpate = page.querySelector<HTMLTemplateElement>(
-			"#setListItemTemplate"
-		)
-		if (!this.setListEl || !this.setListItemTemlpate) {
+		this.setLiTemlpate =
+			page.querySelector<HTMLTemplateElement>("#setLiTemplate")
+		if (!this.setListEl || !this.setLiTemlpate) {
 			throw new Error("Can't find a required document element.")
 		}
-		// Specifically not `await`ed, so that it can load in the background
-		this.buildSetList(pager)
+		this.generateSetLis(pager)
 	},
 	open(pager: Pager): void {
 		pager.loadedLevel = null
 		pager.loadedSet = null
 		pager.updateShownLevelNumber()
 	},
-	cachedSets: null as GliderbotSet[] | null,
-	async makeSetListItem(
-		tileset: Tileset | null,
-		set: GliderbotSet
-	): Promise<HTMLLIElement> {
-		const setListItem = instanciateTemplate<HTMLLIElement>(
-			this.setListItemTemlpate!
-		)
-		setListItem.setAttribute("data-set-url", set.rootDirectory)
-		setListItem.setAttribute("data-main-script", set.mainScript)
+	gbSets: null as GliderbotSet[] | null,
+	buildingGbSetLis: false,
+	gbSetLis: new Map<GliderbotSet, HTMLLIElement>(),
+	async makeSetLi(pager: Pager, set: GliderbotSet): Promise<HTMLLIElement> {
+		const tileset = pager.tileset
+		const setLi = instanciateTemplate<HTMLLIElement>(this.setLiTemlpate!)
+		setLi.setAttribute("data-set-url", set.rootDirectory)
+		setLi.setAttribute("data-main-script", set.mainScript)
 		const setThumbnailContainer =
-			setListItem.querySelector<HTMLDivElement>(".setThumbnail")!
+			setLi.querySelector<HTMLDivElement>(".setThumbnail")!
 		const thumbnail = await getSetThumbnail(tileset!, set)
 		if (thumbnail !== null) {
+			// Uugh a hack to make sure that thumbnails aren't bigger than the standard size
 			const width =
 				thumbnail instanceof HTMLImageElement
 					? thumbnail.naturalWidth
@@ -216,7 +229,7 @@ export const setSelectorPage = {
 		} else setThumbnailContainer.remove()
 		const meta = set.metadata
 		function addStringFact(className: string, value: string | undefined): void {
-			const el = setListItem.querySelector<HTMLSpanElement>(`.${className}`)!
+			const el = setLi.querySelector<HTMLSpanElement>(`.${className}`)!
 			if (value === undefined) {
 				el.remove()
 			} else {
@@ -226,45 +239,75 @@ export const setSelectorPage = {
 		}
 		addStringFact("setName", meta.title)
 		addStringFact("setBy", meta.by)
+		// TODO Use stars or something for this instead of a number
 		addStringFact("setDifficulty", meta.difficulty?.toString())
 		addStringFact("setDescription", meta.description)
-		return setListItem
+		setLi.addEventListener("click", () => {
+			loadSet(pager, makeHttpFileLoader(set.rootDirectory), set.mainScript)
+		})
+
+		return setLi
 	},
 
-	async buildSetList(pager: Pager): Promise<void> {
-		if (this.cachedSets === null) {
+	async buildSetLis(pager: Pager): Promise<void> {
+		if (this.gbSets === null) {
 			const sets = await getGbSets()
-			this.cachedSets = sets
+			this.gbSets = sets
 		}
 		if (!this.setListEl)
 			throw new Error("Can't build a set list without the set list element")
-		if (!this.setListItemTemlpate)
+		if (!this.setLiTemlpate)
 			throw new Error(
 				"Can't build a set list without the set list item template"
 			)
-		for (const child of Array.from(this.setListEl.children)) {
-			child.remove()
-		}
-		const setListElementPromises: Promise<void>[] = []
-		for (const set of this.cachedSets) {
-			setListElementPromises.push(
-				this.makeSetListItem(pager.tileset, set).then(li => {
-					li.addEventListener("click", () => {
-						loadSet(
-							pager,
-							makeHttpFileLoader(li.getAttribute("data-set-url")!),
-							li.getAttribute("data-main-script")!
-						)
-					})
-					this.setListEl!.appendChild(li)
-				})
+
+		this.buildingGbSetLis = true
+		this.gbSetLis.clear()
+
+		return Promise.allSettled(
+			this.gbSets.map(set =>
+				this.makeSetLi(pager, set).then(li => this.gbSetLis.set(set, li))
 			)
+		).then(() => {
+			this.buildingGbSetLis = false
+		})
+	},
+	sortSetLis(sortMethod: SortMethod): GliderbotSet[] {
+		if (this.gbSets === null) return []
+		const sets = this.gbSets.slice()
+		// Always prioritize sets with metadata filled in
+		sets.sort(
+			mergeComparators(metadataComparator, sortMethodComparators[sortMethod])
+		)
+		// We want to show the sets considered to be the best near the top, so we need to reverse the array
+		return sets.reverse()
+	},
+	showSetLis(): void {
+		if (this.buildingGbSetLis)
+			throw new Error(
+				"Can't show the set list since the list items are still being generated. Race condition?"
+			)
+		if (this.setListEl === null)
+			throw new Error(
+				"Can't add list items since the set list element is unset."
+			)
+		const sets = this.sortSetLis("Last update")
+		for (const li of Array.from(this.setListEl.children)) {
+			li.remove()
 		}
-		await Promise.allSettled(setListElementPromises)
+		for (const set of sets) {
+			const li = this.gbSetLis.get(set)
+			if (li === undefined) continue
+			this.setListEl.appendChild(li)
+		}
+	},
+	async generateSetLis(pager: Pager): Promise<void> {
+		await this.buildSetLis(pager)
+		this.showSetLis()
 	},
 	reloadTileset(pager: Pager): void {
-		if (this.cachedSets) {
-			this.buildSetList(pager)
+		if (this.gbSets !== null) {
+			this.generateSetLis(pager)
 		}
 	},
 }

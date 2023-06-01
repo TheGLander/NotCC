@@ -148,3 +148,16 @@ export function reencodeImage(image: HTMLImageElement): HTMLCanvasElement {
 export function isDesktop(): boolean {
 	return import.meta.env.VITE_BUILD_TYPE === "desktop"
 }
+
+export type Comparator<T> = (a: T, b: T) => number
+
+export function mergeComparators<T>(
+	one: Comparator<T>,
+	two: Comparator<T>
+): Comparator<T> {
+	return (a, b) => {
+		const firstCompare = one(a, b)
+		if (firstCompare !== 0) return firstCompare
+		return two(a, b)
+	}
+}
