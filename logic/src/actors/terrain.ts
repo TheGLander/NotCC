@@ -499,7 +499,10 @@ export class CloneMachine extends Actor {
 	id = "cloneMachine"
 	isCloning = false
 	tags = ["machinery"]
-	cloneArrows = Array.from(this.customData).map(val => "URLD".indexOf(val))
+	cloneArrows =
+		this.customData === "cc1"
+			? []
+			: Array.from(this.customData).map(val => "URLD".indexOf(val))
 	// Always block boomer actors
 	blockTags = ["cc1block", "normal-monster", "real-playable"]
 	getLayer(): Layer {
