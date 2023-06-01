@@ -563,7 +563,10 @@ export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 				let solutionData = buff.slice(view.offset, view.offset + length)
 				if (sectionName === "PRPL")
 					solutionData = unpackagePackedData(solutionData)
-				data.associatedSolution = createSolutionFromArrayBuffer(solutionData)
+				// This can just happen sometimes (zero-length solution). I don't know why
+				if (solutionData.byteLength !== 0) {
+					data.associatedSolution = createSolutionFromArrayBuffer(solutionData)
+				}
 				view.skipBytes(length)
 				break
 			}
