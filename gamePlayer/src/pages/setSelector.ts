@@ -10,7 +10,6 @@ import {
 	buildFileListIndex,
 	buildZipIndex,
 	makeFileListFileLoader,
-	makeHttpFileLoader,
 	makeZipFileLoader,
 } from "../fileLoaders"
 import { findEntryFilePath, loadSet, openLevel } from "../levelLoading"
@@ -30,7 +29,7 @@ async function makeLevelSetPreview(
 ): Promise<HTMLCanvasElement | null> {
 	const levelSet = await LevelSet.constructAsync(
 		set.mainScript,
-		makeHttpFileLoader(set.rootDirectory)
+		set.loaderFunction
 	)
 	const levelRecord = await levelSet.getNextRecord()
 	if (!levelRecord) return null
@@ -53,8 +52,8 @@ async function getSetThumbnail(
 	const thumbnailType = set.metadata.thumbnail
 	if (thumbnailType === undefined || thumbnailType === "image") {
 		try {
-			if (!set.hasPreviewImage) throw new Error("No preview.png file")
-			const imageUrl = `${set.rootDirectory}/preview.png`
+			if (set.previewImage === null) throw new Error("No preview.png file")
+			const imageUrl = `${set.rootDirectory}/${set.previewImage}`
 			const image = await fetchImage(imageUrl)
 			return image
 		} catch (err) {
@@ -198,8 +197,6 @@ export const setSelectorPage = {
 	async makeSetLi(pager: Pager, set: GliderbotSet): Promise<HTMLLIElement> {
 		const tileset = pager.tileset
 		const setLi = instanciateTemplate<HTMLLIElement>(this.setLiTemlpate!)
-		setLi.setAttribute("data-set-url", set.rootDirectory)
-		setLi.setAttribute("data-main-script", set.mainScript)
 		const setThumbnailContainer =
 			setLi.querySelector<HTMLDivElement>(".setThumbnail")!
 		const thumbnail = await getSetThumbnail(tileset!, set)
@@ -243,7 +240,7 @@ export const setSelectorPage = {
 		addStringFact("setDifficulty", meta.difficulty?.toString())
 		addStringFact("setDescription", meta.description)
 		setLi.addEventListener("click", () => {
-			loadSet(pager, makeHttpFileLoader(set.rootDirectory), set.mainScript)
+			loadSet(pager, set.loaderFunction, set.mainScript)
 		})
 
 		return setLi

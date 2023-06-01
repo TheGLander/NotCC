@@ -1,9 +1,11 @@
 import {
 	findScriptName,
+	LevelSetLoaderFunction,
 	parseScriptMetadata,
 	ScriptMetadata,
 } from "@notcc/logic"
 import { basename, join } from "path-browserify"
+import { makeHttpFileLoader } from "./fileLoaders"
 
 const censoredSetNames: string[] = ["CC1STEAM", "steamcc1", "cc1cropped", "cc2"]
 
@@ -12,10 +14,11 @@ const gliderbotWebsite = "https://bitbusters.club/gliderbot/sets/cc2/"
 
 export interface GliderbotSet {
 	metadata: ScriptMetadata
-	hasPreviewImage: boolean
+	previewImage: string | null
 	mainScript: string
 	rootDirectory: string
 	lastChanged: Date
+	loaderFunction: LevelSetLoaderFunction
 }
 
 function getMetadataPriority(set: GliderbotSet): number {
@@ -24,7 +27,7 @@ function getMetadataPriority(set: GliderbotSet): number {
 	if (set.metadata.listingPriority === "bottom") priority -= 100
 	// Unlisted sets should be sorted out by getGbSets
 	if (set.metadata.description !== undefined) priority += 2
-	else if (set.hasPreviewImage) priority += 1
+	else if (set.previewImage !== null) priority += 1
 	return priority
 }
 
@@ -65,6 +68,40 @@ class NginxDirectory extends NginxNode {
 	) {
 		super(parent, name)
 	}
+	findNode(pathStr: string): NginxNode {
+		const parsedPath = /^(.+)\/(.*)/.exec(pathStr)
+		const dirName = parsedPath?.[1] ?? null
+		const nodeName = parsedPath?.[2] ?? pathStr
+		if (dirName === null || dirName[1] === ".") {
+			const node = this.contents[nodeName.toLowerCase()]
+			if (node === undefined)
+				throw new Error(
+					`No such file or directory ${nodeName} in ${this.getPath()}`
+				)
+			// We're looking for a node in this directory
+			return node
+		}
+		const node = this.contents[`${dirName.toLowerCase()}/`]
+		if (node === undefined)
+			throw new Error(`No such directory ${dirName} in ${this.getPath()}`)
+		if (!(node instanceof NginxDirectory))
+			throw new Error(`${dirName} in ${this.getPath()} is not a directory.`)
+		return node.findNode(nodeName)
+	}
+}
+
+export function makeNginxHttpFileLoader(
+	url: string,
+	dir: NginxDirectory
+): LevelSetLoaderFunction {
+	const httpLoader = makeHttpFileLoader(url)
+	return (path: string, binary: boolean) => {
+		// Note that `path` and `node.getPath()` won't always be the same - `path` might have the wrong casitivy
+		// `findNode` correctly resolves it, and so `node.getPath()` will always have the correct casitivy
+		const node = dir.findNode(path)
+		const correctPath = node.getPath()
+		return httpLoader(correctPath, binary)
+	}
 }
 
 async function scanNginxIndex(
@@ -82,7 +119,7 @@ async function scanNginxIndex(
 	while (true) {
 		const match = listingRegex.exec(pageData)
 		if (!match) break
-		const entryName = match[1]
+		const entryName = decodeURI(match[1])
 		const lastEdited = new Date(match[2])
 		if (entryName.endsWith("/")) {
 			if (censoredSetNames.includes(entryName.slice(0, -1))) continue
@@ -90,13 +127,13 @@ async function scanNginxIndex(
 			childPromises.push(
 				scanNginxIndex(entryName, directory).then(ent => {
 					ent.lastEdited = lastEdited
-					directory.contents[entryName] = ent
+					directory.contents[entryName.toLowerCase()] = ent
 				})
 			)
 		} else {
 			const file = new NginxFile(directory, entryName)
 			file.lastEdited = lastEdited
-			directory.contents[entryName] = file
+			directory.contents[entryName.toLowerCase()] = file
 		}
 	}
 	await Promise.all(childPromises)
@@ -115,9 +152,11 @@ async function findGbSet(dir: NginxDirectory): Promise<GliderbotSet | null> {
 		return {
 			mainScript: file.name,
 			metadata,
-			rootDirectory: `${gliderbotWebsite}${dir.getPath()}/`,
-			hasPreviewImage: "preview.png" in dir.contents,
+			previewImage:
+				"preview.png" in dir.contents ? dir.contents["preview.png"].name : null,
 			lastChanged: dir.lastEdited!,
+			rootDirectory: `${gliderbotWebsite}${dir.getPath()}/`,
+			loaderFunction: makeNginxHttpFileLoader(gliderbotWebsite, dir),
 		}
 	}
 	return null
