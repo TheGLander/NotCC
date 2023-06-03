@@ -421,7 +421,7 @@ export class Renderer {
 		if (!this.level) {
 			throw new Error("There's no camera without a level!")
 		}
-		if (!this.level.selectedPlayable) {
+		if (!this.level.selectedPlayable || !this.cameraSize) {
 			this.cameraPosition = [0, 0]
 			return
 		}
@@ -433,18 +433,18 @@ export class Renderer {
 			-(
 				clamp(
 					playerPos[0] + 0.5,
-					this.level.cameraType.width / 2,
-					this.level.width - this.level.cameraType.width / 2
+					this.cameraSize.width / 2,
+					this.level.width - this.cameraSize.width / 2
 				) -
-				this.level.cameraType.width / 2
+				this.cameraSize.width / 2
 			),
 			-(
 				clamp(
 					playerPos[1] + 0.5,
-					this.level.cameraType.height / 2,
-					this.level.height - this.level.cameraType.height / 2
+					this.cameraSize.height / 2,
+					this.level.height - this.cameraSize.height / 2
 				) -
-				this.level.cameraType.width / 2
+				this.cameraSize.width / 2
 			),
 		]
 	}

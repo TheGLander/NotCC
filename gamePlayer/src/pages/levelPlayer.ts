@@ -216,16 +216,20 @@ export const levelPlayerPage = {
 			this.currentLevel.blobPrngValue,
 			pager.loadedSet?.scriptRunner.state
 		)
-
+		this.updateViewportSize()
+		this.updateTextOutputs()
+	},
+	updateViewportSize(): void {
+		if (!this.viewportArea) throw new Error("Viewport missing")
+		if (!this.currentLevel) throw new Error("Current level missing")
 		this.viewportArea.style.setProperty(
 			"--level-camera-width",
-			this.currentLevel.cameraType.width.toString()
+			this.renderer!.cameraSize!.width.toString()
 		)
 		this.viewportArea.style.setProperty(
 			"--level-camera-height",
-			this.currentLevel.cameraType.height.toString()
+			this.renderer!.cameraSize!.height.toString()
 		)
-		this.updateTextOutputs()
 	},
 	updateOverlayState(): void {
 		this.gameOverlay!.setAttribute(
