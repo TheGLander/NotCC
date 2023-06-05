@@ -142,7 +142,7 @@
 	</main>
 	<main id="levelPlayerPage" class="container closedPage">
 		<div class="viewportArea">
-			<canvas id="levelViewportCanvas" class="pixelCanvas"></canvas>
+			<canvas class="viewportCanvas" class="pixelCanvas"></canvas>
 			<div id="levelViewportOverlay">
 				<div id="overlayWinContents">
 					<h3>You won!!</h3>
@@ -193,13 +193,13 @@
 		</div>
 		<div class="stats">
 			<div>Chips:</div>
-			<output id="chipsText">12</output>
+			<output class="chipsText">12</output>
 			<div>Time left:</div>
-			<output id="timeLeftText">120s</output>
+			<output class="timeLeftText">120s</output>
 			<div>Bonus points:</div>
-			<output id="bonusPointsText">4200</output>
+			<output class="bonusPointsText">4200</output>
 		</div>
-		<canvas class="pixelCanvas" id="levelInventoryCanvas"></canvas>
+		<canvas class="pixelCanvas inventoryCanvas"></canvas>
 		<div class="container" id="hintBox"></div>
 	</main>
 	<main class="closedPage" id="setSelectorPage">

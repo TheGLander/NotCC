@@ -1,39 +1,27 @@
 import {
 	AttemptTracker,
-	createLevelFromData,
 	GameState,
 	KeyInputs,
-	LevelState,
 	ScriptLegalInventoryTool,
 	protobuf,
 } from "@notcc/logic"
 import { Pager } from "../pager"
-import { AnimationTimer, TimeoutIntervalTimer, KeyListener } from "../utils"
+import {
+	AnimationTimer,
+	TimeoutIntervalTimer,
+	KeyListener,
+	setAttributeExistence,
+} from "../utils"
 import { setSelectorPage } from "./setSelector"
-import { Renderer } from "../renderer"
 import { AudioSfxManager } from "../sfx"
+import {
+	isValidKey,
+	isValidStartKey,
+	keyToInputMap,
+	playerPageBase,
+} from "./basePlayer"
 
 const heldKeys: Partial<Record<string, true>> = {}
-
-// TODO Smart TV inputs
-// TODO Customizable inputs in general
-const keyToInputMap: Record<string, keyof KeyInputs> = {
-	ArrowUp: "up",
-	ArrowRight: "right",
-	ArrowDown: "down",
-	ArrowLeft: "left",
-	KeyZ: "drop",
-	KeyX: "rotateInv",
-	KeyC: "switchPlayable",
-}
-
-function isValidKey(code: string): boolean {
-	return code in keyToInputMap
-}
-
-function isValidStartKey(code: string): boolean {
-	return isValidKey(code) || code === "Space"
-}
 
 function setupKeyListener(): void {
 	new KeyListener(
@@ -54,12 +42,6 @@ function setupKeyListener(): void {
 	)
 }
 
-interface TextOutputs {
-	chips: HTMLElement
-	time: HTMLElement
-	bonusPoints: HTMLElement
-}
-
 interface OverlayButtons {
 	restart: HTMLElement
 	nextLevel: HTMLElement
@@ -70,52 +52,19 @@ interface OverlayButtons {
 	gzSetSelector: HTMLElement
 }
 
-function setAttributeExistence(
-	node: HTMLElement,
-	attrName: string,
-	exists: boolean
-): void {
-	if (exists) {
-		node.setAttribute(attrName, "")
-	} else {
-		node.removeAttribute(attrName)
-	}
-}
-
 export const levelPlayerPage = {
+	...playerPageBase,
 	pageId: "levelPlayerPage",
 	// Binding HTML stuff
-	basePage: null as HTMLElement | null,
-	renderer: null as Renderer | null,
-	textOutputs: null as TextOutputs | null,
 	overlayButtons: null as OverlayButtons | null,
 	gameOverlay: null as HTMLElement | null,
 	overlayLevelName: null as HTMLElement | null,
 	viewportArea: null as HTMLElement | null,
 	hintBox: null as HTMLElement | null,
 	setupPage(pager: Pager, page: HTMLElement): void {
+		playerPageBase.setupPage.call(this, pager, page)
 		setupKeyListener()
-		if (!pager.tileset)
-			throw new Error("The level player page cannot be opened with no tileset.")
 		this.basePage = page
-		const viewportCanvas = page.querySelector<HTMLCanvasElement>(
-			"#levelViewportCanvas"
-		)!
-		const inventoryCanvas = page.querySelector<HTMLCanvasElement>(
-			"#levelInventoryCanvas"
-		)!
-		this.renderer = new Renderer(pager.tileset, viewportCanvas, inventoryCanvas)
-		this.textOutputs = {
-			chips: page.querySelector("#chipsText")!,
-			time: page.querySelector("#timeLeftText")!,
-			bonusPoints: page.querySelector("#bonusPointsText")!,
-		}
-		if (
-			!this.textOutputs.chips ||
-			!this.textOutputs.time ||
-			!this.textOutputs.bonusPoints
-		)
-			throw new Error("Could not find the text output elements.")
 		this.overlayButtons = {
 			restart: page.querySelector("#restartButton")!,
 			explodeJupiter: page.querySelector("#explodeJupiterButton")!,
@@ -146,13 +95,9 @@ export const levelPlayerPage = {
 			this.togglePaused()
 		})
 		this.gameOverlay = page.querySelector<HTMLElement>("#levelViewportOverlay")!
-		this.viewportArea = page.querySelector<HTMLElement>(".viewportArea")
 		this.overlayLevelName = page.querySelector<HTMLElement>("#overlayLevelName")
 		this.hintBox = page.querySelector<HTMLElement>("#hintBox")
 		this.submitAttempt = this.submitAttemptUnbound.bind(this, pager)
-		window.addEventListener("resize", () => {
-			this.updateTileScale()
-		})
 		this.sfxManager = new AudioSfxManager()
 		// TODO Pre-fetch sfx and sfx customization
 		this.sfxManager.fetchDefaultSounds("./defoSfx")
@@ -164,7 +109,6 @@ export const levelPlayerPage = {
 	// -> Pause -> Play
 	// -> Win -> Load or Preplay
 	// -> Lose -> Preplay
-	currentLevel: null as LevelState | null,
 	gameState: GameState.PLAYING,
 	isPaused: false,
 	isPreplay: false,
@@ -172,19 +116,14 @@ export const levelPlayerPage = {
 	preplayKeyListener: null as KeyListener | null,
 	sfxManager: null as AudioSfxManager | null,
 	loadLevel(pager: Pager): void {
+		playerPageBase.loadLevel.call(this, pager)
 		this.basePage!.classList.remove("solutionPlayback")
 		if (pager.loadedSet?.inPostGame) return
-		const level = pager.loadedLevel
-		if (!level)
-			throw new Error("Can't open the page since there isn't a loaded level.")
-
-		this.currentLevel = createLevelFromData(level)
-
-		if (!this.renderer)
+		if (this.renderer === null || this.currentLevel === null)
 			throw new Error(
-				"The level player page cannot start without the renderer."
+				"Looks like the base player page didn't set the level correctly."
 			)
-		this.renderer.level = this.currentLevel
+
 		this.currentLevel.sfxManager = this.sfxManager
 		this.sfxManager?.stopAllSfx()
 		this.gameState = GameState.PLAYING
@@ -192,12 +131,6 @@ export const levelPlayerPage = {
 		this.isGz = false
 		this.isPreplay = true
 		this.updateOverlayState()
-		this.renderer.cameraSize = this.currentLevel.cameraType
-		this.renderer.updateTileSize()
-		if (!this.viewportArea)
-			throw new Error(
-				"Cannot set the level camera without knowing where the viewport is."
-			)
 		this.preplayKeyListener?.remove()
 		this.preplayKeyListener = new KeyListener((ev: KeyboardEvent) => {
 			if (isValidStartKey(ev.code)) {
@@ -210,25 +143,11 @@ export const levelPlayerPage = {
 			const levelN = pager.getLevelNumber()
 			this.overlayLevelName.textContent = `${
 				levelN !== "not in set" ? `#${levelN}: ` : ""
-			}${level.name ?? "Unnamed level"}`
+			}${pager.loadedLevel!.name ?? "Unnamed level"}`
 		}
 		this.attemptTracker = new AttemptTracker(
 			this.currentLevel.blobPrngValue,
 			pager.loadedSet?.scriptRunner.state
-		)
-		this.updateViewportSize()
-		this.updateTextOutputs()
-	},
-	updateViewportSize(): void {
-		if (!this.viewportArea) throw new Error("Viewport missing")
-		if (!this.currentLevel) throw new Error("Current level missing")
-		this.viewportArea.style.setProperty(
-			"--level-camera-width",
-			this.renderer!.cameraSize!.width.toString()
-		)
-		this.viewportArea.style.setProperty(
-			"--level-camera-height",
-			this.renderer!.cameraSize!.height.toString()
 		)
 	},
 	updateOverlayState(): void {
@@ -315,15 +234,7 @@ export const levelPlayerPage = {
 		return keyInputs as KeyInputs
 	},
 	updateTextOutputs(): void {
-		if (!this.textOutputs) return
-		if (this.gameState !== GameState.PLAYING) return
-		this.textOutputs.chips.textContent = this.currentLevel!.chipsLeft.toString()
-		this.textOutputs.bonusPoints.textContent =
-			this.currentLevel!.bonusPoints.toString()
-		const currentTime = this.currentLevel!.timeLeft
-		this.textOutputs.time.textContent = `${
-			this.currentLevel!.timeFrozen ? "❄" : ""
-		}${Math.ceil(currentTime / 60)}s`
+		playerPageBase.updateTextOutputs.call(this)
 		this.hintBox!.textContent = this.currentLevel!.getHint() ?? ""
 	},
 	updateLogic(): void {
@@ -336,10 +247,8 @@ export const levelPlayerPage = {
 			this.isGz
 		)
 			return
-		level.gameInput = this.getInput()
+		playerPageBase.updateLogic.call(this)
 		this.attemptTracker?.recordAttemptStep(level.gameInput)
-		level.tick()
-		this.updateTextOutputs()
 		if (
 			this.gameState === GameState.PLAYING &&
 			level.gameState !== GameState.PLAYING
@@ -347,71 +256,6 @@ export const levelPlayerPage = {
 			this.startPostPlay(level.gameState)
 			this.submitAttempt?.()
 		}
-	},
-	updateRender(): void {
-		this.renderer!.frame()
-	},
-	reloadTileset(pager: Pager): void {
-		if (!pager.tileset)
-			throw new Error("Can't update the tileset without a tileset.")
-		if (!this.renderer)
-			throw new Error("Can't update the tileset without a renderer.")
-		const page = this.basePage
-		if (!page)
-			throw new Error("Can't update the tileset wihout being opened first.")
-
-		this.renderer.tileset = pager.tileset
-		this.renderer.updateTileSize()
-		page.style.setProperty(
-			"--base-tile-size",
-			`${pager.tileset.tileSize.toString()}px`
-		)
-		this.updateTileScale()
-	},
-	determineTileScale(): number {
-		if (!this.renderer || !this.renderer.cameraSize)
-			throw new Error("Can't determine the tile scale without the renderer.")
-
-		const bodySize = document.body.getBoundingClientRect()
-		let availableWidth = bodySize.width,
-			// eslint-disable-next-line prefer-const
-			availableHeight = bodySize.height
-
-		const tileSize = this.renderer.tileset.tileSize
-
-		const sidebarWidth = document
-			.querySelector(".sidebar")!
-			.getBoundingClientRect().width
-
-		availableWidth -= sidebarWidth
-
-		const playerTWidth =
-				0.25 + // Padding
-				this.renderer.cameraSize.width + // Camera size
-				0.25 + // Gap
-				4 + // Inventory
-				0.25, // Padding
-			playerTHeight =
-				0.25 + // Padding
-				this.renderer.cameraSize.height + // Camera size
-				0.25 // Padding
-		const playerBaseWidth = playerTWidth * tileSize,
-			playerBaseHeight = playerTHeight * tileSize
-
-		let scale = Math.min(
-			availableWidth / playerBaseWidth,
-			availableHeight / playerBaseHeight
-		)
-		scale *= 0.95
-		scale = Math.floor(scale)
-		return scale
-	},
-	updateTileScale(): void {
-		const page = this.basePage
-		page!.style.setProperty(
-			"--tile-scale",
-			this.determineTileScale().toString()
-		)
 	},
 	logicTimer: null as TimeoutIntervalTimer | null,
 	renderTimer: null as AnimationTimer | null,

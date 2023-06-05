@@ -161,3 +161,15 @@ export function mergeComparators<T>(
 		return two(a, b)
 	}
 }
+
+export function setAttributeExistence(
+	node: HTMLElement,
+	attrName: string,
+	exists: boolean
+): void {
+	if (exists) {
+		node.setAttribute(attrName, "")
+	} else {
+		node.removeAttribute(attrName)
+	}
+}
