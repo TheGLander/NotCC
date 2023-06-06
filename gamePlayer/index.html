@@ -140,7 +140,7 @@
 	<main id="loadingPage" class="container">
 		<p>Loading, standy...</p>
 	</main>
-	<main id="levelPlayerPage" class="container closedPage">
+	<main id="levelPlayerPage" class="container closedPage playerPage">
 		<div class="viewportArea">
 			<canvas class="viewportCanvas" class="pixelCanvas"></canvas>
 			<div id="levelViewportOverlay">
@@ -202,7 +202,30 @@
 		<canvas class="pixelCanvas inventoryCanvas"></canvas>
 		<div class="container" id="hintBox"></div>
 	</main>
-	<main class="closedPage" id="setSelectorPage">
+	<main id="exaPlayerPage" class="closedPage playerPage">
+		<div class="viewportContainer container">
+			<div class="viewportArea">
+				<canvas class="viewportCanvas" class="pixelCanvas"></canvas>
+			</div>
+		</div>
+		<div class="container infoContainer">
+			<div class="stats">
+				<div>Chips:</div>
+				<output class="chipsText">12</output>
+				<div>Time left:</div>
+				<output class="timeLeftText">120s</output>
+				<div>Bonus points:</div>
+				<output class="bonusPointsText">4200</output>
+			</div>
+			<canvas class="pixelCanvas inventoryCanvas"></canvas>
+		</div>
+		<div class="container movesContainer">
+			<div class="movesArea">
+				<span class="recordedMoves"></span><span class="composingPreview"></span>
+			</div>
+		</div>
+	</main>
+	<main class="closedPage playerPage" id="setSelectorPage">
 		<header class="container">
 			<img src="./iconBig.png" />
 			<h1>NotCC</h1>

@@ -6,6 +6,7 @@ import { openLevelListDialog } from "./levelList"
 import { protobuf } from "@notcc/logic"
 import { openSettingsDialog } from "./settings"
 import { instanciateTemplate } from "./utils"
+import { exaPlayerPage } from "./pages/exaPlayer"
 
 interface TooltipEntry {
 	name: string
@@ -20,7 +21,7 @@ type TooltipEntryGenerator = (pager: Pager) => BasicTooltipEntry[]
 
 type TooltipEntries = (BasicTooltipEntry | TooltipEntryGenerator)[]
 
-const playerPages = [levelPlayerPage]
+const playerPages = [levelPlayerPage, exaPlayerPage]
 
 interface TTSolutionEntry {
 	title: string
@@ -133,7 +134,29 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 		"breakline",
 		{ name: "All attempts", shortcut: "shift+a" },
 	],
-	optimization: [],
+	optimization: [
+		{
+			name: "Toggle ExaCC",
+			shortcut: "shift+x",
+			action(pager: Pager): void {
+				if (pager.currentPage !== exaPlayerPage) {
+					pager.openPage(exaPlayerPage)
+				} else {
+					pager.openPage(levelPlayerPage)
+				}
+			},
+			enabledPages: playerPages,
+		},
+		{
+			name: "Auto skip",
+			shortcut: "a",
+			action(pager: Pager): void {
+				if (pager.currentPage !== exaPlayerPage) return
+				exaPlayerPage.autoSkip()
+			},
+			enabledPages: [exaPlayerPage],
+		},
+	],
 	settings: [
 		{
 			name: "Settings",
@@ -144,6 +167,17 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 		},
 	],
 	about: [{ name: "About", shortcut: null }],
+}
+
+function isTooltipEntryDisabled(
+	pager: Pager,
+	tooltipEntry: TooltipEntry
+): boolean {
+	return (
+		tooltipEntry.action === undefined ||
+		(tooltipEntry.enabledPages !== undefined &&
+			!tooltipEntry.enabledPages.includes(pager.currentPage))
+	)
 }
 
 const tooltipTemplate =
@@ -181,11 +215,7 @@ export function openTooltip(
 		const tooltipRow = document.createElement("div")
 		tooltipRow.classList.add("buttonTooltipRow")
 
-		if (
-			tooltipEntry.action === undefined ||
-			(tooltipEntry.enabledPages &&
-				!tooltipEntry.enabledPages.includes(pager.currentPage))
-		) {
+		if (isTooltipEntryDisabled(pager, tooltipEntry)) {
 			tooltipRow.dataset.disabled = ""
 		} else {
 			tooltipRow.tabIndex = 0
@@ -276,6 +306,7 @@ export function generateShortcutListener(
 			if (!verifyFunction(ev)) return
 			ev.preventDefault()
 			ev.stopPropagation()
+			if (isTooltipEntryDisabled(pager, entry)) return
 			entry.action!(pager)
 		})
 	}

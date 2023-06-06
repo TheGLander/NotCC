@@ -409,31 +409,11 @@ kbd {
 
 /* The game player */
 
-#levelPlayerPage {
-	padding: var(--quarter-tile);
-	border-radius: 5px;
-	margin: auto;
-	display: grid;
-	gap: var(--quarter-tile);
-	grid-template:
-		"viewport stats" min-content
-		"viewport inventory" min-content
-		"viewport hint" 1fr
-		/ min-content min-content;
+.playerPage {
 	--base-tile-size: 32px;
 	--tile-scale: 2;
 	--tile-size: calc(var(--base-tile-size) * var(--tile-scale));
 	--quarter-tile: calc(var(--tile-size) / 4);
-	&.solutionPlayback {
-		background: repeating-linear-gradient(
-				45deg,
-				transparent 0%,
-				transparent 10%,
-				#ff0b 10%,
-				#ff0b 20%
-			),
-			var(--general-bg);
-	}
 	.stats {
 		grid-area: stats;
 		display: grid;
@@ -464,6 +444,29 @@ kbd {
 		width: calc(var(--tile-size) * 4);
 		height: calc(var(--tile-size) * 2);
 		background-color: azure;
+	}
+}
+
+#levelPlayerPage {
+	padding: var(--quarter-tile);
+	border-radius: 5px;
+	margin: auto;
+	display: grid;
+	gap: var(--quarter-tile);
+	grid-template:
+		"viewport stats" min-content
+		"viewport inventory" min-content
+		"viewport hint" 1fr
+		/ min-content min-content;
+	&.solutionPlayback {
+		background: repeating-linear-gradient(
+				45deg,
+				transparent 0%,
+				transparent 10%,
+				#ff0b 10%,
+				#ff0b 20%
+			),
+			var(--general-bg);
 	}
 	#hintBox {
 		grid-area: hint;
@@ -583,6 +586,39 @@ canvas {
 				font-size: 120%;
 			}
 		}
+	}
+}
+
+#exaPlayerPage {
+	display: grid;
+	margin: auto;
+	gap: var(--quarter-tile);
+	grid-template:
+		"viewport info" auto
+		"viewport moves" 1fr
+		/ min-content min-content;
+	.infoContainer {
+		grid-area: info;
+		display: flex;
+		flex-direction: row;
+		gap: var(--tile-size);
+	}
+	.viewportContainer {
+		grid-area: viewport;
+	}
+	.movesContainer {
+		.movesArea {
+			.container();
+			width: 100%;
+			height: 100%;
+			resize: none;
+			border: 0;
+			padding: 0;
+			background-color: var(--secondary-bg);
+			font-family: monospace;
+			word-break: break-all;
+		}
+		grid-area: moves;
 	}
 }
 

@@ -65,6 +65,19 @@ export abstract class Playable extends Actor {
 				(this.slidingState === SlidingState.WEAK && this.hasOverride))
 		)
 	}
+	canDoAnything(): boolean {
+		// Can't do anything if you're dead!
+		if (!this.exists) return false
+		if (this.level.selectedPlayable !== this) return false
+		if (this.cooldown > 0) return false
+		// Normal movement
+		if (this.getCanMove()) return true
+		// Player switching
+		if (this.level.playablesLeft > 1) return true
+		// Item cycling
+		if (this.inventory.items.length >= 2) return true
+		return false
+	}
 	shouldDie(other: Actor): boolean {
 		// Can't be killed by a block we're pulling
 		return !other.isPulled
