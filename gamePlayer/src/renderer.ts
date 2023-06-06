@@ -444,7 +444,7 @@ export class Renderer {
 					this.cameraSize.height / 2,
 					this.level.height - this.cameraSize.height / 2
 				) -
-				this.cameraSize.width / 2
+				this.cameraSize.height / 2
 			),
 		]
 	}
