@@ -156,6 +156,14 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			},
 			enabledPages: [exaPlayerPage],
 		},
+		{
+			name: "Undo",
+			shortcut: "Backspace",
+			action(pager: Pager): void {
+				if (pager.currentPage !== exaPlayerPage) return
+				exaPlayerPage.undo()
+			},
+		},
 	],
 	settings: [
 		{

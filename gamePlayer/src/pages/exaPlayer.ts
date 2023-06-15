@@ -1,4 +1,4 @@
-import { GameState, KeyInputs } from "@notcc/logic"
+import { GameState, KeyInputs, LevelState } from "@notcc/logic"
 import clone from "clone"
 import { Pager } from "../pager"
 import { KeyListener } from "../utils"
@@ -29,6 +29,20 @@ const keyInputToCharMap: Record<KeyInput, string> = {
 	drop: "p",
 }
 
+const charToKeyInputMap: Record<string, KeyInput | KeyInput[]> = {
+	u: "up",
+	r: "right",
+	d: "down",
+	l: "left",
+	p: "drop",
+	c: "rotateInv",
+	s: "switchPlayable",
+	"↗": ["up", "right"],
+	"↘": ["right", "down"],
+	"↙": ["down", "left"],
+	"↖": ["left", "up"],
+}
+
 function keyInputToChar(
 	input: KeyInputs,
 	fullMove: boolean,
@@ -53,6 +67,39 @@ function keyInputToChar(
 	return char
 }
 
+function charToKeyInput(char: string): KeyInputs {
+	const input = clone(emptyKeys)
+	for (const modChar of char) {
+		let keyInputs = charToKeyInputMap[modChar]
+		if (!Array.isArray(keyInputs)) keyInputs = [keyInputs]
+		for (const keyInput of keyInputs) {
+			input[keyInput] = true
+		}
+	}
+	return input
+}
+
+// Make a snapshot every second
+const LEVEL_SNAPSHOT_PERIOD = 60
+
+interface LevelSnapshot {
+	level: LevelState
+	movePosition: number
+}
+
+// TODO move this to @notcc/logic maybe?
+function cloneLevel(level: LevelState): LevelState {
+	// Don't clone the static level data
+	// TODO Maybe don't always have a copy of the whole level map in the level state?
+	// What's it doing there, anyways?
+	const levelData = level.levelData
+	delete level.levelData
+	const newLevel = clone(level, true)
+	newLevel.levelData = levelData
+	level.levelData = levelData
+	return newLevel
+}
+
 export const exaPlayerPage = {
 	...playerPageBase,
 	pageId: "exaPlayerPage",
@@ -75,11 +122,19 @@ export const exaPlayerPage = {
 			height: Math.min(level.height, 32),
 			screens: 1,
 		}
-		this.recordedMoves = ""
+		this.recordedMoves = []
+		this.visualMoves = []
+		this.areMovesPlayerInput = []
 		this.movePosition = 0
 		while (level.subtick !== 1) {
 			level.tick()
 		}
+		this.snapshots = [
+			{
+				level: cloneLevel(this.currentLevel!),
+				movePosition: 0,
+			},
+		]
 		this.renderer!.updateTileSize()
 		// Tile scale, automatically make things bigger if the page size allows
 		this.updateTileScale()
@@ -87,7 +142,20 @@ export const exaPlayerPage = {
 		this.updateViewportCameraSize()
 		// Advance the game by two subtics, so that we can input immediately
 		this.updateRender()
-		this.recordedMovesArea!.textContent = ""
+		this.updateRecordedMovesArea()
+	},
+	updateRecordedMovesArea(): void {
+		this.recordedMovesArea!.textContent = this.visualMoves
+			.slice(0, this.movePosition)
+			.map(
+				(char, i) =>
+					(this.areMovesPlayerInput[i] ? "🕹" : "") +
+					(this.snapshots.some(snap => snap.movePosition - 1 === i)
+						? "💾"
+						: "") +
+					char
+			)
+			.join("")
 	},
 	// An alternative version of `updateLogic` which operates on ticks instead of subticks
 	// We don't use the native `updateLogic`.
@@ -101,22 +169,32 @@ export const exaPlayerPage = {
 			level.tick()
 			level.tick()
 			ticksApplied += 1
+			this.movePosition += 1
+			this.autoAddSnapshot()
 		} while (
 			level.gameState === GameState.PLAYING &&
 			level.selectedPlayable!.cooldown > 0
 		)
 		this.updateRender()
-		const recordedInput =
-			(couldMoveFirstTick
+		const recordedInput = [
+			couldMoveFirstTick
 				? keyInputToChar(input, false)
-				: keyInputToChar(input, false, true) + "-") +
-			keyInputToChar(emptyKeys, false).repeat(ticksApplied - 1)
+				: keyInputToChar(input, false, true) + "-",
+			..."-".repeat(ticksApplied - 1),
+		]
+		if (couldMoveFirstTick && ticksApplied === 4) {
+			this.visualMoves.push(keyInputToChar(input, true), "", "", "")
+		} else {
+			this.visualMoves.push(...recordedInput)
+		}
+		this.recordedMoves.push(...recordedInput)
+		this.areMovesPlayerInput.push(
+			true,
+			...new Array<boolean>(ticksApplied - 1).fill(false)
+		)
 
-		this.recordedMovesArea!.textContent +=
-			couldMoveFirstTick && ticksApplied === 4
-				? keyInputToChar(input, true)
-				: recordedInput
-		this.recordedMoves += recordedInput
+		this.updateRecordedMovesArea()
+		this.updateTextOutputs()
 	},
 	// Automatically skip in time until *something* can be done
 	autoSkip(): void {
@@ -127,19 +205,83 @@ export const exaPlayerPage = {
 			level.tick()
 			level.tick()
 			ticksApplied += 1
+			this.movePosition += 1
+			this.autoAddSnapshot()
 		}
 		const recordedInput = "-".repeat(ticksApplied)
-		this.recordedMovesArea!.textContent += recordedInput
-		this.recordedMoves += recordedInput
+		this.visualMoves.push(...recordedInput)
+		this.recordedMoves.push(...recordedInput)
+		this.areMovesPlayerInput.push(
+			...new Array<boolean>(ticksApplied).fill(false)
+		)
 		this.updateRender()
+		this.updateRecordedMovesArea()
+		this.updateTextOutputs()
 	},
-	recordedMoves: "",
+	snapshots: [] as LevelSnapshot[],
+	autoAddSnapshot(): void {
+		// return
+		if (this.currentLevel === null) throw new Error("Current level must be set")
+		const currentTime =
+			this.currentLevel!.currentTick * 3 + this.currentLevel!.subtick
+		const lastSnapshot = this.snapshots[this.snapshots.length - 1]
+		const lastSnapshotTime =
+			lastSnapshot.level.currentTick * 3 + lastSnapshot.level.subtick
+
+		if (currentTime - lastSnapshotTime < LEVEL_SNAPSHOT_PERIOD) return
+		this.snapshots.push({
+			level: cloneLevel(this.currentLevel),
+			movePosition: this.movePosition,
+		})
+	},
+	undo(): void {
+		if (this.movePosition <= 0) return
+		this.movePosition = this.areMovesPlayerInput.lastIndexOf(true)
+		// There will always be the snapshot of the initial level, so don't worry about the non-null assertion
+		const closestSnapshot = [...this.snapshots]
+			.reverse()
+			.find(snap => snap.movePosition <= this.movePosition)!
+		console.log(
+			`Using snapshot number ${this.snapshots.indexOf(closestSnapshot)}`
+		)
+		this.currentLevel = cloneLevel(closestSnapshot.level)
+		this.renderer!.level = this.currentLevel
+		let actualPosition = closestSnapshot.movePosition
+		while (this.movePosition > actualPosition) {
+			this.currentLevel.gameInput = charToKeyInput(
+				this.recordedMoves[actualPosition]
+			)
+			this.currentLevel.tick()
+			this.currentLevel.tick()
+			this.currentLevel.tick()
+			actualPosition += 1
+		}
+		this.movePosition = actualPosition
+		// TODO Don't actually do this, preserve the moves in case the player will unrewind
+		this.recordedMoves = this.recordedMoves.slice(0, this.movePosition)
+		this.visualMoves = this.visualMoves.slice(0, this.movePosition)
+		this.areMovesPlayerInput = this.areMovesPlayerInput.slice(
+			0,
+			this.movePosition
+		)
+		this.snapshots = this.snapshots.filter(
+			snap => snap.movePosition <= this.movePosition
+		)
+		this.updateRecordedMovesArea()
+		this.updateRender()
+		this.updateTextOutputs()
+	},
+	// TODO Use a single struct instead Python-esqe billion arrays?
+	recordedMoves: [] as string[],
+	visualMoves: [] as string[],
+	areMovesPlayerInput: [] as boolean[],
 	movePosition: 0,
 	currentInput: clone(emptyKeys),
 	keyListener: null as KeyListener | null,
 	setupKeyListener(): void {
 		this.keyListener = new KeyListener(ev => {
 			if (!isValidStartKey(ev.code)) return
+			if (this.currentLevel?.gameState !== GameState.PLAYING) return
 			let inputType = keyToInputMap[ev.code]
 			if (inputType in this.currentInput) {
 				inputType = inputType as keyof KeyInputs
