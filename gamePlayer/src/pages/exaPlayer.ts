@@ -147,14 +147,6 @@ export const exaPlayerPage = {
 	updateRecordedMovesArea(): void {
 		this.recordedMovesArea!.textContent = this.visualMoves
 			.slice(0, this.movePosition)
-			.map(
-				(char, i) =>
-					(this.areMovesPlayerInput[i] ? "🕹" : "") +
-					(this.snapshots.some(snap => snap.movePosition - 1 === i)
-						? "💾"
-						: "") +
-					char
-			)
 			.join("")
 	},
 	// An alternative version of `updateLogic` which operates on ticks instead of subticks
@@ -241,9 +233,6 @@ export const exaPlayerPage = {
 		const closestSnapshot = [...this.snapshots]
 			.reverse()
 			.find(snap => snap.movePosition <= this.movePosition)!
-		console.log(
-			`Using snapshot number ${this.snapshots.indexOf(closestSnapshot)}`
-		)
 		this.currentLevel = cloneLevel(closestSnapshot.level)
 		this.renderer!.level = this.currentLevel
 		let actualPosition = closestSnapshot.movePosition
