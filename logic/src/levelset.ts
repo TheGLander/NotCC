@@ -1,4 +1,4 @@
-import rfdc from "rfdc"
+import clone from "clone"
 import {
 	ScriptRunner,
 	MapInterruptResponse,
@@ -16,8 +16,6 @@ export type LevelSetLoaderFunction = (
 	path: string,
 	binary: boolean
 ) => Promise<string | ArrayBuffer>
-
-const clone = rfdc()
 
 export class LevelSet {
 	seenLevels: Record<number, LevelSetRecord>

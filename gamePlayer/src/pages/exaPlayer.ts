@@ -1,11 +1,8 @@
 import { GameState, KeyInputs } from "@notcc/logic"
-import rfdc from "rfdc"
+import clone from "clone"
 import { Pager } from "../pager"
 import { KeyListener } from "../utils"
 import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
-
-const clone = rfdc()
-// const cloneCycles = rfdc({ circles: true })
 
 export type KeyInput = keyof KeyInputs
 

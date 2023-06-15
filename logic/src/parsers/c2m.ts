@@ -1,8 +1,8 @@
 import AutoReadDataView from "./autoReader.js"
 import { Direction, Field } from "../helpers.js"
 import data, { cc2Tile } from "./c2mData.js"
-import rfdc from "rfdc"
 import { ISolutionInfo } from "./nccs.pb.js"
+import clone from "clone"
 
 export interface CameraType {
 	width: number
@@ -82,8 +82,6 @@ export function isPartialDataFull(
 		!!partial.playablesRequiredToExit
 	)
 }
-
-const clone = rfdc()
 
 /**
  * Gets a bit from a number

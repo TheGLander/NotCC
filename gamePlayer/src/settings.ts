@@ -1,13 +1,11 @@
 import { Pager } from "./pager"
-import rfdc from "rfdc"
+import clone from "clone"
 import { ThemeColors, applyTheme, openThemeSelectorDialog } from "./themes"
 import { resetListeners } from "./utils"
 import {
 	getTilesetMetadataFromIdentifier,
 	openTilesetSelectortDialog,
 } from "./tilesets"
-
-const clone = rfdc()
 
 export type SetListPreviewLevel = "title" | "level preview"
 

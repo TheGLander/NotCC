@@ -5,11 +5,9 @@ import { setSidebarLevelN } from "./sidebar"
 import { protobuf } from "@notcc/logic"
 import { loadSettings, saveSetInfo, saveSettings } from "./saveData"
 import { Settings, defaultSettings } from "./settings"
-import rfdc from "rfdc"
+import clone from "clone"
 import { ThemeColors, applyTheme } from "./themes"
 import { updatePagerTileset } from "./tilesets"
-
-const clone = rfdc()
 
 export interface Page {
 	pageId: string
