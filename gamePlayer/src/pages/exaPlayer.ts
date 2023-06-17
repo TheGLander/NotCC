@@ -129,6 +129,7 @@ export const exaPlayerPage = {
 		while (level.subtick !== 1) {
 			level.tick()
 		}
+		this.updateTextOutputs()
 		this.snapshots = [
 			{
 				level: cloneLevel(this.currentLevel!),
@@ -148,6 +149,17 @@ export const exaPlayerPage = {
 		this.recordedMovesArea!.textContent = this.visualMoves
 			.slice(0, this.movePosition)
 			.join("")
+	},
+	updateTextOutputs(): void {
+		playerPageBase.updateTextOutputs.call(this)
+		const time = this.currentLevel!.timeLeft
+		// Not the same as ceil(time / 60), since at the beginning it should be one higher than the actual time
+		// Kidna silly, but I don't make the rules here
+		const superTimeWhole = Math.floor(time / 60) + 1
+		const superTimeDecimal = Math.floor(((time % 60) / 60) * 100)
+		this.textOutputs!.time.textContent = `${superTimeWhole}.${superTimeDecimal
+			.toString()
+			.padEnd(2, "0")}s`
 	},
 	// An alternative version of `updateLogic` which operates on ticks instead of subticks
 	// We don't use the native `updateLogic`.
