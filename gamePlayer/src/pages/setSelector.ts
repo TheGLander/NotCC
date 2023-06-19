@@ -22,6 +22,7 @@ import {
 	instanciateTemplate,
 	mergeComparators,
 } from "../utils"
+import { showDirectotyPrompt, showLoadPrompt } from "../saveData"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,
@@ -147,36 +148,27 @@ export const setSelectorPage = {
 	setLiTemlpate: null as HTMLTemplateElement | null,
 	setupPage(pager: Pager, page: HTMLElement): void {
 		const loadFileButton = page.querySelector<HTMLButtonElement>("#loadFile")!
-		const fileLoader = page.querySelector<HTMLInputElement>("#fileLoader")!
-		fileLoader.value = ""
-		fileLoader.addEventListener("change", async () => {
-			// There should ever be one file here
-			const file = fileLoader.files?.[0]
-			if (!file) return
+		loadFileButton.addEventListener("click", async () => {
+			const files = await showLoadPrompt("Load level file", {
+				filters: [
+					{ name: "C2M level file", extensions: ["c2m"] },
+					{ name: "ZIP levelset archive", extensions: ["zip"] },
+				],
+			})
+			const file = files[0]
 			const arrayBuffer = await file.arrayBuffer()
 			this.loadFile(pager, arrayBuffer, file.name)
-			fileLoader.value = ""
-		})
-		loadFileButton.addEventListener("click", () => {
-			fileLoader.click()
 		})
 		const loadDirectoryButton =
 			page.querySelector<HTMLButtonElement>("#loadDirectory")!
-		const directoryLoader =
-			page.querySelector<HTMLInputElement>("#directoryLoader")!
-		directoryLoader.value = ""
-		directoryLoader.addEventListener("change", async () => {
-			if (!directoryLoader.files) return
-			const fileLoader = makeFileListFileLoader(directoryLoader.files)
+		loadDirectoryButton.addEventListener("click", async () => {
+			const files = await showDirectotyPrompt("Load levelset directory")
+			const fileLoader = makeFileListFileLoader(files)
 			const scriptPath = findEntryFilePath(
 				fileLoader,
-				buildFileListIndex(directoryLoader.files)
+				buildFileListIndex(files)
 			)
-			directoryLoader.value = ""
 			await loadSet(pager, fileLoader, await scriptPath)
-		})
-		loadDirectoryButton.addEventListener("click", () => {
-			directoryLoader.click()
 		})
 		this.setListEl = page.querySelector<HTMLUListElement>("#setList")
 		this.setLiTemlpate =

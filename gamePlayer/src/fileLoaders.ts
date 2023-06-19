@@ -60,12 +60,12 @@ export function makeZipFileLoader(
 }
 
 export function makeFileListFileLoader(
-	fileList: FileList
+	fileList: File[]
 ): LevelSetLoaderFunction {
 	// This is Latin-1
 	const decoder = new TextDecoder("iso-8859-1")
 	const files: Record<string, File> = {}
-	for (const file of Array.from(fileList)) {
+	for (const file of fileList) {
 		files[getFilePath(file).toLowerCase()] = file
 	}
 	return async (path: string, binary: boolean) => {
@@ -83,8 +83,8 @@ export function makeHttpFileLoader(url: string): LevelSetLoaderFunction {
 	}
 }
 
-export function buildFileListIndex(fileList: FileList): string[] {
-	return Array.from(fileList).map(file => getFilePath(file))
+export function buildFileListIndex(fileList: File[]): string[] {
+	return fileList.map(file => getFilePath(file))
 }
 
 export function makeLoaderWithPrefix(

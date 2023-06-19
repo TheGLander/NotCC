@@ -1,7 +1,7 @@
 import { parseNCCS, protobuf, writeNCCS } from "@notcc/logic"
 import { Settings } from "./settings"
 import { ExternalTilesetMetadata } from "./tilesets"
-import { filesystem, init as neuInit } from "@neutralinojs/lib"
+import { filesystem, init as neuInit, os } from "@neutralinojs/lib"
 import path from "path-browserify"
 import { fetchImage, reencodeImage } from "./utils"
 import { applicationConfigPath } from "./configPath"
@@ -162,4 +162,52 @@ export async function removeTileset(identifier: string): Promise<void> {
 	const tilesetsDir = await getPath(TILESETS_DIRECTORY)
 	await filesystem.removeFile(path.join(tilesetsDir, `${identifier}.json`))
 	await filesystem.removeFile(path.join(tilesetsDir, `${identifier}.png`))
+}
+
+export async function showLoadPrompt(
+	title?: string,
+	options?: os.OpenDialogOptions
+): Promise<File[]> {
+	const fileNames = await os.showOpenDialog(title, options)
+	const files: File[] = []
+	for (const fileName of fileNames) {
+		const stat = await filesystem.getStats(fileName)
+		const bin = await filesystem.readBinaryFile(fileName)
+		files.push(
+			new File([bin], path.basename(fileName), {
+				lastModified: stat.modifiedAt,
+			})
+		)
+	}
+	return files
+}
+
+async function scanDirectory(dirPath: string, prefix: string): Promise<File[]> {
+	const entries = await filesystem.readDirectory(dirPath)
+	const files: File[] = []
+	for (const ent of entries) {
+		if (ent.entry === "." || ent.entry === "..") continue
+		const filePath = path.join(dirPath, ent.entry)
+		const prefixPath = path.join(prefix, ent.entry)
+		if (ent.type === "FILE") {
+			const stat = await filesystem.getStats(filePath)
+			const bin = await filesystem.readBinaryFile(filePath)
+			const file = new File([bin], ent.entry, { lastModified: stat.modifiedAt })
+			// Define the property explicitly on the `file`, since the underlying `File.prototype.webkitRelativePath`
+			// getter (which assigning with `=` uses) doesn't allow writing. ugh
+			Object.defineProperty(file, "webkitRelativePath", { value: prefixPath })
+			files.push(file)
+		} else {
+			files.push(...(await scanDirectory(filePath, prefixPath)))
+		}
+	}
+	return files
+}
+
+export async function showDirectoryPrompt(
+	title?: string,
+	options?: os.FolderDialogOptions
+): Promise<File[]> {
+	const dirName = await os.showFolderDialog(title, options)
+	return await scanDirectory(dirName, "")
 }

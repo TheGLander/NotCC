@@ -6,7 +6,15 @@
 	"url": "/",
 	"enableServer": true,
 	"enableNativeAPI": true,
-	"nativeAllowList": ["app.*", "os.*", "filesystem.*", "debug.log"],
+	"nativeAllowList": [
+		"os.getEnv",
+		"os.showOpenDialog",
+		"os.showSaveDialog",
+		"os.showFolderDialog",
+		"filesystem.*",
+		"computer.getKernelInfo",
+		"debug.log"
+	],
 	"modes": {
 		"window": {
 			"title": "NotCC",

@@ -31,3 +31,9 @@ export const loadAllTilesets = isDesktop()
 export const removeTileset = isDesktop()
 	? neuSave.removeTileset
 	: lsSave.removeTileset
+export const showLoadPrompt = isDesktop()
+	? neuSave.showLoadPrompt
+	: lsSave.showLoadPrompt
+export const showDirectotyPrompt = isDesktop()
+	? neuSave.showDirectoryPrompt
+	: lsSave.showDirectoryPrompt

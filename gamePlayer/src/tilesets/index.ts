@@ -11,7 +11,12 @@ import {
 } from "../utils"
 
 import { HTMLImage, Renderer, Tileset, removeBackground } from "../renderer"
-import { loadAllTilesets, removeTileset, saveTileset } from "../saveData"
+import {
+	loadAllTilesets,
+	removeTileset,
+	saveTileset,
+	showLoadPrompt,
+} from "../saveData"
 import { cc2ArtSet } from "../cc2ArtSet"
 import { createLevelFromData, parseC2M } from "@notcc/logic"
 import { Pager } from "../pager"
@@ -159,28 +164,17 @@ async function makeTsetPreview(tsetMeta: TilesetMetadata) {
 	return canvas
 }
 
-const customTilesetLoader = document.querySelector<HTMLInputElement>(
-	"#customTilesetLoader"
-)!
-
-function promptCustomTilesetImage(): Promise<HTMLImageElement> {
-	return new Promise((res, rej) => {
-		customTilesetLoader.value = ""
-		const tilesetListener = async () => {
-			customTilesetLoader.removeEventListener("change", tilesetListener)
-			const file = customTilesetLoader.files?.[0]
-			customTilesetLoader.value = ""
-			if (!file) return
-			const image = await makeImagefromBlob(file)
-			if (image.naturalHeight !== image.naturalWidth * 2) {
-				alert("This doesn't seem like a CC2 tileset.")
-				return rej()
-			}
-			res(image)
-		}
-		customTilesetLoader.addEventListener("change", tilesetListener)
-		customTilesetLoader.click()
+async function promptCustomTilesetImage(): Promise<HTMLImageElement> {
+	const files = await showLoadPrompt("Load tileset image", {
+		filters: [{ name: "Image", extensions: ["jpg", "png", "bmp"] }],
 	})
+	const file = files[0]
+	const image = await makeImagefromBlob(file)
+	if (image.naturalHeight !== image.naturalWidth * 2) {
+		alert("This doesn't seem like a CC2 tileset.")
+		throw new Error("This doesn't seem like a CC2 tileset")
+	}
+	return image
 }
 
 async function saveImageAsTileset(image: HTMLImageElement): Promise<void> {

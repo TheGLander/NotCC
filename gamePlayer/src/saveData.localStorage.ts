@@ -3,6 +3,7 @@ import { compressToUTF16, decompressFromUTF16 } from "lz-string"
 import { Settings } from "./settings"
 import { ExternalTilesetMetadata } from "./tilesets"
 import { fetchImage, reencodeImage } from "./utils"
+import type { os } from "@neutralinojs/lib"
 
 function makeFilePrefix(type: string) {
 	return `NotCC ${type}`
@@ -141,4 +142,46 @@ export async function removeTileset(identifier: string): Promise<void> {
 	const deleteSuccess =
 		delete localStorage[`${makeFilePrefix("tileset")}: ${identifier}`]
 	if (!deleteSuccess) throw new Error("Couldn't delete file.")
+}
+
+export async function showLoadPrompt(
+	_title?: string,
+	options?: os.OpenDialogOptions
+): Promise<File[]> {
+	const fileLoader = document.createElement("input")
+	fileLoader.type = "file"
+	if (options?.filters !== undefined) {
+		fileLoader.accept = options.filters
+			.map(filter => filter.extensions.map(ext => `.${ext}`).join(","))
+			.join(",")
+	}
+	fileLoader.multiple = !!options?.multiSelections
+	return new Promise((res, rej) => {
+		fileLoader.addEventListener("change", () => {
+			if (fileLoader.files === null || fileLoader.files.length === 0) {
+				rej(new Error("No files specified"))
+			} else {
+				res(Array.from(fileLoader.files))
+			}
+			fileLoader.remove()
+		})
+		fileLoader.click()
+	})
+}
+
+export async function showDirectoryPrompt(): Promise<File[]> {
+	const fileLoader = document.createElement("input")
+	fileLoader.type = "file"
+	fileLoader.webkitdirectory = true
+	return new Promise((res, rej) => {
+		fileLoader.addEventListener("change", () => {
+			if (fileLoader.files === null || fileLoader.files.length === 0) {
+				rej(new Error("No directory specified"))
+			} else {
+				res(Array.from(fileLoader.files))
+			}
+			fileLoader.remove()
+		})
+		fileLoader.click()
+	})
 }
