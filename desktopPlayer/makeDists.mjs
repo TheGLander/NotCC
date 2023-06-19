@@ -24,7 +24,7 @@ if (!(await fs.exists(binariesDir))) {
 console.log("Making Mac package")
 
 await fs.copy(
-	path.join(binariesDir, `${distributionName}-mac_x64`),
+	path.join(binariesDir, `${distributionName}-mac_universal`),
 	path.join(macBinPath, distributionName)
 )
 await fs.chmod(path.join(macBinPath, distributionName), 0o755)
@@ -39,7 +39,6 @@ const toCopyBinaries = [
 	[`${distributionName}-linux_x64`, `${distributionName}-linux`],
 	[`${distributionName}-win_x64.exe`, `${distributionName}-windows.exe`],
 	["resources.neu", "resources.neu"],
-	["WebView2Loader.dll", "WebView2Loader.dll"],
 ]
 
 for (const [src, dest] of toCopyBinaries) {
