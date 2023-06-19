@@ -119,7 +119,7 @@ async function scanNginxIndex(
 	while (true) {
 		const match = listingRegex.exec(pageData)
 		if (!match) break
-		const entryName = decodeURI(match[1])
+		const entryName = decodeURIComponent(match[1])
 		const lastEdited = new Date(match[2])
 		if (entryName.endsWith("/")) {
 			if (censoredSetNames.includes(entryName.slice(0, -1))) continue
