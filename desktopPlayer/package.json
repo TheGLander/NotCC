@@ -9,7 +9,7 @@
 		"prepublish": "neu update"
 	},
 	"dependencies": {
-		"zx": "^7.2.2",
-		"@neutralinojs/neu": "^9.5.0"
+		"@neutralinojs/neu": "^9.6.0",
+		"zx": "^7.2.2"
 	}
 }
