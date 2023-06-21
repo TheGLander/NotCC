@@ -173,3 +173,11 @@ export function setAttributeExistence(
 		node.removeAttribute(attrName)
 	}
 }
+
+export function sleep(time: number): Promise<void> {
+	return new Promise(res => {
+		setTimeout(() => {
+			res()
+		}, time * 1000)
+	})
+}

@@ -174,6 +174,24 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			},
 			enabledPages: [exaPlayerPage],
 		},
+		{
+			name: "Import route",
+			shortcut: "shift+i",
+			action(pager: Pager): void {
+				if (pager.currentPage !== exaPlayerPage) return
+				exaPlayerPage.importRoute(pager)
+			},
+			enabledPages: [exaPlayerPage],
+		},
+		{
+			name: "Export route",
+			shortcut: "shift+e",
+			action(pager: Pager): void {
+				if (pager.currentPage !== exaPlayerPage) return
+				exaPlayerPage.exportRoute(pager)
+			},
+			enabledPages: [exaPlayerPage],
+		},
 	],
 	settings: [
 		{

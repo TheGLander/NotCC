@@ -37,3 +37,6 @@ export const showLoadPrompt = isDesktop()
 export const showDirectotyPrompt = isDesktop()
 	? neuSave.showDirectoryPrompt
 	: lsSave.showDirectoryPrompt
+export const showSavePrompt = isDesktop()
+	? neuSave.showSavePrompt
+	: lsSave.showSavePrompt

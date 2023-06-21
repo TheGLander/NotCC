@@ -185,3 +185,20 @@ export async function showDirectoryPrompt(): Promise<File[]> {
 		fileLoader.click()
 	})
 }
+
+export async function showSavePrompt(
+	fileData: ArrayBuffer,
+	_title?: string,
+	option?: os.SaveDialogOptions
+): Promise<void> {
+	const blob = new Blob([fileData], { type: "application/octet-stream" })
+	const url = URL.createObjectURL(blob)
+	const anchor = document.createElement("a")
+	if (option?.defaultPath !== undefined) {
+		anchor.download = option.defaultPath.slice(2)
+	}
+	anchor.href = url
+	anchor.click()
+	anchor.remove()
+	URL.revokeObjectURL(url)
+}

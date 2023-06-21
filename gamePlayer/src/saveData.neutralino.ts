@@ -211,3 +211,13 @@ export async function showDirectoryPrompt(
 	const dirName = await os.showFolderDialog(title, options)
 	return await scanDirectory(dirName, "")
 }
+
+export async function showSavePrompt(
+	fileData: ArrayBuffer,
+	title?: string,
+	options?: os.SaveDialogOptions
+): Promise<void> {
+	const savePath = await os.showSaveDialog(title, options)
+	if (savePath === "") throw new Error("Save path not provided")
+	await filesystem.writeBinaryFile(savePath, fileData)
+}

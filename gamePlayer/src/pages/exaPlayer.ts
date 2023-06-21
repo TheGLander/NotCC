@@ -1,7 +1,14 @@
-import { GameState, KeyInputs, LevelState } from "@notcc/logic"
+import {
+	crossLevelData,
+	Direction,
+	GameState,
+	KeyInputs,
+	LevelState,
+} from "@notcc/logic"
 import clone from "clone"
 import { Pager } from "../pager"
-import { KeyListener } from "../utils"
+import { showLoadPrompt, showSavePrompt } from "../saveData"
+import { KeyListener, sleep } from "../utils"
 import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
 
 export type KeyInput = keyof KeyInputs
@@ -37,15 +44,19 @@ const charToKeyInputMap: Record<string, KeyInput | KeyInput[]> = {
 	p: "drop",
 	c: "rotateInv",
 	s: "switchPlayable",
-	"↗": ["up", "right"],
-	"↘": ["right", "down"],
-	"↙": ["down", "left"],
-	"↖": ["left", "up"],
+	"⇗": ["up", "right"],
+	"⇘": ["right", "down"],
+	"⇙": ["down", "left"],
+	"⇖": ["left", "up"],
+}
+
+function areKeyInputsMoving(input: KeyInputs): boolean {
+	return input.up || input.right || input.down || input.left
 }
 
 function keyInputToChar(
 	input: KeyInputs,
-	fullMove: boolean,
+	uppercase: boolean,
 	composeOnly = false
 ): string {
 	let char = ""
@@ -55,15 +66,15 @@ function keyInputToChar(
 		}
 	}
 	if (composeOnly) return char
-	if (input.up && input.right) char += fullMove ? "⇗" : "↗"
-	else if (input.right && input.down) char += fullMove ? "⇘" : "↘"
-	else if (input.down && input.left) char += fullMove ? "⇙" : "↙"
-	else if (input.left && input.right) char += fullMove ? "⇖" : "↖"
-	else if (input.up) char += fullMove ? "U" : "u"
-	else if (input.right) char += fullMove ? "R" : "r"
-	else if (input.down) char += fullMove ? "D" : "d"
-	else if (input.left) char += fullMove ? "L" : "l"
-	else char += fullMove ? "----" : "-"
+	if (input.up && input.right) char += uppercase ? "⇗" : "↗"
+	else if (input.right && input.down) char += uppercase ? "⇘" : "↘"
+	else if (input.down && input.left) char += uppercase ? "⇙" : "↙"
+	else if (input.left && input.right) char += uppercase ? "⇖" : "↖"
+	else if (input.up) char += uppercase ? "U" : "u"
+	else if (input.right) char += uppercase ? "R" : "r"
+	else if (input.down) char += uppercase ? "D" : "d"
+	else if (input.left) char += uppercase ? "L" : "l"
+	else char += "-"
 	return char
 }
 
@@ -79,12 +90,17 @@ function charToKeyInput(char: string): KeyInputs {
 	return input
 }
 
+function splitCharString(charString: string): string[] {
+	return charString.split(/(?<![pcs])/)
+}
+
 // Make a snapshot every second
 const LEVEL_SNAPSHOT_PERIOD = 60
 
 interface LevelSnapshot {
 	level: LevelState
 	movePosition: number
+	RFFDirection: Direction
 }
 
 // TODO move this to @notcc/logic maybe?
@@ -98,6 +114,29 @@ function cloneLevel(level: LevelState): LevelState {
 	newLevel.levelData = levelData
 	level.levelData = levelData
 	return newLevel
+}
+
+interface RouteFor {
+	Set?: string
+	LevelName?: string
+	LevelNumber?: number
+}
+
+interface Route {
+	Moves: string
+	Rule: string
+	Encode?: "UTF-8"
+	"Initial Slide"?: Direction
+	/**
+	 * Not the same as "Seed", as Blobmod only affects blobs and nothing else, unlilke the seed in TW, which affects all randomness
+	 */
+	Blobmod?: number
+	// Unused in CC2
+	Step?: never
+	Seed?: never
+	// NotCC-invented metadata
+	For?: RouteFor
+	ExportApp?: string
 }
 
 export const exaPlayerPage = {
@@ -134,6 +173,7 @@ export const exaPlayerPage = {
 			{
 				level: cloneLevel(this.currentLevel!),
 				movePosition: 0,
+				RFFDirection: crossLevelData.RFFDirection,
 			},
 		]
 		this.renderer!.updateTileSize()
@@ -174,9 +214,6 @@ export const exaPlayerPage = {
 			level.gameState === GameState.PLAYING &&
 			level.selectedPlayable!.cooldown > 0
 		)
-		this.updateRecordedMovesArea()
-		this.updateRender()
-		this.updateTextOutputs()
 	},
 	// An alternative version of `updateLogic` which operates on ticks instead of subticks
 	// We don't use the native `updateLogic`.
@@ -204,7 +241,7 @@ export const exaPlayerPage = {
 				: keyInputToChar(input, false, true) + "-",
 			..."-".repeat(ticksApplied - 1),
 		]
-		if (couldMoveFirstTick && ticksApplied === 4) {
+		if (couldMoveFirstTick && areKeyInputsMoving(input) && ticksApplied === 4) {
 			this.visualMoves.push(keyInputToChar(input, true), "", "", "")
 		} else {
 			this.visualMoves.push(...recordedInput)
@@ -214,9 +251,6 @@ export const exaPlayerPage = {
 			true,
 			...new Array<boolean>(ticksApplied - 1).fill(false)
 		)
-
-		this.updateRecordedMovesArea()
-		this.updateTextOutputs()
 	},
 	// Automatically skip in time until *something* can be done
 	autoSkip(): void {
@@ -224,6 +258,8 @@ export const exaPlayerPage = {
 		while (!level.selectedPlayable!.canDoAnything()) {
 			this.appendInput(emptyKeys)
 		}
+		this.updateRecordedMovesArea()
+		this.updateTextOutputs()
 		this.updateRender()
 	},
 	snapshots: [] as LevelSnapshot[],
@@ -239,6 +275,7 @@ export const exaPlayerPage = {
 		this.snapshots.push({
 			level: cloneLevel(level),
 			movePosition: this.movePosition,
+			RFFDirection: crossLevelData.RFFDirection,
 		})
 	},
 	seekTo(newPosition: number, snapToMove = true): void {
@@ -254,6 +291,7 @@ export const exaPlayerPage = {
 		const closestSnapshot = [...this.snapshots]
 			.reverse()
 			.find(snap => snap.movePosition <= this.movePosition)!
+		crossLevelData.RFFDirection = closestSnapshot.RFFDirection
 		this.currentLevel = cloneLevel(closestSnapshot.level)
 		this.renderer!.level = this.currentLevel
 		let actualPosition = closestSnapshot.movePosition
@@ -280,6 +318,9 @@ export const exaPlayerPage = {
 		const level = this.currentLevel
 		if (level === null) throw new Error("Current level required")
 		this.applyInput(charToKeyInput(this.recordedMoves[this.movePosition]))
+		this.updateRecordedMovesArea()
+		this.updateTextOutputs()
+		this.updateRender()
 	},
 	// TODO Use a single struct instead Python-esqe billion arrays?
 	recordedMoves: [] as string[],
@@ -296,6 +337,77 @@ export const exaPlayerPage = {
 			snap => snap.movePosition <= this.movePosition
 		)
 	},
+	async importRoute(pager: Pager): Promise<void> {
+		const file = (
+			await showLoadPrompt("Import route", {
+				filters: [{ extensions: ["json", "route"], name: "Route file" }],
+			})
+		)[0]
+		const routeData = await file.text()
+		const route: Route = JSON.parse(routeData)
+		if (route.Rule === undefined) {
+			alert("This doesn't seem like a route file")
+			return
+		}
+		if (route.Rule === "LYNX" || route.Rule === "MS") {
+			alert(
+				"Warning: Adapting a Lynx or MS route to Steam. Best effort, so don't expect it to work..."
+			)
+		} else if (route.Rule !== "STEAM") {
+			alert("Unknown ruleset")
+			return
+		}
+		this.loadLevel(pager)
+		// TODO compare route.For metadata
+		const level = this.currentLevel!
+		level.blobPrngValue = route.Blobmod ?? 0x55
+		crossLevelData.RFFDirection = route["Initial Slide"] ?? Direction.UP
+		const moves = splitCharString(route.Moves)
+		let moveCount = 0
+		while (moves.length > this.movePosition) {
+			this.appendInput(charToKeyInput(moves[this.movePosition]))
+			if (level.gameState !== GameState.PLAYING) break
+			moveCount += 1
+			if (moveCount % 100 === 0) {
+				this.updateRecordedMovesArea()
+				this.updateRender()
+				this.updateTextOutputs()
+				// Have a breather every 100 moves
+				await sleep(0)
+			}
+		}
+		this.updateRecordedMovesArea()
+		this.updateRender()
+		this.updateTextOutputs()
+	},
+	async exportRoute(pager: Pager): Promise<void> {
+		const level = this.snapshots[0].level
+		const levelN = pager.getLevelNumber()
+		const levelTitle = pager.loadedLevel!.name
+		if (levelN === "not in level") throw new Error("Can't be happening")
+		const route: Route = {
+			Rule: "STEAM",
+			Encode: "UTF-8",
+			Moves: this.recordedMoves.join(""),
+			ExportApp: "ExaCC",
+			For:
+				levelN === "not in set"
+					? { LevelName: levelTitle }
+					: {
+							LevelName: levelTitle,
+							LevelNumber: levelN,
+							Set: pager.loadedSet!.scriptRunner.state.scriptTitle!,
+					  },
+			Blobmod: level.blobPrngValue,
+			"Initial Slide": this.snapshots[0].RFFDirection,
+		}
+		const routeString = JSON.stringify(route)
+		const routeBin = new TextEncoder().encode(routeString)
+		await showSavePrompt(routeBin, "Save route", {
+			filters: [{ extensions: ["route"], name: "Route file" }],
+			defaultPath: `./${levelTitle}.route`,
+		})
+	},
 	movePosition: 0,
 	currentInput: clone(emptyKeys),
 	keyListener: null as KeyListener | null,
@@ -310,6 +422,9 @@ export const exaPlayerPage = {
 			}
 			if (!composingInputs.includes(inputType)) {
 				this.appendInput(this.currentInput)
+				this.updateRecordedMovesArea()
+				this.updateRender()
+				this.updateTextOutputs()
 				this.currentInput = clone(emptyKeys)
 			}
 			this.composingPreviewArea!.textContent = keyInputToChar(
