@@ -163,6 +163,16 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 				if (pager.currentPage !== exaPlayerPage) return
 				exaPlayerPage.undo()
 			},
+			enabledPages: [exaPlayerPage],
+		},
+		{
+			name: "Redo",
+			shortcut: "shift+Backspace",
+			action(pager: Pager): void {
+				if (pager.currentPage !== exaPlayerPage) return
+				exaPlayerPage.redo()
+			},
+			enabledPages: [exaPlayerPage],
 		},
 	],
 	settings: [

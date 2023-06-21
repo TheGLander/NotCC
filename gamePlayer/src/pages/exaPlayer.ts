@@ -161,12 +161,30 @@ export const exaPlayerPage = {
 			.toString()
 			.padEnd(2, "0")}s`
 	},
-	// An alternative version of `updateLogic` which operates on ticks instead of subticks
-	// We don't use the native `updateLogic`.
 	applyInput(input: KeyInputs): void {
 		const level = this.currentLevel!
 		level.gameInput = input
+		do {
+			level.tick()
+			level.tick()
+			level.tick()
+			this.movePosition += 1
+			this.autoAddSnapshot()
+		} while (
+			level.gameState === GameState.PLAYING &&
+			level.selectedPlayable!.cooldown > 0
+		)
+		this.updateRecordedMovesArea()
+		this.updateRender()
+		this.updateTextOutputs()
+	},
+	// An alternative version of `updateLogic` which operates on ticks instead of subticks
+	// We don't use the native `updateLogic`.
+	appendInput(input: KeyInputs): void {
+		const level = this.currentLevel!
+		level.gameInput = input
 		const couldMoveFirstTick = level.selectedPlayable!.getCanMove()
+		this.cropToMovePosition()
 		let ticksApplied = 0
 		do {
 			level.tick()
@@ -203,44 +221,35 @@ export const exaPlayerPage = {
 	// Automatically skip in time until *something* can be done
 	autoSkip(): void {
 		const level = this.currentLevel!
-		let ticksApplied = 0
 		while (!level.selectedPlayable!.canDoAnything()) {
-			level.tick()
-			level.tick()
-			level.tick()
-			ticksApplied += 1
-			this.movePosition += 1
-			this.autoAddSnapshot()
+			this.appendInput(emptyKeys)
 		}
-		const recordedInput = "-".repeat(ticksApplied)
-		this.visualMoves.push(...recordedInput)
-		this.recordedMoves.push(...recordedInput)
-		this.areMovesPlayerInput.push(
-			...new Array<boolean>(ticksApplied).fill(false)
-		)
 		this.updateRender()
-		this.updateRecordedMovesArea()
-		this.updateTextOutputs()
 	},
 	snapshots: [] as LevelSnapshot[],
 	autoAddSnapshot(): void {
-		// return
-		if (this.currentLevel === null) throw new Error("Current level must be set")
-		const currentTime =
-			this.currentLevel!.currentTick * 3 + this.currentLevel!.subtick
+		const level = this.currentLevel
+		if (level === null) throw new Error("Current level must be set")
+		const currentTime = level!.currentTick * 3 + level!.subtick
 		const lastSnapshot = this.snapshots[this.snapshots.length - 1]
 		const lastSnapshotTime =
 			lastSnapshot.level.currentTick * 3 + lastSnapshot.level.subtick
 
 		if (currentTime - lastSnapshotTime < LEVEL_SNAPSHOT_PERIOD) return
 		this.snapshots.push({
-			level: cloneLevel(this.currentLevel),
+			level: cloneLevel(level),
 			movePosition: this.movePosition,
 		})
 	},
-	undo(): void {
-		if (this.movePosition <= 0) return
-		this.movePosition = this.areMovesPlayerInput.lastIndexOf(true)
+	seekTo(newPosition: number, snapToMove = true): void {
+		if (snapToMove) {
+			this.movePosition = this.areMovesPlayerInput.lastIndexOf(
+				true,
+				newPosition
+			)
+		} else {
+			this.movePosition = newPosition
+		}
 		// There will always be the snapshot of the initial level, so don't worry about the non-null assertion
 		const closestSnapshot = [...this.snapshots]
 			.reverse()
@@ -258,7 +267,25 @@ export const exaPlayerPage = {
 			actualPosition += 1
 		}
 		this.movePosition = actualPosition
-		// TODO Don't actually do this, preserve the moves in case the player will unrewind
+		this.updateRecordedMovesArea()
+		this.updateRender()
+		this.updateTextOutputs()
+	},
+	undo(): void {
+		if (this.movePosition <= 0) return
+		this.seekTo(this.movePosition - 1)
+	},
+	redo(): void {
+		if (this.movePosition >= this.recordedMoves.length) return
+		const level = this.currentLevel
+		if (level === null) throw new Error("Current level required")
+		this.applyInput(charToKeyInput(this.recordedMoves[this.movePosition]))
+	},
+	// TODO Use a single struct instead Python-esqe billion arrays?
+	recordedMoves: [] as string[],
+	visualMoves: [] as string[],
+	areMovesPlayerInput: [] as boolean[],
+	cropToMovePosition(): void {
 		this.recordedMoves = this.recordedMoves.slice(0, this.movePosition)
 		this.visualMoves = this.visualMoves.slice(0, this.movePosition)
 		this.areMovesPlayerInput = this.areMovesPlayerInput.slice(
@@ -268,14 +295,7 @@ export const exaPlayerPage = {
 		this.snapshots = this.snapshots.filter(
 			snap => snap.movePosition <= this.movePosition
 		)
-		this.updateRecordedMovesArea()
-		this.updateRender()
-		this.updateTextOutputs()
 	},
-	// TODO Use a single struct instead Python-esqe billion arrays?
-	recordedMoves: [] as string[],
-	visualMoves: [] as string[],
-	areMovesPlayerInput: [] as boolean[],
 	movePosition: 0,
 	currentInput: clone(emptyKeys),
 	keyListener: null as KeyListener | null,
@@ -289,7 +309,7 @@ export const exaPlayerPage = {
 				this.currentInput[inputType] = !this.currentInput[inputType]
 			}
 			if (!composingInputs.includes(inputType)) {
-				this.applyInput(this.currentInput)
+				this.appendInput(this.currentInput)
 				this.currentInput = clone(emptyKeys)
 			}
 			this.composingPreviewArea!.textContent = keyInputToChar(
