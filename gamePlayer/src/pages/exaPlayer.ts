@@ -8,7 +8,7 @@ import {
 import clone from "clone"
 import { Pager } from "../pager"
 import { showLoadPrompt, showSavePrompt } from "../saveData"
-import { KeyListener, sleep } from "../utils"
+import { KeyListener, sleep, TimeoutTimer } from "../utils"
 import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
 
 export type KeyInput = keyof KeyInputs
@@ -69,7 +69,7 @@ function keyInputToChar(
 	if (input.up && input.right) char += uppercase ? "⇗" : "↗"
 	else if (input.right && input.down) char += uppercase ? "⇘" : "↘"
 	else if (input.down && input.left) char += uppercase ? "⇙" : "↙"
-	else if (input.left && input.right) char += uppercase ? "⇖" : "↖"
+	else if (input.left && input.up) char += uppercase ? "⇖" : "↖"
 	else if (input.up) char += uppercase ? "U" : "u"
 	else if (input.right) char += uppercase ? "R" : "r"
 	else if (input.down) char += uppercase ? "D" : "d"
@@ -93,6 +93,9 @@ function charToKeyInput(char: string): KeyInputs {
 function splitCharString(charString: string): string[] {
 	return charString.split(/(?<![pcs])/)
 }
+
+// Wait for a tick for diagonal inputs
+const AUTO_DIAGONALS_TIMEOUT = 1 / 20
 
 // Make a snapshot every second
 const LEVEL_SNAPSHOT_PERIOD = 60
@@ -206,6 +209,7 @@ export const exaPlayerPage = {
 		level.gameInput = input
 		do {
 			level.tick()
+			level.gameInput = emptyKeys
 			level.tick()
 			level.tick()
 			this.movePosition += 1
@@ -225,6 +229,7 @@ export const exaPlayerPage = {
 		let ticksApplied = 0
 		do {
 			level.tick()
+			level.gameInput = emptyKeys
 			level.tick()
 			level.tick()
 			ticksApplied += 1
@@ -300,6 +305,7 @@ export const exaPlayerPage = {
 				this.recordedMoves[actualPosition]
 			)
 			this.currentLevel.tick()
+			this.currentLevel.gameInput = emptyKeys
 			this.currentLevel.tick()
 			this.currentLevel.tick()
 			actualPosition += 1
@@ -411,6 +417,23 @@ export const exaPlayerPage = {
 	movePosition: 0,
 	currentInput: clone(emptyKeys),
 	keyListener: null as KeyListener | null,
+	autoDiagonalsTimer: null as TimeoutTimer | null,
+	updateCompositingPreview(): void {
+		this.composingPreviewArea!.textContent = keyInputToChar(
+			this.currentInput,
+			false,
+			true
+		)
+	},
+	commitCurrentInput(): void {
+		this.autoDiagonalsTimer = null
+		this.appendInput(this.currentInput)
+		this.updateRecordedMovesArea()
+		this.updateRender()
+		this.updateTextOutputs()
+		this.currentInput = clone(emptyKeys)
+		this.updateCompositingPreview()
+	},
 	setupKeyListener(): void {
 		this.keyListener = new KeyListener(ev => {
 			if (!isValidStartKey(ev.code)) return
@@ -420,18 +443,16 @@ export const exaPlayerPage = {
 				inputType = inputType as keyof KeyInputs
 				this.currentInput[inputType] = !this.currentInput[inputType]
 			}
-			if (!composingInputs.includes(inputType)) {
-				this.appendInput(this.currentInput)
-				this.updateRecordedMovesArea()
-				this.updateRender()
-				this.updateTextOutputs()
-				this.currentInput = clone(emptyKeys)
+			if (
+				!composingInputs.includes(inputType) &&
+				this.autoDiagonalsTimer === null
+			) {
+				this.autoDiagonalsTimer = new TimeoutTimer(
+					() => this.commitCurrentInput(),
+					AUTO_DIAGONALS_TIMEOUT
+				)
 			}
-			this.composingPreviewArea!.textContent = keyInputToChar(
-				this.currentInput,
-				false,
-				true
-			)
+			this.updateCompositingPreview()
 		})
 	},
 	open(pager: Pager): void {
@@ -445,5 +466,7 @@ export const exaPlayerPage = {
 	close(): void {
 		this.keyListener?.remove()
 		this.keyListener = null
+		this.autoDiagonalsTimer?.cancel()
+		this.autoDiagonalsTimer = null
 	},
 }
