@@ -441,7 +441,18 @@ export const exaPlayerPage = {
 			let inputType = keyToInputMap[ev.code]
 			if (inputType in this.currentInput) {
 				inputType = inputType as keyof KeyInputs
-				this.currentInput[inputType] = !this.currentInput[inputType]
+				// Holding a cardinal direction should always move in that direction, so thus we shouldn't be able
+				// to flip if that input is actually gonna be a part of the keyinputs.
+				if (
+					inputType === "up" ||
+					inputType === "right" ||
+					inputType === "down" ||
+					inputType === "left"
+				) {
+					this.currentInput[inputType] = true
+				} else {
+					this.currentInput[inputType] = !this.currentInput[inputType]
+				}
 			}
 			if (
 				!composingInputs.includes(inputType) &&
