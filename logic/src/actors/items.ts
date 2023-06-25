@@ -240,6 +240,12 @@ export class BootForceFloor extends Item {
 	id = "bootForceFloor"
 	carrierTags = { ignoreTags: ["force-floor"] }
 	destination = ItemDestination.ITEM
+	onPickup(other: Actor): void {
+		// Indeed, a hack, but I really don't want to ever calculate the sliding state automatically
+		if (other.slidingState === SlidingState.WEAK) {
+			other.slidingState = SlidingState.NONE
+		}
+	}
 }
 
 actorDB["bootForceFloor"] = BootForceFloor
