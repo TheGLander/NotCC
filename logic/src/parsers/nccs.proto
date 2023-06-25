@@ -94,6 +94,7 @@ message SolutionInfo {
   SolutionOutcomeInfo outcome = 3;
   int32 solution_n = 4;
   string solution_comment = 5;
+  repeated GlitchInfo used_glitches = 6;
 }
 
 message SolutionOutcomeInfo {
@@ -116,6 +117,35 @@ message LevelStateInfo {
     CC1LevelStateData cc1_data = 2;
     CC2LevelStateData cc2_data = 3;
   }
+}
+
+/**
+ * A location in the level
+ */
+message TilePositionInfo {
+  uint32 x = 1;
+  uint32 y = 2;
+}
+
+/**
+ * A message describing a glitch used in a solution
+ */
+message GlitchInfo {
+  enum KnownGlitches {
+    INVALID = 0;
+    DESPAWN = 1;
+    CROSS_LEVEL_DESPAWN = 2;
+    BLUE_TP_LOGIC_GATE_SHENANIGANS = 4;
+    CROSS_LEVEL_BLUE_TP_LOGIC_GATE_SHENANIGANS = 5;
+    SIMULTANEOUS_CHARACTER_MOVEMENT = 6;
+    DYNAMITE_EXPLOSION_SNEAKING = 7;
+  }
+  KnownGlitches glitch_kind = 1;
+  TilePositionInfo location = 2;
+  /**
+   * A miscellaneous glitch subtype specifier (eg. despawn replace vs delete)
+   */
+  int32 specifier = 3;
 }
 
 // The enum must be at the bottom, since the typings generator explodes if there
