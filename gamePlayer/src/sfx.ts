@@ -1,9 +1,6 @@
 import { SfxManager } from "@notcc/logic"
 const standardSfx = [
 	"recessed wall",
-	// TODO Chip/Melinda win
-	"win chip",
-	"win melinda",
 	"explosion",
 	"splash",
 	"teleport",
@@ -20,6 +17,7 @@ const standardSfx = [
 	"item get",
 	"socket unlock",
 	"door unlock",
+	// TODO Win, loss SFX
 ]
 
 export class AudioSfxManager implements SfxManager {
