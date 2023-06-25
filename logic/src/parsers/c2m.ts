@@ -100,6 +100,9 @@ function createFieldFromArrayBuffer(
 	const field: LevelData["field"] = []
 	function parseTile(): cc2Tile[] {
 		const tileId = view.getUint8()
+		if (!(tileId in data)) {
+			throw new Error(`Unknown tile ID ${tileId.toString(16)}`)
+		}
 		const tiles = clone(data[tileId])
 
 		for (let i = 0; i < tiles.length; i++) {
