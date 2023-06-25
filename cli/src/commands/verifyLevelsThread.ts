@@ -68,6 +68,7 @@ function convertDespawnMessageToStandard(message: string): string | null {
 	// eslint-disable-next-line no-constant-condition
 	while (true) {
 		try {
+			levelName = undefined
 			const levelBuffer = fs.readFileSync(levelPath, null)
 
 			// TODO This shouldn't happen in any solutions anyways
