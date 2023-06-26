@@ -10,12 +10,12 @@ outcome=badInput
 outcome=badInput
 [WHAT'S NEW IS OLD]
 outcome=success
-despawns[] = (8, 11) replace
-despawns[] = (8, 11) delete
-despawns[] = (4, 11) replace
-despawns[] = (4, 11) delete
-despawns[] = (8, 6) replace
-despawns[] = (8, 6) delete
+glitches[] = (8, 11) DESPAWN replace
+glitches[] = (8, 11) DESPAWN delete
+glitches[] = (4, 11) DESPAWN replace
+glitches[] = (4, 11) DESPAWN delete
+glitches[] = (8, 6) DESPAWN replace
+glitches[] = (8, 6) DESPAWN delete
 # TODO implement whatever tiles these levels need
 [NON-LAYER DIMENSION]
 outcome=error
@@ -25,29 +25,29 @@ outcome=error
 outcome=noInput
 [PUZZLE BLASTER]
 outcome=success
-despawns[] = (2, 1) replace
-despawns[] = (2, 1) delete
+glitches[] = (2, 1) DESPAWN replace
+glitches[] = (2, 1) DESPAWN delete
 [BLOCK DELETION]
 outcome=success
-despawns[] = (2, 3) replace
-despawns[] = (1, 2) replace
-despawns[] = (2, 1) replace
-despawns[] = (3, 2) replace
-despawns[] = (2, 8) replace
-despawns[] = (1, 7) replace
-despawns[] = (2, 6) replace
-despawns[] = (3, 7) replace
-despawns[] = (7, 8) replace
-despawns[] = (6, 7) replace
-despawns[] = (7, 6) replace
-despawns[] = (8, 7) replace
-despawns[] = (7, 3) replace
-despawns[] = (6, 2) replace
-despawns[] = (7, 1) replace
-despawns[] = (8, 2) replace
+glitches[] = (2, 3) DESPAWN replace
+glitches[] = (1, 2) DESPAWN replace
+glitches[] = (2, 1) DESPAWN replace
+glitches[] = (3, 2) DESPAWN replace
+glitches[] = (2, 8) DESPAWN replace
+glitches[] = (1, 7) DESPAWN replace
+glitches[] = (2, 6) DESPAWN replace
+glitches[] = (3, 7) DESPAWN replace
+glitches[] = (7, 8) DESPAWN replace
+glitches[] = (6, 7) DESPAWN replace
+glitches[] = (7, 6) DESPAWN replace
+glitches[] = (8, 7) DESPAWN replace
+glitches[] = (7, 3) DESPAWN replace
+glitches[] = (6, 2) DESPAWN replace
+glitches[] = (7, 1) DESPAWN replace
+glitches[] = (8, 2) DESPAWN replace
 [OVERGROWN HEDGE MAZE]
 outcome=success
-despawns[] = (13, 19) replace
-despawns[] = (13, 19) delete
+glitches[] = (13, 19) DESPAWN replace
+glitches[] = (13, 19) DESPAWN delete
 [ICE BLOCK SPEED TEAM]
 outcome=badInput

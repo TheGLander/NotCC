@@ -9,6 +9,7 @@ import { ArgumentsCamelCase, Argv } from "yargs"
 import { decode } from "ini"
 import { readFile } from "fs/promises"
 import { fileURLToPath } from "url"
+import { protobuf } from "@notcc/logic"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -21,23 +22,10 @@ interface WorkerLevelMessage {
 	outcome: LevelOutcome
 	desc?: string
 	type: "level"
+	glitches: protobuf.IGlitchInfo[]
 }
 
-interface WorkerLogMessage {
-	type: "log"
-	message: string
-}
-
-interface WorkerDespawnMesasage {
-	type: "despawn"
-	message: string
-	level: string
-}
-
-export type WorkerMessage =
-	| WorkerLevelMessage
-	| WorkerLogMessage
-	| WorkerDespawnMesasage
+export type WorkerMessage = WorkerLevelMessage
 
 export interface ParentNewLevelMessage {
 	type: "new level"
@@ -88,13 +76,28 @@ abstract class VerifyStats {
 	abstract addLevel(
 		msg: WorkerLevelMessage
 	): [meesage: string, verboseOnly: boolean]
-	abstract addDespawn(msg: WorkerDespawnMesasage): void
 
 	getExitCode(): number {
 		const failureN = this.total - this.success
 		const exitCode = failureN === 0 ? 0 : 1 + ((failureN - 1) % 255)
 		return exitCode
 	}
+}
+
+function glitchToString(glitch: protobuf.IGlitchInfo): string {
+	const glitchLocation = glitch.location
+		? `(${glitch.location?.x}, ${glitch.location?.y})`
+		: ""
+	const glitchName = glitch.glitchKind
+		? protobuf.GlitchInfo.KnownGlitches[glitch.glitchKind]
+		: ""
+	const glitchSpecifier =
+		glitch.glitchKind === protobuf.GlitchInfo.KnownGlitches.DESPAWN
+			? glitch.specifier === 1
+				? "replace"
+				: "delete"
+			: ""
+	return `${glitchLocation} ${glitchName} ${glitchSpecifier}`.trim()
 }
 
 class VerifyStatsBasic extends VerifyStats {
@@ -110,17 +113,22 @@ ${pc.blue(`${this.noInput} (${this.roundedPercent(this.noInput)}%)`)} 💤
 ${pc.yellow(`${this.error} (${this.roundedPercent(this.error)}%)`)} 💥`
 	}
 	addLevel(msg: WorkerLevelMessage): [string, boolean] {
-		this[msg.outcome] += 1
 		const style = outcomeStyles[msg.outcome]
+		const outcomeMessage = pc[style.color](
+			`${msg.levelName} - ${style.desc}${msg.desc ? ` (${msg.desc})` : ""}`
+		)
+
+		const glitchMessage = pc.yellow(
+			msg.glitches
+				.map(glitch => `\n${msg.levelName} - ${glitchToString(glitch)}`)
+				.join("")
+		)
+
+		this[msg.outcome] += 1
 		return [
-			pc[style.color](
-				`${msg.levelName} - ${style.desc}${msg.desc ? ` (${msg.desc})` : ""}`
-			),
-			msg.outcome === "success",
+			outcomeMessage + glitchMessage,
+			msg.outcome === "success" && msg.glitches.length === 0,
 		]
-	}
-	addDespawn(msg: WorkerDespawnMesasage): void {
-		console.warn(`[${msg.level}] ${msg.message}`)
 	}
 }
 
@@ -133,7 +141,7 @@ function arraysEqual<T>(aArr: T[], bArr: T[]): boolean {
 
 export interface SyncfileConstraints {
 	outcome: LevelOutcome
-	despawns?: `(${number}, ${number}) ${"delete" | "replace"}`[]
+	glitches?: string[]
 }
 
 export type Syncfile = {
@@ -155,16 +163,6 @@ ${pc.red(`${this.mismatch} (${this.roundedPercent(this.mismatch)}%)`)} ❌`
 		if (level in this.sync) return this.sync[level]!
 		return this.sync._default
 	}
-	despawns: Partial<Record<string, string[]>> = {}
-	addDespawn(msg: WorkerDespawnMesasage): void {
-		let despawnArray: string[]
-		if (msg.level in this.despawns) {
-			despawnArray = this.despawns[msg.level]!
-		} else {
-			despawnArray = this.despawns[msg.level] = []
-		}
-		despawnArray.push(msg.message)
-	}
 	addLevel(msg: WorkerLevelMessage): [string, boolean] {
 		const mismatchReasons: string[] = []
 		const constraints = this.getConstraintsForLevel(msg.levelName)
@@ -175,20 +173,19 @@ ${pc.red(`${this.mismatch} (${this.roundedPercent(this.mismatch)}%)`)} ❌`
 			)
 		}
 
-		const levelDespawns = this.despawns[msg.levelName]
+		const glitchStrings = msg.glitches.map(glitch => glitchToString(glitch))
 
 		const despawnsMatch = arraysEqual(
-			levelDespawns ?? [],
-			constraints.despawns ?? []
+			glitchStrings ?? [],
+			constraints.glitches ?? []
 		)
 		if (!despawnsMatch) {
 			mismatchReasons.push(
-				`Expected [${(constraints.despawns ?? []).join(", ")}], got [${(
-					levelDespawns ?? []
+				`Expected [${(constraints.glitches ?? []).join(", ")}], got [${(
+					glitchStrings ?? []
 				).join(", ")}]`
 			)
 		}
-		delete this.despawns[msg.levelName]
 
 		const mismatch = mismatchReasons.length > 0
 
@@ -303,14 +300,6 @@ export async function verifyLevelFiles(
 			[port1]
 		)
 		port2.on("message", (msg: WorkerMessage) => {
-			if (msg.type === "log") {
-				output.logMessage(msg.message)
-				return
-			}
-			if (msg.type === "despawn") {
-				stats.addDespawn?.(msg)
-				return
-			}
 			output.levelComplete(msg)
 
 			const nextLevel = files.shift()

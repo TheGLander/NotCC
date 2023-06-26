@@ -3,6 +3,7 @@ import {
 	crossLevelData,
 	GameState,
 	parseC2M,
+	protobuf,
 } from "@notcc/logic"
 import { parentPort } from "worker_threads"
 import fs from "fs"
@@ -37,38 +38,18 @@ function waitForMessage(): Promise<any> {
 	return Promise.resolve(queuedMesssages.shift())
 }
 
-function convertDespawnMessageToStandard(message: string): string | null {
-	const match = message.match(
-		/A despawn has happened at \((\d+), (\d+)\). \((Overwritten|Deleted)\)/
-	)
-	if (!match) return null
-	return `(${match[1]}, ${match[2]}) ${
-		match[3] === "Overwritten" ? "replace" : "delete"
-	}`
-}
-
 ;(async () => {
 	const response = (await waitForMessage()) as ParentInitialMessage
 	const sendMessage = (message: WorkerMessage) =>
 		response.port.postMessage(message)
-	let levelName: string | undefined
-
-	console.log = console.warn = (arg1: any, ...args: any[]) => {
-		// If this a despawn warning, send it under a different message type
-		const despawn = convertDespawnMessageToStandard(arg1)
-		if (despawn) {
-			sendMessage({ type: "despawn", level: levelName!, message: despawn })
-		} else {
-			sendMessage({ type: "log", message: `[${levelName}] ${arg1}` })
-		}
-	}
 
 	let levelPath: string | null = response.firstLevelPath
 
 	// eslint-disable-next-line no-constant-condition
 	while (true) {
+		let levelName: string | undefined
+		let glitches: protobuf.IGlitchInfo[] = []
 		try {
-			levelName = undefined
 			const levelBuffer = fs.readFileSync(levelPath, null)
 
 			// TODO This shouldn't happen in any solutions anyways
@@ -77,6 +58,7 @@ function convertDespawnMessageToStandard(message: string): string | null {
 			const levelData = parseC2M(new Uint8Array(levelBuffer).buffer, levelPath)
 			levelName = levelData.name || "???"
 			const level = createLevelFromData(levelData)
+			glitches = level.glitches
 
 			if (!levelData?.associatedSolution || !levelData.associatedSolution.steps)
 				throw new Error("Level has no baked solution!")
@@ -97,6 +79,7 @@ function convertDespawnMessageToStandard(message: string): string | null {
 						: level.gameState !== GameState.PLAYING
 						? "badInput"
 						: "noInput",
+				glitches,
 			})
 		} catch (err) {
 			sendMessage({
@@ -104,6 +87,7 @@ function convertDespawnMessageToStandard(message: string): string | null {
 				levelName: levelName || levelPath,
 				outcome: "error",
 				desc: (err as Error).message,
+				glitches,
 			})
 		}
 		const response = (await waitForMessage()) as
