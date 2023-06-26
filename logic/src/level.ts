@@ -14,7 +14,7 @@ import {
 	wirePretick,
 	wireTick,
 } from "./wires.js"
-import { ISolutionInfo } from "./parsers/nccs.pb.js"
+import { GlitchInfo, IGlitchInfo, ISolutionInfo } from "./parsers/nccs.pb.js"
 
 export enum GameState {
 	PLAYING,
@@ -53,6 +53,10 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 	level => {
 		let undefinedBehaviorWarningGiven = false
 		for (const actor of crossLevelData.despawnedActors) {
+			level.addGlitch({
+				glitchKind: GlitchInfo.KnownGlitches.CROSS_LEVEL_DESPAWN,
+				location: { x: actor.tile.x, y: actor.tile.y },
+			})
 			if (
 				(actor.tile.position[0] >= level.width ||
 					actor.tile.position[1] >= level.height) &&
@@ -72,6 +76,19 @@ export const onLevelStart: ((level: LevelState) => void)[] = [
 			if (actor instanceof Playable) level.playables.push(actor)
 			// Note that we don't add the actor to the tile: That's the whole point of despawning
 			// actor.tile.addActors(actor)
+		}
+	},
+	level => {
+		for (const column of crossLevelData.logicGateTeleportPurgatory) {
+			if (column === undefined) continue
+			for (const actor of column) {
+				if (actor === undefined) continue
+				level.addGlitch({
+					glitchKind:
+						GlitchInfo.KnownGlitches.CROSS_LEVEL_BLUE_TP_LOGIC_GATE_SHENANIGANS,
+					location: { x: actor.tile.x, y: actor.tile.y },
+				})
+			}
 		}
 	},
 ]
@@ -369,6 +386,12 @@ export class LevelState {
 	circuitOutputs: Wirable[] = []
 	circuitOutputStates: Map<Wirable, boolean> = new Map()
 	sfxManager: SfxManager | null = null
+	glitches: IGlitchInfo[] = []
+	onGlitch: (() => void) | null = null
+	addGlitch(glitch: IGlitchInfo): void {
+		this.glitches.push(glitch)
+		this.onGlitch?.()
+	}
 }
 
 export function createLevelFromData(data: LevelData): LevelState {

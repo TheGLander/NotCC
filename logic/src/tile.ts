@@ -2,6 +2,7 @@ import { Actor } from "./actor.js"
 import { LevelState, crossLevelData } from "./level.js"
 import { Direction } from "./helpers.js"
 import { CircuitCity, Wirable, WireOverlapMode, Wires } from "./wires.js"
+import { GlitchInfo } from "./parsers/nccs.pb.js"
 
 export enum Layer {
 	STATIONARY, // Terrain, etc.
@@ -110,9 +111,11 @@ export class Tile implements Wirable {
 						crossLevelData.despawnedActors.push(val)
 					})
 				this.optimizedState[actor.layer] = actor
-				console.warn(
-					`A despawn has happened at (${this.x}, ${this.y}). (Overwritten)`
-				)
+				this.level.addGlitch({
+					glitchKind: GlitchInfo.KnownGlitches.DESPAWN,
+					location: { x: this.x, y: this.y },
+					specifier: 1,
+				})
 			}
 		}
 	}
@@ -133,9 +136,11 @@ export class Tile implements Wirable {
 				}
 			} else {
 				if (theLayer !== actor) {
-					console.warn(
-						`A despawn has happened at (${this.x}, ${this.y}). (Deleted)`
-					)
+					this.level.addGlitch({
+						glitchKind: GlitchInfo.KnownGlitches.DESPAWN,
+						location: { x: this.x, y: this.y },
+						specifier: 2,
+					})
 					if (theLayer instanceof Actor) {
 						theLayer.despawned = true
 						crossLevelData.despawnedActors.push(theLayer)

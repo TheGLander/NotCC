@@ -4,6 +4,7 @@ import { Direction, relativeToAbsolute } from "../helpers.js"
 import { GameState, KeyInputs, LevelState, onLevelAfterTick } from "../level.js"
 import { Decision, actorDB } from "../const.js"
 import { Item } from "./items.js"
+import { GlitchInfo } from "../parsers/nccs.pb.js"
 
 export function getMovementDirections(
 	input: KeyInputs
@@ -89,6 +90,8 @@ export abstract class Playable extends Actor {
 		const wasBonked = this.playerBonked
 		if (!forcedOnly) this.playerBonked = false
 
+		let characterSwitched = false
+
 		// TODO Split screen
 
 		const canMove = this.getCanMove() && !forcedOnly
@@ -99,6 +102,7 @@ export abstract class Playable extends Actor {
 				!this.level.releasedKeys.switchPlayable
 			) {
 				this.level.releasedKeys.switchPlayable = true
+				characterSwitched = true
 				this.level.selectedPlayable =
 					this.level.playables[
 						(this.level.playables.indexOf(this.level.selectedPlayable) + 1) %
@@ -137,6 +141,12 @@ export abstract class Playable extends Actor {
 		} else if (!canMove || (vert === undefined && horiz === undefined)) {
 			// We don't wanna move or we can't
 		} else {
+			if (characterSwitched) {
+				this.level.addGlitch({
+					glitchKind: GlitchInfo.KnownGlitches.SIMULTANEOUS_CHARACTER_MOVEMENT,
+					location: { x: this.tile.x, y: this.tile.y },
+				})
+			}
 			// We have a direction we certanly wanna move to
 			if (vert === undefined || horiz === undefined) {
 				// @ts-expect-error We ruled out the possibility of no directions earlier, so if any of them is undefined, the other one is not
