@@ -138,7 +138,7 @@ message GlitchInfo {
     BLUE_TP_LOGIC_GATE_SHENANIGANS = 4;
     CROSS_LEVEL_BLUE_TP_LOGIC_GATE_SHENANIGANS = 5;
     SIMULTANEOUS_CHARACTER_MOVEMENT = 6;
-    DYNAMITE_EXPLOSION_SNEAKING = 7;
+    // DYNAMITE_EXPLOSION_SNEAKING = 7;
   }
   KnownGlitches glitch_kind = 1;
   TilePositionInfo location = 2;
@@ -146,6 +146,10 @@ message GlitchInfo {
    * A miscellaneous glitch subtype specifier (eg. despawn replace vs delete)
    */
   int32 specifier = 3;
+  /**
+   * Time (absolute, since 0) when the glitch happens
+   */
+  google.protobuf.Duration happens_at = 4;
 }
 
 // The enum must be at the bottom, since the typings generator explodes if there

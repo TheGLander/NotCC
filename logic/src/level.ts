@@ -15,6 +15,7 @@ import {
 	wireTick,
 } from "./wires.js"
 import { GlitchInfo, IGlitchInfo, ISolutionInfo } from "./parsers/nccs.pb.js"
+import { msToProtoTime } from "./attemptTracker.js"
 
 export enum GameState {
 	PLAYING,
@@ -387,10 +388,16 @@ export class LevelState {
 	circuitOutputStates: Map<Wirable, boolean> = new Map()
 	sfxManager: SfxManager | null = null
 	glitches: IGlitchInfo[] = []
-	onGlitch: (() => void) | null = null
-	addGlitch(glitch: IGlitchInfo): void {
-		this.glitches.push(glitch)
-		this.onGlitch?.()
+	onGlitch: ((glitch: IGlitchInfo) => void) | null = null
+	addGlitch(glitch: Omit<IGlitchInfo, "happensAt">): void {
+		const completeGlitch = {
+			...glitch,
+			happensAt: msToProtoTime(
+				(this.currentTick * 3 + this.subtick) * (1000 / 60)
+			),
+		}
+		this.glitches.push(completeGlitch)
+		this.onGlitch?.(completeGlitch)
 	}
 }
 
