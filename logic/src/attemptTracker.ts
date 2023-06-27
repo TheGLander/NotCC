@@ -109,6 +109,7 @@ export class AttemptTracker {
 			this.currentAttempt.solution!.steps = [
 				this.attemptSteps.slice(0, this.currentStep * 2 + 1),
 			]
+			this.currentAttempt.solution!.usedGlitches = level.glitches
 		}
 
 		return this.currentAttempt
