@@ -906,10 +906,6 @@ export abstract class LogicGate extends Actor implements BlueTeleportTarget {
 			crossLevelData.logicGateTeleportPurgatory[this.tile.x] = []
 		}
 		crossLevelData.logicGateTeleportPurgatory[this.tile.x][this.tile.y] = other
-		this.level.addGlitch({
-			glitchKind: GlitchInfo.KnownGlitches.BLUE_TP_LOGIC_GATE_SHENANIGANS,
-			location: { x: this.tile.x, y: this.tile.y },
-		})
 	}
 	giveUpTeleport(other: Actor): void {
 		other.exists = true
