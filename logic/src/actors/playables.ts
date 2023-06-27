@@ -99,6 +99,7 @@ export abstract class Playable extends Actor {
 		if (this.level.selectedPlayable === this && !forcedOnly) {
 			if (
 				this.level.gameInput.switchPlayable &&
+				this.level.playables.length > 1 &&
 				!this.level.releasedKeys.switchPlayable
 			) {
 				this.level.releasedKeys.switchPlayable = true

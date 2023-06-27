@@ -1,0 +1,7 @@
+[_default]
+outcome=success
+[Trans-Pachipic Partnership]
+outcome=success
+glitches[] = (7, 2) SIMULTANEOUS_CHARACTER_MOVEMENT
+glitches[] = (7, 2) SIMULTANEOUS_CHARACTER_MOVEMENT
+

@@ -2,8 +2,15 @@
 outcome=success
 [MISERABLE ANTICLIMAX]
 outcome=badInput
+[TAG-TEAM TIME TRIAL]
+outcome=success
+glitches[] = (4, 11) SIMULTANEOUS_CHARACTER_MOVEMENT
 [VENETIAN DEMOLITION]
 outcome=badInput
+[CONJUGAL VISIT]
+outcome=success
+glitches[] = (1, 8) SIMULTANEOUS_CHARACTER_MOVEMENT
+glitches[] = (7, 9) SIMULTANEOUS_CHARACTER_MOVEMENT
 [149 IS A MEANINGLESS NUMBER]
 outcome=badInput
 [THE BIG STONE(D)]
@@ -27,6 +34,10 @@ outcome=noInput
 outcome=success
 glitches[] = (2, 1) DESPAWN replace
 glitches[] = (2, 1) DESPAWN delete
+[TRANS-PACHIPIC PARTNERSHIP]
+outcome=success
+glitches[] = (7, 2) SIMULTANEOUS_CHARACTER_MOVEMENT
+glitches[] = (7, 2) SIMULTANEOUS_CHARACTER_MOVEMENT
 [BLOCK DELETION]
 outcome=success
 glitches[] = (2, 3) DESPAWN replace
@@ -51,3 +62,4 @@ glitches[] = (13, 19) DESPAWN replace
 glitches[] = (13, 19) DESPAWN delete
 [ICE BLOCK SPEED TEAM]
 outcome=badInput
+
