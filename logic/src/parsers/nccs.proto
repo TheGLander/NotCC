@@ -134,12 +134,12 @@ message GlitchInfo {
   enum KnownGlitches {
     INVALID = 0;
     DESPAWN = 1;
-    // DYNAMITE_EXPLOSION_SNEAKING = 3;
+    DYNAMITE_EXPLOSION_SNEAKING = 3;
+    SIMULTANEOUS_CHARACTER_MOVEMENT = 6;
     reserved "CROSS_LEVEL_DESPAWN",
     "BLUE_TP_LOGIC_GATE_SHENANIGANS",
     "CROSS_LEVEL_BLUE_TP_LOGIC_GATE_SHENANIGANS";
     reserved 2, 4, 5;
-    SIMULTANEOUS_CHARACTER_MOVEMENT = 6;
   }
   KnownGlitches glitch_kind = 1;
   TilePositionInfo location = 2;

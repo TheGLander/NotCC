@@ -6,6 +6,7 @@ import { Fire } from "./terrain.js"
 import { Tile } from "../tile.js"
 import { iterableFind, iterableSome } from "../iterableHelpers.js"
 import { onLevelAfterTick } from "../level.js"
+import { GlitchInfo } from "../parsers/nccs.pb.js"
 
 export abstract class Monster extends Actor {
 	blocks(): true {
@@ -314,6 +315,23 @@ export class LitTNT extends Monster {
 				Math.abs(tile.y - this.tile.y) < 3
 			)
 				this.nukeTile(tile)
+		if (this.explosionStage === 2 || this.explosionStage === 3) {
+			// Dynamite sneaking check: If there's a playable in a ring we've nuked  last subtick,
+			// it means that the playable sneaked through the ring we are nuking this subtick
+			// by moving closer to the dynamite
+			for (const tile of this.tile.getDiamondSearch(this.explosionStage - 1)) {
+				if (
+					tile.findActor(actor =>
+						actor.getCompleteTags("tags").includes("real-playable")
+					)
+				) {
+					this.level.addGlitch({
+						glitchKind: GlitchInfo.KnownGlitches.DYNAMITE_EXPLOSION_SNEAKING,
+						location: { x: tile.x, y: tile.y },
+					})
+				}
+			}
+		}
 		if (this.explosionStage >= 3) this.nukeTile(this.tile)
 		this.tags.pop()
 		this.immuneTags.pop()
