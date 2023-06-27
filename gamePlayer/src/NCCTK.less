@@ -184,13 +184,29 @@ dialog.textDialog section {
 	padding-left: 1em;
 }
 
+#themeSelectorDialog .preferences {
+	margin-top: 1em;
+}
+
 .preferences {
 	display: grid;
 	grid: auto-flow / auto auto;
 	gap: 0.5em;
-	margin-top: 1em;
 	margin-right: 1em;
 	margin-bottom: 1em;
+	h3,
+	p {
+		grid-column-end: span 2;
+		margin-top: 0.3em;
+		margin-bottom: 0.3em;
+		&:first-child {
+			margin-top: 0.75em;
+		}
+	}
+	p {
+		font-size: 0.8em;
+		width: 70%;
+	}
 }
 
 button.themeButton {
@@ -548,6 +564,13 @@ canvas {
 			display: contents;
 		}
 	}
+	&[data-nonlegal] {
+		background-image: repeating-conic-gradient(#0005 0%, #0008 5%, #0005 10%),
+			radial-gradient(transparent, black);
+		#overlayNonlegalContents {
+			display: contents;
+		}
+	}
 	&[data-gz] {
 		background-image: radial-gradient(transparent, var(--general-bg) 70%),
 			repeating-radial-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00 30%);
@@ -571,6 +594,11 @@ canvas {
 		.statsContainer {
 			grid-area: middle;
 			padding: var(--quarter-tile);
+			&.small {
+				width: fit-content;
+				height: fit-content;
+				justify-self: center;
+			}
 		}
 		.buttonContainer {
 			box-sizing: border-box;

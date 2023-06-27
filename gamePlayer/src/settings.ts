@@ -12,11 +12,15 @@ export type SetListPreviewLevel = "title" | "level preview"
 export interface Settings {
 	mainTheme: ThemeColors
 	tileset: string
+	preventNonLegalGlitches: boolean
+	preventSimultaneousMovement: boolean
 }
 
 export const defaultSettings: Settings = {
 	mainTheme: { hue: 212, saturation: 80 },
 	tileset: "cga16",
+	preventNonLegalGlitches: true,
+	preventSimultaneousMovement: true,
 }
 
 const settingsDialog =
@@ -25,18 +29,19 @@ const settingsDialog =
 export function openSettingsDialog(pager: Pager): void {
 	resetListeners(settingsDialog)
 	const newSettings = clone(pager.settings)
-	function makeSettingsPreference(
+	function makeSettingsPreference<T extends HTMLElement = HTMLElement>(
 		id: string,
-		call: () => Promise<void>,
-		apply: (el: HTMLButtonElement) => void
+		call: (el: T) => void | Promise<void>,
+		apply: (el: T) => void
 	): void {
-		const button = settingsDialog.querySelector<HTMLButtonElement>(`#${id}`)!
-		button.addEventListener("click", async () => {
-			await call()
-			apply(button)
+		const el = settingsDialog.querySelector<T>(`#${id}`)!
+		el.addEventListener("click", async () => {
+			await call(el)
+			apply(el)
 		})
-		apply(button)
+		apply(el)
 	}
+
 	makeSettingsPreference(
 		"mainTheme",
 		() =>
@@ -64,6 +69,26 @@ export function openSettingsDialog(pager: Pager): void {
 				newSettings.tileset
 			)
 			currentTilesetText.textContent = tsetMeta?.title ?? "Unknown tileset"
+		}
+	)
+
+	makeSettingsPreference<HTMLInputElement>(
+		"preventNonLegalGlitches",
+		el => {
+			newSettings.preventNonLegalGlitches = el.checked
+		},
+		el => {
+			el.checked = newSettings.preventNonLegalGlitches
+		}
+	)
+
+	makeSettingsPreference<HTMLInputElement>(
+		"preventSimulMovement",
+		el => {
+			newSettings.preventSimultaneousMovement = el.checked
+		},
+		el => {
+			el.checked = newSettings.preventSimultaneousMovement
 		}
 	)
 

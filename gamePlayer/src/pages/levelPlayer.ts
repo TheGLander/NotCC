@@ -19,6 +19,8 @@ import {
 	isValidStartKey,
 	keyToInputMap,
 	playerPageBase,
+	glitchNames,
+	nonLegalGlitches,
 } from "./basePlayer"
 
 const heldKeys: Partial<Record<string, true>> = {}
@@ -44,6 +46,7 @@ function setupKeyListener(): void {
 
 interface OverlayButtons {
 	restart: HTMLElement
+	nonLegalRestart: HTMLElement
 	nextLevel: HTMLElement
 	scores: HTMLElement
 	explodeJupiter: HTMLElement
@@ -61,12 +64,14 @@ export const levelPlayerPage = {
 	overlayLevelName: null as HTMLElement | null,
 	viewportArea: null as HTMLElement | null,
 	hintBox: null as HTMLElement | null,
+	nonLegalGlitchName: null as HTMLElement | null,
 	setupPage(pager: Pager, page: HTMLElement): void {
 		playerPageBase.setupPage.call(this, pager, page)
 		setupKeyListener()
 		this.basePage = page
 		this.overlayButtons = {
 			restart: page.querySelector("#restartButton")!,
+			nonLegalRestart: page.querySelector("#nonLegalRestartButton")!,
 			explodeJupiter: page.querySelector("#explodeJupiterButton")!,
 			nextLevel: page.querySelector("#nextLevelButton")!,
 			scores: page.querySelector("#scoresButton")!,
@@ -79,6 +84,7 @@ export const levelPlayerPage = {
 			!this.overlayButtons.scores ||
 			!this.overlayButtons.explodeJupiter ||
 			!this.overlayButtons.restart ||
+			!this.overlayButtons.nonLegalRestart ||
 			!this.overlayButtons.nextLevel ||
 			!this.overlayButtons.unpause ||
 			!this.overlayButtons.gzLeveList ||
@@ -91,12 +97,18 @@ export const levelPlayerPage = {
 		this.overlayButtons.restart.addEventListener("click", async () => {
 			pager.resetLevel()
 		})
+		this.overlayButtons.nonLegalRestart.addEventListener("click", async () => {
+			pager.resetLevel()
+		})
 		this.overlayButtons.unpause.addEventListener("click", async () => {
 			this.togglePaused()
 		})
 		this.gameOverlay = page.querySelector<HTMLElement>("#levelViewportOverlay")!
 		this.overlayLevelName = page.querySelector<HTMLElement>("#overlayLevelName")
 		this.hintBox = page.querySelector<HTMLElement>("#hintBox")
+		this.nonLegalGlitchName = page.querySelector<HTMLElement>(
+			"#nonLegalGlitchName"
+		)
 		this.submitAttempt = this.submitAttemptUnbound.bind(this, pager)
 		this.sfxManager = new AudioSfxManager()
 		// TODO Pre-fetch sfx and sfx customization
@@ -113,6 +125,7 @@ export const levelPlayerPage = {
 	isPaused: false,
 	isPreplay: false,
 	isGz: false,
+	isNonLegal: false,
 	preplayKeyListener: null as KeyListener | null,
 	sfxManager: null as AudioSfxManager | null,
 	loadLevel(pager: Pager): void {
@@ -130,6 +143,7 @@ export const levelPlayerPage = {
 		this.isPaused = false
 		this.isGz = false
 		this.isPreplay = true
+		this.isNonLegal = false
 		this.updateOverlayState()
 		this.preplayKeyListener?.remove()
 		this.preplayKeyListener = new KeyListener((ev: KeyboardEvent) => {
@@ -150,6 +164,15 @@ export const levelPlayerPage = {
 			this.currentLevel.randomForceFloorDirection,
 			pager.loadedSet?.scriptRunner.state
 		)
+		this.currentLevel.onGlitch = glitch => {
+			if (!this.preventNonLegalGlitches) return
+			if (glitch.glitchKind && nonLegalGlitches.includes(glitch.glitchKind)) {
+				this.isNonLegal = true
+				this.nonLegalGlitchName!.textContent = glitchNames[glitch.glitchKind]
+				this.updateOverlayState()
+				this.findCurrentMainButton()?.focus()
+			}
+		}
 	},
 	updateOverlayState(): void {
 		this.gameOverlay!.setAttribute(
@@ -159,6 +182,7 @@ export const levelPlayerPage = {
 		setAttributeExistence(this.gameOverlay!, "data-paused", this.isPaused)
 		setAttributeExistence(this.gameOverlay!, "data-preplay", this.isPreplay)
 		setAttributeExistence(this.gameOverlay!, "data-gz", this.isGz)
+		setAttributeExistence(this.gameOverlay!, "data-nonlegal", this.isNonLegal)
 	},
 	endPreplay(): void {
 		this.isPreplay = false
@@ -167,7 +191,12 @@ export const levelPlayerPage = {
 		this.preplayKeyListener = null
 	},
 	togglePaused(): void {
-		if (this.gameState !== GameState.PLAYING || this.isPreplay || this.isGz)
+		if (
+			this.gameState !== GameState.PLAYING ||
+			this.isPreplay ||
+			this.isGz ||
+			this.isNonLegal
+		)
 			return
 
 		this.isPaused = !this.isPaused
@@ -230,6 +259,21 @@ export const levelPlayerPage = {
 	getInput(): KeyInputs {
 		const keyInputs: Partial<KeyInputs> = {}
 		for (const [key, val] of Object.entries(keyToInputMap)) {
+			if (
+				this.preventSimultaneousMovement &&
+				val === "switchPlayable" &&
+				heldKeys[key]
+			) {
+				return {
+					up: false,
+					right: false,
+					down: false,
+					left: false,
+					drop: false,
+					rotateInv: false,
+					switchPlayable: true,
+				}
+			}
 			keyInputs[val] = !!heldKeys[key]
 		}
 		return keyInputs as KeyInputs
@@ -245,7 +289,8 @@ export const levelPlayerPage = {
 			this.gameState === GameState.TIMEOUT ||
 			this.isPaused ||
 			this.isPreplay ||
-			this.isGz
+			this.isGz ||
+			this.isNonLegal
 		)
 			return
 		playerPageBase.updateLogic.call(this)
@@ -264,7 +309,7 @@ export const levelPlayerPage = {
 		if (!pager.loadedLevel)
 			throw new Error("Cannot open the level player page with a level to play.")
 		this.loadLevel(pager)
-		this.reloadTileset(pager)
+		this.updateSettings(pager)
 		this.updateTextOutputs()
 		this.logicTimer = new TimeoutIntervalTimer(
 			this.updateLogic.bind(this),
@@ -294,12 +339,14 @@ export const levelPlayerPage = {
 		this.isGz = true
 		this.isPaused = false
 		this.isPreplay = false
+		this.isNonLegal = false
 		this.gameState = GameState.PLAYING
 		this.updateOverlayState()
 	},
 	async loadSolution(pager: Pager, sol: protobuf.ISolutionInfo): Promise<void> {
 		this.loadLevel(pager)
 		this.attemptTracker = null
+		this.currentLevel!.onGlitch = null
 		this.currentLevel!.playbackSolution(sol)
 		this.basePage!.classList.add("solutionPlayback")
 		this.endPreplay()

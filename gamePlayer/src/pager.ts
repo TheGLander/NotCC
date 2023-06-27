@@ -20,7 +20,7 @@ export interface Page {
 	showGz?: (pager: Pager) => void
 	loadLevel?: (page: Pager) => void
 	loadSolution?: (pager: Pager, sol: protobuf.ISolutionInfo) => Promise<void>
-	reloadTileset?: (pager: Pager) => void
+	updateSettings?: (pager: Pager) => void
 }
 
 export class Pager {
@@ -154,7 +154,7 @@ export class Pager {
 	async reloadSettings(): Promise<void> {
 		this.updateTheme()
 		await updatePagerTileset(this)
-		this.currentPage.reloadTileset?.(this)
+		this.currentPage.updateSettings?.(this)
 	}
 	async saveSettings(newSettings: Settings): Promise<void> {
 		this.settings = newSettings

@@ -1,6 +1,7 @@
 import { createLevelFromData, KeyInputs, LevelState } from "@notcc/logic"
 import { Pager } from "../pager"
 import { Renderer } from "../renderer"
+import { protobuf } from "@notcc/logic"
 
 // TODO Smart TV inputs
 // TODO Customizable inputs in general
@@ -27,6 +28,20 @@ export interface TextOutputs {
 	time: HTMLElement
 	bonusPoints: HTMLElement
 }
+
+const KnownGlitches = protobuf.GlitchInfo.KnownGlitches
+export const glitchNames: Record<protobuf.GlitchInfo.KnownGlitches, string> = {
+	[KnownGlitches.INVALID]: "???",
+	[KnownGlitches.DESPAWN]: "Despawn",
+	[KnownGlitches.SIMULTANEOUS_CHARACTER_MOVEMENT]:
+		"Simultaneous character movement",
+	[KnownGlitches.DYNAMITE_EXPLOSION_SNEAKING]: "Dynamite explosion sneaking",
+}
+
+export const nonLegalGlitches: protobuf.GlitchInfo.KnownGlitches[] = [
+	KnownGlitches.SIMULTANEOUS_CHARACTER_MOVEMENT,
+	KnownGlitches.DYNAMITE_EXPLOSION_SNEAKING,
+]
 
 export const playerPageBase = {
 	basePage: null as HTMLElement | null,
@@ -155,7 +170,9 @@ export const playerPageBase = {
 	updateRender(): void {
 		this.renderer!.frame()
 	},
-	reloadTileset(pager: Pager): void {
+	preventNonLegalGlitches: true,
+	preventSimultaneousMovement: true,
+	updateSettings(pager: Pager): void {
 		if (!pager.tileset)
 			throw new Error("Can't update the tileset without a tileset.")
 		if (!this.renderer)
@@ -171,5 +188,8 @@ export const playerPageBase = {
 			`${pager.tileset.tileSize.toString()}px`
 		)
 		this.updateTileScale()
+		this.preventNonLegalGlitches = pager.settings.preventNonLegalGlitches
+		this.preventSimultaneousMovement =
+			pager.settings.preventSimultaneousMovement
 	},
 }
