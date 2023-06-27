@@ -1,6 +1,5 @@
 import {
 	createLevelFromData,
-	crossLevelData,
 	GameState,
 	parseC2M,
 	protobuf,
@@ -51,9 +50,6 @@ function waitForMessage(): Promise<any> {
 		let glitches: protobuf.IGlitchInfo[] = []
 		try {
 			const levelBuffer = fs.readFileSync(levelPath, null)
-
-			// TODO This shouldn't happen in any solutions anyways
-			crossLevelData.despawnedActors = []
 
 			const levelData = parseC2M(new Uint8Array(levelBuffer).buffer, levelPath)
 			levelName = levelData.name || "???"

@@ -1,4 +1,4 @@
-import { LevelState, crossLevelData } from "./level.js"
+import { LevelState } from "./level.js"
 import { Decision, actorDB } from "./const.js"
 import { Direction, hasOwnProperty } from "./helpers.js"
 import { Layer, Tile } from "./tile.js"
@@ -529,9 +529,9 @@ export abstract class Actor implements Wirable {
 		if (this.despawned) {
 			// We moved! That means this is no longer despawned and we are no longer omni-present
 			this.despawned = false
-			if (crossLevelData.despawnedActors.includes(this))
-				crossLevelData.despawnedActors.splice(
-					crossLevelData.despawnedActors.indexOf(this),
+			if (this.level.despawnedActors.includes(this))
+				this.level.despawnedActors.splice(
+					this.level.despawnedActors.indexOf(this),
 					1
 				)
 		}
@@ -569,9 +569,9 @@ export abstract class Actor implements Wirable {
 				1
 			)
 		if (this.despawned) {
-			if (crossLevelData.despawnedActors.includes(this))
-				crossLevelData.despawnedActors.splice(
-					crossLevelData.despawnedActors.indexOf(this),
+			if (this.level.despawnedActors.includes(this))
+				this.level.despawnedActors.splice(
+					this.level.despawnedActors.indexOf(this),
 					1
 				)
 		}

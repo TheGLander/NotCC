@@ -1,5 +1,5 @@
 import { Actor } from "./actor.js"
-import { LevelState, crossLevelData } from "./level.js"
+import { LevelState } from "./level.js"
 import { Direction } from "./helpers.js"
 import { CircuitCity, Wirable, WireOverlapMode, Wires } from "./wires.js"
 import { GlitchInfo } from "./parsers/nccs.pb.js"
@@ -104,11 +104,11 @@ export class Tile implements Wirable {
 			} else {
 				if (theLayer instanceof Actor) {
 					theLayer.despawned = true
-					crossLevelData.despawnedActors.push(theLayer)
+					this.level.despawnedActors.push(theLayer)
 				} else
 					theLayer.forEach(val => {
 						val.despawned = true
-						crossLevelData.despawnedActors.push(val)
+						this.level.despawnedActors.push(val)
 					})
 				this.optimizedState[actor.layer] = actor
 				this.level.addGlitch({
@@ -143,12 +143,12 @@ export class Tile implements Wirable {
 					})
 					if (theLayer instanceof Actor) {
 						theLayer.despawned = true
-						crossLevelData.despawnedActors.push(theLayer)
+						this.level.despawnedActors.push(theLayer)
 					} else
 						theLayer.forEach(val => {
 							if (val !== actor) {
 								val.despawned = true
-								crossLevelData.despawnedActors.push(val)
+								this.level.despawnedActors.push(val)
 							}
 						})
 				}

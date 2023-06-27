@@ -1,10 +1,4 @@
-import {
-	crossLevelData,
-	Direction,
-	GameState,
-	KeyInputs,
-	LevelState,
-} from "@notcc/logic"
+import { Direction, GameState, KeyInputs, LevelState } from "@notcc/logic"
 import clone from "clone"
 import { Pager } from "../pager"
 import { showLoadPrompt, showSavePrompt } from "../saveData"
@@ -103,7 +97,6 @@ const LEVEL_SNAPSHOT_PERIOD = 60
 interface LevelSnapshot {
 	level: LevelState
 	movePosition: number
-	RFFDirection: Direction
 }
 
 // TODO move this to @notcc/logic maybe?
@@ -176,7 +169,6 @@ export const exaPlayerPage = {
 			{
 				level: cloneLevel(this.currentLevel!),
 				movePosition: 0,
-				RFFDirection: crossLevelData.RFFDirection,
 			},
 		]
 		this.renderer!.updateTileSize()
@@ -280,7 +272,6 @@ export const exaPlayerPage = {
 		this.snapshots.push({
 			level: cloneLevel(level),
 			movePosition: this.movePosition,
-			RFFDirection: crossLevelData.RFFDirection,
 		})
 	},
 	seekTo(newPosition: number, snapToMove = true): void {
@@ -296,7 +287,6 @@ export const exaPlayerPage = {
 		const closestSnapshot = [...this.snapshots]
 			.reverse()
 			.find(snap => snap.movePosition <= this.movePosition)!
-		crossLevelData.RFFDirection = closestSnapshot.RFFDirection
 		this.currentLevel = cloneLevel(closestSnapshot.level)
 		this.renderer!.level = this.currentLevel
 		let actualPosition = closestSnapshot.movePosition
@@ -367,7 +357,7 @@ export const exaPlayerPage = {
 		// TODO compare route.For metadata
 		const level = this.currentLevel!
 		level.blobPrngValue = route.Blobmod ?? 0x55
-		crossLevelData.RFFDirection = route["Initial Slide"] ?? Direction.UP
+		level.randomForceFloorDirection = route["Initial Slide"] ?? Direction.UP
 		const moves = splitCharString(route.Moves)
 		let moveCount = 0
 		while (moves.length > this.movePosition) {
@@ -405,7 +395,7 @@ export const exaPlayerPage = {
 							Set: pager.loadedSet!.scriptRunner.state.scriptTitle!,
 					  },
 			Blobmod: level.blobPrngValue,
-			"Initial Slide": this.snapshots[0].RFFDirection,
+			"Initial Slide": this.snapshots[0].level.randomForceFloorDirection,
 		}
 		const routeString = JSON.stringify(route)
 		const routeBin = new TextEncoder().encode(routeString)

@@ -5,7 +5,7 @@ import { actorDB, Decision } from "../const.js"
 import { Fire } from "./terrain.js"
 import { Tile } from "../tile.js"
 import { iterableFind, iterableSome } from "../iterableHelpers.js"
-import { crossLevelData, onLevelAfterTick } from "../level.js"
+import { onLevelAfterTick } from "../level.js"
 
 export abstract class Monster extends Actor {
 	blocks(): true {
@@ -188,7 +188,7 @@ export class TankBlue extends Monster {
 actorDB["tankBlue"] = TankBlue
 
 onLevelAfterTick.push(level => {
-	if (crossLevelData.blueButtonPressed) {
+	if (level.blueButtonPressed) {
 		for (const tank of level.decidingActors) {
 			if (
 				hasOwnProperty(tank, "rotateTank") &&
@@ -196,7 +196,7 @@ onLevelAfterTick.push(level => {
 			)
 				tank.rotateTank()
 		}
-		crossLevelData.blueButtonPressed = false
+		level.blueButtonPressed = false
 	}
 })
 
@@ -350,15 +350,15 @@ export class TankYellow extends Monster {
 actorDB["tankYellow"] = TankYellow
 
 onLevelAfterTick.push(level => {
-	if (crossLevelData.currentYellowButtonPress) {
+	if (level.currentYellowButtonPress) {
 		for (const tank of level.decidingActors) {
 			if (
 				hasOwnProperty(tank, "rotateYellowTank") &&
 				typeof tank.rotateYellowTank === "function"
 			)
-				tank.rotateYellowTank(crossLevelData.currentYellowButtonPress)
+				tank.rotateYellowTank(level.currentYellowButtonPress)
 		}
-		crossLevelData.currentYellowButtonPress = Decision.NONE
+		level.currentYellowButtonPress = Decision.NONE
 	}
 })
 

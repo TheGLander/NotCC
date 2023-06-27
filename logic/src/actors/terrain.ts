@@ -7,7 +7,6 @@ import { Playable } from "./playables.js"
 import {
 	GameState,
 	LevelState,
-	crossLevelData,
 	onLevelDecisionTick,
 	onLevelWireTick,
 } from "../level.js"
@@ -216,8 +215,8 @@ export class ForceFloorRandom extends Actor {
 		if (other.bonked) other.enterTile(true)
 		if (!other._internalIgnores(this)) {
 			other.slidingState = SlidingState.WEAK
-			other.direction = crossLevelData.RFFDirection++
-			crossLevelData.RFFDirection %= 4
+			other.direction = this.level.randomForceFloorDirection++
+			this.level.randomForceFloorDirection %= 4
 			if (other instanceof Playable) other.playerBonked = true
 			if (other.bonked) {
 				if (other._internalStep(other.direction)) other.cooldown--
@@ -228,13 +227,6 @@ export class ForceFloorRandom extends Actor {
 		return 2
 	}
 }
-declare module "../level.js" {
-	export interface CrossLevelDataInterface {
-		RFFDirection: Direction
-	}
-}
-
-crossLevelData.RFFDirection = Direction.UP
 
 actorDB["forceFloorRandom"] = ForceFloorRandom
 
@@ -856,12 +848,6 @@ onLevelWireTick.push(level => {
 	}
 })
 
-declare module "../level.js" {
-	export interface CrossLevelDataInterface {
-		logicGateTeleportPurgatory: Field<Actor>
-	}
-}
-
 export abstract class LogicGate extends Actor implements BlueTeleportTarget {
 	immuneTags = ["tnt"]
 	getLayer(): Layer {
@@ -895,6 +881,7 @@ export abstract class LogicGate extends Actor implements BlueTeleportTarget {
 	}
 	providesPower = true
 	wireOverlapMode = WireOverlapMode.NONE
+	heldActor: Actor | null = null
 	isBlueTeleportTarget(): boolean {
 		return true
 	}
@@ -902,25 +889,20 @@ export abstract class LogicGate extends Actor implements BlueTeleportTarget {
 		other.exists = false
 		other.oldTile = other.tile
 		other.tile = this.tile
-		if (!crossLevelData.logicGateTeleportPurgatory[this.tile.x]) {
-			crossLevelData.logicGateTeleportPurgatory[this.tile.x] = []
-		}
-		crossLevelData.logicGateTeleportPurgatory[this.tile.x][this.tile.y] = other
+		this.heldActor = other
 	}
 	giveUpTeleport(other: Actor): void {
 		other.exists = true
-		delete crossLevelData.logicGateTeleportPurgatory[this.tile.x]?.[this.tile.y]
+		this.heldActor = null
 	}
 	doTeleport(): void {
-		const toTeleport =
-			crossLevelData.logicGateTeleportPurgatory[this.tile.x]?.[this.tile.y]
-		if (toTeleport) {
-			doBlueTeleport(this, toTeleport)
+		if (this.heldActor) {
+			doBlueTeleport(this, this.heldActor)
 		}
 	}
 	isBusy(): boolean {
 		return (
-			!!crossLevelData.logicGateTeleportPurgatory[this.tile.x]?.[this.tile.y] ||
+			!!this.heldActor ||
 			(dirToWire((wireToDir(this.getOutputWires()) + this.direction) % 4) &
 				(this.poweredWires | this.poweringWires)) ===
 				0

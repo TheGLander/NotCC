@@ -147,6 +147,7 @@ export const levelPlayerPage = {
 		}
 		this.attemptTracker = new AttemptTracker(
 			this.currentLevel.blobPrngValue,
+			this.currentLevel.randomForceFloorDirection,
 			pager.loadedSet?.scriptRunner.state
 		)
 	},

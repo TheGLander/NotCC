@@ -36,46 +36,7 @@ export interface KeyInputs {
 
 export type InputType = keyof KeyInputs
 
-// TODO Blue teleport gate madness
-export interface CrossLevelDataInterface {
-	despawnedActors: Actor[]
-}
-
-export const crossLevelData: CrossLevelDataInterface = {
-	despawnedActors: [],
-	RFFDirection: 0,
-	greenButtonPressed: false,
-	blueButtonPressed: false,
-	currentYellowButtonPress: 0,
-	logicGateTeleportPurgatory: [],
-}
-
-export const onLevelStart: ((level: LevelState) => void)[] = [
-	level => {
-		let undefinedBehaviorWarningGiven = false
-		for (const actor of crossLevelData.despawnedActors) {
-			if (
-				(actor.tile.position[0] >= level.width ||
-					actor.tile.position[1] >= level.height) &&
-				!undefinedBehaviorWarningGiven
-			) {
-				console.warn(
-					"Actors respawning outside of the map is undefined behaviour."
-				)
-				undefinedBehaviorWarningGiven = true
-			}
-			actor.level = level
-			level.actors.push(actor)
-			if (actor.isDeciding) level.decidingActors.push(actor)
-			actor.tile.removeActors(actor)
-			actor.oldTile = null
-			actor.tile = level.field[actor.tile.position[0]][actor.tile.position[1]]
-			if (actor instanceof Playable) level.playables.push(actor)
-			// Note that we don't add the actor to the tile: That's the whole point of despawning
-			// actor.tile.addActors(actor)
-		}
-	},
-]
+export const onLevelStart: ((level: LevelState) => void)[] = []
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
 export const onLevelWireTick: ((level: LevelState) => void)[] = []
 export const onLevelAfterTick: ((level: LevelState) => void)[] = []
@@ -326,7 +287,7 @@ export class LevelState {
 		const levelState = solution.levelState
 		if (!levelState) return
 		if (typeof levelState.randomForceFloorDirection === "number") {
-			crossLevelData.RFFDirection = levelState.randomForceFloorDirection - 1
+			this.randomForceFloorDirection = levelState.randomForceFloorDirection - 1
 		}
 		const blobMod = levelState.cc2Data?.blobModifier
 		if (typeof blobMod === "number") {
@@ -382,6 +343,11 @@ export class LevelState {
 		this.glitches.push(completeGlitch)
 		this.onGlitch?.(completeGlitch)
 	}
+	randomForceFloorDirection: Direction = Direction.UP
+	greenButtonPressed = false
+	blueButtonPressed = false
+	currentYellowButtonPress = 0
+	despawnedActors: Actor[] = []
 }
 
 export function createLevelFromData(data: LevelData): LevelState {

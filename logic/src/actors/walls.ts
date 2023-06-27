@@ -4,7 +4,7 @@ import { actorDB } from "../const.js"
 import { Direction, hasOwnProperty } from "../helpers.js"
 import { Playable } from "./playables.js"
 import { WireOverlapMode } from "../wires.js"
-import { crossLevelData, onLevelAfterTick } from "../level.js"
+import { onLevelAfterTick } from "../level.js"
 export class Wall extends Actor {
 	id = "wall"
 	tags = ["wall", "tinnable"]
@@ -211,7 +211,7 @@ export class ToggleWall extends Actor {
 }
 
 onLevelAfterTick.push(level => {
-	if (crossLevelData.greenButtonPressed) {
+	if (level.greenButtonPressed) {
 		for (const terrain of level.actors) {
 			if (
 				hasOwnProperty(terrain, "greenToggle") &&
@@ -219,7 +219,7 @@ onLevelAfterTick.push(level => {
 			)
 				terrain.greenToggle()
 		}
-		crossLevelData.greenButtonPressed = false
+		level.greenButtonPressed = false
 	}
 })
 

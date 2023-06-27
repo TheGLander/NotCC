@@ -3,7 +3,7 @@ import { Layer } from "../tile.js"
 import { actorDB, Decision } from "../const.js"
 import { Tile } from "../tile.js"
 import { getTileWirable, WireOverlapMode } from "../wires.js"
-import { crossLevelData, onLevelStart } from "../level.js"
+import { onLevelStart } from "../level.js"
 
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
@@ -51,54 +51,30 @@ export function globalComplexButtonFactory(color: string) {
 	}
 }
 
-declare module "../level.js" {
-	export interface CrossLevelDataInterface {
-		greenButtonPressed: Partial<boolean>
-	}
-}
 class ButtonGreen extends globalButtonFactory("green") {
 	actorCompletelyJoined(): void {
 		super.actorCompletelyJoined()
-		crossLevelData.greenButtonPressed = !crossLevelData.greenButtonPressed
+		this.level.greenButtonPressed = !this.level.greenButtonPressed
 	}
 }
-
-onLevelStart.push(() => (crossLevelData.greenButtonPressed = false))
 
 actorDB["buttonGreen"] = ButtonGreen
 
-declare module "../level.js" {
-	export interface CrossLevelDataInterface {
-		blueButtonPressed: boolean
-	}
-}
 class ButtonBlue extends globalButtonFactory("blue") {
 	actorCompletelyJoined(): void {
 		super.actorCompletelyJoined()
-		crossLevelData.blueButtonPressed = !crossLevelData.blueButtonPressed
+		this.level.blueButtonPressed = !this.level.blueButtonPressed
 	}
 }
-
-onLevelStart.push(() => (crossLevelData.blueButtonPressed = false))
 
 actorDB["buttonBlue"] = ButtonBlue
 
-actorDB["complexButtonYellow"] = globalComplexButtonFactory("yellow")
-declare module "../level.js" {
-	export interface CrossLevelDataInterface {
-		currentYellowButtonPress: Decision
-	}
-}
 class ComplexButtonYellow extends globalComplexButtonFactory("yellow") {
 	actorCompletelyJoined(other: Actor): void {
 		super.actorCompletelyJoined(other)
-		crossLevelData.currentYellowButtonPress = other.direction + 1
+		this.level.currentYellowButtonPress = other.direction + 1
 	}
 }
-
-onLevelStart.push(
-	() => (crossLevelData.currentYellowButtonPress = Decision.NONE)
-)
 
 actorDB["complexButtonYellow"] = ComplexButtonYellow
 

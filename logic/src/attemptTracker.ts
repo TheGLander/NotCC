@@ -1,11 +1,7 @@
-import {
-	CrossLevelDataInterface,
-	KeyInputs,
-	encodeSolutionStep,
-} from "./level.js"
+import { Direction } from "./helpers.js"
+import { KeyInputs, encodeSolutionStep } from "./level.js"
 import { GameState } from "./level.js"
 import { LevelState } from "./level.js"
-import { crossLevelData } from "./level.js"
 import {
 	IAttemptInfo,
 	ILevelStateInfo,
@@ -25,27 +21,25 @@ export function msToProtoTime(
 	}
 }
 
-export function makeLevelStateInfo(
-	blobMod: number,
-	scriptState?: IScriptState,
-	globalState: CrossLevelDataInterface = crossLevelData
-): ILevelStateInfo {
-	return {
-		randomForceFloorDirection: globalState.RFFDirection + 1,
-		cc2Data: { blobModifier: blobMod, scriptState },
-	}
-}
-
 export class AttemptTracker {
 	currentAttempt: IAttemptInfo
 	attemptStartTime: number = Date.now()
 	currentStep = -1
 
 	attemptSteps: Uint8Array = new Uint8Array(100)
-	constructor(blobMod: number, scriptState?: IScriptState) {
+	constructor(
+		blobMod: number,
+		randomForceFloorDirection: Direction,
+		scriptState?: IScriptState
+	) {
 		this.currentAttempt = {
 			attemptStart: msToProtoTime(Date.now()),
-			solution: { levelState: makeLevelStateInfo(blobMod, scriptState) },
+			solution: {
+				levelState: {
+					randomForceFloorDirection: randomForceFloorDirection + 1,
+					cc2Data: { blobModifier: blobMod, scriptState },
+				},
+			},
 		}
 	}
 	reallocateStepArray(): void {

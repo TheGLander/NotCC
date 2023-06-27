@@ -1,6 +1,5 @@
 import {
 	onLevelDecisionTick,
-	crossLevelData,
 	createLevelFromData,
 	onLevelAfterTick,
 	onLevelStart,
@@ -62,7 +61,6 @@ const exportObject = {
 	onLevelDecisionTick,
 	onLevelAfterTick,
 	onLevelStart,
-	crossLevelData,
 	createLevelFromData,
 	Actor,
 	Item,
