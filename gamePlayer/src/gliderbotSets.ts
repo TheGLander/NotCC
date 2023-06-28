@@ -9,6 +9,35 @@ import { makeHttpFileLoader } from "./fileLoaders"
 
 const censoredSetNames: string[] = ["CC1STEAM", "steamcc1", "cc1cropped", "cc2"]
 
+// Some important sets (CC2LP1, CCLP ports) don't have set metadata as of writing,
+// so inject our own metadata to put them near the top
+const subsituteSetMetadata: Record<string, ScriptMetadata> = {
+	cc2lp1: {
+		title: "Chips Challenge 2 Level Pack 1",
+		by: "The Community",
+		description:
+			"Chip's Challenge 2 Level Pack 1 is the first community level pack for Chip's Challenge 2. It contains 200 levels created by and voted on by fans. Read about it at https://bitbusters.club/cc2lp1",
+		difficulty: 4,
+		listingPriority: "top",
+	},
+	"cclp1-cc2": {
+		title: "Chips Challenge Level Pack 1 (Steam)",
+		by: "The Community",
+		difficulty: 3,
+		description:
+			"Chip's Challenge Level Pack 1 is a beginner-friendly level pack for Chip's Challenge. This is the port of CCLP1 to the Steam ruleset. May be incomplete.",
+		listingPriority: "top",
+	},
+	"CCLP4-CC2": {
+		title: "Chips Challenge Level Pack 4 (Steam)",
+		by: "The Community",
+		difficulty: 4,
+		description:
+			"Chip's Challenge Level Pack 4 is the community's fourth level pack for Chip's Challenge. This is the port of CCLP4 to the Steam ruleset. May be incomplete.",
+		listingPriority: "top",
+	},
+}
+
 const listingRegex = /<a href="(?!\.\.\/")(.+)">.+<\/a>\s+(.+:..)/g
 const gliderbotWebsite = "https://bitbusters.club/gliderbot/sets/cc2/"
 
@@ -148,7 +177,8 @@ async function findGbSet(dir: NginxDirectory): Promise<GliderbotSet | null> {
 		const scriptTitle = findScriptName(scriptText)
 		// A c2g file without a title. Could possibly be a `chain`-able helper script
 		if (!scriptTitle) continue
-		const metadata = parseScriptMetadata(scriptText)
+		const metadata =
+			subsituteSetMetadata[dir.name] ?? parseScriptMetadata(scriptText)
 		return {
 			mainScript: file.name,
 			metadata,
