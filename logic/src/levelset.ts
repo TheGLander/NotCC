@@ -253,6 +253,7 @@ export class LevelSet {
 			throw new Error(
 				"Internal discrepency detected: script `level` variable and level record number don't match up."
 			)
+		const oldScriptPath = this.scriptRunner.state.scriptPath
 		const scriptPath = newRecord.levelInfo.scriptState?.scriptPath
 		const filePath = newRecord.levelInfo.levelFilePath
 		if (!scriptPath || !filePath)
@@ -268,11 +269,15 @@ export class LevelSet {
 		this.currentLevel = newLevelN
 		this.scriptRunner.state = clone(newRecord.levelInfo.scriptState!)
 
-		// Reload the script file, in case a `chain` happened between the current
-		// and next level
+		// Reload the script file if it has changed
 
-		const scriptData = (await this.loaderFunction(scriptPath, false)) as string
-		this.scriptRunner.loadScript(scriptData, scriptPath)
+		if (oldScriptPath !== scriptPath) {
+			const scriptData = (await this.loaderFunction(
+				scriptPath,
+				false
+			)) as string
+			this.scriptRunner.loadScript(scriptData, scriptPath)
+		}
 
 		// Make the interrupt the previous level should have
 		this.scriptRunner.scriptInterrupt = {
