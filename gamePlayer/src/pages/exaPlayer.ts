@@ -460,7 +460,7 @@ export const exaPlayerPage = {
 		if (!pager.loadedLevel)
 			throw new Error("Cannot open the level player page with a level to play.")
 		this.loadLevel(pager)
-		this.reloadTileset(pager)
+		this.updateSettings(pager)
 		this.updateRender()
 		this.setupKeyListener()
 	},

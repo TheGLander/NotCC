@@ -294,7 +294,7 @@ export const setSelectorPage = {
 		await this.buildSetLis(pager)
 		this.showSetLis()
 	},
-	reloadTileset(pager: Pager): void {
+	updateSettings(pager: Pager): void {
 		if (this.gbSets !== null) {
 			this.generateSetLis(pager)
 		}
