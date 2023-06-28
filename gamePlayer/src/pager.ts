@@ -94,6 +94,8 @@ export class Pager {
 		this.updateShownLevelNumber()
 		if (!newRecord) {
 			this.currentPage.showGz?.(this)
+		} else {
+			await this.writeSaveData()
 		}
 	}
 	async loadPreviousLevel(): Promise<void> {
@@ -108,6 +110,7 @@ export class Pager {
 
 		this.loadedLevel = newRecord.levelData!
 		this.updateShownLevelNumber()
+		await this.writeSaveData()
 	}
 	/**
 	 * Resets the current level, complete with rerunning the script
@@ -124,7 +127,7 @@ export class Pager {
 	async reloadLevel(): Promise<void> {
 		this.currentPage.loadLevel?.(this)
 	}
-	saveAttempt(attempt: protobuf.IAttemptInfo): void {
+	saveAttempt(attempt: protobuf.IAttemptInfo): void | Promise<void> {
 		if (!this.loadedSet) return
 		const levelInfo =
 			this.loadedSet.seenLevels[this.loadedSet.currentLevel]?.levelInfo
@@ -133,12 +136,16 @@ export class Pager {
 
 		levelInfo.attempts ??= []
 		levelInfo.attempts.push(attempt)
+		return this.writeSaveData()
+	}
+	async writeSaveData(): Promise<void> {
+		if (!this.loadedSet) return
 		const scriptState = this.loadedSet.scriptRunner.state
 		const scriptTitle = scriptState.scriptTitle
 		if (!scriptTitle)
 			throw new Error("The loaded set does not have an identifier set.")
 
-		saveSetInfo(this.loadedSet.toSetInfo(), scriptTitle)
+		await saveSetInfo(this.loadedSet.toSetInfo(), scriptTitle)
 	}
 	async loadSolution(sol: protobuf.ISolutionInfo): Promise<void> {
 		if (!this.currentPage.loadSolution)
