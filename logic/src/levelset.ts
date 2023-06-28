@@ -246,6 +246,9 @@ export class LevelSet {
 			newLevelN = levelNums[currentIndex - 1]
 		}
 		if (!newLevelN) return null
+		return this.goToLevel(newLevelN)
+	}
+	async goToLevel(newLevelN: number): Promise<LevelSetRecord> {
 		const newRecord = this.seenLevels[newLevelN]
 		const scriptLevelN = newRecord.levelInfo.scriptState?.variables?.level ?? 0
 

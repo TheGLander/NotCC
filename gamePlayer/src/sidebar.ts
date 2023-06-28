@@ -123,7 +123,7 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			shortcut: "shift+s",
 			action(pager: Pager): void {
 				if (pager.loadedSet) {
-					openLevelListDialog(pager.loadedSet)
+					openLevelListDialog(pager)
 				}
 			},
 			enabledPages: playerPages,

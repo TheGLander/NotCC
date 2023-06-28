@@ -112,6 +112,20 @@ export class Pager {
 		this.updateShownLevelNumber()
 		await this.writeSaveData()
 	}
+	async goToLevel(newLevelN: number): Promise<void> {
+		if (!this.loadedSet)
+			throw new Error("Can't load the previous level of a set without a set.")
+
+		const newRecord = await this.loadedSet.goToLevel(newLevelN)
+		// This is the first level of the set
+		if (!newRecord) {
+			return
+		}
+
+		this.loadedLevel = newRecord.levelData!
+		this.updateShownLevelNumber()
+		await this.writeSaveData()
+	}
 	/**
 	 * Resets the current level, complete with rerunning the script
 	 */
