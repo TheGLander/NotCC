@@ -1,6 +1,6 @@
 import { findBestMetrics } from "@notcc/logic"
 import { Pager } from "./pager"
-import { formatSubticks, makeTd } from "./utils"
+import { makeTd } from "./utils"
 
 const levelListDialog =
 	document.querySelector<HTMLDialogElement>("#levelListDialog")!
