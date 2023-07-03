@@ -21,6 +21,12 @@ export function msToProtoTime(
 	}
 }
 
+export function protoTimeToMs(
+	protoTime: google.protobuf.ITimestamp | google.protobuf.IDuration
+): number {
+	return (protoTime.seconds ?? 0) * 1000 + (protoTime.nanos ?? 0) / 1000
+}
+
 export class AttemptTracker {
 	currentAttempt: IAttemptInfo
 	attemptStartTime: number = Date.now()

@@ -1,15 +1,84 @@
 import clone from "clone"
+import { protoTimeToMs } from "./attemptTracker.js"
 import {
 	ScriptRunner,
 	MapInterruptResponse,
 	ScriptInterrupt,
 } from "./parsers/c2g.js"
 import { LevelData, parseC2M } from "./parsers/c2m.js"
-import { ILevelInfo, ISetInfo } from "./parsers/nccs.pb.js"
+import {
+	IAttemptInfo,
+	ILevelInfo,
+	ISetInfo,
+	ISolutionOutcomeInfo,
+} from "./parsers/nccs.pb.js"
 
 export interface LevelSetRecord {
 	levelData?: LevelData
 	levelInfo: ILevelInfo
+}
+
+export function calculateLevelPoints(
+	levelN: number,
+	timeLeft: number,
+	bonusPoints = 0
+): number {
+	return levelN * 500 + timeLeft * 10 + bonusPoints
+}
+
+export interface SolutionMetrics {
+	timeLeft: number
+	points: number
+	realTime: number
+}
+
+function snapNumber(num: number, period: number): number {
+	return num - (num % period)
+}
+
+export function metricsFromAttempt(
+	levelN: number,
+	outcome: ISolutionOutcomeInfo
+): SolutionMetrics {
+	if (!outcome.timeLeft || !outcome.absoluteTime)
+		throw new Error("Incomplete attempt info")
+	const timeLeft = snapNumber(protoTimeToMs(outcome.timeLeft) / 1000, 1 / 60)
+	const points = calculateLevelPoints(
+		levelN,
+		Math.ceil(timeLeft),
+		outcome.bonusScore ?? 0
+	)
+	const realTime = snapNumber(
+		protoTimeToMs(outcome.absoluteTime) / 1000,
+		1 / 60
+	)
+	return { timeLeft, points, realTime }
+}
+
+export function findBestMetrics(info: ILevelInfo): Partial<SolutionMetrics> {
+	if (typeof info.levelNumber !== "number")
+		throw new Error("Incomplete level info")
+	const metrics: Partial<SolutionMetrics> = {}
+	if (!info.attempts || info.attempts.length === 0) return metrics
+	const levelN = info.levelNumber
+
+	for (const attempt of info.attempts) {
+		if (!attempt.solution?.outcome) continue
+		const { realTime, points, timeLeft } = metricsFromAttempt(
+			levelN,
+			attempt.solution.outcome
+		)
+		if (metrics.timeLeft === undefined || metrics.timeLeft < timeLeft) {
+			metrics.timeLeft = timeLeft
+		}
+		if (metrics.points === undefined || metrics.points < points) {
+			metrics.points = points
+		}
+		if (metrics.realTime === undefined || metrics.realTime > realTime) {
+			metrics.realTime = realTime
+		}
+	}
+	return metrics
 }
 
 export type LevelSetLoaderFunction = (

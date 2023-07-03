@@ -1,5 +1,6 @@
+import { findBestMetrics } from "@notcc/logic"
 import { Pager } from "./pager"
-import { makeTd } from "./utils"
+import { formatSubticks, makeTd } from "./utils"
 
 const levelListDialog =
 	document.querySelector<HTMLDialogElement>("#levelListDialog")!
@@ -15,13 +16,23 @@ export function openLevelListDialog(pager: Pager): void {
 	for (const levelRecord of sortedLevels) {
 		const row = document.createElement("tr")
 		const levelN = levelRecord.levelNumber ?? 0
+		const metrics = findBestMetrics(levelRecord)
 		row.appendChild(makeTd(levelN.toString(), "levelN"))
 		row.appendChild(makeTd(levelRecord.title ?? "[An untitled level]"))
+		row.appendChild(
+			makeTd(
+				metrics.timeLeft === undefined ? "-" : Math.ceil(metrics.timeLeft) + "s"
+			)
+		)
+		row.appendChild(
+			makeTd(metrics.points === undefined ? "-" : metrics.points.toString())
+		)
 		row.addEventListener("click", async () => {
 			await pager.goToLevel(levelN)
 			await pager.reloadLevel()
 			levelListDialog.close()
 		})
+		row.tabIndex = 0
 		tableBody.appendChild(row)
 	}
 	const closeButton =
