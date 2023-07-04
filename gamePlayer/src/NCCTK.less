@@ -630,9 +630,13 @@ canvas {
 		display: flex;
 		flex-direction: row;
 		gap: var(--tile-size);
+		width: calc(16 * var(--tile-size));
+		box-sizing: border-box;
+		padding: calc(2 * var(--quarter-tile));
 	}
 	.viewportContainer {
 		grid-area: viewport;
+		padding: calc(2 * var(--quarter-tile));
 	}
 	.movesContainer {
 		height: 0;

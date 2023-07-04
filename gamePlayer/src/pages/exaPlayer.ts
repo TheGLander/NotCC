@@ -470,4 +470,14 @@ export const exaPlayerPage = {
 		this.autoDiagonalsTimer?.cancel()
 		this.autoDiagonalsTimer = null
 	},
+	extraTileScale: [
+		0.5 + // Padding
+			// Camera
+			0.5 + // Padding
+			0.25 + // Gap
+			16, // Stats
+		0.5 + // Padding
+			// Camera
+			0.5, // Padding
+	] as [number, number],
 }

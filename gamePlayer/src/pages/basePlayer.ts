@@ -89,6 +89,7 @@ export const playerPageBase = {
 		this.updateViewportCameraSize()
 		this.updateTextOutputs()
 	},
+	extraTileScale: [0, 0] as [number, number],
 	determineTileScale(): number {
 		if (!this.renderer || !this.renderer.cameraSize)
 			throw new Error("Can't determine the tile scale without the renderer.")
@@ -107,15 +108,8 @@ export const playerPageBase = {
 		availableWidth -= sidebarWidth
 
 		const playerTWidth =
-				0.25 + // Padding
-				this.renderer.cameraSize.width + // Camera size
-				0.25 + // Gap
-				4 + // Inventory
-				0.25, // Padding
-			playerTHeight =
-				0.25 + // Padding
-				this.renderer.cameraSize.height + // Camera size
-				0.25 // Padding
+				this.renderer.cameraSize.width + this.extraTileScale[0],
+			playerTHeight = this.renderer.cameraSize.height + this.extraTileScale[1]
 		const playerBaseWidth = playerTWidth * tileSize,
 			playerBaseHeight = playerTHeight * tileSize
 

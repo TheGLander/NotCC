@@ -351,4 +351,14 @@ export const levelPlayerPage = {
 		this.basePage!.classList.add("solutionPlayback")
 		this.endPreplay()
 	},
+	extraTileScale: [
+		0.25 + // Padding
+			// Camera
+			0.25 + // Gap
+			4 + // Inventory
+			0.25, // Padding
+		0.25 + // Padding
+			// Camera
+			0.25, // Padding
+	] as [number, number],
 }
