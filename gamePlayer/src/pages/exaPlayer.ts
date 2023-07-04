@@ -38,10 +38,10 @@ const charToKeyInputMap: Record<string, KeyInput | KeyInput[]> = {
 	p: "drop",
 	c: "rotateInv",
 	s: "switchPlayable",
-	"⇗": ["up", "right"],
-	"⇘": ["right", "down"],
-	"⇙": ["down", "left"],
-	"⇖": ["left", "up"],
+	"↗": ["up", "right"],
+	"↘": ["right", "down"],
+	"↙": ["down", "left"],
+	"↖": ["left", "up"],
 }
 
 function areKeyInputsMoving(input: KeyInputs): boolean {
