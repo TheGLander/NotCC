@@ -69,6 +69,12 @@ function generateSolutionTooltipEntries(pager: Pager): BasicTooltipEntry[] {
 	})
 }
 
+const aboutDialog = document.querySelector<HTMLDialogElement>("#aboutDialog")
+
+function openAboutDialog(): void {
+	aboutDialog?.showModal()
+}
+
 export const tooltipGroups: Record<string, TooltipEntries> = {
 	selector: [
 		{
@@ -202,7 +208,15 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 			},
 		},
 	],
-	about: [{ name: "About", shortcut: null }],
+	about: [
+		{
+			name: "About",
+			shortcut: null,
+			action(_pager: Pager): void {
+				openAboutDialog()
+			},
+		},
+	],
 }
 
 function isTooltipEntryDisabled(
