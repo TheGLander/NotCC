@@ -118,7 +118,14 @@ export const playerPageBase = {
 			availableHeight / playerBaseHeight
 		)
 		scale *= 0.95
-		scale = Math.floor(scale)
+		if (scale < 0.25) {
+			// If we can't fit the camera at *quarter scale*, just do whatever fits
+		} else if (scale < 1) {
+			// Snap to nearest quarter if we can't fit the camera
+			scale = scale - (scale % 0.25)
+		} else {
+			scale = Math.floor(scale)
+		}
 		return scale
 	},
 	updateTileScale(): void {
@@ -127,6 +134,7 @@ export const playerPageBase = {
 			"--tile-scale",
 			this.determineTileScale().toString()
 		)
+		this.updateRender()
 	},
 	updateViewportCameraSize(): void {
 		if (!this.viewportArea) throw new Error("Viewport missing")
