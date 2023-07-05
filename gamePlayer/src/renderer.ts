@@ -83,6 +83,7 @@ interface WiresArt {
 	type: "wires"
 	base?: Frame
 	top: Art
+	alwaysShowTop?: boolean
 }
 type StateArt = { type: "state" } & { [state: string]: string | Art }
 
@@ -295,10 +296,18 @@ export class Renderer {
 		this.drawArt(ctx, art.top)
 	}
 	drawWires(ctx: ArtContext, art: WiresArt): void {
+		if (ctx.actor.level.hideWires && !art.alwaysShowTop) return
 		const pos = this.getPosition(ctx)
 		this.tileBlit(ctx, pos, this.tileset.art.wireBase)
-		this.drawWireBase(ctx, pos, ctx.actor.wires, false)
-		this.drawWireBase(ctx, pos, ctx.actor.poweredWires & ctx.actor.wires, true)
+		if (!ctx.actor.level.hideWires || art.alwaysShowTop) {
+			this.drawWireBase(ctx, pos, ctx.actor.wires, false)
+			this.drawWireBase(
+				ctx,
+				pos,
+				ctx.actor.poweredWires & ctx.actor.wires,
+				true
+			)
+		}
 		this.drawArt(ctx, art.top)
 	}
 	drawState(ctx: ArtContext, art: StateArt): void {

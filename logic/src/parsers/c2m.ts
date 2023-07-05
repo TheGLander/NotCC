@@ -64,6 +64,8 @@ export interface LevelData {
 	associatedSolution?: ISolutionInfo
 	// Random misc custom data
 	customData?: Record<string, string>
+	hideWires?: boolean
+	cc1Boots?: boolean
 }
 
 export type PartialLevelData = Omit<
@@ -472,15 +474,19 @@ export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 					throw new Error("Invalid camera mode!")
 			}
 		},
-		() => view.skipBytes(1),
-		() => view.skipBytes(1),
-		() => view.skipBytes(1),
+		() => view.skipBytes(1), // Solution verified?
+		() => view.skipBytes(1), // Hide map in editor?
+		() => view.skipBytes(1), // Map is readonly?
 		() => {
 			// TODO Actually verify this hash
 			view.getString(16)
 		},
-		() => view.skipBytes(1),
-		() => view.skipBytes(1),
+		() => {
+			data.hideWires = view.getUint8() === 1
+		},
+		() => {
+			data.cc1Boots = view.getUint8() === 1
+		},
 		() => {
 			data.blobMode = ([1, 4, 256] as const)[view.getUint8()]
 		},

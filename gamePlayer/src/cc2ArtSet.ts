@@ -512,6 +512,7 @@ export const cc2ArtSet: ArtSet = {
 		},
 		teleportBlue: {
 			type: "wires",
+			alwaysShowTop: true,
 			top: {
 				type: "animated",
 				duration: 16,
@@ -520,6 +521,7 @@ export const cc2ArtSet: ArtSet = {
 		},
 		teleportRed: {
 			type: "wires",
+			alwaysShowTop: true,
 			top: {
 				type: "state",
 				on: {
@@ -865,6 +867,7 @@ export const cc2ArtSet: ArtSet = {
 		},
 		toggleSwitch: {
 			type: "wires",
+			alwaysShowTop: true,
 			base: [14, 21],
 			top: { type: "state", off: [12, 21], on: [13, 21] },
 		},
@@ -872,23 +875,26 @@ export const cc2ArtSet: ArtSet = {
 		timeBonus: [15, 14],
 		timeToggle: [14, 14],
 		counterGate: {
-			type: "overlay",
-			bottom: { type: "wires", top: [14, 26] },
+			type: "wires",
 			top: {
-				type: "special",
-				specialType: "counter",
-				0: [0, 3],
-				1: [0.75, 3],
-				2: [1.5, 3],
-				3: [2.25, 3],
-				4: [3, 3],
-				5: [3.75, 3],
-				6: [4.5, 3],
-				7: [5.25, 3],
-				8: [6, 3],
-				9: [6.75, 3],
-				"-": [7.5, 3],
-				"": [8.25, 3],
+				type: "overlay",
+				bottom: [14, 26],
+				top: {
+					type: "special",
+					specialType: "counter",
+					0: [0, 3],
+					1: [0.75, 3],
+					2: [1.5, 3],
+					3: [2.25, 3],
+					4: [3, 3],
+					5: [3.75, 3],
+					6: [4.5, 3],
+					7: [5.25, 3],
+					8: [6, 3],
+					9: [6.75, 3],
+					"-": [7.5, 3],
+					"": [8.25, 3],
+				},
 			},
 		},
 		notGate: {

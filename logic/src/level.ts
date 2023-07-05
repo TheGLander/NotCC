@@ -104,6 +104,7 @@ export class LevelState {
 	tickStage: "decision" | "move" | "wire" | "start" = "start"
 	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
 	levelData?: LevelData
+	hideWires = false
 	chipsLeft = 0
 	chipsTotal = 0
 	chipsRequired = 0
@@ -365,6 +366,8 @@ export function createLevelFromData(data: LevelData): LevelState {
 	level.timeLeft = Math.max(0, data.timeLimit * 60 - 1)
 	if (data.playablesRequiredToExit !== "all")
 		level.playablesLeft = data.playablesRequiredToExit
+	level.hideWires = !!data.hideWires
+	// level.cc1Boots = !!data.cc1Boots
 	if (data.extraChipsRequired) level.chipsRequired = data.extraChipsRequired
 	if (data.connections) level.connections = data.connections
 	for (let y = 0; y < level.height; y++)

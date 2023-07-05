@@ -79,6 +79,9 @@ registerSpecialFunction<Tile | [number, number] | Actor>(
 		if (wires === 0 && wireTunnels === 0) {
 			return
 		}
+		if (ctx.actor.level.hideWires) {
+			return
+		}
 		const crossWires =
 			(ctx.actor.wireOverlapMode === WireOverlapMode.CROSS &&
 				ctx.actor.wires === 0b1111) ||
@@ -385,6 +388,10 @@ function rotateWires(wires: number, dir: Direction): number {
 }
 
 registerSpecialFunction("logic gate", function (ctx, art) {
+	if (ctx.actor.level.hideWires) {
+		this.drawFloor(ctx, ctx.actor.tile)
+		return
+	}
 	const spArt = art as LogicGateSpecialArt
 	const pos = this.getPosition(ctx)
 	const poweredWires = ctx.actor.wires & ctx.actor.poweredWires
