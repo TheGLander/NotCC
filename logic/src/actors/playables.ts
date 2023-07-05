@@ -113,7 +113,8 @@ export abstract class Playable extends Actor {
 			if (
 				this.level.gameInput.rotateInv &&
 				!this.level.releasedKeys.rotateInv &&
-				this.inventory.items.length > 0
+				this.inventory.items.length > 0 &&
+				!this.level.cc1Boots
 			) {
 				this.inventory.items.unshift(this.inventory.items.pop() as Item)
 				this.level.releasedKeys.rotateInv = true

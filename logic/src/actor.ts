@@ -134,6 +134,7 @@ export abstract class Actor implements Wirable {
 		itemMax: 4,
 	}
 	dropItemN(id: number, noSideEffect = false): boolean {
+		if (this.level.cc1Boots) return false
 		const itemToDrop = this.inventory.items[id]
 		if (!itemToDrop) return false
 		if (this.despawned) {

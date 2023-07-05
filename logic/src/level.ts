@@ -105,6 +105,7 @@ export class LevelState {
 	cameraType: CameraType = { width: 10, height: 10, screens: 1 }
 	levelData?: LevelData
 	hideWires = false
+	cc1Boots = false
 	chipsLeft = 0
 	chipsTotal = 0
 	chipsRequired = 0
@@ -367,7 +368,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 	if (data.playablesRequiredToExit !== "all")
 		level.playablesLeft = data.playablesRequiredToExit
 	level.hideWires = !!data.hideWires
-	// level.cc1Boots = !!data.cc1Boots
+	level.cc1Boots = !!data.cc1Boots
 	if (data.extraChipsRequired) level.chipsRequired = data.extraChipsRequired
 	if (data.connections) level.connections = data.connections
 	for (let y = 0; y < level.height; y++)

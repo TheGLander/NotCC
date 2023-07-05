@@ -19,6 +19,7 @@ export const actorDB: Record<
  * The position of keys to show in the inventory preview
  */
 export const keyNameList: string[] = []
+export const cc1BootNameList: string[] = []
 
 /**
  * A decision an actor can take

@@ -1,6 +1,6 @@
 import { Layer } from "../tile.js"
 import { Actor, matchTags, SlidingState } from "../actor.js"
-import { actorDB, keyNameList } from "../const.js"
+import { actorDB, cc1BootNameList, keyNameList } from "../const.js"
 import { LevelState } from "../level.js"
 import { LitTNT, RollingBowlingBall } from "./monsters.js"
 import { Explosion } from "./animation.js"
@@ -61,6 +61,13 @@ export abstract class Item extends Actor {
 				other.inventory.keys[this.id].amount %= 256
 				break
 			case ItemDestination.ITEM:
+				if (this.level.cc1Boots) {
+					if (
+						!cc1BootNameList.includes(this.id) ||
+						other.inventory.items.some(item => item.id === this.id)
+					)
+						break
+				}
 				other.inventory.items.unshift(this)
 				if (other.inventory.items.length > other.inventory.itemMax) {
 					if (!other.dropItem()) other.dropItemN(0, true)
@@ -185,34 +192,6 @@ actorDB["keyGreen"] = KeyGreen
 
 keyNameList.push("keyGreen")
 
-export class BootWater extends Item {
-	id = "bootWater"
-	carrierTags = { ignoreTags: ["water"], collisionIgnoreTags: ["water"] }
-	destination = ItemDestination.ITEM
-}
-
-actorDB["bootWater"] = BootWater
-
-export class BootFire extends Item {
-	id = "bootFire"
-	carrierTags = { ignoreTags: ["fire"] }
-	destination = ItemDestination.ITEM
-	// Double-ignore thing for the ghost
-	onCarrierCompleteJoin(carrier: Actor): void {
-		for (const actor of carrier.tile.allActors) {
-			if (
-				carrier._internalIgnores(actor, true) &&
-				actor.getCompleteTags("tags").includes("fire") &&
-				actor.getCompleteTags("tags").includes("boot-removable")
-			) {
-				actor.destroy(null, null)
-			}
-		}
-	}
-}
-
-actorDB["bootFire"] = BootFire
-
 export class BootIce extends Item {
 	id = "bootIce"
 	carrierTags: Record<string, string[]> = { ignoreTags: ["ice"] }
@@ -235,6 +214,7 @@ export class BootIce extends Item {
 }
 
 actorDB["bootIce"] = BootIce
+cc1BootNameList.push("bootIce")
 
 export class BootForceFloor extends Item {
 	id = "bootForceFloor"
@@ -249,6 +229,37 @@ export class BootForceFloor extends Item {
 }
 
 actorDB["bootForceFloor"] = BootForceFloor
+cc1BootNameList.push("bootForceFloor")
+
+export class BootFire extends Item {
+	id = "bootFire"
+	carrierTags = { ignoreTags: ["fire"] }
+	destination = ItemDestination.ITEM
+	// Double-ignore thing for the ghost
+	onCarrierCompleteJoin(carrier: Actor): void {
+		for (const actor of carrier.tile.allActors) {
+			if (
+				carrier._internalIgnores(actor, true) &&
+				actor.getCompleteTags("tags").includes("fire") &&
+				actor.getCompleteTags("tags").includes("boot-removable")
+			) {
+				actor.destroy(null, null)
+			}
+		}
+	}
+}
+
+actorDB["bootFire"] = BootFire
+cc1BootNameList.push("bootFire")
+
+export class BootWater extends Item {
+	id = "bootWater"
+	carrierTags = { ignoreTags: ["water"], collisionIgnoreTags: ["water"] }
+	destination = ItemDestination.ITEM
+}
+
+actorDB["bootWater"] = BootWater
+cc1BootNameList.push("bootWater")
 
 export class BootDirt extends Item {
 	id = "bootDirt"

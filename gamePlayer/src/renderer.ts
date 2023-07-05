@@ -1,4 +1,11 @@
-import { CameraType, Direction, Tile, Wires } from "@notcc/logic"
+import {
+	CameraType,
+	cc1BootNameList,
+	Direction,
+	Item,
+	Tile,
+	Wires,
+} from "@notcc/logic"
 import { LevelState } from "@notcc/logic"
 import { Actor } from "@notcc/logic"
 import { Layer } from "@notcc/logic"
@@ -185,7 +192,7 @@ export class Renderer {
 		this.viewportCanvas.height = this.cameraSize.height * this.tileset.tileSize
 	}
 	tileBlit(
-		{ tileSize, ctx, offset }: ArtContext,
+		{ tileSize, ctx, offset }: ArtSessionContext,
 		pos: Position,
 		frame: Frame,
 		size: Size = [1, 1]
@@ -381,7 +388,43 @@ export class Renderer {
 		}
 		this.drawArt(ctx, art)
 	}
-
+	_drawOrderedItems(
+		session: ArtSessionContext,
+		list: string[],
+		items: Item[],
+		yOffset: number,
+		amounts?: number[],
+		discardNonRegistered = false
+	): void {
+		let nonRegisteredOffset = list.length
+		for (const [i, item] of items.entries()) {
+			let index = list.indexOf(item.id)
+			if (index === -1) {
+				if (discardNonRegistered) continue
+				index = nonRegisteredOffset
+				nonRegisteredOffset += 1
+			}
+			if (amounts && amounts[i] === 0) continue
+			const ctx: ArtSessionContext = { ...session, offset: [index, yOffset] }
+			this.drawActor(ctx, item)
+			if (amounts !== undefined) {
+				let amount: number | string = amounts[i]
+				if (amount === 1 || amount > 127) {
+					continue
+				} else if (amount > 9) {
+					amount = "+"
+				} else {
+					amount = amount.toString()
+				}
+				this.tileBlit(
+					ctx,
+					[0.5, 0.5],
+					this.tileset.art.letters[amount],
+					[0.5, 0.5]
+				)
+			}
+		}
+	}
 	updateItems(): void {
 		if (!this.level)
 			throw new Error("Can't update the inventory without a level!")
@@ -411,20 +454,25 @@ export class Renderer {
 			this.itemCanvas.width = expectedWidth
 			this.itemCanvas.height = expectedHeight
 		}
-		for (const [i, item] of player.inventory.items.entries()) {
-			this.drawActor({ ...session, offset: [i, 0] }, item)
-		}
-		let nonRegisteredOffset = keyNameList.length
-		for (const key of Object.values(player.inventory.keys)) {
-			if (key.amount <= 0) continue
-			let index = keyNameList.indexOf(key.type.id)
-			if (index === -1) {
-				index = nonRegisteredOffset
-				nonRegisteredOffset += 1
+		if (this.level.cc1Boots) {
+			this._drawOrderedItems(
+				session,
+				cc1BootNameList,
+				player.inventory.items,
+				0,
+				undefined,
+				true
+			)
+		} else {
+			for (const [i, item] of player.inventory.items.entries()) {
+				this.drawActor({ ...session, offset: [i, 0] }, item)
 			}
-			this.drawActor({ ...session, offset: [index, 1] }, key.type)
-			// TODO Show key numbers
 		}
+		const keys = Object.values(player.inventory.keys).map(ent => ent.type)
+		const keyAmounts = Object.values(player.inventory.keys).map(
+			ent => ent.amount
+		)
+		this._drawOrderedItems(session, keyNameList, keys, 1, keyAmounts)
 	}
 	updateCameraPosition(): void {
 		if (!this.level) {
