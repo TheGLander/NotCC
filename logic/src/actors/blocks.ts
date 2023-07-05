@@ -8,7 +8,8 @@ export class DirtBlock extends Actor {
 	id = "dirtBlock"
 	transmogrifierTarget = "iceBlock"
 	tags = ["block", "cc1block", "movable", "reverse-on-railroad"]
-	ignoreTags = ["fire", "water"]
+	ignoreTags = ["fire"]
+	immuneTags = ["water"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -28,7 +29,7 @@ export class DirtBlock extends Actor {
 		const water = this.tile.findActor(Layer.STATIONARY, val =>
 			val.getCompleteTags("tags").includes("water")
 		)
-		if (water) {
+		if (water && !water._internalIgnores(this)) {
 			this.destroy(this, "splash")
 			water.destroy(null, null)
 			new Dirt(this.level, this.tile.position)
@@ -50,7 +51,7 @@ export class IceBlock extends Actor {
 		"meltable-block",
 		"reverse-on-railroad",
 	]
-	ignoreTags = ["water"]
+	immuneTags = ["water"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -73,12 +74,12 @@ export class IceBlock extends Actor {
 		const melting = this.tile.findActor(Layer.STATIONARY, val =>
 			val.getCompleteTags("tags").includes("melting")
 		)
-		if (water) {
+		if (water && !water._internalIgnores(this)) {
 			this.destroy(this, "splash")
 			water.destroy(null, null)
 			new Ice(this.level, this.tile.position)
 		}
-		if (melting) {
+		if (melting && !melting._internalIgnores(this)) {
 			this.destroy(this, "splash")
 			melting.destroy(null, null)
 			new Water(this.level, this.tile.position)
@@ -107,7 +108,6 @@ actorDB["iceBlock"] = IceBlock
 
 export class DirectionalBlock extends Actor {
 	id = "directionalBlock"
-	ignoreTags = ["water"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -124,6 +124,7 @@ export class DirectionalBlock extends Actor {
 		"reverse-on-railroad",
 		"dies-in-slime",
 	]
+	immuneTags = ["water"]
 	bumpedActor(other: Actor): void {
 		if (
 			other.getCompleteTags("tags").includes("real-playable") &&
@@ -137,7 +138,7 @@ export class DirectionalBlock extends Actor {
 		const water = this.tile.findActor(Layer.STATIONARY, val =>
 			val.getCompleteTags("tags").includes("water")
 		)
-		if (water) {
+		if (water && !water._internalIgnores(this)) {
 			water.destroy(null, null)
 			this.destroy(this, "splash")
 		}

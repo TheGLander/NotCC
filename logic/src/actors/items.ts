@@ -265,6 +265,13 @@ export class BootDirt extends Item {
 	id = "bootDirt"
 	carrierTags = { collisionIgnoreTags: ["filth"] }
 	destination = ItemDestination.ITEM
+	onPickup(other: Actor): void {
+		if (other.getCompleteTags("tags").includes("playable")) {
+			this.carrierTags = { collisionIgnoreTags: ["filth"] }
+		} else {
+			this.carrierTags = { collisionIgnoreTags: [] }
+		}
+	}
 	// Double-ignore thing for the ghost
 	onCarrierCompleteJoin(carrier: Actor): void {
 		for (const actor of carrier.tile.allActors) {
