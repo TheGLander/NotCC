@@ -279,6 +279,7 @@ export const levelPlayerPage = {
 		return keyInputs as KeyInputs
 	},
 	updateTextOutputs(): void {
+		if (this.gameState !== GameState.PLAYING) return
 		playerPageBase.updateTextOutputs.call(this)
 		this.hintBox!.textContent = this.currentLevel!.getHint() ?? ""
 	},
