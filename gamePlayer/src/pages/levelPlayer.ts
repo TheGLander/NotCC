@@ -8,7 +8,7 @@ import {
 import { Pager } from "../pager"
 import {
 	AnimationTimer,
-	TimeoutIntervalTimer,
+	IntervalTimer,
 	KeyListener,
 	setAttributeExistence,
 	AutoRepeatKeyListener,
@@ -311,7 +311,7 @@ export const levelPlayerPage = {
 			this.submitAttempt?.()
 		}
 	},
-	logicTimer: null as TimeoutIntervalTimer | null,
+	logicTimer: null as IntervalTimer | null,
 	renderTimer: null as AnimationTimer | null,
 	open(pager: Pager): void {
 		if (!pager.loadedLevel)
@@ -319,10 +319,7 @@ export const levelPlayerPage = {
 		this.loadLevel(pager)
 		this.updateSettings(pager)
 		this.updateTextOutputs()
-		this.logicTimer = new TimeoutIntervalTimer(
-			this.updateLogic.bind(this),
-			1 / 60
-		)
+		this.logicTimer = new IntervalTimer(this.updateLogic.bind(this), 1 / 60)
 		this.renderTimer = new AnimationTimer(this.updateRender.bind(this))
 		this.keyListener = new AutoRepeatKeyListener(this.inputListener.bind(this))
 	},
