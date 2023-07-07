@@ -61,9 +61,6 @@ export interface SfxManager {
 	playOnce(sfx: string): void
 }
 
-export const releasableKeys = ["drop", "rotateInv", "switchPlayable"] as const
-type ReleasableKeys = (typeof releasableKeys)[number]
-
 export function decodeSolutionStep(step: number): KeyInputs {
 	return {
 		up: (step & 0x1) > 0,
@@ -131,7 +128,11 @@ export class LevelState {
 		rotateInv: false,
 		switchPlayable: false,
 	}
-	releasedKeys: Record<ReleasableKeys, boolean> = {
+	releasedKeys: KeyInputs = {
+		up: false,
+		right: false,
+		down: false,
+		left: false,
 		drop: false,
 		rotateInv: false,
 		switchPlayable: false,
@@ -180,6 +181,15 @@ export class LevelState {
 		if (this.solutionSteps) {
 			this.gameInput = this.getSolutionMove() ?? decodeSolutionStep(0)
 		}
+		this.releasedKeys = {
+			up: false,
+			right: false,
+			down: false,
+			left: false,
+			drop: false,
+			rotateInv: false,
+			switchPlayable: false,
+		}
 		wirePretick.apply(this)
 		this.tickStage = "decision"
 		this.decisionTick(this.subtick !== 2)
@@ -198,9 +208,6 @@ export class LevelState {
 			} */
 
 		if (this.playablesLeft <= 0) this.gameState = GameState.WON
-		for (const releasable of releasableKeys) {
-			if (!this.gameInput[releasable]) this.releasedKeys[releasable] = false
-		}
 		onLevelAfterTick.forEach(val => val(this))
 	}
 	/*

@@ -88,6 +88,55 @@ export class KeyListener {
 	}
 }
 
+export enum AutoRepeatKeyState {
+	RELEASED,
+	HELD,
+	REPEATED,
+}
+
+const KEY_REPEAT_DELAY = 0.25
+
+// This is really unfortunate, but the internals are different enough that extending
+// doesn't make sense
+
+export class AutoRepeatKeyListener {
+	removed = false
+	keyTimers: Partial<Record<string, TimeoutTimer | "repeating">> = {}
+	onListener(ev: KeyboardEvent): void {
+		if (isModalPresent()) return
+		if (this.keyTimers[ev.code] !== undefined) return
+		this.userListener(ev.code, AutoRepeatKeyState.HELD)
+		this.keyTimers[ev.code] = new TimeoutTimer(() => {
+			this.keyTimers[ev.code] = "repeating"
+			this.userListener(ev.code, AutoRepeatKeyState.REPEATED)
+		}, KEY_REPEAT_DELAY)
+	}
+	offListener(ev: KeyboardEvent): void {
+		if (isModalPresent()) return
+		const state = this.keyTimers[ev.code]
+		if (typeof state === "object") {
+			state.cancel()
+		}
+		delete this.keyTimers[ev.code]
+		this.userListener(ev.code, AutoRepeatKeyState.RELEASED)
+	}
+	constructor(
+		public userListener: (key: string, state: AutoRepeatKeyState) => void
+	) {
+		this.onListener = this.onListener.bind(this)
+		this.offListener = this.offListener.bind(this)
+		document.addEventListener("keydown", this.onListener)
+		document.addEventListener("keyup", this.offListener)
+	}
+	remove(): void {
+		if (this.removed)
+			throw new Error("This key listener has already been removed.")
+		this.removed = true
+		document.removeEventListener("keydown", this.onListener)
+		document.removeEventListener("keyup", this.offListener)
+	}
+}
+
 /**
  * A hack to remove all event listeners for an HTMLElement's children. Also
  * stops the current animation and all references to the children.

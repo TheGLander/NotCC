@@ -322,6 +322,7 @@ export class Exit extends Actor {
 			this.level.gameState = GameState.PLAYING
 			this.level.playablesLeft--
 			this.level.sfxManager?.playOnce(`win ${other.id}`)
+			this.level.releasedKeys = { ...this.level.gameInput }
 		}
 	}
 }

@@ -11,6 +11,8 @@ import {
 	TimeoutIntervalTimer,
 	KeyListener,
 	setAttributeExistence,
+	AutoRepeatKeyListener,
+	AutoRepeatKeyState,
 } from "../utils"
 import { setSelectorPage } from "./setSelector"
 import { AudioSfxManager } from "../sfx"
@@ -22,27 +24,6 @@ import {
 	glitchNames,
 	nonLegalGlitches,
 } from "./basePlayer"
-
-const heldKeys: Partial<Record<string, true>> = {}
-
-function setupKeyListener(): void {
-	new KeyListener(
-		ev => {
-			if (isValidKey(ev.code)) {
-				ev.preventDefault()
-				ev.stopPropagation()
-				heldKeys[ev.code] = true
-			}
-		},
-		ev => {
-			if (isValidKey(ev.code)) {
-				ev.preventDefault()
-				ev.stopPropagation()
-				delete heldKeys[ev.code]
-			}
-		}
-	)
-}
 
 interface OverlayButtons {
 	restart: HTMLElement
@@ -58,6 +39,7 @@ interface OverlayButtons {
 export const levelPlayerPage = {
 	...playerPageBase,
 	pageId: "levelPlayerPage",
+	keyListener: null as AutoRepeatKeyListener | null,
 	// Binding HTML stuff
 	overlayButtons: null as OverlayButtons | null,
 	gameOverlay: null as HTMLElement | null,
@@ -67,7 +49,6 @@ export const levelPlayerPage = {
 	nonLegalGlitchName: null as HTMLElement | null,
 	setupPage(pager: Pager, page: HTMLElement): void {
 		playerPageBase.setupPage.call(this, pager, page)
-		setupKeyListener()
 		this.basePage = page
 		this.overlayButtons = {
 			restart: page.querySelector("#restartButton")!,
@@ -256,13 +237,43 @@ export const levelPlayerPage = {
 		pager.saveAttempt(this.attemptTracker.endAttempt(level))
 	},
 	submitAttempt: null as (() => void) | null,
+	updateTextOutputs(): void {
+		if (this.gameState !== GameState.PLAYING) return
+		playerPageBase.updateTextOutputs.call(this)
+		this.hintBox!.textContent = this.currentLevel!.getHint() ?? ""
+	},
+	heldKeys: {
+		up: AutoRepeatKeyState.RELEASED,
+		right: AutoRepeatKeyState.RELEASED,
+		down: AutoRepeatKeyState.RELEASED,
+		left: AutoRepeatKeyState.RELEASED,
+		drop: AutoRepeatKeyState.RELEASED,
+		rotateInv: AutoRepeatKeyState.RELEASED,
+		switchPlayable: AutoRepeatKeyState.RELEASED,
+	} as Record<keyof KeyInputs, AutoRepeatKeyState>,
+	updateReleases(): void {
+		for (const [key, shouldRelease] of Object.entries(
+			this.currentLevel!.releasedKeys
+		)) {
+			const inputKey = key as keyof KeyInputs
+			if (!shouldRelease) continue
+			if (this.heldKeys[inputKey] === AutoRepeatKeyState.HELD) {
+				this.heldKeys[inputKey] = AutoRepeatKeyState.RELEASED
+			}
+		}
+	},
+	inputListener(code: string, state: AutoRepeatKeyState): void {
+		if (!isValidKey(code)) return
+		const keyInput = keyToInputMap[code]
+		this.heldKeys[keyInput] = state
+	},
 	getInput(): KeyInputs {
 		const keyInputs: Partial<KeyInputs> = {}
-		for (const [key, val] of Object.entries(keyToInputMap)) {
+		for (const inputType of Object.values(keyToInputMap)) {
 			if (
 				this.preventSimultaneousMovement &&
-				val === "switchPlayable" &&
-				heldKeys[key]
+				inputType === "switchPlayable" &&
+				this.heldKeys[inputType]
 			) {
 				return {
 					up: false,
@@ -274,14 +285,9 @@ export const levelPlayerPage = {
 					switchPlayable: true,
 				}
 			}
-			keyInputs[val] = !!heldKeys[key]
+			keyInputs[inputType] = !!this.heldKeys[inputType]
 		}
 		return keyInputs as KeyInputs
-	},
-	updateTextOutputs(): void {
-		if (this.gameState !== GameState.PLAYING) return
-		playerPageBase.updateTextOutputs.call(this)
-		this.hintBox!.textContent = this.currentLevel!.getHint() ?? ""
 	},
 	updateLogic(): void {
 		const level = this.currentLevel
@@ -296,6 +302,7 @@ export const levelPlayerPage = {
 			return
 		playerPageBase.updateLogic.call(this)
 		this.attemptTracker?.recordAttemptStep(level.gameInput)
+		this.updateReleases()
 		if (
 			this.gameState === GameState.PLAYING &&
 			level.gameState !== GameState.PLAYING
@@ -317,6 +324,7 @@ export const levelPlayerPage = {
 			1 / 60
 		)
 		this.renderTimer = new AnimationTimer(this.updateRender.bind(this))
+		this.keyListener = new AutoRepeatKeyListener(this.inputListener.bind(this))
 	},
 	close(): void {
 		if (this.logicTimer) {
@@ -330,6 +338,8 @@ export const levelPlayerPage = {
 		this.preplayKeyListener?.remove()
 		this.preplayKeyListener = null
 		this.currentLevel = null
+		this.keyListener?.remove()
+		this.keyListener = null
 	},
 	showInterlude(_pager: Pager, text: string): Promise<void> {
 		// TODO Use a text script page?
