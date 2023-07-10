@@ -198,6 +198,56 @@ dialog.textDialog section {
 	margin-top: 1em;
 }
 
+.expandTriangle {
+	display: inline-block;
+	&::before {
+		content: "▶";
+	}
+	&.open::before {
+		content: "▼";
+	}
+}
+
+#allAttemptsDialog section {
+	display: flex;
+	flex-direction: column;
+	> * {
+		padding: 1em;
+		cursor: pointer;
+		&:hover,
+		&:focus-visible {
+			background: var(--secondary-bg);
+		}
+		.firstLine,
+		&.failed {
+			display: flex;
+			gap: 1em;
+			flex-direction: row;
+			.expandTriangle {
+				margin-right: -0.5em;
+			}
+			.time {
+				margin-left: auto;
+				font-size: 0.75em;
+				align-self: center;
+			}
+		}
+		&.successful .extraInfo {
+			padding-top: 0.5em;
+			display: none;
+			&.showExtra {
+				display: block;
+			}
+		}
+	}
+	&:empty::before {
+		padding-left: 1em;
+		padding-top: 0.5em;
+		padding-bottom: 0.5em;
+		content: "No attempts yet!";
+	}
+}
+
 .preferences {
 	display: grid;
 	grid: auto-flow / auto auto;

@@ -7,6 +7,7 @@ import { protobuf } from "@notcc/logic"
 import { openSettingsDialog } from "./settings"
 import { instanciateTemplate } from "./utils"
 import { exaPlayerPage } from "./pages/exaPlayer"
+import { openAllAttemptsDialog } from "./allAttemptsDialog"
 
 interface TooltipEntry {
 	name: string
@@ -138,7 +139,13 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 	solution: [
 		generateSolutionTooltipEntries,
 		"breakline",
-		{ name: "All attempts", shortcut: "shift+a" },
+		{
+			name: "All attempts",
+			shortcut: "shift+a",
+			action(pager: Pager): void {
+				openAllAttemptsDialog(pager)
+			},
+		},
 	],
 	optimization: [
 		{

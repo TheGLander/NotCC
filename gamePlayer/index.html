@@ -56,6 +56,44 @@
 
 			<footer><button class="closeButton">Ok</button></footer>
 		</dialog>
+		<dialog id="allAttemptsDialog">
+			<template id="successfulAttemptTemplate">
+				<div class="container successful">
+					<div class="firstLine">
+						<div class="expandTriangle"></div>
+						<div class="metrics">???s / ???pts</div>
+						<button type="button" class="replayButton">Replay</button>
+						<div class="time">
+							<span class="startTime">???</span> →
+							<span class="endTime">???</span>
+						</div>
+					</div>
+					<div class="extraInfo">
+						<div>Glitches used:</div>
+						<ul class="glitchList"></ul>
+						<!-- FIXME Real time is *very* wrong for some reason. Fix ASAP -->
+						<!-- <div>Real time: <span class="realTime">???</span>s</div> -->
+					</div>
+				</div>
+			</template>
+			<template id="failedAttemptTemplate">
+				<div class="container failed">
+					<div>Fail reason: "<span class="failReason">???</span>"</div>
+					<div class="time">
+						<span class="startTime">???</span> →
+						<span class="endTime">???</span>
+					</div>
+				</div>
+			</template>
+			<form method="dialog">
+				<header>All attempts</header>
+				<section></section>
+				<footer>
+					<!-- <button id="verifyAllButton" type="button">Verify all</button> -->
+					<button type="submit">Ok</button>
+				</footer>
+			</form>
+		</dialog>
 		<dialog id="themeSelectorDialog" class="textDialog">
 			<form method="dialog">
 				<header>Theme select</header>
