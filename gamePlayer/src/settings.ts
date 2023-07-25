@@ -6,6 +6,7 @@ import {
 	getTilesetMetadataFromIdentifier,
 	openTilesetSelectortDialog,
 } from "./tilesets"
+import { getPlayerSummary } from "./scoresApi"
 
 export type SetListPreviewLevel = "title" | "level preview"
 
@@ -14,6 +15,7 @@ export interface Settings {
 	tileset: string
 	preventNonLegalGlitches: boolean
 	preventSimultaneousMovement: boolean
+	optimizerId?: number
 }
 
 export const defaultSettings: Settings = {
@@ -31,11 +33,12 @@ export function openSettingsDialog(pager: Pager): void {
 	const newSettings = clone(pager.settings)
 	function makeSettingsPreference<T extends HTMLElement = HTMLElement>(
 		id: string,
+		event: string,
 		call: (el: T) => void | Promise<void>,
 		apply: (el: T) => void
 	): void {
 		const el = settingsDialog.querySelector<T>(`#${id}`)!
-		el.addEventListener("click", async () => {
+		el.addEventListener(event, async () => {
 			await call(el)
 			apply(el)
 		})
@@ -44,6 +47,7 @@ export function openSettingsDialog(pager: Pager): void {
 
 	makeSettingsPreference(
 		"mainTheme",
+		"click",
 		() =>
 			openThemeSelectorDialog(newSettings.mainTheme, pager).then(color => {
 				if (color !== null) {
@@ -58,6 +62,7 @@ export function openSettingsDialog(pager: Pager): void {
 	)!
 	makeSettingsPreference(
 		"currentTileset",
+		"click",
 		() =>
 			openTilesetSelectortDialog(newSettings.tileset).then(tset => {
 				if (tset !== null) {
@@ -74,6 +79,7 @@ export function openSettingsDialog(pager: Pager): void {
 
 	makeSettingsPreference<HTMLInputElement>(
 		"preventNonLegalGlitches",
+		"change",
 		el => {
 			newSettings.preventNonLegalGlitches = el.checked
 		},
@@ -84,11 +90,40 @@ export function openSettingsDialog(pager: Pager): void {
 
 	makeSettingsPreference<HTMLInputElement>(
 		"preventSimulMovement",
+		"change",
 		el => {
 			newSettings.preventSimultaneousMovement = el.checked
 		},
 		el => {
 			el.checked = newSettings.preventSimultaneousMovement
+		}
+	)
+	const currentUsername = settingsDialog.querySelector("#currentUsername")!
+	makeSettingsPreference<HTMLInputElement>(
+		"optimizerId",
+		"change",
+		el => {
+			if (el.value !== "") {
+				newSettings.optimizerId = parseInt(el.value)
+			} else {
+				delete newSettings.optimizerId
+			}
+		},
+		el => {
+			if (newSettings.optimizerId === undefined) {
+				el.value = ""
+				currentUsername.textContent = ""
+			} else {
+				el.value = newSettings.optimizerId.toString()
+				currentUsername.textContent = "..."
+				getPlayerSummary(newSettings.optimizerId)
+					.then(info => {
+						currentUsername.textContent = info.player
+					})
+					.catch(() => {
+						currentUsername.textContent = "???"
+					})
+			}
 		}
 	)
 
