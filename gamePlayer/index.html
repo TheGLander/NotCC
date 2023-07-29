@@ -38,23 +38,24 @@
 			</div>
 		</nav>
 		<dialog id="levelListDialog">
-			<header>Level list</header>
-			<section>
-				<table id="levelList">
-					<thead>
-						<tr>
-							<th>#</th>
-							<th>Level</th>
-							<th>Best time</th>
-							<th>Best score</th>
-							<!-- <th>Best real time</th> -->
-						</tr>
-					</thead>
-					<tbody></tbody>
-				</table>
-			</section>
-
-			<footer><button class="closeButton">Ok</button></footer>
+			<form method="dialog">
+				<header>Level list</header>
+				<section>
+					<table id="levelList">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>Level</th>
+								<th>Best time</th>
+								<th>Best score</th>
+								<!-- <th>Best real time</th> -->
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</section>
+				<footer><button type="submit">Ok</button></footer>
+			</form>
 		</dialog>
 		<dialog id="allAttemptsDialog">
 			<template id="successfulAttemptTemplate">

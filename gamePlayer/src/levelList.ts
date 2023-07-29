@@ -35,10 +35,5 @@ export function openLevelListDialog(pager: Pager): void {
 		row.tabIndex = 0
 		tableBody.appendChild(row)
 	}
-	const closeButton =
-		levelListDialog.querySelector<HTMLButtonElement>(".closeButton")!
-	closeButton.addEventListener("click", () => {
-		levelListDialog.close()
-	})
 	levelListDialog.showModal()
 }
