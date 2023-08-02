@@ -54,7 +54,34 @@
 						<tbody></tbody>
 					</table>
 				</section>
-				<footer><button type="submit">Ok</button></footer>
+				<footer>
+					<button type="button" id="generateReportButton">
+						Generare report</button
+					><button type="submit">Ok</button>
+				</footer>
+			</form>
+		</dialog>
+		<dialog id="scoreReportGenDialog" class="textDialog">
+			<form method="dialog">
+				<header>Score report generator</header>
+				<section class="loading-stage">Fetching scoreboard data...</section>
+				<section class="error-stage">
+					Something went wrong: <span class="errorField"></span>
+				</section>
+				<section class="default-stage">
+					<template id="reportLineTemplate">
+						<div><input type="checkbox" /><span></span></div>
+					</template>
+					<div id="reportText">
+						<div><span class="setName"></span> reports:</div>
+						<div id="linesPoint"></div>
+						<div>NotCC git-%VITE_VERSION%</div>
+					</div>
+				</section>
+				<footer>
+					<button type="button" id="copyReport">Copy</button>
+					<button type="submit">Close</button>
+				</footer>
 			</form>
 		</dialog>
 		<dialog id="allAttemptsDialog">

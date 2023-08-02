@@ -1,12 +1,14 @@
 import { findBestMetrics } from "@notcc/logic"
 import { Pager } from "./pager"
-import { makeTd } from "./utils"
+import { openScoreReportGenDialog } from "./reportGenerator"
+import { makeTd, resetListeners } from "./utils"
 
 const levelListDialog =
 	document.querySelector<HTMLDialogElement>("#levelListDialog")!
 export function openLevelListDialog(pager: Pager): void {
 	const set = pager.loadedSet
 	if (set === null) return
+	resetListeners(levelListDialog)
 	const sortedLevels = Object.values(set.seenLevels)
 		.map(record => record.levelInfo)
 		.sort((a, b) => (a.levelNumber ?? 0) - (b.levelNumber ?? 0))
@@ -35,5 +37,11 @@ export function openLevelListDialog(pager: Pager): void {
 		row.tabIndex = 0
 		tableBody.appendChild(row)
 	}
+	const generateReportButton = document.querySelector<HTMLButtonElement>(
+		"#generateReportButton"
+	)!
+	generateReportButton.addEventListener("click", () => {
+		openScoreReportGenDialog(pager)
+	})
 	levelListDialog.showModal()
 }

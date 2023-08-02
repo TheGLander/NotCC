@@ -36,12 +36,18 @@ export interface ApiPlayerPackDetails extends ApiPlayerGeneric {
 
 export interface ApiPackReports {
 	pack: string
-	levels: Record<string, ApiPackReport[]>
+	/**
+	 * Note: If there are no report for a specific level, the key isn't present
+	 */
+	levels: Partial<Record<string, ApiPackReport[]>>
 }
 
-export interface ApiPackReport {
+export interface ApiAttributeIdentifier {
 	rule_type: string
 	metric: string
+}
+
+export interface ApiPackReport extends ApiAttributeIdentifier {
 	reported_value: number
 	ranking: number
 	tiebreaker: number
@@ -60,4 +66,62 @@ export async function getPlayerPackDetails(
 ): Promise<ApiPlayerPackDetails> {
 	const res = await fetch(`https://api.bitbusters.club/players/${id}/${pack}`)
 	return await res.json()
+}
+
+export interface ApiPackLevel {
+	level: number
+	name: string
+	game: string
+	pack: string
+	designers: string
+	adapted: boolean
+	password: string | null
+	time_limit: number
+	chips_required: number
+	total_chips: number
+	chips_note?: string
+	wiki_article: string
+	steam_map: string
+	level_attribs: ApiPackLevelAttribute[]
+}
+
+export interface ApiPackLevelAttribute extends ApiAttributeIdentifier {
+	attribs: {
+		melinda: number
+		highest_reported: number
+		casual_diff: number
+		exec_diff: number
+		luck_diff: number
+		routing_diff: number
+	}
+}
+
+export async function getPackLevels(pack: string): Promise<ApiPackLevel[]> {
+	const res = await fetch(`https://api.bitbusters.club/packs/${pack}/levels`)
+	return await res.json()
+}
+
+export interface ApiRRPackLevel {
+	level_attribs: ApiRRPackLevelAttribute[]
+}
+
+export interface ApiRRPackLevelAttribute extends ApiAttributeIdentifier {
+	attribs: {
+		highest_reported: number
+		highest_confirmed: number
+	}
+}
+
+export async function getRRPackLevels(pack: string): Promise<ApiRRPackLevel[]> {
+	const res = await fetch(`https://glander.club/railroad/bolds/${pack}`)
+	return await res.json()
+}
+
+export function tryGetRRPackLevels(
+	pack: string
+): Promise<ApiRRPackLevel[] | ApiPackLevel[]> {
+	return getRRPackLevels(pack).catch(err => {
+		console.error(err)
+		return getPackLevels(pack)
+	})
 }

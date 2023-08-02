@@ -248,6 +248,35 @@ dialog.textDialog section {
 	}
 }
 
+#scoreReportGenDialog {
+	section {
+		display: none;
+	}
+	&[stage="default"] section.default-stage {
+		display: initial;
+	}
+	&[stage="loading"] section.loading-stage {
+		display: initial;
+	}
+	&[stage="eror"] section.error-stage {
+		display: initial;
+	}
+	#reportText {
+		display: flex;
+		flex-direction: column;
+		font-family: monospace;
+		.disabled {
+			text-decoration: line-through;
+		}
+		#linesPoint {
+			display: contents;
+			input[type="checkbox"] {
+				margin-right: 0.5em;
+			}
+		}
+	}
+}
+
 .preferences {
 	display: grid;
 	grid: auto-flow / auto auto;
