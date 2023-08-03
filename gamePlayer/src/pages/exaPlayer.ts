@@ -252,7 +252,10 @@ export const exaPlayerPage = {
 	// Automatically skip in time until *something* can be done
 	autoSkip(): void {
 		const level = this.currentLevel!
-		while (!level.selectedPlayable!.canDoAnything()) {
+		while (
+			level.gameState === GameState.PLAYING &&
+			!level.selectedPlayable!.canDoAnything()
+		) {
 			this.appendInput(emptyKeys)
 		}
 		this.updateRecordedMovesArea()
