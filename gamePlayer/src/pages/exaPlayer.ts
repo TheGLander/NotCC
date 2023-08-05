@@ -1,4 +1,10 @@
-import { Direction, GameState, KeyInputs, LevelState } from "@notcc/logic"
+import {
+	calculateLevelPoints,
+	Direction,
+	GameState,
+	KeyInputs,
+	LevelState,
+} from "@notcc/logic"
 import clone from "clone"
 import { Pager } from "../pager"
 import { showLoadPrompt, showSavePrompt } from "../saveData"
@@ -140,12 +146,15 @@ export const exaPlayerPage = {
 	pageId: "exaPlayerPage",
 	recordedMovesArea: null as HTMLSpanElement | null,
 	composingPreviewArea: null as HTMLSpanElement | null,
+	levelN: -1,
 	setupPage(pager: Pager, page: HTMLElement): void {
 		playerPageBase.setupPage.call(this, pager, page)
 		this.recordedMovesArea =
 			page.querySelector<HTMLSpanElement>(".recordedMoves")
 		this.composingPreviewArea =
 			page.querySelector<HTMLSpanElement>(".composingPreview")
+		this.totalScoreText =
+			page.querySelector<HTMLOutputElement>(".totalScoreText")
 	},
 	loadLevel(pager: Pager): void {
 		playerPageBase.loadLevel.call(this, pager)
@@ -171,6 +180,7 @@ export const exaPlayerPage = {
 				movePosition: 0,
 			},
 		]
+		this.levelN = pager.loadedSet?.currentLevel ?? 0
 		this.renderer!.updateTileSize()
 		// Tile scale, automatically make things bigger if the page size allows
 		this.updateTileScale()
@@ -179,12 +189,14 @@ export const exaPlayerPage = {
 		// Advance the game by two subtics, so that we can input immediately
 		this.updateRender()
 		this.updateRecordedMovesArea()
+		this.updateTextOutputs()
 	},
 	updateRecordedMovesArea(): void {
 		this.recordedMovesArea!.textContent = this.visualMoves
 			.slice(0, this.movePosition)
 			.join("")
 	},
+	totalScoreText: null as HTMLOutputElement | null,
 	updateTextOutputs(): void {
 		playerPageBase.updateTextOutputs.call(this)
 		const time = this.currentLevel!.timeLeft
@@ -195,6 +207,11 @@ export const exaPlayerPage = {
 		this.textOutputs!.time.textContent = `${superTimeWhole}.${superTimeDecimal
 			.toString()
 			.padEnd(2, "0")}s`
+		this.totalScoreText!.textContent = calculateLevelPoints(
+			this.levelN,
+			Math.ceil(time / 60),
+			this.currentLevel!.bonusPoints
+		).toString()
 	},
 	applyInput(input: KeyInputs): void {
 		const level = this.currentLevel!
