@@ -281,6 +281,10 @@ export class LevelSet {
 			true
 		)) as ArrayBuffer
 		levelRecord.levelData = parseC2M(levelBuffer, levelPath)
+		// Emulate CC1 Steam having CC1 boots always enabled
+		if (this.scriptRunner.state.scriptTitle === "Chips Challenge") {
+			levelRecord.levelData.cc1Boots = true
+		}
 	}
 	toSetInfo(): ISetInfo {
 		const currentScriptState =
