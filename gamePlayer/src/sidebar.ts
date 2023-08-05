@@ -180,7 +180,7 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 		},
 		{
 			name: "Redo",
-			shortcut: "shift+Backspace",
+			shortcut: "Enter",
 			action(pager: Pager): void {
 				if (pager.currentPage !== exaPlayerPage) return
 				exaPlayerPage.redo()
