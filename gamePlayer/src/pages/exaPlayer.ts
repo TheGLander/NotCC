@@ -161,6 +161,7 @@ export const exaPlayerPage = {
 		const level = this.currentLevel
 		if (level === null)
 			throw new Error("The player page base didn't set the level correctly")
+		level.forcedPerspective = true
 		this.renderer!.cameraSize = {
 			width: Math.min(level.width, 32),
 			height: Math.min(level.height, 32),

@@ -157,6 +157,7 @@ async function makeTsetPreview(tsetMeta: TilesetMetadata) {
 	const levelBuffer = await (await fetch(previewLevel)).arrayBuffer()
 	const levelData = parseC2M(levelBuffer, "previewLevel.c2m")
 	const level = createLevelFromData(levelData)
+	level.forcedPerspective = true
 	renderer.level = level
 	renderer.cameraSize = { width: 5, height: 5, screens: 1 }
 	renderer.updateTileSize()

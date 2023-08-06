@@ -311,10 +311,14 @@ export class LevelState {
 		if (!hintedActor) return null
 		return (hintedActor as any).hint
 	}
+	forcedPerspective = false
 	getPerspective(): boolean {
 		return (
-			!!this.selectedPlayable &&
-			this.selectedPlayable.getCompleteTags("tags").includes("can-see-secrets")
+			this.forcedPerspective ||
+			(!!this.selectedPlayable &&
+				this.selectedPlayable
+					.getCompleteTags("tags")
+					.includes("can-see-secrets"))
 		)
 	}
 	*tiles(
