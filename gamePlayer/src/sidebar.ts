@@ -361,9 +361,9 @@ export function generateShortcutListener(
 		const verifyFunction = isHotkey(entry.shortcut)
 		checkerFunctions.push(ev => {
 			if (!verifyFunction(ev)) return
+			if (isTooltipEntryDisabled(pager, entry)) return
 			ev.preventDefault()
 			ev.stopPropagation()
-			if (isTooltipEntryDisabled(pager, entry)) return
 			entry.action!(pager)
 		})
 	}
