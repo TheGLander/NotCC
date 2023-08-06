@@ -182,9 +182,9 @@ registerSpecialFunction<Actor>("perspective", function (ctx, art) {
 	const spArt = art as PerspectiveSpecialArt
 	let perspective = ctx.actor.level.getPerspective()
 	if (perspective && spArt.somethingUnderneathOnly) {
-		perspective = !!ctx.actor.tile.findActor(
-			actor => actor.layer < ctx.actor.layer
-		)
+		perspective =
+			!!ctx.actor.tile.findActor(actor => actor.layer < ctx.actor.layer) ||
+			ctx.actor.tile.wires !== 0
 	}
 	this.drawArt(ctx, perspective ? spArt.revealed : spArt.default)
 })
