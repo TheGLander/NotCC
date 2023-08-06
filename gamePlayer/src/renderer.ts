@@ -305,7 +305,7 @@ export class Renderer {
 	drawWires(ctx: ArtContext, art: WiresArt): void {
 		const pos = this.getPosition(ctx)
 		this.tileBlit(ctx, pos, this.tileset.art.wireBase)
-		if (!art.alwaysShowTop) return
+		if (ctx.actor.level.hideWires && !art.alwaysShowTop) return
 		if (!ctx.actor.level.hideWires) {
 			this.drawWireBase(ctx, pos, ctx.actor.wires, false)
 			this.drawWireBase(
