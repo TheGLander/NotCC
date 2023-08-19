@@ -1,7 +1,7 @@
 {
 	"name": "@notcc/logic",
-	"version": "0.2.0",
-	"description": "NotCC, standing for Nice Optimal Terrific Cool Challenge, is a tile based game(WIP)",
+	"version": "1.0.0",
+	"description": "Game logic for NotCC, a Chip's Challenge 2® emulator",
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -15,7 +15,7 @@
 		"dev": "tsc --watch --declaration",
 		"copy-proto-files": "cp ./src/parsers/*.pb.* ./dist/parsers",
 		"build": "rm -rf dist && pnpm build-proto && pnpm build-src && pnpm copy-proto-files",
-		"publish": "pnpm build"
+		"prepublish": "pnpm build"
 	},
 	"repository": {
 		"type": "git",
