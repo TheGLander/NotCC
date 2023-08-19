@@ -30,11 +30,11 @@
 	"devDependencies": {
 		"@types/clone": "^2.1.1",
 		"@types/node": "^15.14.9",
-		"clone": "^2.1.2",
 		"protobufjs-cli": "^1.1.1",
 		"typescript": "^4.9.5"
 	},
 	"dependencies": {
+		"clone": "^2.1.2",
 		"fast-printf": "^1.6.9",
 		"protobufjs": "^7.2.3"
 	},
