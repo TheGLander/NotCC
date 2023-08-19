@@ -11,7 +11,7 @@ export function statFile(args: ArgumentsCamelCase<Options>): void {
 		// This weird uint8 loop is because node is dumb
 		const dataBuffer = new Uint8Array(fs.readFileSync(filePath, null)).buffer
 
-		const data = parseC2M(dataBuffer, filePath.toString())
+		const data = parseC2M(dataBuffer)
 		console.log(
 			`${filePath}:
 CC2 level, ${data.name ? `named '${data.name}'` : "unnamed"}

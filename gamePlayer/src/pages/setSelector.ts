@@ -93,7 +93,7 @@ export const setSelectorPage = {
 
 	async loadStubLevel(pager: Pager): Promise<void> {
 		const levelBin = await (await fetch(stubLevel)).arrayBuffer()
-		const level = parseC2M(levelBin, "NotCC.c2m")
+		const level = parseC2M(levelBin)
 		openLevel(pager, level)
 	},
 
@@ -102,18 +102,14 @@ export const setSelectorPage = {
 		const loader = makeZipFileLoader(data)
 		return loadSet(pager, loader, await findEntryFilePath(loader, filePaths))
 	},
-	async loadFile(
-		pager: Pager,
-		fileData: ArrayBuffer,
-		fileName: string
-	): Promise<void> {
+	async loadFile(pager: Pager, fileData: ArrayBuffer): Promise<void> {
 		const magicString = Array.from(new Uint8Array(fileData).slice(0, 4), num =>
 			String.fromCharCode(num)
 		).join("")
 		// File types which aren't accepted by the file input (DATs, raw C2Ms) are
 		// here so that the Drag 'n Drop loader can use this.
 		if (magicString === "CC2M") {
-			const level = parseC2M(fileData, fileName)
+			const level = parseC2M(fileData)
 			openLevel(pager, level)
 			return
 		} else if (
@@ -158,7 +154,7 @@ export const setSelectorPage = {
 			})
 			const file = files[0]
 			const arrayBuffer = await file.arrayBuffer()
-			this.loadFile(pager, arrayBuffer, file.name)
+			this.loadFile(pager, arrayBuffer)
 		})
 		const loadDirectoryButton =
 			page.querySelector<HTMLButtonElement>("#loadDirectory")!

@@ -51,7 +51,7 @@ function waitForMessage(): Promise<any> {
 		try {
 			const levelBuffer = fs.readFileSync(levelPath, null)
 
-			const levelData = parseC2M(new Uint8Array(levelBuffer).buffer, levelPath)
+			const levelData = parseC2M(new Uint8Array(levelBuffer).buffer)
 			levelName = levelData.name || "???"
 			const level = createLevelFromData(levelData)
 			glitches = level.glitches

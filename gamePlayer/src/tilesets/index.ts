@@ -156,7 +156,7 @@ async function makeTsetPreview(tsetMeta: TilesetMetadata) {
 	canvas.classList.add("tsetPreviewCanvas")
 	const renderer = new Renderer(tset, canvas)
 	const levelBuffer = await (await fetch(previewLevel)).arrayBuffer()
-	const levelData = parseC2M(levelBuffer, "previewLevel.c2m")
+	const levelData = parseC2M(levelBuffer)
 	const level = createLevelFromData(levelData)
 	level.forcedPerspective = true
 	renderer.level = level

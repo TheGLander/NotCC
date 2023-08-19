@@ -12,10 +12,6 @@ export interface CameraType {
 
 export interface LevelData {
 	/**
-	 * The filename of this level (or the level set, if a DAT)
-	 */
-	filename?: string
-	/**
 	 * The name of the set this belongs to (not present in C2Ms or DATs)
 	 */
 	setName?: string
@@ -432,7 +428,7 @@ export function packageData(buff: ArrayBuffer): ArrayBuffer | null {
 	return newBuff.slice(0, newView.offset)
 }
 
-export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
+export function parseC2M(buff: ArrayBuffer): LevelData {
 	const view = new AutoReadDataView(buff)
 	const data: PartialLevelData = {
 		camera: {
@@ -443,7 +439,6 @@ export function parseC2M(buff: ArrayBuffer, filename: string): LevelData {
 		timeLimit: 0,
 		blobMode: 4,
 		playablesRequiredToExit: "all",
-		filename,
 	}
 
 	const OPTNFuncs = [
