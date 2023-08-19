@@ -24,6 +24,7 @@ import {
 	glitchNames,
 	nonLegalGlitches,
 } from "./basePlayer"
+import { makeChoiceDialog, showAlert, waitForDialogSubmit } from "../simpleDialogs"
 
 interface OverlayButtons {
 	restart: HTMLElement
@@ -187,7 +188,7 @@ export const levelPlayerPage = {
 
 	async openNextLevel(pager: Pager): Promise<void> {
 		if (!pager.loadedSet) {
-			alert("Congratulations on clearing the level!")
+			await showAlert("Congratulations on clearing the level!")
 			pager.openPage(setSelectorPage)
 			return
 		}
@@ -338,10 +339,17 @@ export const levelPlayerPage = {
 		this.keyListener?.remove()
 		this.keyListener = null
 	},
-	showInterlude(_pager: Pager, text: string): Promise<void> {
-		// TODO Use a text script page?
-		alert(text)
-		return Promise.resolve()
+	async showInterlude(_pager: Pager, text: string): Promise<void> {
+		const dialog = makeChoiceDialog(text, [["next", "Next"]], "Story")
+		dialog.showModal()
+		const listener = new KeyListener(ev => {
+			if (ev.code === "KeyN" && ev.shiftKey) {
+				dialog.querySelector("button")!.click()
+			}
+		})
+		listener.listenInModals = true
+		await waitForDialogSubmit(dialog)
+		listener.remove()
 	},
 	showGz(): void {
 		this.isGz = true

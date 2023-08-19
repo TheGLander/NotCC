@@ -56,12 +56,13 @@ function isModalPresent(): boolean {
 
 export class KeyListener {
 	removed = false
+	listenInModals = false
 	onListener(ev: KeyboardEvent): void {
-		if (isModalPresent()) return
+		if (isModalPresent() && !this.listenInModals) return
 		this.userOn(ev)
 	}
 	offListener(ev: KeyboardEvent): void {
-		if (isModalPresent()) return
+		if (isModalPresent() && !this.listenInModals) return
 		// The off listener is only set up if `userOff` is present, so we don't
 		// need a check for undefined here
 		this.userOff!(ev)

@@ -21,6 +21,7 @@ import { cc2ArtSet } from "../cc2ArtSet"
 import { createLevelFromData, parseC2M } from "@notcc/logic"
 import { Pager } from "../pager"
 import { defaultSettings } from "../settings"
+import { showAlert } from "../simpleDialogs"
 
 export interface SourcelessTilesetMetadata {
 	identifier: string
@@ -172,7 +173,7 @@ async function promptCustomTilesetImage(): Promise<HTMLImageElement> {
 	const file = files[0]
 	const image = await makeImagefromBlob(file)
 	if (image.naturalHeight !== image.naturalWidth * 2) {
-		alert("This doesn't seem like a CC2 tileset.")
+		showAlert("This doesn't seem like a CC2 tileset.")
 		throw new Error("This doesn't seem like a CC2 tileset")
 	}
 	return image

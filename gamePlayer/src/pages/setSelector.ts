@@ -23,6 +23,7 @@ import {
 	mergeComparators,
 } from "../utils"
 import { showDirectotyPrompt, showLoadPrompt } from "../saveData"
+import { showAlert } from "../simpleDialogs"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,
@@ -128,8 +129,8 @@ export const setSelectorPage = {
 			magicString === "\xAC\xAA\x03\x00" ||
 			magicString === "\xAC\xAA\x03\x01"
 		) {
-			// TODO Proper prompts
-			alert("DAT files aren't supported, for now.")
+			// TODO Proper simpleDialogs
+			showAlert("DAT files aren't supported, for now.")
 			return
 		} else {
 			const decoder = new TextDecoder("iso-8859-1")
@@ -139,7 +140,7 @@ export const setSelectorPage = {
 				// Explain how to use C2Gs
 				findScriptName(fileText) !== null
 			) {
-				alert("You need to load the whole set, not just the C2G file.")
+				showAlert("You need to load the whole set, not just the C2G file.")
 				return
 			}
 		}

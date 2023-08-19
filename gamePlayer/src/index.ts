@@ -20,6 +20,7 @@ import { generateShortcutListener, generateTabButtons } from "./sidebar"
 import { loadSetInfo, saveSetInfo } from "./saveData"
 import { KeyListener } from "./utils"
 import { openTilesetSelectortDialog } from "./tilesets"
+import { showAlert } from "./simpleDialogs"
 
 import "dialog-polyfill/dialog-polyfill.css"
 import dialogPolyfill from "dialog-polyfill"
@@ -37,7 +38,7 @@ new KeyListener(generateShortcutListener(pager))
 
 // Enable crash handling
 window.addEventListener("error", ev =>
-	alert(`Yikes! Something went wrong...
+	showAlert(`Yikes! Something went wrong...
 Error info:
 ${ev.message}
 at ${ev.lineno}:${ev.colno}

@@ -7,6 +7,7 @@ import {
 } from "@notcc/logic"
 import clone from "clone"
 import { Pager } from "../pager"
+import { showAlert } from "../simpleDialogs"
 import { showLoadPrompt, showSavePrompt } from "../saveData"
 import { KeyListener, sleep, TimeoutTimer } from "../utils"
 import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
@@ -363,15 +364,15 @@ export const exaPlayerPage = {
 		const routeData = await file.text()
 		const route: Route = JSON.parse(routeData)
 		if (route.Rule === undefined) {
-			alert("This doesn't seem like a route file")
+			showAlert("This doesn't seem like a route file")
 			return
 		}
 		if (route.Rule === "LYNX" || route.Rule === "MS") {
-			alert(
+			await showAlert(
 				"Warning: Adapting a Lynx or MS route to Steam. Best effort, so don't expect it to work..."
 			)
 		} else if (route.Rule !== "STEAM") {
-			alert("Unknown ruleset")
+			showAlert("Unknown ruleset")
 			return
 		}
 		this.loadLevel(pager)
