@@ -4,6 +4,7 @@ import {
 	KeyInputs,
 	ScriptLegalInventoryTool,
 	protobuf,
+	SolutionInfoInputProvider,
 } from "@notcc/logic"
 import { Pager } from "../pager"
 import {
@@ -24,7 +25,11 @@ import {
 	glitchNames,
 	nonLegalGlitches,
 } from "./basePlayer"
-import { makeChoiceDialog, showAlert, waitForDialogSubmit } from "../simpleDialogs"
+import {
+	makeChoiceDialog,
+	showAlert,
+	waitForDialogSubmit,
+} from "../simpleDialogs"
 
 interface OverlayButtons {
 	restart: HTMLElement
@@ -363,7 +368,7 @@ export const levelPlayerPage = {
 		this.loadLevel(pager)
 		this.attemptTracker = null
 		this.currentLevel!.onGlitch = null
-		this.currentLevel!.playbackSolution(sol)
+		this.currentLevel!.inputProvider = new SolutionInfoInputProvider(sol)
 		this.basePage!.classList.add("solutionPlayback")
 		this.endPreplay()
 	},

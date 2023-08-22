@@ -3,6 +3,7 @@ import {
 	GameState,
 	parseC2M,
 	protobuf,
+	SolutionInfoInputProvider,
 } from "@notcc/logic"
 import { parentPort } from "worker_threads"
 import fs from "fs"
@@ -60,11 +61,13 @@ function waitForMessage(): Promise<any> {
 				throw new Error("Level has no baked solution!")
 
 			let bonusTicks = 60 * 60
+			level.inputProvider = new SolutionInfoInputProvider(
+				levelData.associatedSolution
+			)
 
-			level.playbackSolution(levelData.associatedSolution)
 			while (level.gameState === GameState.PLAYING && bonusTicks > 0) {
 				level.tick()
-				if (level.solutionSubticksLeft === Infinity) bonusTicks--
+				if (level.inputProvider.outOfInput(level)) bonusTicks--
 			}
 			sendMessage({
 				type: "level",

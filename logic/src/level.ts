@@ -16,6 +16,7 @@ import {
 } from "./wires.js"
 import { GlitchInfo, IGlitchInfo, ISolutionInfo } from "./parsers/nccs.pb.js"
 import { msToProtoTime } from "./attemptTracker.js"
+import { InputProvider, KeyInputs } from "./inputs.js"
 
 export enum GameState {
 	PLAYING,
@@ -23,18 +24,6 @@ export enum GameState {
 	TIMEOUT,
 	WON,
 }
-
-export interface KeyInputs {
-	up: boolean
-	down: boolean
-	left: boolean
-	right: boolean
-	drop: boolean
-	rotateInv: boolean
-	switchPlayable: boolean
-}
-
-export type InputType = keyof KeyInputs
 
 export const onLevelStart: ((level: LevelState) => void)[] = []
 export const onLevelDecisionTick: ((level: LevelState) => void)[] = []
@@ -59,30 +48,6 @@ export interface SfxManager {
 	playContinuous(sfx: string): void
 	stopContinuous(sfx: string): void
 	playOnce(sfx: string): void
-}
-
-export function decodeSolutionStep(step: number): KeyInputs {
-	return {
-		up: (step & 0x1) > 0,
-		right: (step & 0x2) > 0,
-		down: (step & 0x4) > 0,
-		left: (step & 0x8) > 0,
-		drop: (step & 0x10) > 0,
-		rotateInv: (step & 0x20) > 0,
-		switchPlayable: (step & 0x40) > 0,
-	}
-}
-
-export function encodeSolutionStep(input: KeyInputs): number {
-	return (
-		(input.up ? 0x01 : 0) +
-		(input.right ? 0x02 : 0) +
-		(input.down ? 0x04 : 0) +
-		(input.left ? 0x08 : 0) +
-		(input.drop ? 0x10 : 0) +
-		(input.rotateInv ? 0x20 : 0) +
-		(input.switchPlayable ? 0x40 : 0)
-	)
 }
 
 /**
@@ -128,6 +93,7 @@ export class LevelState {
 		rotateInv: false,
 		switchPlayable: false,
 	}
+	inputProvider?: InputProvider
 	releasedKeys: KeyInputs = {
 		up: false,
 		right: false,
@@ -178,8 +144,8 @@ export class LevelState {
 			this.timeLeft--
 			if (this.timeLeft <= 0) this.gameState = GameState.TIMEOUT
 		}
-		if (this.solutionSteps) {
-			this.gameInput = this.getSolutionMove() ?? decodeSolutionStep(0)
+		if (this.inputProvider) {
+			this.gameInput = this.inputProvider.getInput(this)
 		}
 		this.releasedKeys = {
 			up: false,
@@ -217,6 +183,7 @@ export class LevelState {
 	} */
 
 	initializeLevel(): void {
+		this.inputProvider?.setupLevel(this)
 		this.levelStarted = true
 		buildCircuits.apply(this)
 		for (const actor of Array.from(this.actors)) {
@@ -230,21 +197,6 @@ export class LevelState {
 				actor.hasOverride = true
 		}
 		onLevelStart.forEach(val => val(this))
-	}
-	getSolutionMove(): KeyInputs | null {
-		if (this.solutionSubticksLeft < 0 || !this.solutionSteps) return null
-
-		this.solutionSubticksLeft -= 1
-		if (this.solutionSubticksLeft <= 0) {
-			this.solutionStep += 1
-			// If there's no time specified, keep holding it
-			const isInfinite = this.solutionStep * 2 + 1 >= this.solutionSteps.length
-			this.solutionSubticksLeft = isInfinite
-				? Infinity
-				: this.solutionSteps[this.solutionStep * 2 + 1]
-		}
-		const step = this.solutionSteps[this.solutionStep * 2]
-		return decodeSolutionStep(step)
 	}
 
 	constructor(public width: number, public height: number) {
@@ -281,27 +233,6 @@ export class LevelState {
 		}
 		this.blobPrngValue = mod
 		return mod
-	}
-	solutionSteps?: Uint8Array
-	solutionStep = 0
-	solutionSubticksLeft = 0
-	playbackSolution(solution: ISolutionInfo): void {
-		if (!solution.steps)
-			throw new Error("A solution must have sets to play it back.")
-
-		this.solutionSteps = solution.steps[0]
-		// TODO Multiplayer
-		this.solutionStep = 0
-		this.solutionSubticksLeft = this.solutionSteps[1] + 1
-		const levelState = solution.levelState
-		if (!levelState) return
-		if (typeof levelState.randomForceFloorDirection === "number") {
-			this.randomForceFloorDirection = levelState.randomForceFloorDirection - 1
-		}
-		const blobMod = levelState.cc2Data?.blobModifier
-		if (typeof blobMod === "number") {
-			this.blobPrngValue = blobMod
-		}
 	}
 	getHint(): string | null {
 		if (!this.selectedPlayable) return null

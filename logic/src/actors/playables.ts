@@ -1,10 +1,11 @@
 import { Actor, SlidingState } from "../actor.js"
 import { Layer } from "../tile.js"
 import { Direction, relativeToAbsolute } from "../helpers.js"
-import { GameState, KeyInputs, LevelState, onLevelAfterTick } from "../level.js"
+import { GameState, LevelState } from "../level.js"
 import { Decision, actorDB } from "../const.js"
 import { Item } from "./items.js"
 import { GlitchInfo } from "../parsers/nccs.pb.js"
+import { KeyInputs } from "../inputs.js"
 
 export function getMovementDirections(
 	input: KeyInputs

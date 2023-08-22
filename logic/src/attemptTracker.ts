@@ -1,5 +1,5 @@
 import { Direction } from "./helpers.js"
-import { KeyInputs, encodeSolutionStep } from "./level.js"
+import { KeyInputs, encodeSolutionStep } from "./inputs.js"
 import { GameState } from "./level.js"
 import { LevelState } from "./level.js"
 import {
