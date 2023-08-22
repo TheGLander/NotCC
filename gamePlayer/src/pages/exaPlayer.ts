@@ -1,9 +1,13 @@
 import {
 	calculateLevelPoints,
-	Direction,
 	GameState,
 	KeyInputs,
+	keyInputToChar,
 	LevelState,
+	makeEmptyInputs,
+	Route,
+	RouteFileInputProvider,
+	secondaryActions,
 } from "@notcc/logic"
 import clone from "clone"
 import { Pager } from "../pager"
@@ -11,89 +15,6 @@ import { showAlert } from "../simpleDialogs"
 import { showLoadPrompt, showSavePrompt } from "../saveData"
 import { KeyListener, sleep, TimeoutTimer } from "../utils"
 import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
-
-export type KeyInput = keyof KeyInputs
-
-const emptyKeys: KeyInputs = {
-	up: false,
-	right: false,
-	down: false,
-	left: false,
-	drop: false,
-	rotateInv: false,
-	switchPlayable: false,
-}
-
-// Input types which don't cause a new tick by their own
-const composingInputs: KeyInput[] = ["drop", "rotateInv", "switchPlayable"]
-
-const keyInputToCharMap: Record<KeyInput, string> = {
-	up: "u",
-	right: "r",
-	down: "d",
-	left: "l",
-	switchPlayable: "s",
-	rotateInv: "c",
-	drop: "p",
-}
-
-const charToKeyInputMap: Record<string, KeyInput | KeyInput[]> = {
-	u: "up",
-	r: "right",
-	d: "down",
-	l: "left",
-	p: "drop",
-	c: "rotateInv",
-	s: "switchPlayable",
-	"↗": ["up", "right"],
-	"↘": ["right", "down"],
-	"↙": ["down", "left"],
-	"↖": ["left", "up"],
-}
-
-function areKeyInputsMoving(input: KeyInputs): boolean {
-	return input.up || input.right || input.down || input.left
-}
-
-function keyInputToChar(
-	input: KeyInputs,
-	uppercase: boolean,
-	composeOnly = false
-): string {
-	let char = ""
-	for (const keyInput of composingInputs) {
-		if (input[keyInput]) {
-			char += keyInputToCharMap[keyInput]
-		}
-	}
-	if (composeOnly) return char
-	if (input.up && input.right) char += uppercase ? "⇗" : "↗"
-	else if (input.right && input.down) char += uppercase ? "⇘" : "↘"
-	else if (input.down && input.left) char += uppercase ? "⇙" : "↙"
-	else if (input.left && input.up) char += uppercase ? "⇖" : "↖"
-	else if (input.up) char += uppercase ? "U" : "u"
-	else if (input.right) char += uppercase ? "R" : "r"
-	else if (input.down) char += uppercase ? "D" : "d"
-	else if (input.left) char += uppercase ? "L" : "l"
-	else char += "-"
-	return char
-}
-
-function charToKeyInput(char: string): KeyInputs {
-	const input = clone(emptyKeys)
-	for (const modChar of char) {
-		let keyInputs = charToKeyInputMap[modChar]
-		if (!Array.isArray(keyInputs)) keyInputs = [keyInputs]
-		for (const keyInput of keyInputs) {
-			input[keyInput] = true
-		}
-	}
-	return input
-}
-
-function splitCharString(charString: string): string[] {
-	return charString.split(/(?<![pcs])/)
-}
 
 // Wait for a tick for diagonal inputs
 const AUTO_DIAGONALS_TIMEOUT = 1 / 20
@@ -103,7 +24,6 @@ const LEVEL_SNAPSHOT_PERIOD = 60
 
 interface LevelSnapshot {
 	level: LevelState
-	movePosition: number
 }
 
 // TODO move this to @notcc/logic maybe?
@@ -113,33 +33,14 @@ function cloneLevel(level: LevelState): LevelState {
 	// What's it doing there, anyways?
 	const levelData = level.levelData
 	delete level.levelData
+	const inputProvider = level.inputProvider
+	delete level.inputProvider
 	const newLevel = clone(level, true)
 	newLevel.levelData = levelData
+	newLevel.inputProvider = inputProvider
 	level.levelData = levelData
+	level.inputProvider = inputProvider
 	return newLevel
-}
-
-interface RouteFor {
-	Set?: string
-	LevelName?: string
-	LevelNumber?: number
-}
-
-interface Route {
-	Moves: string
-	Rule: string
-	Encode?: "UTF-8"
-	"Initial Slide"?: Direction
-	/**
-	 * Not the same as "Seed", as Blobmod only affects blobs and nothing else, unlilke the seed in TW, which affects all randomness
-	 */
-	Blobmod?: number
-	// Unused in CC2
-	Step?: never
-	Seed?: never
-	// NotCC-invented metadata
-	For?: RouteFor
-	ExportApp?: string
 }
 
 export const exaPlayerPage = {
@@ -171,7 +72,7 @@ export const exaPlayerPage = {
 		this.recordedMoves = []
 		this.visualMoves = []
 		this.areMovesPlayerInput = []
-		this.movePosition = 0
+		level.inputProvider = new RouteFileInputProvider(this.recordedMoves)
 		while (level.subtick !== 1) {
 			level.tick()
 		}
@@ -179,7 +80,6 @@ export const exaPlayerPage = {
 		this.snapshots = [
 			{
 				level: cloneLevel(this.currentLevel!),
-				movePosition: 0,
 			},
 		]
 		this.levelN = pager.loadedSet?.currentLevel ?? 0
@@ -195,7 +95,7 @@ export const exaPlayerPage = {
 	},
 	updateRecordedMovesArea(): void {
 		this.recordedMovesArea!.textContent = this.visualMoves
-			.slice(0, this.movePosition)
+			.slice(0, this.currentLevel!.currentTick)
 			.join("")
 	},
 	totalScoreText: null as HTMLOutputElement | null,
@@ -215,15 +115,12 @@ export const exaPlayerPage = {
 			this.currentLevel!.bonusPoints
 		).toString()
 	},
-	applyInput(input: KeyInputs): void {
+	applyInput(): void {
 		const level = this.currentLevel!
-		level.gameInput = input
 		do {
 			level.tick()
-			level.gameInput = emptyKeys
 			level.tick()
 			level.tick()
-			this.movePosition += 1
 			this.autoAddSnapshot()
 		} while (
 			level.gameState === GameState.PLAYING &&
@@ -234,39 +131,46 @@ export const exaPlayerPage = {
 	// We don't use the native `updateLogic`.
 	appendInput(input: KeyInputs): void {
 		const level = this.currentLevel!
-		level.gameInput = input
 		const couldMoveFirstTick = level.selectedPlayable!.getCanMove()
+
 		this.cropToMovePosition()
+
+		const moves: string[] = []
+		const addMove = (char: string) => {
+			this.recordedMoves.push(char)
+			moves.push(char)
+		}
+
+		addMove(
+			couldMoveFirstTick
+				? keyInputToChar(input, false)
+				: keyInputToChar(input, false, true) + "-"
+		)
 		let ticksApplied = 0
+
 		do {
+			if (ticksApplied > 0) {
+				addMove("-")
+			}
 			level.tick()
-			level.gameInput = emptyKeys
 			level.tick()
 			level.tick()
 			ticksApplied += 1
-			this.movePosition += 1
 			this.autoAddSnapshot()
 		} while (
 			level.gameState === GameState.PLAYING &&
 			level.selectedPlayable!.cooldown > 0
 		)
-		this.updateRender()
-		const recordedInput = [
-			couldMoveFirstTick
-				? keyInputToChar(input, false)
-				: keyInputToChar(input, false, true) + "-",
-			..."-".repeat(ticksApplied - 1),
-		]
-		if (couldMoveFirstTick && areKeyInputsMoving(input) && ticksApplied === 4) {
+		if (moves.length === 4 && couldMoveFirstTick) {
 			this.visualMoves.push(keyInputToChar(input, true), "", "", "")
 		} else {
-			this.visualMoves.push(...recordedInput)
+			this.visualMoves.push(...moves)
 		}
-		this.recordedMoves.push(...recordedInput)
 		this.areMovesPlayerInput.push(
 			true,
-			...new Array<boolean>(ticksApplied - 1).fill(false)
+			...new Array(moves.length - 1).fill(false)
 		)
+		this.updateRender()
 	},
 	// Automatically skip in time until *something* can be done
 	autoSkip(): void {
@@ -275,7 +179,7 @@ export const exaPlayerPage = {
 			level.gameState === GameState.PLAYING &&
 			!level.selectedPlayable!.canDoAnything()
 		) {
-			this.appendInput(emptyKeys)
+			this.appendInput(makeEmptyInputs())
 		}
 		this.updateRecordedMovesArea()
 		this.updateTextOutputs()
@@ -293,49 +197,40 @@ export const exaPlayerPage = {
 		if (currentTime - lastSnapshotTime < LEVEL_SNAPSHOT_PERIOD) return
 		this.snapshots.push({
 			level: cloneLevel(level),
-			movePosition: this.movePosition,
 		})
 	},
 	seekTo(newPosition: number, snapToMove = true): void {
+		let targetPosition: number
 		if (snapToMove) {
-			this.movePosition = this.areMovesPlayerInput.lastIndexOf(
-				true,
-				newPosition
-			)
+			targetPosition = this.areMovesPlayerInput.lastIndexOf(true, newPosition)
 		} else {
-			this.movePosition = newPosition
+			targetPosition = newPosition
 		}
 		// There will always be the snapshot of the initial level, so don't worry about the non-null assertion
 		const closestSnapshot = [...this.snapshots]
 			.reverse()
-			.find(snap => snap.movePosition <= this.movePosition)!
+			.find(snap => snap.level.currentTick <= targetPosition)!
 		this.currentLevel = cloneLevel(closestSnapshot.level)
+		const level = this.currentLevel
 		this.renderer!.level = this.currentLevel
-		let actualPosition = closestSnapshot.movePosition
-		while (this.movePosition > actualPosition) {
-			this.currentLevel.gameInput = charToKeyInput(
-				this.recordedMoves[actualPosition]
-			)
-			this.currentLevel.tick()
-			this.currentLevel.gameInput = emptyKeys
+		while (targetPosition > level.currentTick) {
 			this.currentLevel.tick()
 			this.currentLevel.tick()
-			actualPosition += 1
+			this.currentLevel.tick()
 		}
-		this.movePosition = actualPosition
 		this.updateRecordedMovesArea()
 		this.updateRender()
 		this.updateTextOutputs()
 	},
 	undo(): void {
-		if (this.movePosition <= 0) return
-		this.seekTo(this.movePosition - 1)
+		if (this.currentLevel!.currentTick <= 0) return
+		this.seekTo(this.currentLevel!.currentTick - 1)
 	},
 	redo(): void {
-		if (this.movePosition >= this.recordedMoves.length) return
 		const level = this.currentLevel
 		if (level === null) throw new Error("Current level required")
-		this.applyInput(charToKeyInput(this.recordedMoves[this.movePosition]))
+		if (level.currentTick >= this.recordedMoves.length) return
+		this.applyInput()
 		this.updateRecordedMovesArea()
 		this.updateTextOutputs()
 		this.updateRender()
@@ -345,14 +240,12 @@ export const exaPlayerPage = {
 	visualMoves: [] as string[],
 	areMovesPlayerInput: [] as boolean[],
 	cropToMovePosition(): void {
-		this.recordedMoves = this.recordedMoves.slice(0, this.movePosition)
-		this.visualMoves = this.visualMoves.slice(0, this.movePosition)
-		this.areMovesPlayerInput = this.areMovesPlayerInput.slice(
-			0,
-			this.movePosition
-		)
+		const movePos = this.currentLevel!.currentTick
+		this.recordedMoves.splice(movePos)
+		this.visualMoves.splice(movePos)
+		this.areMovesPlayerInput.splice(movePos)
 		this.snapshots = this.snapshots.filter(
-			snap => snap.movePosition <= this.movePosition
+			snap => snap.level.currentTick <= movePos
 		)
 	},
 	async importRoute(pager: Pager): Promise<void> {
@@ -378,12 +271,11 @@ export const exaPlayerPage = {
 		this.loadLevel(pager)
 		// TODO compare route.For metadata
 		const level = this.currentLevel!
-		level.blobPrngValue = route.Blobmod ?? 0x55
-		level.randomForceFloorDirection = route["Initial Slide"] ?? Direction.UP
-		const moves = splitCharString(route.Moves)
+		const inputProvider = new RouteFileInputProvider(route)
+		inputProvider.setupLevel(level)
 		let moveCount = 0
-		while (moves.length > this.movePosition) {
-			this.appendInput(charToKeyInput(moves[this.movePosition]))
+		while (!inputProvider.outOfInput(level)) {
+			this.appendInput(inputProvider.getInput(level))
 			if (level.gameState !== GameState.PLAYING) break
 			moveCount += 1
 			if (moveCount % 100 === 0) {
@@ -426,8 +318,7 @@ export const exaPlayerPage = {
 			defaultPath: `./${levelTitle}.route`,
 		})
 	},
-	movePosition: 0,
-	currentInput: clone(emptyKeys),
+	currentInput: makeEmptyInputs(),
 	keyListener: null as KeyListener | null,
 	autoDiagonalsTimer: null as TimeoutTimer | null,
 	updateCompositingPreview(): void {
@@ -443,7 +334,7 @@ export const exaPlayerPage = {
 		this.updateRecordedMovesArea()
 		this.updateRender()
 		this.updateTextOutputs()
-		this.currentInput = clone(emptyKeys)
+		this.currentInput = makeEmptyInputs()
 		this.updateCompositingPreview()
 	},
 	setupKeyListener(): void {
@@ -467,7 +358,7 @@ export const exaPlayerPage = {
 				}
 			}
 			if (
-				!composingInputs.includes(inputType) &&
+				!secondaryActions.includes(inputType) &&
 				this.autoDiagonalsTimer === null
 			) {
 				this.autoDiagonalsTimer = new TimeoutTimer(
