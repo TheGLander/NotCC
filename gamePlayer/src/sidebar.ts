@@ -3,11 +3,11 @@ import isHotkey, { parseHotkey } from "is-hotkey"
 import { setSelectorPage } from "./pages/setSelector"
 import { levelPlayerPage } from "./pages/levelPlayer"
 import { openLevelListDialog } from "./levelList"
-import { protobuf } from "@notcc/logic"
 import { openSettingsDialog } from "./settings"
 import { instanciateTemplate } from "./utils"
 import { exaPlayerPage } from "./pages/exaPlayer"
 import { openAllAttemptsDialog } from "./allAttemptsDialog"
+import { generateSolutionTooltipEntries } from "./solutionTooltip"
 
 interface TooltipEntry {
 	name: string
@@ -16,59 +16,13 @@ interface TooltipEntry {
 	enabledPages?: Page[]
 }
 
-type BasicTooltipEntry = TooltipEntry | "breakline"
+export type BasicTooltipEntry = TooltipEntry | "breakline"
 
 type TooltipEntryGenerator = (pager: Pager) => BasicTooltipEntry[]
 
 type TooltipEntries = (BasicTooltipEntry | TooltipEntryGenerator)[]
 
 const playerPages = [levelPlayerPage, exaPlayerPage]
-
-interface TTSolutionEntry {
-	title: string
-	solution: protobuf.ISolutionInfo
-}
-
-function durationToSeconds(dur: protobuf.google.protobuf.IDuration): number {
-	return (
-		((dur.seconds as number) ?? 0) +
-		(dur.nanos ? (dur.nanos as number) / 1_000_000 : 0)
-	)
-}
-
-function generateSolutionTooltipEntries(pager: Pager): BasicTooltipEntry[] {
-	if (!pager.loadedLevel) return [{ name: "No level loaded.", shortcut: null }]
-	const shownSolutions: TTSolutionEntry[] = []
-	const builtinSolution = pager.loadedLevel?.associatedSolution
-	if (builtinSolution) {
-		shownSolutions.push({ title: "Built-in", solution: builtinSolution })
-	}
-	if (pager.loadedSet) {
-		const levelRecord = pager.loadedSet.seenLevels[pager.loadedSet.currentLevel]
-		const attempts = levelRecord.levelInfo.attempts
-		if (attempts) {
-			for (const attempt of attempts) {
-				if (attempt.failReason || !attempt.solution) continue
-				shownSolutions.push({ solution: attempt.solution, title: "Saved" })
-			}
-		}
-	}
-
-	if (shownSolutions.length === 0)
-		return [{ name: "No solutions found.", shortcut: null }]
-	return shownSolutions.map(solEntry => {
-		const timeLeft = solEntry.solution.outcome?.timeLeft
-		return {
-			name: `${solEntry.title} - ${
-				timeLeft ? `${Math.ceil(durationToSeconds(timeLeft))}s` : "???s"
-			}`,
-			shortcut: null,
-			action() {
-				pager.loadSolution(solEntry.solution)
-			},
-		}
-	})
-}
 
 const aboutDialog = document.querySelector<HTMLDialogElement>("#aboutDialog")
 
