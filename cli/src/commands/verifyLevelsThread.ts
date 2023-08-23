@@ -60,14 +60,15 @@ function waitForMessage(): Promise<any> {
 			if (!levelData?.associatedSolution || !levelData.associatedSolution.steps)
 				throw new Error("Level has no baked solution!")
 
-			let bonusTicks = 60 * 60
 			level.inputProvider = new SolutionInfoInputProvider(
 				levelData.associatedSolution
 			)
 
-			while (level.gameState === GameState.PLAYING && bonusTicks > 0) {
+			while (
+				level.gameState === GameState.PLAYING &&
+				!level.inputProvider.outOfInput(level)
+			) {
 				level.tick()
-				if (level.inputProvider.outOfInput(level)) bonusTicks--
 			}
 			sendMessage({
 				type: "level",

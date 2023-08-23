@@ -70,6 +70,7 @@ export function makeSimpleInputs(comp: Uint8Array): Uint8Array {
 
 export class SolutionInfoInputProvider implements InputProvider {
 	inputs: Uint8Array
+	bonusTicks = 3600
 	constructor(public solution: ISolutionInfo) {
 		this.inputs = makeSimpleInputs(solution.steps![0])
 	}
@@ -81,7 +82,7 @@ export class SolutionInfoInputProvider implements InputProvider {
 		return decodeSolutionStep(this.inputs[inputN])
 	}
 	outOfInput(level: LevelState): boolean {
-		return level.currentTick >= this.inputs.length
+		return level.currentTick >= this.inputs.length + this.bonusTicks
 	}
 	setupLevel(level: LevelState): void {
 		const levelState = this.solution.levelState
