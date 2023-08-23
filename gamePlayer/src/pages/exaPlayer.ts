@@ -1,6 +1,7 @@
 import {
 	calculateLevelPoints,
 	GameState,
+	InputProvider,
 	KeyInputs,
 	keyInputToChar,
 	LevelState,
@@ -8,6 +9,8 @@ import {
 	Route,
 	RouteFileInputProvider,
 	secondaryActions,
+	protobuf,
+	SolutionInfoInputProvider,
 } from "@notcc/logic"
 import clone from "clone"
 import { Pager } from "../pager"
@@ -248,6 +251,30 @@ export const exaPlayerPage = {
 			snap => snap.level.currentTick <= movePos
 		)
 	},
+	async transcribeInputs(ip: InputProvider) {
+		const level = this.currentLevel!
+		ip.setupLevel(level)
+		let moveCount = 0
+		while (!ip.outOfInput(level)) {
+			this.appendInput(ip.getInput(level))
+			if (level.gameState !== GameState.PLAYING) break
+			moveCount += 1
+			if (moveCount % 100 === 0) {
+				this.updateRecordedMovesArea()
+				this.updateRender()
+				this.updateTextOutputs()
+				// Have a breather every 100 moves
+				await sleep(0)
+			}
+		}
+		this.updateRecordedMovesArea()
+		this.updateRender()
+		this.updateTextOutputs()
+	},
+	async loadSolution(pager: Pager, sol: protobuf.ISolutionInfo) {
+		this.loadLevel(pager)
+		await this.transcribeInputs(new SolutionInfoInputProvider(sol))
+	},
 	async importRoute(pager: Pager): Promise<void> {
 		const file = (
 			await showLoadPrompt("Import route", {
@@ -270,25 +297,7 @@ export const exaPlayerPage = {
 		}
 		this.loadLevel(pager)
 		// TODO compare route.For metadata
-		const level = this.currentLevel!
-		const inputProvider = new RouteFileInputProvider(route)
-		inputProvider.setupLevel(level)
-		let moveCount = 0
-		while (!inputProvider.outOfInput(level)) {
-			this.appendInput(inputProvider.getInput(level))
-			if (level.gameState !== GameState.PLAYING) break
-			moveCount += 1
-			if (moveCount % 100 === 0) {
-				this.updateRecordedMovesArea()
-				this.updateRender()
-				this.updateTextOutputs()
-				// Have a breather every 100 moves
-				await sleep(0)
-			}
-		}
-		this.updateRecordedMovesArea()
-		this.updateRender()
-		this.updateTextOutputs()
+		await this.transcribeInputs(new RouteFileInputProvider(route))
 	},
 	async exportRoute(pager: Pager): Promise<void> {
 		const level = this.snapshots[0].level
