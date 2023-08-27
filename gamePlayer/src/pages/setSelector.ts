@@ -18,12 +18,15 @@ import { GliderbotSet } from "../gliderbotSets"
 import { HTMLImage, Renderer, Tileset } from "../renderer"
 import {
 	Comparator,
+	decodeBase64,
 	fetchImage,
 	instanciateTemplate,
 	mergeComparators,
+	unzlibAsync,
 } from "../utils"
 import { showDirectotyPrompt, showLoadPrompt } from "../saveData"
 import { showAlert } from "../simpleDialogs"
+import { unzlib } from "fflate"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,
@@ -179,6 +182,26 @@ export const setSelectorPage = {
 		pager.loadedLevel = null
 		pager.loadedSet = null
 		pager.updateShownLevelNumber()
+		if (!this.loadedParamLevel) {
+			this.loadedParamLevel = true
+			this.loadParamLevel(pager)
+		}
+	},
+	loadedParamLevel: false,
+	async loadParamLevel(pager: Pager) {
+		const searchParams = new URLSearchParams(location.search)
+
+		const levelDataBased = searchParams.get("level")
+
+		if (levelDataBased === null) return
+
+		let levelData = decodeBase64(levelDataBased)
+
+		if (levelData[0] === 0x78) {
+			levelData = await unzlibAsync(levelData, { consume: true })
+		}
+
+		this.loadFile(pager, levelData.buffer)
 	},
 	gbSets: null as GliderbotSet[] | null,
 	buildingGbSetLis: false,

@@ -1,3 +1,5 @@
+import { AsyncGunzipOptions, unzlib } from "fflate"
+
 type AnyFunction = (...args: any[]) => any
 
 export class TimeoutTimer {
@@ -229,5 +231,27 @@ export function sleep(time: number): Promise<void> {
 		setTimeout(() => {
 			res()
 		}, time * 1000)
+	})
+}
+
+export function decodeBase64(encoded: string) {
+	return Uint8Array.from(
+		atob(encoded.replace(/-/g, "+").replace(/_/g, "/")),
+		char => char.charCodeAt(0)
+	)
+}
+
+export function unzlibAsync(
+	file: Uint8Array,
+	opts?: AsyncGunzipOptions
+): Promise<Uint8Array> {
+	return new Promise((res, rej) => {
+		unzlib(file, opts ?? {}, (err, data) => {
+			if (err) {
+				rej(err)
+				return
+			}
+			res(data)
+		})
 	})
 }
