@@ -26,7 +26,6 @@ import {
 } from "../utils"
 import { showDirectotyPrompt, showLoadPrompt } from "../saveData"
 import { showAlert } from "../simpleDialogs"
-import { unzlib } from "fflate"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,
