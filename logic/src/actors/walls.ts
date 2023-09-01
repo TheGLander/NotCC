@@ -286,10 +286,14 @@ export class Swivel extends Actor {
 		)
 	}
 	actorLeft(actor: Actor): void {
+		const oldDir = this.direction
 		if (actor.direction === this.direction) this.direction++
 		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
 		this.direction %= 4
-		if (actor.getCompleteTags("tags").includes("playable")) {
+		if (
+			actor.getCompleteTags("tags").includes("playable") &&
+			oldDir !== this.direction
+		) {
 			this.level.sfxManager?.playOnce("door unlock")
 		}
 	}
