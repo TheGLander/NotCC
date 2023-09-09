@@ -254,7 +254,12 @@ export class LevelSet {
 		}
 		this.seenLevels[levelN] = record
 
-		await this.verifyLevelDataAvailability(levelN, existingRecord?.levelData)
+		await this.verifyLevelDataAvailability(
+			levelN,
+			existingRecord?.levelInfo.levelFilePath === recordInterrupt.path
+				? existingRecord?.levelData
+				: undefined
+		)
 
 		record.levelInfo.title = record.levelData!.name
 
