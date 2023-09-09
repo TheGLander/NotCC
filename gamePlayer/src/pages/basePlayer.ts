@@ -1,4 +1,12 @@
-import { createLevelFromData, KeyInputs, LevelState } from "@notcc/logic"
+import {
+	actorDB,
+	createLevelFromData,
+	GameState,
+	Item,
+	KeyInputs,
+	Layer,
+	LevelState,
+} from "@notcc/logic"
 import { Pager } from "../pager"
 import { Renderer } from "../renderer"
 import { protobuf } from "@notcc/logic"
@@ -79,6 +87,7 @@ export const playerPageBase = {
 		if (!this.renderer) throw new Error("No renderer set")
 
 		this.currentLevel = createLevelFromData(level)
+		this.initScriptLevelState(pager)
 		this.renderer.level = this.currentLevel
 		this.renderer.cameraSize = this.currentLevel.cameraType
 		// Internal viewport size (unaffected by scale, but depends on the camera size)
@@ -88,6 +97,48 @@ export const playerPageBase = {
 		// External viewport camera size, affected by eg. the legal player overlays
 		this.updateViewportCameraSize()
 		this.updateTextOutputs()
+	},
+	initScriptLevelState(pager: Pager) {
+		const state = pager.loadedSet?.scriptRunner.getMapInitState()
+		const level = this.currentLevel
+		if (!state || !level) return
+		if (state.timeLeft !== undefined) {
+			level.timeLeft = state.timeLeft * 60
+		}
+		let player = level.selectedPlayable
+		if (state.playableEnterN !== undefined) {
+			player = level.playables[state.playableEnterN]
+			for (const removedPlayer of level.playables) {
+				if (removedPlayer !== player) {
+					removedPlayer.destroy(null, null)
+				}
+			}
+			player.respawn()
+			level.gameState = GameState.PLAYING
+		}
+		function giveItem(id: string) {
+			if (!player) return
+			const tile = level!.field[0][0]
+			const ogItems = [...tile[Layer.ITEM]]
+			for (const ogItem of ogItems) {
+				ogItem.despawn()
+			}
+			const item = new actorDB[id](level!, [0, 0]) as Item
+			item.pickup(player)
+			for (const ogItem of ogItems) {
+				ogItem.respawn()
+			}
+		}
+		if (!player) return
+		for (const [color, n] of Object.entries(state.inventoryKeys ?? {})) {
+			const id = `key${color[0].toUpperCase()}${color.substring(1)}`
+			giveItem(id)
+			const ent = player.inventory.keys[id]
+			ent.amount = n
+		}
+		for (const id of state.inventoryTools ?? []) {
+			giveItem(id!)
+		}
 	},
 	extraTileScale: [0, 0] as [number, number],
 	determineTileScale(): number {

@@ -306,6 +306,7 @@ actorDB["gravel"] = Gravel
 
 export class Exit extends Actor {
 	id = "exit"
+	tags = ["exit"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}

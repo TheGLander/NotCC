@@ -199,6 +199,23 @@ export const levelPlayerPage = {
 		}
 		const level = this.currentLevel!
 		const playable = level.selectedPlayable!
+		let exitN = 0
+		let exitFound = false
+		for (const tile of level.tiles(false)) {
+			const hasExit = !!tile.findActor(actor =>
+				actor.getCompleteTags("tags").includes("exit")
+			)
+			if (!hasExit) continue
+			exitN += 1
+			if (playable.tile === tile) {
+				exitFound = true
+				break
+			}
+		}
+		if (!exitFound) {
+			console.warn("Level won, but the player isn't on an exit tile??")
+			exitN = 0
+		}
 		const keys = playable.inventory.keys
 		await pager.loadNextLevel({
 			type: "win",
@@ -210,7 +227,7 @@ export const levelPlayerPage = {
 			},
 			lastExitGender: playable.tags.includes("melinda") ? "female" : "male",
 			timeLeft: level.timeLeft,
-			lastExitN: 0, // TODO Track this
+			lastExitN: exitN,
 			inventoryTools: playable.inventory.items.map(
 				item => item.id as ScriptLegalInventoryTool
 			),

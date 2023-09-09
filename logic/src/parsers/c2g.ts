@@ -425,6 +425,8 @@ export const scriptLegalInventoryTools = [
 export type ScriptLegalInventoryTool =
 	(typeof scriptLegalInventoryTools)[number]
 
+export type InventoryKeys = Record<"red" | "green" | "blue" | "yellow", number>
+
 export type MapInterruptResponse =
 	| {
 			type: "win"
@@ -432,11 +434,22 @@ export type MapInterruptResponse =
 			lastExitGender: "male" | "female"
 			lastExitN: number
 			inventoryTools: ScriptLegalInventoryTool[]
-			inventoryKeys: Record<"red" | "green" | "blue" | "yellow", number>
+			inventoryKeys: InventoryKeys
 			timeLeft: number
 	  }
 	| { type: "retry" }
 	| { type: "skip" }
+
+export interface MapInitState {
+	playableEnterN?: number
+	inventoryTools?: ScriptLegalInventoryTool[]
+	inventoryKeys?: InventoryKeys
+	timeLeft?: number
+	autoNext: boolean
+	noBonusCollection: boolean
+	autoPlayReplay: boolean
+	noPopups: boolean
+}
 
 function stringToValue(str: string): number {
 	return str
@@ -767,6 +780,49 @@ export class ScriptRunner {
 
 		this.loadScript(fileData, this.scriptInterrupt.path)
 		this.scriptInterrupt = null
+	}
+	getMapInitState(): MapInitState {
+		const state: MapInitState = {
+			autoNext: false,
+			autoPlayReplay: false,
+			noBonusCollection: false,
+			noPopups: false,
+		}
+		const vars = this.state.variables
+		if (!vars) return state
+		if (vars.enter && vars.enter > 0) {
+			state.playableEnterN = vars.enter - 1
+		}
+		if (!vars.flags) return state
+		state.autoNext = (vars.flags & scriptConstants.continue) !== 0
+		state.autoPlayReplay = (vars.flags & scriptConstants.replay) !== 0
+		state.noBonusCollection = (vars.flags & scriptConstants.no_bonus) !== 0
+		state.noPopups = (vars.flags & scriptConstants.silent) !== 0
+		if (vars.flags & scriptConstants.ktime) {
+			state.timeLeft = vars.tleft ?? 0
+		}
+		if (vars.flags & scriptConstants.ktools) {
+			const keys = vars.keys ?? 0
+			state.inventoryKeys = {
+				red: keys & 0xff,
+				blue: (keys >>> 8) & 0xff,
+				yellow: (keys >>> 16) & 0xff,
+				green: (keys >>> 24) & 0xff,
+			}
+			const tools = vars.tools ?? 0
+			const toolIdx = [
+				tools & 0xff,
+				(tools >>> 8) & 0xff,
+				(tools >>> 16) & 0xff,
+				(tools >>> 24) & 0xff,
+			]
+				.map(item => item % 0x11)
+				.filter(item => item !== 0)
+			state.inventoryTools = toolIdx.map(
+				item => scriptLegalInventoryTools[item]
+			)
+		}
+		return state
 	}
 }
 
