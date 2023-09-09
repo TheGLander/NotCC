@@ -342,8 +342,8 @@ const scriptOperatorFunctions: Record<
 	"==": makeSimpleOperator((a, b) => (a === b ? 1 : 0)),
 	"="(this: ScriptRunner, stack: Token[]) {
 		if (stack.length < 2) return "consume nothing"
-		const assignedValue = stack.pop() as Token
 		const variable = stack.pop() as Token
+		const assignedValue = stack.pop() as Token
 		// Assignment to non-variables doesn't seem to do anything in CC2
 		if (variable.type === "keyword" && isVariable(variable.value)) {
 			const variableName = variable.value
