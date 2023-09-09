@@ -527,7 +527,7 @@ export abstract class Actor implements Wirable {
 	 * Updates tile states and calls hooks
 	 */
 	_internalUpdateTileStates(noTileRemove?: boolean): void {
-		this.respawn()
+		this.respawn(false)
 		if (!noTileRemove) {
 			this.oldTile?.removeActors(this)
 			this.slidingState = SlidingState.NONE
@@ -545,7 +545,7 @@ export abstract class Actor implements Wirable {
 		this.newTileJoined?.()
 		for (const item of this.inventory.items) item.onCarrierJoin?.(this)
 	}
-	respawn(): void {
+	respawn(putOnTile = true): void {
 		if (!this.despawned) return
 		this.despawned = false
 		if (this.level.despawnedActors.includes(this))
@@ -553,7 +553,9 @@ export abstract class Actor implements Wirable {
 				this.level.despawnedActors.indexOf(this),
 				1
 			)
-		this.tile.addActors(this)
+		if (putOnTile) {
+			this.tile.addActors(this)
+		}
 	}
 	despawn(): void {
 		if (this.despawned) return
