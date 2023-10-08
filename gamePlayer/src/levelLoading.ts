@@ -30,10 +30,13 @@ export async function findEntryFilePath(
 		ent => findScriptName(ent.data) !== null
 	)
 
-	if (c2gFiles.length > 1)
-		throw new Error(
-			"There are too many entry C2G files. Only one script may have a closed string on it's first line."
+	if (c2gFiles.length > 1) {
+		c2gFiles.sort((a, b) => a.path.length - b.path.length)
+
+		console.warn(
+			"There appear to be multiple entry script files. Picking the one with the shortest path..."
 		)
+	}
 	if (c2gFiles.length < 1)
 		throw new Error(
 			"This ZIP archive doesn't contain a script. Are you sure this is the correct file?"
