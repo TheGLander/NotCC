@@ -11,26 +11,6 @@ import { Pager } from "../pager"
 import { Renderer } from "../renderer"
 import { protobuf } from "@notcc/logic"
 
-// TODO Smart TV inputs
-// TODO Customizable inputs in general
-export const keyToInputMap: Record<string, keyof KeyInputs> = {
-	ArrowUp: "up",
-	ArrowRight: "right",
-	ArrowDown: "down",
-	ArrowLeft: "left",
-	KeyZ: "drop",
-	KeyX: "rotateInv",
-	KeyC: "switchPlayable",
-}
-
-export function isValidKey(code: string): boolean {
-	return code in keyToInputMap
-}
-
-export function isValidStartKey(code: string): boolean {
-	return isValidKey(code) || code === "Space"
-}
-
 export interface TextOutputs {
 	chips: HTMLElement
 	time: HTMLElement

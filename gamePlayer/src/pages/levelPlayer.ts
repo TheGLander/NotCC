@@ -5,6 +5,8 @@ import {
 	ScriptLegalInventoryTool,
 	protobuf,
 	SolutionInfoInputProvider,
+	InputType,
+	makeEmptyInputs,
 } from "@notcc/logic"
 import { Pager } from "../pager"
 import {
@@ -17,19 +19,13 @@ import {
 } from "../utils"
 import { setSelectorPage } from "./setSelector"
 import { AudioSfxManager } from "../sfx"
-import {
-	isValidKey,
-	isValidStartKey,
-	keyToInputMap,
-	playerPageBase,
-	glitchNames,
-	nonLegalGlitches,
-} from "./basePlayer"
+import { playerPageBase, glitchNames, nonLegalGlitches } from "./basePlayer"
 import {
 	makeChoiceDialog,
 	showAlert,
 	waitForDialogSubmit,
 } from "../simpleDialogs"
+import { isValidStartKey, keyToInputMap } from "../gameInput"
 
 interface OverlayButtons {
 	restart: HTMLElement
@@ -113,7 +109,6 @@ export const levelPlayerPage = {
 	isPreplay: false,
 	isGz: false,
 	isNonLegal: false,
-	preplayKeyListener: null as KeyListener | null,
 	sfxManager: null as AudioSfxManager | null,
 	loadLevel(pager: Pager): void {
 		playerPageBase.loadLevel.call(this, pager)
@@ -132,14 +127,6 @@ export const levelPlayerPage = {
 		this.isPreplay = true
 		this.isNonLegal = false
 		this.updateOverlayState()
-		this.preplayKeyListener?.remove()
-		this.preplayKeyListener = new KeyListener((ev: KeyboardEvent) => {
-			if (isValidStartKey(ev.code)) {
-				ev.preventDefault()
-				ev.stopPropagation()
-				this.endPreplay()
-			}
-		})
 		if (this.overlayLevelName) {
 			const levelN = pager.getLevelNumber()
 			this.overlayLevelName.textContent = `${
@@ -160,6 +147,7 @@ export const levelPlayerPage = {
 				this.findCurrentMainButton()?.focus()
 			}
 		}
+		pager.gamepadHandler.newSession()
 	},
 	updateOverlayState(): void {
 		this.gameOverlay!.setAttribute(
@@ -174,8 +162,6 @@ export const levelPlayerPage = {
 	endPreplay(): void {
 		this.isPreplay = false
 		this.updateOverlayState()
-		this.preplayKeyListener?.remove()
-		this.preplayKeyListener = null
 	},
 	togglePaused(): void {
 		if (
@@ -285,14 +271,18 @@ export const levelPlayerPage = {
 			}
 		}
 	},
-	inputListener(code: string, state: AutoRepeatKeyState): void {
-		if (!isValidKey(code)) return
-		const keyInput = keyToInputMap[code]
-		this.heldKeys[keyInput] = state
+	inputListener(key: string, state: AutoRepeatKeyState): void {
+		if (!isValidStartKey(key)) return
+		const inputType = keyToInputMap[key]
+		if (this.isPreplay) {
+			this.endPreplay()
+		}
+		if (!inputType) return
+		this.heldKeys[inputType] = state
 	},
 	getInput(): KeyInputs {
-		const keyInputs: Partial<KeyInputs> = {}
-		for (const inputType of Object.values(keyToInputMap)) {
+		const keyInputs: KeyInputs = makeEmptyInputs()
+		for (const inputType of Object.keys(keyInputs) as InputType[]) {
 			if (
 				this.preventSimultaneousMovement &&
 				inputType === "switchPlayable" &&
@@ -355,8 +345,6 @@ export const levelPlayerPage = {
 			this.renderTimer.cancel()
 			this.renderTimer = null
 		}
-		this.preplayKeyListener?.remove()
-		this.preplayKeyListener = null
 		this.currentLevel = null
 		this.keyListener?.remove()
 		this.keyListener = null

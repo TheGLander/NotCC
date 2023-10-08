@@ -8,6 +8,7 @@ import { Settings, defaultSettings } from "./settings"
 import clone from "clone"
 import { ThemeColors, applyTheme } from "./themes"
 import { updatePagerTileset } from "./tilesets"
+import { GamepadInputHandler } from "./gameInput"
 
 export interface Page {
 	pageId: string
@@ -29,10 +30,12 @@ export class Pager {
 	loadedLevel: LevelData | null = null
 	tileset: Tileset | null = null
 	settings: Settings = clone(defaultSettings)
+	gamepadHandler = new GamepadInputHandler()
 	constructor() {
 		this._initPage(loadingPage)
 	}
 	_initPage(page: Page): void {
+		this.gamepadHandler.exitSession()
 		const pageElement = document.getElementById(page.pageId)
 		if (!pageElement) {
 			throw new Error(`Can't find the page element for "${page.pageId}".`)

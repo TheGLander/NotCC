@@ -17,7 +17,8 @@ import { Pager } from "../pager"
 import { showAlert } from "../simpleDialogs"
 import { showLoadPrompt, showSavePrompt } from "../saveData"
 import { KeyListener, sleep, TimeoutTimer } from "../utils"
-import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
+import { playerPageBase } from "./basePlayer"
+import { isValidStartKey, keyToInputMap } from "../gameInput"
 
 // Wait for a tick for diagonal inputs
 const AUTO_DIAGONALS_TIMEOUT = 1 / 20
@@ -328,14 +329,14 @@ export const exaPlayerPage = {
 		})
 	},
 	currentInput: makeEmptyInputs(),
-	keyListener: null as KeyListener | null,
 	autoDiagonalsTimer: null as TimeoutTimer | null,
 	updateCompositingPreview(): void {
-		this.composingPreviewArea!.textContent = keyInputToChar(
-			this.currentInput,
-			false,
-			true
-		)
+		keyListener: null as KeyListener | null,
+			(this.composingPreviewArea!.textContent = keyInputToChar(
+				this.currentInput,
+				false,
+				true
+			))
 	},
 	commitCurrentInput(): void {
 		this.autoDiagonalsTimer = null
