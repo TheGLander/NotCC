@@ -33,6 +33,7 @@ export interface Page {
 export class Pager {
 	currentPage!: Page
 	loadedSet: LevelSet | null = null
+	loadedSetIdent: string | null = null
 	loadedLevel: LevelData | null = null
 	tileset: Tileset | null = null
 	settings: Settings = clone(defaultSettings)
@@ -53,8 +54,9 @@ export class Pager {
 			page.setupPage?.(this, pageElement)
 			page.setupInitialized = true
 		}
-		page.open?.(this, pageElement)
 		this.currentPage = page
+		this.updatePageUrl()
+		page.open?.(this, pageElement)
 	}
 	openPage(newPage: Page): void {
 		const oldPageElement = document.getElementById(this.currentPage.pageId)!
@@ -198,11 +200,44 @@ export class Pager {
 		this.settings = { ...defaultSettings, ...this.settings }
 		this.reloadSettings()
 	}
+	updatingPageUrl = false
+	determinePageUrl(subpage: string, queryParams: Record<string, string>): URL {
+		const newUrl = new URL(location.toString())
+		const page = this.currentPage
+		if (page.pagePath === null) {
+			newUrl.hash = ""
+			newUrl.search = ""
+			return newUrl
+		}
+		let hash = `#/${page.pagePath}`
+		if (page.requiresLoaded === "set" || page.requiresLoaded === "level") {
+			let setName = this.loadedSetIdent
+			if (setName === null) {
+				setName = this.loadedSet !== null ? "*prompt-set" : "*prompt-level"
+			}
+			hash += `/${setName}`
+		}
+		if (page.requiresLoaded === "level") {
+			hash += `/${this.loadedSet?.currentLevel ?? 1}`
+		}
+		if (subpage !== "") {
+			hash += `/${subpage}`
+		}
+		newUrl.hash = hash
+		if (Object.keys(queryParams).length !== 0) {
+			newUrl.search = `?${new URLSearchParams(queryParams)}`
+		} else {
+			newUrl.search = ""
+		}
+		return newUrl
+	}
 	updatePageUrl(
 		subpage: string = "",
 		queryParams: Record<string, string> = {}
 	) {
-		location.hash = `#${this.currentPage.pagePath}${subpage}`
-		location.search = `?${new URLSearchParams(queryParams)}`
+		const newLocation = this.determinePageUrl(subpage, queryParams)
+		this.updatingPageUrl = true
+		history.pushState(null, "", newLocation)
+		this.updatingPageUrl = false
 	}
 }

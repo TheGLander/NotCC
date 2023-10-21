@@ -47,6 +47,7 @@ export async function findEntryFilePath(
 export function openLevel(pager: Pager, level: LevelData): void {
 	pager.loadedLevel = level
 	pager.loadedSet = null
+	pager.loadedSetIdent = null
 	pager.updateShownLevelNumber()
 	pager.openPage(levelPlayerPage)
 }

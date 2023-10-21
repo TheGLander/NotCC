@@ -15,12 +15,13 @@ function queryParamsToObj(query: string): Record<string, string> {
 }
 
 export async function openNotccUrl(pager: Pager): Promise<void> {
+	if (pager.updatingPageUrl) return
 	const notccLocation = new URL("http://fake.notcc.path")
 	try {
 		notccLocation.href = `http://fake.notcc.path/${location.hash.slice(1)}`
 	} catch {}
 
-	let [pageName, ...subpageParts] = notccLocation.pathname.split("/").slice(1)
+	let [pageName, ...subpageParts] = notccLocation.pathname.split("/").slice(2)
 	const queryParams = {
 		...queryParamsToObj(notccLocation.search),
 		...queryParamsToObj(location.search),
@@ -46,6 +47,7 @@ export async function openNotccUrl(pager: Pager): Promise<void> {
 		const gbSet = await lookupGbSet(setName)
 		if (gbSet === null)
 			throw new Error(`Gliderbot set with name "${setName}" not found`)
+		pager.loadedSetIdent = setName
 		await loadSet(pager, gbSet.loaderFunction, gbSet.mainScript, true)
 	}
 

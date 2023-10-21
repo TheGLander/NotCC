@@ -46,6 +46,7 @@ export interface GliderbotSet {
 	previewImage: string | null
 	mainScript: string
 	rootDirectory: string
+	ident: string
 	lastChanged: Date
 	loaderFunction: LevelSetLoaderFunction
 }
@@ -186,6 +187,7 @@ async function findGbSet(dir: NginxDirectory): Promise<GliderbotSet | null> {
 				"preview.png" in dir.contents ? dir.contents["preview.png"].name : null,
 			lastChanged: dir.lastEdited!,
 			rootDirectory: `${gliderbotWebsite}${dir.getPath()}/`,
+			ident: dir.name,
 			loaderFunction: makeNginxHttpFileLoader(gliderbotWebsite, dir),
 		}
 	}
@@ -206,6 +208,7 @@ export async function getGbSets(): Promise<GliderbotSet[]> {
 }
 
 export async function lookupGbSet(name: string): Promise<GliderbotSet | null> {
+	if (censoredSetNames.includes(name)) return null
 	const localIndex = await scanNginxIndex(name)
 	return await findGbSet(localIndex)
 }

@@ -83,6 +83,7 @@ export const playerPageBase = {
 	},
 	currentLevel: null as LevelState | null,
 	loadLevel(pager: Pager): void {
+		pager.updatePageUrl()
 		const level = pager.loadedLevel
 		if (!level) throw new Error("No level to load")
 		if (!this.renderer) throw new Error("No renderer set")

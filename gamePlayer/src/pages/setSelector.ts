@@ -183,6 +183,7 @@ export const setSelectorPage = {
 	open(pager: Pager): void {
 		pager.loadedLevel = null
 		pager.loadedSet = null
+		pager.loadedSetIdent = null
 		pager.updateShownLevelNumber()
 		if (!this.loadedParamLevel) {
 			this.loadedParamLevel = true
@@ -254,6 +255,7 @@ export const setSelectorPage = {
 		addStringFact("setDifficulty", meta.difficulty?.toString())
 		addStringFact("setDescription", meta.description)
 		setLi.addEventListener("click", () => {
+			pager.loadedSetIdent = set.ident
 			loadSet(pager, set.loaderFunction, set.mainScript)
 		})
 
