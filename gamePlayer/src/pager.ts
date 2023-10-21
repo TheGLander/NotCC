@@ -11,6 +11,8 @@ import { updatePagerTileset } from "./tilesets"
 
 export interface Page {
 	pageId: string
+	pagePath: string | null
+	requiresLoaded: "none" | "set" | "level"
 	setupInitialized?: boolean
 	setupPage?: (pager: Pager, page: HTMLElement) => void
 	open?: (pager: Pager, page: HTMLElement) => void
@@ -21,6 +23,11 @@ export interface Page {
 	loadLevel?: (page: Pager) => void
 	loadSolution?: (pager: Pager, sol: protobuf.ISolutionInfo) => Promise<void>
 	updateSettings?: (pager: Pager) => void
+	setNavigationInfo?: (
+		pager: Pager,
+		subpage: string,
+		queryParams: Record<string, string>
+	) => void
 }
 
 export class Pager {
@@ -33,6 +40,10 @@ export class Pager {
 		this._initPage(loadingPage)
 	}
 	_initPage(page: Page): void {
+		if (page.requiresLoaded === "set" && !this.loadedSet)
+			throw new Error("Page requires a set to be loaded before opening it.")
+		if (page.requiresLoaded === "level" && !this.loadedLevel)
+			throw new Error("Page requires a level to be loaded before opening it.")
 		const pageElement = document.getElementById(page.pageId)
 		if (!pageElement) {
 			throw new Error(`Can't find the page element for "${page.pageId}".`)
@@ -186,5 +197,12 @@ export class Pager {
 		this.settings = await loadSettings()
 		this.settings = { ...defaultSettings, ...this.settings }
 		this.reloadSettings()
+	}
+	updatePageUrl(
+		subpage: string = "",
+		queryParams: Record<string, string> = {}
+	) {
+		location.hash = `#${this.currentPage.pagePath}${subpage}`
+		location.search = `?${new URLSearchParams(queryParams)}`
 	}
 }

@@ -204,3 +204,8 @@ export async function getGbSets(): Promise<GliderbotSet[]> {
 			set !== null && set.metadata.listingPriority !== "unlisted"
 	)
 }
+
+export async function lookupGbSet(name: string): Promise<GliderbotSet | null> {
+	const localIndex = await scanNginxIndex(name)
+	return await findGbSet(localIndex)
+}

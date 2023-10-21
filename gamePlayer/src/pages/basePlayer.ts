@@ -52,6 +52,7 @@ export const nonLegalGlitches: protobuf.GlitchInfo.KnownGlitches[] = [
 ]
 
 export const playerPageBase = {
+	requiresLoaded: "level" as const,
 	basePage: null as HTMLElement | null,
 	textOutputs: null as TextOutputs | null,
 	renderer: null as Renderer | null,

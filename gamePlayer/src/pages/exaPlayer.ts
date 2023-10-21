@@ -18,6 +18,7 @@ import { showAlert } from "../simpleDialogs"
 import { showLoadPrompt, showSavePrompt } from "../saveData"
 import { KeyListener, sleep, TimeoutTimer } from "../utils"
 import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
+import { registerPage } from "../const"
 
 // Wait for a tick for diagonal inputs
 const AUTO_DIAGONALS_TIMEOUT = 1 / 20
@@ -48,6 +49,7 @@ function cloneLevel(level: LevelState): LevelState {
 
 export const exaPlayerPage = {
 	...playerPageBase,
+	pagePath: "exa",
 	pageId: "exaPlayerPage",
 	recordedMovesArea: null as HTMLSpanElement | null,
 	composingPreviewArea: null as HTMLSpanElement | null,
@@ -403,3 +405,5 @@ export const exaPlayerPage = {
 			0.5, // Padding
 	] as [number, number],
 }
+
+registerPage(exaPlayerPage)

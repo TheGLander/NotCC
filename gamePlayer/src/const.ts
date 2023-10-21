@@ -1,5 +1,6 @@
 import { Renderer, ArtContext, SpecialArt } from "./renderer"
 import { Actor } from "@notcc/logic"
+import { Page } from "./pager"
 
 export const stateFuncs: Record<string, (actor: Actor) => string> = {}
 
@@ -24,4 +25,11 @@ export function registerSpecialFunction<T>(
 	) => void
 ): void {
 	specialFuncs[id] = func as (typeof specialFuncs)[string]
+}
+
+export const pages: Record<string, Page> = {}
+export function registerPage(page: Page): void {
+	if (page.pagePath !== null) {
+		pages[page.pagePath] = page
+	}
 }

@@ -53,7 +53,8 @@ export function openLevel(pager: Pager, level: LevelData): void {
 export async function loadSet(
 	pager: Pager,
 	loaderFunction: LevelSetLoaderFunction,
-	scriptFile: string
+	scriptFile: string,
+	noOpenPage: boolean = false
 ): Promise<void> {
 	const filePrefix = dirname(scriptFile)
 	// If the zip file has the entry script in a subdirectory instead of the zip
@@ -86,6 +87,8 @@ export async function loadSet(
 			"This set doesn't have levels, or the saved set info is broken."
 		)
 
-	pager.openPage(levelPlayerPage)
-	pager.updateShownLevelNumber()
+	if (!noOpenPage) {
+		pager.openPage(levelPlayerPage)
+		pager.updateShownLevelNumber()
+	}
 }

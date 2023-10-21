@@ -30,6 +30,7 @@ import {
 	showAlert,
 	waitForDialogSubmit,
 } from "../simpleDialogs"
+import { registerPage } from "../const"
 
 interface OverlayButtons {
 	restart: HTMLElement
@@ -44,6 +45,7 @@ interface OverlayButtons {
 
 export const levelPlayerPage = {
 	...playerPageBase,
+	pagePath: "play",
 	pageId: "levelPlayerPage",
 	keyListener: null as AutoRepeatKeyListener | null,
 	// Binding HTML stuff
@@ -400,3 +402,5 @@ export const levelPlayerPage = {
 			0.25, // Padding
 	] as [number, number],
 }
+
+registerPage(levelPlayerPage)

@@ -26,6 +26,7 @@ import {
 } from "../utils"
 import { showDirectotyPrompt, showLoadPrompt } from "../saveData"
 import { showAlert } from "../simpleDialogs"
+import { registerPage } from "../const"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,
@@ -92,6 +93,8 @@ const sortMethodComparators: Record<SortMethod, Comparator<GliderbotSet>> = {
 
 export const setSelectorPage = {
 	pageId: "setSelectorPage",
+	pagePath: null,
+	requiresLoaded: "none" as const,
 
 	async loadStubLevel(pager: Pager): Promise<void> {
 		const levelBin = await (await fetch(stubLevel)).arrayBuffer()
@@ -319,3 +322,5 @@ export const setSelectorPage = {
 		}
 	},
 }
+
+registerPage(setSelectorPage)
