@@ -21,6 +21,7 @@ import { loadSetInfo, saveSetInfo } from "./saveData"
 import { KeyListener } from "./utils"
 import { openTilesetSelectortDialog } from "./tilesets"
 import { showAlert } from "./simpleDialogs"
+import { openNotccUrl } from "./pages/loading"
 
 import "dialog-polyfill/dialog-polyfill.css"
 import dialogPolyfill from "dialog-polyfill"
@@ -33,18 +34,29 @@ import "./NCCTK.less"
 
 const pager = new Pager()
 
+window.addEventListener("popstate", () => {
+	openNotccUrl(pager)
+})
+
 generateTabButtons(pager)
 new KeyListener(generateShortcutListener(pager))
 
-// Enable crash handling
-window.addEventListener("error", ev =>
-	showAlert(`Yikes! Something went wrong...
-Error info:
-${ev.message}
+function errorHandler(ev: ErrorEvent | PromiseRejectionEvent) {
+	let errorInfoText: string
+	if (ev instanceof ErrorEvent) {
+		errorInfoText = `${ev.message}
 at ${ev.lineno}:${ev.colno}
-in ${ev.filename}
-`)
-)
+in ${ev.filename}`
+	} else {
+		errorInfoText = `Promise rejected! Reason: ${ev.reason}`
+	}
+
+	showAlert(`Yikes! Something went wrong...
+Error info: ${errorInfoText}`)
+}
+
+window.addEventListener("error", errorHandler)
+window.addEventListener("unhandledrejection", errorHandler)
 
 // We export it like this so the global values are always updated
 const exportObject = {
