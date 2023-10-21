@@ -19,7 +19,7 @@ export function makeChoiceDialog(
 	if (title !== undefined) {
 		headerEl.textContent = title
 	}
-	sectionEl.textContent = body
+	sectionEl.innerHTML = body.replace("\n", "<br/>")
 
 	for (const [key, text] of buttons) {
 		const button = document.createElement("button")
