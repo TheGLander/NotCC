@@ -19,6 +19,7 @@ import { showLoadPrompt, showSavePrompt } from "../saveData"
 import { KeyListener, sleep, TimeoutTimer } from "../utils"
 import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
 import { registerPage } from "../const"
+import { getRRRoutes, identifyRRPack } from "../railroad"
 
 // Wait for a tick for diagonal inputs
 const AUTO_DIAGONALS_TIMEOUT = 1 / 20
@@ -404,6 +405,39 @@ export const exaPlayerPage = {
 			// Camera
 			0.5, // Padding
 	] as [number, number],
+	async setNavigationInfo(
+		pager: Pager,
+		_subpage: string,
+		queryParams: Record<string, string>
+	) {
+		const solutionId = queryParams["load-solution"]
+		if (!solutionId) return
+		const setName = pager.loadedSet?.scriptRunner.state.scriptTitle!
+		const packName = setName ? identifyRRPack(setName) : null
+		const level = pager.loadedLevel!
+
+		let ip: InputProvider | undefined
+
+		if (solutionId === "builtin") {
+			ip =
+				level.associatedSolution &&
+				new SolutionInfoInputProvider(level.associatedSolution)
+		} else if (packName !== null && solutionId.startsWith("railroad-")) {
+			const railroadId = solutionId.slice("railroad-".length)
+			const levels = await getRRRoutes(packName)
+			const rrRoute = levels
+				.find(lvl => lvl.title === level.name)
+				?.routes.find(route => route.id === railroadId)
+			if (rrRoute) {
+				ip = new RouteFileInputProvider(rrRoute.moves)
+			}
+		}
+
+		if (ip) {
+			this.loadLevel(pager)
+			await this.transcribeInputs(ip)
+		}
+	},
 }
 
 registerPage(exaPlayerPage)
