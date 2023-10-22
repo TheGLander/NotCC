@@ -55,7 +55,9 @@ export class Pager {
 			page.setupInitialized = true
 		}
 		this.currentPage = page
-		this.updatePageUrl()
+		if (page !== loadingPage) {
+			this.updatePageUrl()
+		}
 		page.open?.(this, pageElement)
 	}
 	openPage(newPage: Page): void {
