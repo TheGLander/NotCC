@@ -61,10 +61,11 @@ export async function openNotccUrl(pager: Pager): Promise<void> {
 
 		const set = pager.loadedSet!
 
-		while (set.currentLevel !== levelN) {
+		while (set.currentLevel < levelN) {
 			set.lastLevelResult = { type: "skip" }
 			await set.getNextRecord()
 		}
+		await set.goToLevel(levelN)
 		pager.loadedLevel = (await set.getCurrentRecord()).levelData!
 	}
 
