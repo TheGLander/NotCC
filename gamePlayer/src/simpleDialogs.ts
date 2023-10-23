@@ -32,13 +32,20 @@ export function makeChoiceDialog(
 }
 
 export function waitForDialogSubmit(
-	dialog: HTMLDialogElement
+	dialog: HTMLDialogElement,
+	removeOnSubmit: boolean = true
 ): Promise<string> {
 	return new Promise(res => {
-		dialog.addEventListener("submit", () => {
+		const closeListener = () => {
 			res(dialog.returnValue)
-			dialog.remove()
-		})
+
+			if (removeOnSubmit) {
+				dialog.remove()
+			} else {
+				dialog.removeEventListener("close", closeListener)
+			}
+		}
+		dialog.addEventListener("close", closeListener)
 	})
 }
 
