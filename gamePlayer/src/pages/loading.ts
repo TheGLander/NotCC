@@ -5,7 +5,9 @@ import { initSaveData } from "../saveData"
 import { updatePagerTileset } from "../tilesets"
 import { levelPlayerPage } from "./levelPlayer"
 import { setSelectorPage } from "./setSelector"
-import { loadSet } from "../levelLoading"
+import { loadDirSet, loadSet } from "../levelLoading"
+import { findScriptName, LevelSet, LevelSetLoaderFunction } from "@notcc/logic"
+import { waitForDialogSubmit } from "../simpleDialogs"
 
 function queryParamsToObj(query: string): Record<string, string> {
 	return Object.fromEntries(
@@ -44,11 +46,21 @@ export async function openNotccUrl(pager: Pager): Promise<void> {
 			throw new Error(
 				"URI must specify set to use. Try using something like eg. /play/cc2lp1/1, instead of /play"
 			)
-		const gbSet = await lookupGbSet(setName)
-		if (gbSet === null)
-			throw new Error(`Gliderbot set with name "${setName}" not found`)
-		pager.loadedSetIdent = setName
-		await loadSet(pager, gbSet.loaderFunction, gbSet.mainScript, true)
+		if (setName in nonFreeSets) {
+			const setLoadingInfo = await showNonFreeDialog(setName)
+			if (setLoadingInfo === null) {
+				pageToOpen = setSelectorPage
+			} else {
+				pager.loadedSetIdent = setName
+				await loadSet(pager, setLoadingInfo[0], setLoadingInfo[1], true)
+			}
+		} else {
+			const gbSet = await lookupGbSet(setName)
+			if (gbSet === null)
+				throw new Error(`Gliderbot set with name "${setName}" not found`)
+			pager.loadedSetIdent = setName
+			await loadSet(pager, gbSet.loaderFunction, gbSet.mainScript, true)
+		}
 	}
 
 	if (pageToOpen.requiresLoaded === "level") {
@@ -71,6 +83,55 @@ export async function openNotccUrl(pager: Pager): Promise<void> {
 
 	pager.openPage(pageToOpen)
 	pageToOpen.setNavigationInfo?.(pager, subpageParts.join("/"), queryParams)
+}
+
+interface NonFreeSet {
+	scriptName: string
+	steamLink: string
+}
+
+export const nonFreeSets: Record<string, NonFreeSet> = {
+	cc1: {
+		scriptName: "Chips Challenge",
+		steamLink: "https://store.steampowered.com/app/346850/Chips_Challenge_1",
+	},
+	cc2: {
+		scriptName: "Chips Challenge 2",
+		steamLink: "https://store.steampowered.com/app/348300/Chips_Challenge_2",
+	},
+}
+
+export function getNonFreeSetId(scriptName: string): string | null {
+	return (
+		Object.entries(nonFreeSets).find(
+			([_, val]) => val.scriptName === scriptName
+		)?.[0] ?? null
+	)
+}
+
+const nonFreeSetDialog =
+	document.querySelector<HTMLDialogElement>("#nonFreeSetDialog")!
+
+async function showNonFreeDialog(
+	setName: string
+): Promise<[LevelSetLoaderFunction, string] | null> {
+	const setInfo = nonFreeSets[setName]
+	const steamLink =
+		nonFreeSetDialog.querySelector<HTMLAnchorElement>("#nonFreeSteamLink")!
+	steamLink.href = setInfo.steamLink
+	nonFreeSetDialog.showModal()
+	const response = (await waitForDialogSubmit(nonFreeSetDialog, false)) as
+		| "load"
+		| "cancel"
+	if (response === "cancel") return null
+	const [loader, scriptPath] = await loadDirSet()
+	const scriptName = findScriptName((await loader(scriptPath, false)) as string)
+	if (scriptName !== setInfo.scriptName) {
+		throw new Error(
+			`Incorrect set provided: Expected set name "${setInfo.scriptName}", got "${scriptName}"`
+		)
+	}
+	return [loader, scriptPath]
 }
 
 export const loadingPage = {

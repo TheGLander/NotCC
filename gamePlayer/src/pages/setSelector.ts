@@ -12,7 +12,12 @@ import {
 	makeFileListFileLoader,
 	makeZipFileLoader,
 } from "../fileLoaders"
-import { findEntryFilePath, loadSet, openLevel } from "../levelLoading"
+import {
+	findEntryFilePath,
+	loadDirSet,
+	loadSet,
+	openLevel,
+} from "../levelLoading"
 import { getGbSets, metadataComparator } from "../gliderbotSets"
 import { GliderbotSet } from "../gliderbotSets"
 import { HTMLImage, Renderer, Tileset } from "../renderer"
@@ -27,6 +32,7 @@ import {
 import { showDirectotyPrompt, showLoadPrompt } from "../saveData"
 import { showAlert } from "../simpleDialogs"
 import { registerPage } from "../const"
+import { getNonFreeSetId } from "./loading"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,
@@ -164,13 +170,8 @@ export const setSelectorPage = {
 		const loadDirectoryButton =
 			page.querySelector<HTMLButtonElement>("#loadDirectory")!
 		loadDirectoryButton.addEventListener("click", async () => {
-			const files = await showDirectotyPrompt("Load levelset directory")
-			const fileLoader = makeFileListFileLoader(files)
-			const scriptPath = findEntryFilePath(
-				fileLoader,
-				buildFileListIndex(files)
-			)
-			await loadSet(pager, fileLoader, await scriptPath)
+			const [loader, path] = await loadDirSet()
+			await loadSet(pager, loader, path)
 		})
 		this.setListEl = page.querySelector<HTMLUListElement>("#setList")
 		this.setLiTemlpate =

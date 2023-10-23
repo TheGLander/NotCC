@@ -7,8 +7,13 @@ import {
 import { levelPlayerPage } from "./pages/levelPlayer"
 import { Pager } from "./pager"
 import { basename, dirname } from "path-browserify"
-import { makeLoaderWithPrefix } from "./fileLoaders"
-import { loadSetInfo } from "./saveData"
+import {
+	buildFileListIndex,
+	makeFileListFileLoader,
+	makeLoaderWithPrefix,
+} from "./fileLoaders"
+import { loadSetInfo, showDirectotyPrompt } from "./saveData"
+import { getNonFreeSetId } from "./pages/loading"
 interface DirEntry {
 	path: string
 	data: string
@@ -78,6 +83,11 @@ export async function loadSet(
 		set = await LevelSet.constructAsync(scriptFile, loaderFunction)
 	}
 
+	const nonFreeSetId = getNonFreeSetId(set.scriptRunner.state.scriptTitle!)
+	if (nonFreeSetId !== null) {
+		pager.loadedSetIdent = nonFreeSetId
+	}
+
 	pager.loadedSet = set
 	const record = await set.getCurrentRecord()
 	pager.loadedLevel = record.levelData!
@@ -92,4 +102,14 @@ export async function loadSet(
 		pager.openPage(levelPlayerPage)
 		pager.updateShownLevelNumber()
 	}
+}
+
+export async function loadDirSet(): Promise<[LevelSetLoaderFunction, string]> {
+	const files = await showDirectotyPrompt("Load levelset directory")
+	const fileLoader = makeFileListFileLoader(files)
+	const scriptPath = await findEntryFilePath(
+		fileLoader,
+		buildFileListIndex(files)
+	)
+	return [fileLoader, scriptPath]
 }
