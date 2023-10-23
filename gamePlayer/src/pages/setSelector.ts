@@ -6,12 +6,7 @@ import {
 } from "@notcc/logic"
 import { Pager } from "../pager"
 import stubLevel from "../levels/NotCC.c2m"
-import {
-	buildFileListIndex,
-	buildZipIndex,
-	makeFileListFileLoader,
-	makeZipFileLoader,
-} from "../fileLoaders"
+import { buildZipIndex, makeZipFileLoader } from "../fileLoaders"
 import {
 	findEntryFilePath,
 	loadDirSet,
@@ -29,10 +24,9 @@ import {
 	mergeComparators,
 	unzlibAsync,
 } from "../utils"
-import { showDirectotyPrompt, showLoadPrompt } from "../saveData"
+import { showLoadPrompt } from "../saveData"
 import { showAlert } from "../simpleDialogs"
 import { registerPage } from "../const"
-import { getNonFreeSetId } from "./loading"
 
 async function makeLevelSetPreview(
 	tileset: Tileset,

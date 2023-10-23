@@ -6,7 +6,7 @@ import { updatePagerTileset } from "../tilesets"
 import { levelPlayerPage } from "./levelPlayer"
 import { setSelectorPage } from "./setSelector"
 import { loadDirSet, loadSet } from "../levelLoading"
-import { findScriptName, LevelSet, LevelSetLoaderFunction } from "@notcc/logic"
+import { findScriptName, LevelSetLoaderFunction } from "@notcc/logic"
 import { waitForDialogSubmit } from "../simpleDialogs"
 
 function queryParamsToObj(query: string): Record<string, string> {
