@@ -426,7 +426,7 @@ export const exaPlayerPage = {
 			const railroadId = solutionId.slice("railroad-".length)
 			const levels = await getRRRoutes(packName)
 			const rrRoute = levels
-				.find(lvl => lvl.title === level.name)
+				.find(lvl => lvl.title.toLowerCase() === level.name?.toLowerCase())
 				?.routes.find(route => route.id === railroadId)
 			if (rrRoute) {
 				ip = new RouteFileInputProvider(rrRoute.moves)
