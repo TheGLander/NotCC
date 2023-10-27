@@ -11,6 +11,7 @@ import {
 	secondaryActions,
 	protobuf,
 	SolutionInfoInputProvider,
+	Direction,
 } from "@notcc/logic"
 import clone from "clone"
 import { Pager } from "../pager"
@@ -321,7 +322,11 @@ export const exaPlayerPage = {
 							Set: pager.loadedSet!.scriptRunner.state.scriptTitle!,
 					  },
 			Blobmod: level.blobPrngValue,
-			"Initial Slide": this.snapshots[0].level.randomForceFloorDirection,
+			// When importing and exporting, convert RFF direction to be a string enum value,
+			// to keep compat with SuperCC
+			"Initial Slide": Direction[
+				this.snapshots[0].level.randomForceFloorDirection
+			] as unknown as Direction,
 		}
 		const routeString = JSON.stringify(route)
 		const routeBin = new TextEncoder().encode(routeString)

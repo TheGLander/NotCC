@@ -206,6 +206,11 @@ export class RouteFileInputProvider implements InputProvider {
 	constructor(route: Route | string[]) {
 		if ("Moves" in route) {
 			this.moves = splitRouteCharString(route.Moves)
+			// Convert SuCC-style direction string enum value to the native integers we have in NotCC
+			if (typeof route["Initial Slide"] === "string") {
+				route["Initial Slide"] =
+					Direction[route["Initial Slide"] as unknown as "UP"]
+			}
 		} else {
 			this.moves = route
 		}
