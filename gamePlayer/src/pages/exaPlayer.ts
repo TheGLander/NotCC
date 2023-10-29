@@ -113,9 +113,10 @@ export const exaPlayerPage = {
 		// Kidna silly, but I don't make the rules here
 		const superTimeWhole = Math.floor(time / 60) + 1
 		const superTimeDecimal = Math.floor(((time % 60) / 60) * 100)
-		this.textOutputs!.time.textContent = `${superTimeWhole}.${superTimeDecimal
-			.toString()
-			.padEnd(2, "0")}s`
+		this.textOutputs!.time.textContent =
+			time === 0
+				? "0.00s"
+				: `${superTimeWhole}.${superTimeDecimal.toString().padStart(2, "0")}s`
 		this.totalScoreText!.textContent = calculateLevelPoints(
 			this.levelN,
 			Math.ceil(time / 60),
