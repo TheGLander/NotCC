@@ -211,6 +211,7 @@ export class RouteFileInputProvider implements InputProvider {
 				route["Initial Slide"] =
 					Direction[route["Initial Slide"] as unknown as "UP"]
 			}
+			this.route = route
 		} else {
 			this.moves = route
 		}
