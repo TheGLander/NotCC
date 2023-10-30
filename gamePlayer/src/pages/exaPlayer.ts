@@ -65,7 +65,7 @@ export const exaPlayerPage = {
 		this.totalScoreText =
 			page.querySelector<HTMLOutputElement>(".totalScoreText")
 	},
-	loadLevel(pager: Pager, inputProvider?: InputProvider): void {
+	loadLevel(pager: Pager, initIp?: InputProvider): void {
 		playerPageBase.loadLevel.call(this, pager)
 		const level = this.currentLevel
 		if (level === null)
@@ -79,8 +79,8 @@ export const exaPlayerPage = {
 		this.recordedMoves = []
 		this.visualMoves = []
 		this.areMovesPlayerInput = []
-		level.inputProvider =
-			inputProvider ?? new RouteFileInputProvider(this.recordedMoves)
+		const localIp = new RouteFileInputProvider(this.recordedMoves)
+		level.inputProvider = initIp ?? localIp
 		while (level.subtick !== 1) {
 			level.tick()
 		}
@@ -90,6 +90,7 @@ export const exaPlayerPage = {
 				level: cloneLevel(this.currentLevel!),
 			},
 		]
+		this.currentLevel!.inputProvider = localIp
 		this.levelN = pager.loadedSet?.currentLevel ?? 0
 		this.renderer!.updateTileSize()
 		// Tile scale, automatically make things bigger if the page size allows
