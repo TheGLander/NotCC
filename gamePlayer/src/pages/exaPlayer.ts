@@ -65,7 +65,7 @@ export const exaPlayerPage = {
 		this.totalScoreText =
 			page.querySelector<HTMLOutputElement>(".totalScoreText")
 	},
-	loadLevel(pager: Pager): void {
+	loadLevel(pager: Pager, inputProvider?: InputProvider): void {
 		playerPageBase.loadLevel.call(this, pager)
 		const level = this.currentLevel
 		if (level === null)
@@ -79,7 +79,8 @@ export const exaPlayerPage = {
 		this.recordedMoves = []
 		this.visualMoves = []
 		this.areMovesPlayerInput = []
-		level.inputProvider = new RouteFileInputProvider(this.recordedMoves)
+		level.inputProvider =
+			inputProvider ?? new RouteFileInputProvider(this.recordedMoves)
 		while (level.subtick !== 1) {
 			level.tick()
 		}
@@ -258,7 +259,6 @@ export const exaPlayerPage = {
 	},
 	async transcribeInputs(ip: InputProvider) {
 		const level = this.currentLevel!
-		ip.setupLevel(level)
 		let moveCount = 0
 		while (!ip.outOfInput(level)) {
 			this.appendInput(ip.getInput(level))
@@ -277,8 +277,9 @@ export const exaPlayerPage = {
 		this.updateTextOutputs()
 	},
 	async loadSolution(pager: Pager, sol: protobuf.ISolutionInfo) {
-		this.loadLevel(pager)
-		await this.transcribeInputs(new SolutionInfoInputProvider(sol))
+		const ip = new SolutionInfoInputProvider(sol)
+		this.loadLevel(pager, ip)
+		await this.transcribeInputs(ip)
 	},
 	async importRoute(pager: Pager): Promise<void> {
 		const file = (
@@ -300,9 +301,10 @@ export const exaPlayerPage = {
 			showAlert("Unknown ruleset")
 			return
 		}
-		this.loadLevel(pager)
+		const ip = new RouteFileInputProvider(route)
+		this.loadLevel(pager, ip)
 		// TODO compare route.For metadata
-		await this.transcribeInputs(new RouteFileInputProvider(route))
+		await this.transcribeInputs(ip)
 	},
 	async exportRoute(pager: Pager): Promise<void> {
 		const level = this.snapshots[0].level
@@ -440,7 +442,7 @@ export const exaPlayerPage = {
 		}
 
 		if (ip) {
-			this.loadLevel(pager)
+			this.loadLevel(pager, ip)
 			await this.transcribeInputs(ip)
 		}
 	},
