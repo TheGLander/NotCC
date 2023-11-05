@@ -21,6 +21,7 @@ import { KeyListener, sleep, TimeoutTimer } from "../utils"
 import { isValidStartKey, keyToInputMap, playerPageBase } from "./basePlayer"
 import { registerPage } from "../const"
 import { getRRRoutes, identifyRRPack } from "../railroad"
+import { ExaIntegerTimeRounding } from "../settings"
 
 // Wait for a tick for diagonal inputs
 const AUTO_DIAGONALS_TIMEOUT = 1 / 20
@@ -48,6 +49,17 @@ function cloneLevel(level: LevelState): LevelState {
 	level.inputProvider = inputProvider
 	return newLevel
 }
+
+const integerFormatters: Record<
+	ExaIntegerTimeRounding,
+	(time: number) => number
+> = {
+	floor: time => Math.floor(time),
+	"floor + 1": time => Math.floor(time) + 1,
+	ceil: time => Math.ceil(time),
+}
+
+const subtickStrings = ["", "⅓", "⅔"]
 
 export const exaPlayerPage = {
 	...playerPageBase,
@@ -111,14 +123,15 @@ export const exaPlayerPage = {
 	updateTextOutputs(): void {
 		playerPageBase.updateTextOutputs.call(this)
 		const time = this.currentLevel!.timeLeft
-		// Not the same as ceil(time / 60), since at the beginning it should be one higher than the actual time
-		// Kidna silly, but I don't make the rules here
-		const superTimeWhole = Math.floor(time / 60) + 1
-		const superTimeDecimal = Math.floor(((time % 60) / 60) * 100)
-		this.textOutputs!.time.textContent =
-			time === 0
-				? "0.00s"
-				: `${superTimeWhole}.${superTimeDecimal.toString().padStart(2, "0")}s`
+		const integerFormatter = integerFormatters[this.integerTimeRounding]
+		const timeFrozen = this.currentLevel!.timeFrozen ? "❄" : ""
+		const timeInteger = integerFormatter(time / 60)
+		const timeDecimal = (Math.floor((time % 60) / 3) * 5)
+			.toString()
+			.padStart(2, "0")
+		const timeSubtick = time % 3
+		this.textOutputs!.time.textContent = `${timeFrozen}${timeInteger}.${timeDecimal}${subtickStrings[timeSubtick]}s`
+
 		this.totalScoreText!.textContent = calculateLevelPoints(
 			this.levelN,
 			Math.ceil(time / 60),
@@ -397,6 +410,12 @@ export const exaPlayerPage = {
 		this.updateSettings(pager)
 		this.updateRender()
 		this.setupKeyListener()
+	},
+	integerTimeRounding: "ceil" as ExaIntegerTimeRounding,
+	updateSettings(pager: Pager): void {
+		playerPageBase.updateSettings.call(this, pager)
+		this.integerTimeRounding = pager.settings.exaIntegerTimeRounding
+		this.updateTextOutputs()
 	},
 	close(): void {
 		this.keyListener?.remove()

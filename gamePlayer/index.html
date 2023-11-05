@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
@@ -251,6 +251,36 @@
 						user page is at https://scores.bitbusters.club/players/75, your
 						optimizer ID is 75.
 					</p>
+					<h3>ExaCC</h3>
+					<label for="integerTimeRounding">Integer time rounding</label>
+					<span
+						><select id="integerTimeRounding">
+							<option value="floor">floor</option>
+							<option value="floor + 1">floor + 1</option>
+							<option value="ceil" selected>ceil</option>
+						</select></span
+					>
+					<p>
+						The integer part of the time left can be rounded in different ways,
+						depending on the wanted interpretation. Avaliable rounding modes:
+					</p>
+					<ul>
+						<li>
+							floor — Equivalent to the amount of time until the game is lost
+							via time out. Represents how the game internally tracks time left,
+							but the shown value must be ceiled in one's head to know the
+							in-game time.
+						</li>
+						<li>
+							floor + 1 — Resembles how time works in Lynx and mostly matches
+							in-game time, but is inaccurate when the decimal is .00.
+						</li>
+						<li>
+							ceil — Always matches in-game time, but no longer always
+							decreases. Displayed time will jump from x.05 to (x-1).00 to
+							(x-1).95 .
+						</li>
+					</ul>
 				</section>
 				<footer>
 					<button value="ok" type="submit">Ok</button>

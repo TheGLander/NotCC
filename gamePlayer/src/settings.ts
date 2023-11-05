@@ -9,6 +9,7 @@ import {
 import { getPlayerSummary } from "./scoresApi"
 
 export type SetListPreviewLevel = "title" | "level preview"
+export type ExaIntegerTimeRounding = "floor" | "floor + 1" | "ceil"
 
 export interface Settings {
 	mainTheme: ThemeColors
@@ -16,6 +17,7 @@ export interface Settings {
 	preventNonLegalGlitches: boolean
 	preventSimultaneousMovement: boolean
 	optimizerId?: number
+	exaIntegerTimeRounding: ExaIntegerTimeRounding
 }
 
 export const defaultSettings: Settings = {
@@ -23,6 +25,7 @@ export const defaultSettings: Settings = {
 	tileset: "cga16",
 	preventNonLegalGlitches: true,
 	preventSimultaneousMovement: true,
+	exaIntegerTimeRounding: "ceil",
 }
 
 const settingsDialog =
@@ -124,6 +127,16 @@ export function openSettingsDialog(pager: Pager): void {
 						currentUsername.textContent = "???"
 					})
 			}
+		}
+	)
+	makeSettingsPreference<HTMLSelectElement>(
+		"integerTimeRounding",
+		"change",
+		el => {
+			newSettings.exaIntegerTimeRounding = el.value as ExaIntegerTimeRounding
+		},
+		el => {
+			el.value = newSettings.exaIntegerTimeRounding
 		}
 	)
 
