@@ -114,6 +114,13 @@ export const exaPlayerPage = {
 		this.updateRecordedMovesArea()
 		this.updateTextOutputs()
 	},
+	doTick(level: LevelState): void {
+		level.tick()
+		if (level.gameState !== GameState.PLAYING) return
+		level.tick()
+		if (level.gameState !== GameState.PLAYING) return
+		level.tick()
+	},
 	updateRecordedMovesArea(): void {
 		this.recordedMovesArea!.textContent = this.visualMoves
 			.slice(0, this.currentLevel!.currentTick)
@@ -141,9 +148,7 @@ export const exaPlayerPage = {
 	applyInput(): void {
 		const level = this.currentLevel!
 		do {
-			level.tick()
-			level.tick()
-			level.tick()
+			this.doTick(level)
 			this.autoAddSnapshot()
 		} while (
 			level.gameState === GameState.PLAYING &&
@@ -175,9 +180,7 @@ export const exaPlayerPage = {
 			if (ticksApplied > 0) {
 				addMove("-")
 			}
-			level.tick()
-			level.tick()
-			level.tick()
+			this.doTick(level)
 			ticksApplied += 1
 			this.autoAddSnapshot()
 		} while (
@@ -237,9 +240,7 @@ export const exaPlayerPage = {
 		const level = this.currentLevel
 		this.renderer!.level = this.currentLevel
 		while (targetPosition > level.currentTick) {
-			this.currentLevel.tick()
-			this.currentLevel.tick()
-			this.currentLevel.tick()
+			this.doTick(level)
 		}
 		this.updateRecordedMovesArea()
 		this.updateRender()
