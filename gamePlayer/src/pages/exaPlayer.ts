@@ -121,9 +121,15 @@ export const exaPlayerPage = {
 		if (level.gameState !== GameState.PLAYING) return
 		level.tick()
 	},
+	getRouteTicks(): number {
+		return (
+			this.currentLevel!.currentTick +
+			(this.currentLevel!.subtick === 2 ? 1 : 0)
+		)
+	},
 	updateRecordedMovesArea(): void {
 		this.recordedMovesArea!.textContent = this.visualMoves
-			.slice(0, this.currentLevel!.currentTick)
+			.slice(0, this.getRouteTicks())
 			.join("")
 	},
 	totalScoreText: null as HTMLOutputElement | null,
@@ -247,8 +253,9 @@ export const exaPlayerPage = {
 		this.updateTextOutputs()
 	},
 	undo(): void {
-		if (this.currentLevel!.currentTick <= 0) return
-		this.seekTo(this.currentLevel!.currentTick - 1)
+		const level = this.currentLevel!
+		if (level.currentTick <= 0) return
+		this.seekTo(this.getRouteTicks() - 1)
 	},
 	redo(): void {
 		const level = this.currentLevel
@@ -264,7 +271,7 @@ export const exaPlayerPage = {
 	visualMoves: [] as string[],
 	areMovesPlayerInput: [] as boolean[],
 	cropToMovePosition(): void {
-		const movePos = this.currentLevel!.currentTick
+		const movePos = this.getRouteTicks()
 		this.recordedMoves.splice(movePos)
 		this.visualMoves.splice(movePos)
 		this.areMovesPlayerInput.splice(movePos)
