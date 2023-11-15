@@ -183,7 +183,7 @@ export const setSelectorPage = {
 	},
 	async setNavigationInfo(
 		pager: Pager,
-		_path: string[],
+		_subpage: string,
 		queryParams: Record<string, string>
 	) {
 		const levelDataBased = queryParams.level
