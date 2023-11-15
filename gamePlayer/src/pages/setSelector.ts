@@ -180,18 +180,15 @@ export const setSelectorPage = {
 		pager.loadedSet = null
 		pager.loadedSetIdent = null
 		pager.updateShownLevelNumber()
-		if (!this.loadedParamLevel) {
-			this.loadedParamLevel = true
-			this.loadParamLevel(pager)
-		}
 	},
-	loadedParamLevel: false,
-	async loadParamLevel(pager: Pager) {
-		const searchParams = new URLSearchParams(location.search)
+	async setNavigationInfo(
+		pager: Pager,
+		_path: string[],
+		queryParams: Record<string, string>
+	) {
+		const levelDataBased = queryParams.level
 
-		const levelDataBased = searchParams.get("level")
-
-		if (levelDataBased === null) return
+		if (!levelDataBased) return
 
 		let levelData = decodeBase64(levelDataBased)
 

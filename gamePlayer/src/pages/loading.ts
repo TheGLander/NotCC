@@ -3,7 +3,6 @@ import { lookupGbSet } from "../gliderbotSets"
 import { Pager } from "../pager"
 import { initSaveData } from "../saveData"
 import { updatePagerTileset } from "../tilesets"
-import { levelPlayerPage } from "./levelPlayer"
 import { setSelectorPage } from "./setSelector"
 import { loadDirSet, loadSet } from "../levelLoading"
 import { findScriptName, LevelSetLoaderFunction } from "@notcc/logic"
@@ -30,12 +29,6 @@ export async function openNotccUrl(pager: Pager): Promise<void> {
 	}
 
 	let pageToOpen = pages[pageName] ?? setSelectorPage
-
-	// Support LL-style queryParam level loading
-	if (pageName === undefined && queryParams.level !== undefined) {
-		pageToOpen = levelPlayerPage
-		subpageParts = ["NotCCEmbed", "1"]
-	}
 
 	if (
 		pageToOpen.requiresLoaded === "set" ||
