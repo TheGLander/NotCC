@@ -189,17 +189,14 @@ export class LevelState {
 		for (const actor of Array.from(this.actors)) {
 			actor.levelStarted?.()
 			actor.onCreation?.()
-			actor.noSlidingBonk = iterableSome(
-				actor.tile.allActors,
-				val => !!val.slidingPlayableShouldntBonk
-			)
-			if (actor.noSlidingBonk && actor instanceof Playable)
-				actor.hasOverride = true
 		}
 		onLevelStart.forEach(val => val(this))
 	}
 
-	constructor(public width: number, public height: number) {
+	constructor(
+		public width: number,
+		public height: number
+	) {
 		//Init field
 		this.field = []
 		for (let x = 0; x < width; x++) {

@@ -439,9 +439,14 @@ actorDB["thiefKey"] = ThiefKey
 
 export class Trap extends Actor {
 	id = "trap"
-	// The amount of buttons current pressed and linked to this trap
 	openRequests = this.customData === "open" ? 1 : 0
-	isOpen = this.customData === "open"
+	openRequestAt: number | null = null
+	get isOpen(): boolean {
+		if (this.openRequestAt === this.level.currentTick * 3 + this.level.subtick)
+			return true
+		if (this.wired) return !!this.poweredWires
+		return this.openRequests > 0
+	}
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -449,41 +454,66 @@ export class Trap extends Actor {
 		return !this.isOpen
 	}
 	caresButtonColors = ["brown"]
+	setFrozen(actor: Actor): void {
+		const frozen = !this.isOpen
+		if (!frozen) {
+			actor.frozen = false
+			return
+		}
+		if (actor.getCompleteTags("tags").includes("overpowers-trap-sliding"))
+			return
+
+		actor.frozen = true
+	}
+	setFrozenAll(): void {
+		for (const actor of this.tile[Layer.MOVABLE]) {
+			this.setFrozen(actor)
+		}
+	}
 	buttonPressed(_type: string, data?: string): void {
+		const wasOpen = this.isOpen
 		if (this.customData === "open") this.customData = ""
 		else this.openRequests++
-		this.isOpen = true
-		if (this.openRequests === 1 && data !== "init") {
+		this.openRequestAt = this.level.currentTick * 3 + this.level.subtick
+		if (data !== "init" && !wasOpen && this.isOpen) {
 			for (const movable of this.tile[Layer.MOVABLE]) {
-				movable.slidingState = SlidingState.NONE
+				this.setFrozen(movable)
 				if (movable._internalStep(movable.direction)) movable.cooldown--
 			}
 		}
 	}
 	buttonUnpressed(): void {
 		this.openRequests = Math.max(0, this.openRequests - 1)
-		if (this.openRequests === 0) {
-			this.isOpen = false
-			for (const movable of this.tile[Layer.MOVABLE])
-				movable.slidingState = SlidingState.WEAK
-		}
+		this.setFrozenAll()
 	}
-
+	actorJoined(other: Actor): void {
+		this.setFrozen(other)
+	}
+	levelStarted(): void {
+		this.setFrozenAll()
+	}
+	pulse(actual: boolean): void {
+		if (!actual) return
+		this.setFrozenAll()
+	}
+	unpulse(): void {
+		this.setFrozenAll()
+	}
 	listensWires = true
-	persistOnExitOnlyCollision = true
-	slidingPlayableShouldntBonk = true
 }
 
 actorDB["trap"] = Trap
 
-onLevelDecisionTick.push(level => {
-	for (const trap of level.actors) {
-		if (trap.id !== "trap" || !(trap instanceof Trap)) continue
-		if (trap.circuits) trap.isOpen = !!trap.poweredWires
-		for (const movable of trap.tile[Layer.MOVABLE])
-			movable.slidingState = trap.isOpen ? SlidingState.NONE : SlidingState.WEAK
-	}
-})
+// onLevelDecisionTick.push(level => {
+// 	for (const trap of level.actors) {
+// 		if (trap.id !== "trap" || !trap.circuits || !(trap instanceof Trap))
+// 			continue
+// 		trap.isOpen = !!trap.poweredWires
+// 		for (const movable of trap.tile[Layer.MOVABLE]) {
+// 			trap.setFrozen(movable, !trap.isOpen)
+// 		}
+// 	}
+// })
 
 // TODO CC1 clone machines
 export class CloneMachine extends Actor {
@@ -503,8 +533,13 @@ export class CloneMachine extends Actor {
 	exitBlocks(): boolean {
 		return !this.isCloning
 	}
-	actorOnTile(actor: Actor): void {
-		actor.slidingState = SlidingState.STRONG
+	levelStarted(): void {
+		for (const movable of this.tile[Layer.MOVABLE]) {
+			movable.frozen = true
+		}
+	}
+	actorJoined(other: Actor): void {
+		other.frozen = true
 	}
 	blocks(other: Actor): boolean {
 		return (
@@ -524,6 +559,8 @@ export class CloneMachine extends Actor {
 		this.isCloning = true
 		for (let clonee of [...this.tile[Layer.MOVABLE]]) {
 			if (clonee.cooldown) continue
+			clonee.frozen = false
+			clonee.slidingState = SlidingState.STRONG
 			if (this.tryMovingInto(clonee, clonee.direction)) {
 				clonee.cooldown--
 			} else {
@@ -541,6 +578,8 @@ export class CloneMachine extends Actor {
 				}
 				if (clonee.cooldown === 0) {
 					clonee.direction = ogDir
+					clonee.frozen = true
+					clonee.slidingState = SlidingState.NONE
 					continue
 				}
 			}
@@ -550,7 +589,7 @@ export class CloneMachine extends Actor {
 				clonee.customData
 			)
 			newClone.direction = clonee.direction
-			newClone.slidingState = SlidingState.STRONG
+			newClone.frozen = true
 		}
 		this.isCloning = false
 	}
@@ -561,7 +600,6 @@ export class CloneMachine extends Actor {
 	pulse(actual: boolean): void {
 		this.clone(actual)
 	}
-	slidingPlayableShouldntBonk = true
 }
 
 actorDB["cloneMachine"] = CloneMachine
