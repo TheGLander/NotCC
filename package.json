@@ -7,13 +7,14 @@
 		"@typescript-eslint/parser": "^4.33.0",
 		"eslint": "^7.32.0",
 		"eslint-config-prettier": "^8.10.0",
+		"prettier-plugin-tailwindcss": "^0.5.7",
 		"typescript": "^5.2.2",
 		"zx": "^7.2.3"
 	},
 	"scripts": {
-		"build-web": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build",
-		"build-desktop": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build-desktop && pnpm --filter @notcc/desktop-player build",
-		"build-cli": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/cli build && pnpm i",
+		"build:web": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build",
+		"build:desktop": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build:desktop && pnpm --filter @notcc/desktop-player build",
+		"build:cli": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/cli build && pnpm i",
 		"test": "zx ./testing.mjs"
 	}
 }

@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	body {
+		width: 100vw;
+		height: 100vh;
+	}
+	#app {
+		display: contents;
+	}
+}
+
+@layer components {
+	.box {
+		@apply rounded-md bg-blue-900 p-2 shadow-lg;
+	}
+}
