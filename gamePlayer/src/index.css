@@ -7,6 +7,10 @@
 		width: 100vw;
 		height: 100vh;
 	}
+	body,
+	dialog {
+		@apply text-neutral-100;
+	}
 	#app {
 		display: contents;
 	}
