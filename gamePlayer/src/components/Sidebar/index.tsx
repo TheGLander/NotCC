@@ -104,7 +104,9 @@ function SidebarButton(
 			dialog.focus()
 		}
 	}
-	const useDrawer = !useMediaQuery({ query: "(min-width: 768px)" })
+	const useDrawer = !globalThis.window
+		? false
+		: !useMediaQuery({ query: "(min-width: 768px)" })
 	const SidebarChooser = useDrawer ? SidebarDrawer : SidebarTooltip
 
 	return (
