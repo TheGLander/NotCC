@@ -108,13 +108,13 @@ function SidebarButton(
 	const SidebarChooser = useDrawer ? SidebarDrawer : SidebarTooltip
 
 	return (
-		<div class="relative flex md:[&:nth-last-child(2)]:mt-auto">
+		<div class="relative flex max-md:flex-1 md:[&:nth-last-child(2)]:mt-auto">
 			{"icon" in props ? (
 				<img
 					tabIndex={0}
 					draggable={false}
 					src={props.icon}
-					class="m-auto block cursor-pointer select-none max-md:h-4/5 md:w-3/5"
+					class="m-auto block cursor-pointer select-none max-md:h-4/5 md:w-1/2 lg:w-3/5"
 					onClick={() => {
 						setTooltipOpened(true)
 					}}
