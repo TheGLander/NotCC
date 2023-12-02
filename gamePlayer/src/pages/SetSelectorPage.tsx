@@ -28,7 +28,9 @@ export function SetSelectorPage() {
 	return (
 		<div class="flex flex-1 flex-col items-center overflow-y-auto">
 			<Header />
-			<div class="box m-auto h-fit w-fit text-xl">Todo!</div>
+			<div class="box m-auto h-fit w-fit text-xl">
+				<button>Todo!</button>
+			</div>
 		</div>
 	)
 }

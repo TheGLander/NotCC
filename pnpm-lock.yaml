@@ -123,6 +123,9 @@ importers:
       jotai:
         specifier: ^2.5.1
         version: 2.5.1(@preact/compat@17.1.2)
+      jotai-effect:
+        specifier: ^0.2.3
+        version: 0.2.3(jotai@2.5.1)
       lz-string:
         specifier: ^1.5.0
         version: 1.5.0
@@ -2379,6 +2382,14 @@ packages:
   /jiti@1.21.0:
     resolution: {integrity: sha512-gFqAIbuKyyso/3G2qhiO2OM6shY6EPP/R0+mkDbyspxKazh8BXDC5FiFsUjlczgdNz/vfra0da2y+aHrusLG/Q==}
     hasBin: true
+    dev: true
+
+  /jotai-effect@0.2.3(jotai@2.5.1):
+    resolution: {integrity: sha512-Ecs40W4Y+SI1EqbvPdoLDvbyic5eMyD5ifJIQrrr+hWz1GEjmijVWyKw6TzmYzO2+++CkYPF+fYsWzsWsR0AAQ==}
+    peerDependencies:
+      jotai: '>=2.4.3'
+    dependencies:
+      jotai: 2.5.1(@preact/compat@17.1.2)
     dev: true
 
   /jotai@2.5.1(@preact/compat@17.1.2):
