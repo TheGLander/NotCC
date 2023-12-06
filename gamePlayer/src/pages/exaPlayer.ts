@@ -114,6 +114,10 @@ export const exaPlayerPage = {
 		this.updateRecordedMovesArea()
 		this.updateTextOutputs()
 	},
+	updateRender() {
+		this.isRenderDirty = true
+		playerPageBase.updateRender.call(this)
+	},
 	doTick(level: LevelState): void {
 		level.tick()
 		if (level.gameState !== GameState.PLAYING) return

@@ -187,6 +187,7 @@ export const playerPageBase = {
 			"--tile-scale",
 			this.determineTileScale().toString()
 		)
+		this.isRenderDirty = true
 		this.updateRender()
 	},
 	updateViewportCameraSize(): void {
@@ -222,7 +223,10 @@ export const playerPageBase = {
 		level.tick()
 		this.updateTextOutputs()
 	},
+	isRenderDirty: false,
 	updateRender(): void {
+		if (!this.isRenderDirty) return
+		this.isRenderDirty = false
 		this.renderer!.frame()
 	},
 	preventNonLegalGlitches: true,

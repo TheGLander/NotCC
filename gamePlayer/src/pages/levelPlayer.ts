@@ -326,6 +326,7 @@ export const levelPlayerPage = {
 		)
 			return
 		playerPageBase.updateLogic.call(this)
+		this.isRenderDirty = true
 		this.attemptTracker?.recordAttemptStep(level.gameInput)
 		this.updateReleases()
 		if (
