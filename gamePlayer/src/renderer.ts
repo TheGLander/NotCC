@@ -259,8 +259,8 @@ export class Renderer {
 				direction === Direction.RIGHT
 					? [1 - width, 0]
 					: direction === Direction.DOWN
-					? [0, 1 - width]
-					: [0, 0]
+					  ? [0, 1 - width]
+					  : [0, 0]
 			this.tileBlit(
 				ctx,
 				[pos[0] + offset[0], pos[1] + offset[1]],

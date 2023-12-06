@@ -81,16 +81,19 @@ export async function openNotccUrl(pager: Pager): Promise<void> {
 interface NonFreeSet {
 	scriptName: string
 	steamLink: string
+	acquisitionTerm: string
 }
 
 export const nonFreeSets: Record<string, NonFreeSet> = {
 	cc1: {
 		scriptName: "Chips Challenge",
 		steamLink: "https://store.steampowered.com/app/346850/Chips_Challenge_1",
+		acquisitionTerm: "download it for free from",
 	},
 	cc2: {
 		scriptName: "Chips Challenge 2",
 		steamLink: "https://store.steampowered.com/app/348300/Chips_Challenge_2",
+		acquisitionTerm: "but it on",
 	},
 }
 
@@ -111,7 +114,11 @@ async function showNonFreeDialog(
 	const setInfo = nonFreeSets[setName]
 	const steamLink =
 		nonFreeSetDialog.querySelector<HTMLAnchorElement>("#nonFreeSteamLink")!
+	const acquisitionTerm = nonFreeSetDialog.querySelector<HTMLSpanElement>(
+		"#nonFreeSetAcquisitionTerm"
+	)!
 	steamLink.href = setInfo.steamLink
+	acquisitionTerm.innerText = setInfo.acquisitionTerm
 	nonFreeSetDialog.showModal()
 	const response = (await waitForDialogSubmit(nonFreeSetDialog, false)) as
 		| "load"
