@@ -1,3 +1,4 @@
+import { useOpenFile } from "../levelData"
 import { atom, useAtom } from "jotai"
 
 const altLogoAtom = atom(false)
@@ -24,13 +25,36 @@ function Header() {
 	)
 }
 
+function UploadBox() {
+	const openFile = useOpenFile()
+	return (
+		<div class="box mx-auto mt-2 w-4/5">
+			<p>Load external files:</p>
+			<div class="flex flex-row gap-1">
+				<button class="flex-1" onClick={openFile}>
+					Load file
+				</button>
+				<button class="flex-1" disabled>
+					Load directory
+				</button>
+			</div>
+			<div class="flex flex-col">
+				<label>
+					<input type="checkbox" disabled /> Embed level info in URL
+				</label>
+				<label>
+					<input type="checkbox" disabled /> Store sets locally
+				</label>
+			</div>
+		</div>
+	)
+}
+
 export function SetSelectorPage() {
 	return (
 		<div class="flex flex-1 flex-col items-center overflow-y-auto">
 			<Header />
-			<div class="box m-auto h-fit w-fit text-xl">
-				<button>Todo!</button>
-			</div>
+			<UploadBox />
 		</div>
 	)
 }

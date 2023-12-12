@@ -5,6 +5,7 @@ import { SetSelectorPage } from "./pages/SetSelectorPage"
 import { FunctionComponent } from "preact"
 import { Preloader } from "./components/Preloader"
 import { LevelPlayerPage } from "./pages/LevelPlayerPage"
+import { levelAtom, levelSetAtom, resolveHashLevel } from "./levelData"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -27,6 +28,11 @@ function parseHashLocation(): HashLocation {
 	const searchParams = {
 		...searchParamsToObj(notccLocation.search),
 		...searchParamsToObj(location.search),
+	}
+	if (location.search !== "") {
+		const newLoc = new URL(location.toString())
+		newLoc.search = ""
+		history.replaceState(null, "", newLoc)
 	}
 	return { pagePath, searchParams }
 }
@@ -66,16 +72,24 @@ const pages: Partial<Record<string, Page>> = {
 	},
 }
 
+export const CUSTOM_LEVEL_SET_IDENT = "*custom-level"
+export const CUSTOM_SET_SET_IDENT = "*custom-level"
+
 export const pageNameAtom = atom<string>("")
 export const levelNAtom = atom<number | null>(null)
 export const levelSetIdentAtom = atom<string | null>(null)
 export const searchParamsAtom = atom<SearchParams>({})
 
+export const pageAtom = atom<Page | null, [pageName: string], void>(
+	get => pages[get(pageNameAtom)] ?? null,
+	(_get, set, pageName) => set(pageNameAtom, pageName)
+)
+
 // A small hack to prevent internalToHashLocationSyncAtom from writing to the hash
 // right after reading from it.
 let preventImmediateHashUpdate = false
 
-const hashToInternalLocationSyncAtom = atomEffect((_get, set) => {
+const hashToInternalLocationSyncAtom = atomEffect((get, set) => {
 	const listener = () => {
 		const hashLoc = parseHashLocation()
 		const pageName = hashLoc.pagePath[0] ?? ""
@@ -90,6 +104,7 @@ const hashToInternalLocationSyncAtom = atomEffect((_get, set) => {
 			set(levelNAtom, null)
 		}
 		preventImmediateHashUpdate = true
+		resolveHashLevel(get, set)
 	}
 	listener()
 	window.addEventListener("hashchange", listener)
@@ -97,13 +112,15 @@ const hashToInternalLocationSyncAtom = atomEffect((_get, set) => {
 })
 
 const internalToHashLocationSyncAtom = atomEffect(get => {
+	const levelN = get(levelNAtom)
+	const levelSetIdent = get(levelSetIdentAtom)
+	const pageName = get(pageNameAtom)
+	const searchParams = get(searchParamsAtom)
+
 	if (preventImmediateHashUpdate) {
 		preventImmediateHashUpdate = false
 		return
 	}
-	const levelN = get(levelNAtom)
-	const levelSetIdent = get(levelSetIdentAtom)
-	const pageName = get(pageNameAtom)
 
 	applyHashLocation({
 		pagePath: [
@@ -111,8 +128,18 @@ const internalToHashLocationSyncAtom = atomEffect(get => {
 			levelSetIdent,
 			levelN !== null ? levelN.toString() : null,
 		].filter((part): part is string => part !== null),
-		searchParams: get(searchParamsAtom),
+		searchParams,
 	})
+})
+
+const discardUselessLevelDataAtom = atomEffect((get, set) => {
+	const page = get(pageAtom)
+	if (!page?.isLevelPlayer) {
+		set(levelSetIdentAtom, null)
+		set(levelNAtom, null)
+		set(levelAtom, null)
+		set(levelSetAtom, null)
+	}
 })
 
 function PageNotFound(props: { pageName: string }) {
@@ -126,11 +153,13 @@ export function Router() {
 		// Prevent internalToHashLocationSyncAtom from writing to the hash on mount
 		preventImmediateHashUpdate = true
 	}, [])
+	useAtom(discardUselessLevelDataAtom)
 	useAtom(hashToInternalLocationSyncAtom)
 	useAtom(internalToHashLocationSyncAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />
-	const Page = pages[pageName]?.component
-	if (Page === undefined) return <PageNotFound pageName={pageName} />
+	const page = pages[pageName]
+	if (page === undefined) return <PageNotFound pageName={pageName} />
+	const Page = page.component
 	return <Page />
 }

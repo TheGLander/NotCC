@@ -22,12 +22,20 @@
 	}
 	button {
 		@apply cursor-auto appearance-none border-2 border-b-[--low-color] border-l-[--high-color] border-r-[--low-color] border-t-[--high-color] bg-gradient-to-b from-[--high-color] to-[--low-color] px-2;
-		@apply [--high-color:theme(colors.theme.600)] [--low-color:theme(colors.theme.700)];
+		--high-color: theme(colors.theme.600);
+		--low-color: theme(colors.theme.700);
 	}
-	button:hover {
-		@apply [--high-color:theme(colors.theme.500)] [--low-color:theme(colors.theme.600)];
+	button:enabled:hover {
+		--high-color: theme(colors.theme.500);
+		--low-color: theme(colors.theme.600);
 	}
-	button:active {
-		@apply [--high-color:theme(colors.theme.700)] [--low-color:theme(colors.theme.800)];
+	button:enabled:active {
+		--high-color: theme(colors.theme.700);
+		--low-color: theme(colors.theme.800);
+	}
+	button:disabled {
+		@apply text-neutral-500;
+		--high-color: theme(colors.theme.800);
+		--low-color: theme(colors.theme.900);
 	}
 }
