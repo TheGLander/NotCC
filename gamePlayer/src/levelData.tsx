@@ -14,7 +14,7 @@ import { type os } from "@neutralinojs/lib"
 import { Dialog } from "./components/Dialog"
 import { useRef } from "preact/hooks"
 import { PromptComponent, showPrompt } from "./prompts"
-import { unzlib } from "fflate"
+import { decodeBase64, unzlibAsync } from "./helpers"
 
 export const levelAtom = atom<Promise<LevelData> | null>(null)
 export const levelUnwrappedAtom = unwrap(levelAtom)
@@ -164,21 +164,6 @@ export const LoadLevelPrompt: PromptComponent<LevelData | null> = function ({
 			]}
 		/>
 	)
-}
-
-function unzlibAsync(buf: Uint8Array): Promise<Uint8Array> {
-	return new Promise((res, rej) => {
-		unzlib(buf, (err, data) => {
-			if (err) rej(err)
-			else res(data)
-		})
-	})
-}
-function latin1ToBuffer(str: string): Uint8Array {
-	return Uint8Array.from(str, c => c.charCodeAt(0))
-}
-function decodeBase64(str: string): Uint8Array {
-	return latin1ToBuffer(atob(str.replace(/-/g, "+").replace(/_/g, "/")))
 }
 
 const resolveHashLevelPromptIdent = Symbol()

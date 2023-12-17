@@ -6,6 +6,7 @@ import { FunctionComponent } from "preact"
 import { Preloader } from "./components/Preloader"
 import { LevelPlayerPage } from "./pages/LevelPlayerPage"
 import { levelAtom, levelSetAtom, resolveHashLevel } from "./levelData"
+import { ignorantAtomEffectHook } from "./helpers"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -89,11 +90,13 @@ export const pageAtom = atom<Page | null, [pageName: string], void>(
 // right after reading from it.
 let preventImmediateHashUpdate = false
 
-const hashToInternalLocationSyncAtom = atomEffect((get, set) => {
+const useHashToInternalLocationSync = ignorantAtomEffectHook((get, set) => {
 	const listener = () => {
 		const hashLoc = parseHashLocation()
+
 		const pageName = hashLoc.pagePath[0] ?? ""
 		set(pageNameAtom, pageName)
+
 		const page = pages[pageName]
 		set(searchParamsAtom, hashLoc.searchParams)
 		if (page?.requiresLevel) {
@@ -103,6 +106,7 @@ const hashToInternalLocationSyncAtom = atomEffect((get, set) => {
 			set(levelSetIdentAtom, null)
 			set(levelNAtom, null)
 		}
+
 		preventImmediateHashUpdate = true
 		resolveHashLevel(get, set)
 	}
@@ -154,7 +158,7 @@ export function Router() {
 		preventImmediateHashUpdate = true
 	}, [])
 	useAtom(discardUselessLevelDataAtom)
-	useAtom(hashToInternalLocationSyncAtom)
+	useHashToInternalLocationSync()
 	useAtom(internalToHashLocationSyncAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />
