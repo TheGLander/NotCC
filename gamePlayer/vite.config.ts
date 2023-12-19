@@ -39,7 +39,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			path: join(process.cwd(), "node_modules/path-browserify"),
-			"@": "./src",
+			"@": "/src",
 		},
 	},
 	esbuild: { sourcemap: true },

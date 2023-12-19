@@ -17,6 +17,9 @@
 }
 
 @layer components {
+	a {
+		@apply underline;
+	}
 	.box {
 		@apply bg-theme-900 rounded-md p-2 shadow-lg;
 	}

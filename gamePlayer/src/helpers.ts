@@ -2,9 +2,9 @@ import { unzlib } from "fflate"
 import { Getter, Setter, useStore } from "jotai"
 import { useEffect } from "preact/hooks"
 
-export function ignorantAtomEffectHook(
-	effectFn: (get: Getter, set: Setter) => void | (() => void)
-) {
+export type EffectFn = (get: Getter, set: Setter) => void | (() => void)
+
+export function ignorantAtomEffectHook(effectFn: EffectFn) {
 	return () => {
 		const { get, set } = useStore()
 		useEffect(() => effectFn(get, set), [])

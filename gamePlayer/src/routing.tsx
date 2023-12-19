@@ -6,7 +6,7 @@ import { FunctionComponent } from "preact"
 import { Preloader } from "./components/Preloader"
 import { LevelPlayerPage } from "./pages/LevelPlayerPage"
 import { levelAtom, levelSetAtom, resolveHashLevel } from "./levelData"
-import { ignorantAtomEffectHook } from "./helpers"
+import { EffectFn, ignorantAtomEffectHook } from "./helpers"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -115,7 +115,8 @@ const useHashToInternalLocationSync = ignorantAtomEffectHook((get, set) => {
 	return () => window.removeEventListener("hashchange", listener)
 })
 
-const internalToHashLocationSyncAtom = atomEffect(get => {
+const internalToHashLocationSyncAtom = atomEffect((get, set) => {
+	discardUselessLevelData(get, set)
 	const levelN = get(levelNAtom)
 	const levelSetIdent = get(levelSetIdentAtom)
 	const pageName = get(pageNameAtom)
@@ -136,7 +137,7 @@ const internalToHashLocationSyncAtom = atomEffect(get => {
 	})
 })
 
-const discardUselessLevelDataAtom = atomEffect((get, set) => {
+const discardUselessLevelData: EffectFn = (get, set) => {
 	const page = get(pageAtom)
 	if (!page?.isLevelPlayer) {
 		set(levelSetIdentAtom, null)
@@ -144,7 +145,7 @@ const discardUselessLevelDataAtom = atomEffect((get, set) => {
 		set(levelAtom, null)
 		set(levelSetAtom, null)
 	}
-})
+}
 
 function PageNotFound(props: { pageName: string }) {
 	return <div class="box m-auto">Page "{props.pageName}" doesn't exist.</div>
@@ -157,7 +158,6 @@ export function Router() {
 		// Prevent internalToHashLocationSyncAtom from writing to the hash on mount
 		preventImmediateHashUpdate = true
 	}, [])
-	useAtom(discardUselessLevelDataAtom)
 	useHashToInternalLocationSync()
 	useAtom(internalToHashLocationSyncAtom)
 	if (!preloadComplete)

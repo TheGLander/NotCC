@@ -1,4 +1,4 @@
-import { ReactNode } from "preact/compat"
+import { ReactNode, useRef } from "preact/compat"
 
 export function Dialog(props: {
 	header: ReactNode
@@ -6,11 +6,17 @@ export function Dialog(props: {
 	buttons: [string, () => void | Promise<void>][]
 	onResolve?: () => void
 }) {
+	const normalSubmitRef = useRef(false)
 	return (
 		<dialog
 			class="box fixed bottom-0 top-0 p-0 backdrop:bg-black/50"
 			ref={ref => {
 				ref?.showModal()
+			}}
+			onClose={ev => {
+				ev.preventDefault()
+				if (normalSubmitRef.current) return
+				props.onResolve?.()
 			}}
 		>
 			<header class="bg-theme-950 px-2 py-1">{props.header}</header>
@@ -20,7 +26,10 @@ export function Dialog(props: {
 					<button
 						onClick={async ev => {
 							ev.preventDefault()
-							await action()
+							normalSubmitRef.current = true
+							await action()?.catch(() => {
+								normalSubmitRef.current = false
+							})
 							props.onResolve?.()
 						}}
 					>
