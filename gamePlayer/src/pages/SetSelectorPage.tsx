@@ -1,5 +1,8 @@
+import { useState } from "preact/hooks"
 import { useOpenFile } from "../levelData"
-import { atom, useAtom } from "jotai"
+import { atom, useAtom, useSetAtom } from "jotai"
+import { searchParamsAtom } from "@/routing"
+import { encodeBase64, zlibAsync } from "@/helpers"
 
 const altLogoAtom = atom(false)
 
@@ -25,13 +28,32 @@ function Header() {
 	)
 }
 
+export const embedLevelInfoAtom = atom(false)
+
 function UploadBox() {
 	const openFile = useOpenFile()
+	const [embedLevelInfo, setEmbedLevelInfo] = useAtom(embedLevelInfoAtom)
+	const setSearchParams = useSetAtom(searchParamsAtom)
 	return (
 		<div class="box mx-auto mt-2 w-4/5">
 			<p>Load external files:</p>
 			<div class="flex flex-row gap-1">
-				<button class="flex-1" onClick={openFile}>
+				<button
+					class="flex-1"
+					onClick={async () => {
+						const levelData = await openFile()
+						if (levelData && embedLevelInfo) {
+							let buf = levelData.buffer
+							const compBuf = await zlibAsync(new Uint8Array(levelData.buffer))
+							if (compBuf.byteLength < buf.byteLength) {
+								buf = compBuf
+							}
+							setSearchParams({
+								level: encodeBase64(buf),
+							})
+						}
+					}}
+				>
 					Load file
 				</button>
 				<button class="flex-1" disabled>
@@ -40,7 +62,14 @@ function UploadBox() {
 			</div>
 			<div class="flex flex-col">
 				<label>
-					<input type="checkbox" disabled /> Embed level info in URL
+					<input
+						type="checkbox"
+						checked={embedLevelInfo}
+						onInput={ev =>
+							setEmbedLevelInfo((ev.target as HTMLInputElement).checked)
+						}
+					/>{" "}
+					Embed level info in URL
 				</label>
 				<label>
 					<input type="checkbox" disabled /> Store sets locally

@@ -1,4 +1,4 @@
-import { atom, useAtom, useAtomValue } from "jotai"
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { useEffect, useState } from "preact/hooks"
 import { SetSelectorPage } from "./pages/SetSelectorPage"
@@ -85,10 +85,7 @@ export const pageAtom = atom<Page | null, [pageName: string], void>(
 	get => pages[get(pageNameAtom)] ?? null,
 	(_get, set, pageName) => set(pageNameAtom, pageName)
 )
-
-// A small hack to prevent internalToHashLocationSyncAtom from writing to the hash
-// right after reading from it.
-let preventImmediateHashUpdate = false
+export const preventImmediateHashUpdateAtom = atom(false)
 
 const useHashToInternalLocationSync = ignorantAtomEffectHook((get, set) => {
 	const listener = () => {
@@ -107,7 +104,7 @@ const useHashToInternalLocationSync = ignorantAtomEffectHook((get, set) => {
 			set(levelNAtom, null)
 		}
 
-		preventImmediateHashUpdate = true
+		set(preventImmediateHashUpdateAtom, true)
 		resolveHashLevel(get, set)
 	}
 	listener()
@@ -122,8 +119,8 @@ const internalToHashLocationSyncAtom = atomEffect((get, set) => {
 	const pageName = get(pageNameAtom)
 	const searchParams = get(searchParamsAtom)
 
-	if (preventImmediateHashUpdate) {
-		preventImmediateHashUpdate = false
+	if (get(preventImmediateHashUpdateAtom)) {
+		set(preventImmediateHashUpdateAtom, false)
 		return
 	}
 
@@ -144,6 +141,9 @@ const discardUselessLevelData: EffectFn = (get, set) => {
 		set(levelNAtom, null)
 		set(levelAtom, null)
 		set(levelSetAtom, null)
+		const searchParams = get(searchParamsAtom)
+		delete searchParams.level
+		set(searchParamsAtom, searchParams)
 	}
 }
 
@@ -154,9 +154,12 @@ function PageNotFound(props: { pageName: string }) {
 export function Router() {
 	const [preloadComplete, setPreloadComplete] = useState(false)
 	const pageName = useAtomValue(pageNameAtom)
+	const setPreventImmediateHashUpdate = useSetAtom(
+		preventImmediateHashUpdateAtom
+	)
 	useEffect(() => {
 		// Prevent internalToHashLocationSyncAtom from writing to the hash on mount
-		preventImmediateHashUpdate = true
+		setPreventImmediateHashUpdate(true)
 	}, [])
 	useHashToInternalLocationSync()
 	useAtom(internalToHashLocationSyncAtom)

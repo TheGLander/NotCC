@@ -6,6 +6,7 @@ import {
 	levelNAtom,
 	levelSetIdentAtom,
 	pageAtom,
+	preventImmediateHashUpdateAtom,
 	searchParamsAtom,
 } from "./routing"
 import { atomEffect } from "jotai-effect"
@@ -113,7 +114,10 @@ export async function showFileLevelPrompt(): Promise<LevelData | null> {
 	return file?.arrayBuffer().then(buf => parseC2M(buf))
 }
 
-export function useOpenFile(): () => Promise<boolean> {
+export function useOpenFile(): () => Promise<{
+	level: LevelData
+	buffer: ArrayBuffer
+} | null> {
 	const { setLevel } = useSetLoaded()
 	return async () => {
 		const files = await showLoadPrompt("Load level file", {
@@ -124,11 +128,10 @@ export function useOpenFile(): () => Promise<boolean> {
 			],
 		})
 		const file = files[0]
-		if (!file) return false
+		if (!file) return null
 		const levelPromise = file.arrayBuffer().then(buf => parseC2M(buf))
 		setLevel(levelPromise)
-		await levelPromise
-		return true
+		return { level: await levelPromise, buffer: await file.arrayBuffer() }
 	}
 }
 
@@ -183,6 +186,7 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 		if (levelN === null) {
 			set(levelNAtom, 1)
 		}
+		set(preventImmediateHashUpdateAtom, false)
 	} else if (levelSetIdent === null || levelN === null) {
 	} else if (levelSetIdent === CUSTOM_LEVEL_SET_IDENT) {
 		showPrompt(get, set, LoadLevelPrompt, resolveHashLevelPromptIdent).then(
