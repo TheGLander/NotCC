@@ -93,7 +93,7 @@ export const nonFreeSets: Record<string, NonFreeSet> = {
 	cc2: {
 		scriptName: "Chips Challenge 2",
 		steamLink: "https://store.steampowered.com/app/348300/Chips_Challenge_2",
-		acquisitionTerm: "but it on",
+		acquisitionTerm: "buy it on",
 	},
 }
 
