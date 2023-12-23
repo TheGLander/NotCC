@@ -11,7 +11,6 @@ import {
 } from "./routing"
 import { atomEffect } from "jotai-effect"
 import { loadable, unwrap } from "jotai/utils"
-import { type os } from "@neutralinojs/lib"
 import { Dialog } from "./components/Dialog"
 import { useRef } from "preact/hooks"
 import { PromptComponent, showPrompt } from "./prompts"
@@ -81,17 +80,15 @@ export function useSetLoaded(): {
 
 // TODO Neutralino prompts
 async function showLoadPrompt(
-	_title?: string,
-	options?: os.OpenDialogOptions
+	extensions?: string[],
+	multiSelections: boolean = false
 ): Promise<File[]> {
 	const fileLoader = document.createElement("input")
 	fileLoader.type = "file"
-	if (options?.filters !== undefined) {
-		fileLoader.accept = options.filters
-			.map(filter => filter.extensions.map(ext => `.${ext}`).join(","))
-			.join(",")
+	if (extensions !== undefined) {
+		fileLoader.accept = extensions.map(ext => `.${ext}`).join(",")
 	}
-	fileLoader.multiple = !!options?.multiSelections
+	fileLoader.multiple = multiSelections
 	return new Promise((res, rej) => {
 		fileLoader.addEventListener("change", () => {
 			if (fileLoader.files === null || fileLoader.files.length === 0) {
@@ -106,11 +103,7 @@ async function showLoadPrompt(
 }
 
 export async function showFileLevelPrompt(): Promise<LevelData | null> {
-	const file: File | undefined = (
-		await showLoadPrompt("Load level file", {
-			filters: [{ name: "C2M level file", extensions: ["c2m"] }],
-		})
-	)[0]
+	const file: File | undefined = (await showLoadPrompt(["c2m"]))[0]
 	return file?.arrayBuffer().then(buf => parseC2M(buf))
 }
 
@@ -120,13 +113,11 @@ export function useOpenFile(): () => Promise<{
 } | null> {
 	const { setLevel } = useSetLoaded()
 	return async () => {
-		const files = await showLoadPrompt("Load level file", {
-			filters: [
-				{ name: "C2M level file", extensions: ["c2m"] },
-				// TODO Set loading
-				// { name: "ZIP levelset archive", extensions: ["zip"] },
-			],
-		})
+		const files = await showLoadPrompt([
+			"c2m",
+			// TODO Set loading
+			// "zip"
+		])
 		const file = files[0]
 		if (!file) return null
 		const levelPromise = file.arrayBuffer().then(buf => parseC2M(buf))
