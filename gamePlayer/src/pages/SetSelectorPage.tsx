@@ -1,4 +1,3 @@
-import { useState } from "preact/hooks"
 import { useOpenFile } from "../levelData"
 import { atom, useAtom, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
