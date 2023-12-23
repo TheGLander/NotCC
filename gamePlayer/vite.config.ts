@@ -16,6 +16,7 @@ process.env["VITE_VERSION"] = execSync('git log -1 --format="%h"').toString(
 process.env["VITE_BUILD_TIME"] = new Date().toISOString()
 
 const SSG_PLACEHOLDER_STRING = "<!-- SSG here -->"
+const SSG_FAKE_ASSET_PATH = "/FAKE_ASSET_PATH_TEMP_TO_REPLACE"
 
 function ssg(): PluginOption {
 	return {
@@ -25,7 +26,9 @@ function ssg(): PluginOption {
 			// at build time, which will create a silly error when it's not present
 			const mainModule = await import("./dist/ssg/main-ssg.js".slice())
 			const prerenderedHtml = mainModule.renderSsgString()
-			return html.replace(SSG_PLACEHOLDER_STRING, prerenderedHtml)
+			return html
+				.replace(SSG_PLACEHOLDER_STRING, prerenderedHtml)
+				.replaceAll(SSG_FAKE_ASSET_PATH, ".")
 		},
 	}
 }
@@ -34,7 +37,7 @@ const prodBuild = !process.env.SSG && process.env.NODE_ENV === "production"
 
 export default defineConfig({
 	plugins: [preact(), prodBuild && ssg()],
-	base: "./",
+	base: process.env.SSG ? SSG_FAKE_ASSET_PATH : "./",
 	assetsInclude: ["**/*.c2m"],
 	resolve: {
 		alias: {

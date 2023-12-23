@@ -11,7 +11,7 @@ function Header() {
 		<div class="box max-w-4/5 mx-auto my-4 flex w-fit flex-row items-center max-sm:max-w-sm max-sm:flex-wrap">
 			<img
 				class="inline-block aspect-square max-sm:ml-auto max-sm:h-10"
-				src={altLogo ? "/iconBigAlt.png" : "/iconBig.png"}
+				src={altLogo ? "./iconBigAlt.png" : "./iconBig.png"}
 				onClick={() => setAltLogo(val => !val)}
 				draggable={false}
 			/>
