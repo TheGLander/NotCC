@@ -2,6 +2,8 @@ import { execSync } from "child_process"
 import { join } from "path"
 import { PluginOption, defineConfig } from "vite"
 import preact from "@preact/preset-vite"
+import { VitePWA } from "vite-plugin-pwa"
+import { readFileSync } from "fs"
 
 process.env["VITE_LAST_COMMIT_INFO"] = execSync(
 	`git log -1 --format="%s (%h) at %cI"`
@@ -36,7 +38,20 @@ function ssg(): PluginOption {
 const prodBuild = !process.env.SSG && process.env.NODE_ENV === "production"
 
 export default defineConfig({
-	plugins: [preact(), prodBuild && ssg()],
+	plugins: [
+		preact(),
+		VitePWA({
+			registerType: "autoUpdate",
+			workbox: {
+				globIgnores: ["**/ssg/**/*", "**/node_modules/**/*"],
+				globPatterns: ["**/*.{js,css,html,png,svg,wav,ogg,mp3}"],
+			},
+			manifest: JSON.parse(
+				readFileSync("./public/manifest.webmanifest").toString("utf-8")
+			),
+		}),
+		prodBuild && ssg(),
+	],
 	base: process.env.SSG ? SSG_FAKE_ASSET_PATH : "./",
 	assetsInclude: ["**/*.c2m"],
 	resolve: {
