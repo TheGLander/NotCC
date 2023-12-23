@@ -4,7 +4,7 @@ import Draggable from "react-draggable"
 export function Dialog(props: {
 	header: ReactNode
 	section: ReactNode
-	notModal: boolean
+	notModal?: boolean
 	buttons: [string, () => void | Promise<void>][]
 	onResolve?: () => void
 }) {
