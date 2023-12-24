@@ -12,7 +12,9 @@ export function App() {
 		>
 			<Prompts />
 			<Sidebar />
-			<Router />
+			<div class="mx-1 mt-1 flex-1 overflow-y-auto">
+				<Router />
+			</div>
 		</div>
 	)
 }

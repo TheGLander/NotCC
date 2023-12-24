@@ -8,7 +8,7 @@ const altLogoAtom = atom(false)
 function Header() {
 	const [altLogo, setAltLogo] = useAtom(altLogoAtom)
 	return (
-		<div class="box max-w-4/5 mx-auto my-4 flex w-fit flex-row items-center max-sm:max-w-sm max-sm:flex-wrap">
+		<div class="box max-w-4/5 mx-auto mb-4 mt-3 flex w-fit flex-row items-center max-sm:max-w-sm max-sm:flex-wrap">
 			<img
 				class="inline-block aspect-square max-sm:ml-auto max-sm:h-10"
 				src={altLogo ? "./iconBigAlt.png" : "./iconBig.png"}
@@ -80,7 +80,7 @@ function UploadBox() {
 
 export function SetSelectorPage() {
 	return (
-		<div class="flex flex-1 flex-col items-center overflow-y-auto">
+		<div class="flex flex-col items-center">
 			<Header />
 			<UploadBox />
 		</div>
