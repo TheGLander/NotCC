@@ -16,7 +16,7 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 		if (!autoTick) return
 		const timer = new IntervalTimer(() => level.tick(), 1 / 60)
 		return () => timer.cancel()
-	}, [autoTick])
+	}, [autoTick, level])
 
 	return (
 		<div class="box m-auto flex flex-col gap-1 p-1">
