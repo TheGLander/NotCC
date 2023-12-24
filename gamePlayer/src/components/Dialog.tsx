@@ -12,7 +12,7 @@ export function Dialog(props: {
 	return (
 		<Draggable handle=".dialog-handle">
 			<dialog
-				class="box fixed bottom-0 top-0 p-0 backdrop:bg-black/50"
+				class="box fixed bottom-0 top-0 flex max-h-[75vh] min-w-[33vw] max-w-[75vw] flex-col p-0 backdrop:bg-black/50 max-sm:max-w-[95vw]"
 				ref={ref => {
 					if (props.notModal) {
 						ref?.show()
@@ -29,7 +29,7 @@ export function Dialog(props: {
 				<header class="bg-theme-950 dialog-handle cursor-move px-2 py-1">
 					{props.header}
 				</header>
-				<section class="px-2 py-1">{props.section}</section>
+				<section class="overflow-scroll px-2 py-1">{props.section}</section>
 				<footer class="bg-theme-950 flex flex-row justify-end gap-1 p-1">
 					{props.buttons.map(([label, action]) => (
 						<button
