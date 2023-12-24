@@ -6,5 +6,9 @@ export function LevelPlayerPage() {
 	if (level === null) {
 		return <div class="box m-auto">Fetching level data...</div>
 	}
-	return <DumbLevelPlayer level={level} />
+	return (
+		<div class="flex h-full content-center items-center">
+			<DumbLevelPlayer level={level} />
+		</div>
+	)
 }
