@@ -24,7 +24,7 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 				tileset={tileset}
 				level={level}
 				autoDraw={autoTick}
-				tileScale={10}
+				tileScale={4}
 			/>
 			<button onClick={() => setAutoTick(!autoTick)}>
 				{!autoTick ? "Start" : "Stop"}
