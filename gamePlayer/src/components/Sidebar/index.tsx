@@ -13,6 +13,7 @@ import { Getter, Setter, useStore } from "jotai"
 import { pageAtom } from "@/routing"
 import { showPrompt } from "@/prompts"
 import { AboutPrompt } from "../AboutDialog"
+import { applyRef } from "@/helpers"
 
 interface SidebarAction {
 	label: string
@@ -114,11 +115,6 @@ const SidebarTooltip = forwardRef<
 		</div>
 	)
 })
-
-function applyRef<T>(ref: Ref<T>, val: T | null): void {
-	if (typeof ref === "function") ref(val)
-	else if (ref) ref.current = val
-}
 
 const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 	function SidebarDrawer(props, fref) {
