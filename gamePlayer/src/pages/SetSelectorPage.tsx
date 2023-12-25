@@ -2,6 +2,7 @@ import { useOpenFile } from "../levelData"
 import { atom, useAtom, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
 import { encodeBase64, zlibAsync } from "@/helpers"
+import prewriteIcon from "../prewrite.png"
 
 const altLogoAtom = atom(false)
 
@@ -78,10 +79,50 @@ function UploadBox() {
 	)
 }
 
+function AlphaHeader() {
+	return (
+		<div class="box max-w-lg lg:max-w-xl">
+			<h2 class="text-center">
+				<img
+					class="inline-block [image-rendering:pixelated]"
+					width={30}
+					src={prewriteIcon}
+				/>
+				<span class="mx-2 text-lg">
+					NotCC <em>alpha!</em>
+				</span>
+				<img
+					class="inline-block [image-rendering:pixelated]"
+					width={30}
+					src={prewriteIcon}
+				/>
+			</h2>
+			<p>
+				Welcome to the Prewrite Alpha! This is a currently in-development
+				version of NotCC which uses frameworks like Preact and TailwindCSS
+				instead of vanilla JS, HTML, and CSS. This rewrite will be used as an
+				opportunity for a UI touch-up and for new features such as:
+			</p>
+			<ul class="list-disc pl-4">
+				<li>Mobile support</li>
+				<li>NCCS and settings import and export</li>
+				<li>
+					More ExaCC features (scrubbing scrollbar, RFF and RNG setting,
+					savestates, inline editing)
+				</li>
+				<li>Ability to locally save levelsets (including CC1 Steam and CC2)</li>
+				<li>SFXsets</li>
+				<li>Embed support for the bb.club wiki</li>
+			</ul>
+		</div>
+	)
+}
+
 export function SetSelectorPage() {
 	return (
 		<div class="flex flex-col items-center">
 			<Header />
+			<AlphaHeader />
 			<UploadBox />
 		</div>
 	)
