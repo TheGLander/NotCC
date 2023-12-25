@@ -35,7 +35,6 @@ function useRepeatKeyListener(listener: (state: RepeatKeyEvent) => void) {
 				repeatCodeRef.current = ev.code
 				listener({ state: "repeated", code: ev.code })
 			}, KEY_REPEAT_DELAY)
-			console.log(`hold ${ev.code}`)
 			listener({ state: "held", code: ev.code })
 		}
 		const offListener = (ev: KeyboardEvent) => {
