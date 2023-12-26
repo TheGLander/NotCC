@@ -313,6 +313,7 @@ export class Exit extends Actor {
 	blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
+			const oldGameState = this.level.gameState
 			if (other === this.level.selectedPlayable)
 				this.level.selectedPlayable =
 					this.level.playables[
@@ -320,7 +321,7 @@ export class Exit extends Actor {
 							this.level.playables.length
 					]
 			other.destroy(this, null)
-			this.level.gameState = GameState.PLAYING
+			this.level.gameState = oldGameState
 			this.level.playablesLeft--
 			this.level.sfxManager?.playOnce(`win ${other.id}`)
 			this.level.releasedKeys = { ...this.level.gameInput }

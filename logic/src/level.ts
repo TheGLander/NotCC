@@ -173,7 +173,12 @@ export class LevelState {
 				this.debouncedInputs[debouncedKey]--
 			} */
 
-		if (this.playablesLeft <= 0) this.gameState = GameState.WON
+		if (this.playablesLeft <= 0) {
+			if (this.gameState === GameState.PLAYING) {
+				this.timeLeft -= 1
+			}
+			this.gameState = GameState.WON
+		}
 		onLevelAfterTick.forEach(val => val(this))
 	}
 	/*
@@ -303,7 +308,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 		level.blob4PatternsMode = data.blobMode === 4
 	}
 	level.cameraType = data.camera
-	level.timeLeft = Math.max(0, data.timeLimit * 60 - 1)
+	level.timeLeft = Math.max(0, data.timeLimit * 60)
 	if (data.playablesRequiredToExit !== "all")
 		level.playablesLeft = data.playablesRequiredToExit
 	level.hideWires = !!data.hideWires
