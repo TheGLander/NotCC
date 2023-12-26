@@ -143,10 +143,17 @@ export const exaPlayerPage = {
 		const integerFormatter = integerFormatters[this.integerTimeRounding]
 		const timeFrozen = this.currentLevel!.timeFrozen ? "❄" : ""
 		const timeInteger = integerFormatter(time / 60)
-		const timeDecimal = (Math.floor((time % 60) / 3) * 5)
+		let timeDecimal = (Math.floor((time % 60) / 3) * 5)
 			.toString()
 			.padStart(2, "0")
 		const timeSubtick = time % 3
+		if (
+			this.integerTimeRounding === "ceil" &&
+			timeDecimal === "00" &&
+			timeSubtick === 0
+		) {
+			timeDecimal = "100"
+		}
 		this.textOutputs!.time.textContent = `${timeFrozen}${timeInteger}.${timeDecimal}${subtickStrings[timeSubtick]}s`
 
 		this.totalScoreText!.textContent = calculateLevelPoints(
