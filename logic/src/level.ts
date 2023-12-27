@@ -142,7 +142,7 @@ export class LevelState {
 		}
 		if (this.timeLeft !== 0 && !this.timeFrozen) {
 			this.timeLeft--
-			if (this.timeLeft <= 0) this.gameState = GameState.TIMEOUT
+			if (this.timeLeft <= 1) this.gameState = GameState.TIMEOUT
 		}
 		if (this.inputProvider) {
 			this.gameInput = this.inputProvider.getInput(this)
@@ -173,8 +173,12 @@ export class LevelState {
 				this.debouncedInputs[debouncedKey]--
 			} */
 
+		if (this.gameState === GameState.TIMEOUT) {
+			if (this.timeLeft > 1) this.gameState = GameState.PLAYING
+			else this.timeLeft -= 1
+		}
 		if (this.playablesLeft <= 0) {
-			if (this.gameState === GameState.PLAYING) {
+			if (this.gameState === GameState.PLAYING && this.timeLeft > 0) {
 				this.timeLeft -= 1
 			}
 			this.gameState = GameState.WON
