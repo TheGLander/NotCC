@@ -1,6 +1,6 @@
-import { AsyncZippable, zip } from "fflate"
+import { AsyncZippable } from "fflate"
 import { createStore, del, get, set, update } from "idb-keyval"
-import { join, normalize, parse } from "path"
+import { join, parse } from "path"
 import { zipAsync } from "./helpers"
 
 const store = createStore("notcc", "fs")
