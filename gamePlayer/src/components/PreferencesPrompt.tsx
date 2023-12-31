@@ -11,7 +11,7 @@ import {
 	useStore,
 } from "jotai"
 import { FC } from "preact/compat"
-import { getTruePreferenceAtom } from "@/preferences"
+import { DEFAULT_VALUE, getTruePreferenceAtom } from "@/preferences"
 
 interface PrefDisplayProps<T> {
 	set: (val: T) => void
@@ -60,10 +60,16 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 			[props.atom]
 		)
 		const defaultValue = useAtomValue(trueAtom!) as T
+		const defaultedDefaultValue = useAtomValue(props.atom)
 		const fauxAtom = useMemo(() => atom(defaultValue), [defaultValue])
 		prefAtoms.push([trueAtom!, fauxAtom])
 		const [val, setVal] = useAtom(fauxAtom)
-		return <props.Display value={val} set={setVal} />
+		return (
+			<props.Display
+				value={val === DEFAULT_VALUE ? defaultedDefaultValue : val}
+				set={setVal}
+			/>
+		)
 	}
 	const savePrefs = () => {
 		for (const [trueAtom, fauxAtom] of prefAtoms) {
