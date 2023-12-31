@@ -14,6 +14,7 @@ import { pageAtom } from "@/routing"
 import { showPrompt } from "@/prompts"
 import { AboutPrompt } from "../AboutDialog"
 import { applyRef } from "@/helpers"
+import { PreferencesPrompt } from "../PreferencesPrompt"
 
 interface SidebarAction {
 	label: string
@@ -227,7 +228,11 @@ export function Sidebar() {
 			</SidebarButton>
 
 			<SidebarButton icon={toolsIcon} reverse>
-				<ChooserButton label="Settings" shortcut="Shift+C" />
+				<ChooserButton
+					label="Preferences"
+					shortcut="Shift+C"
+					onTrigger={(get, set) => showPrompt(get, set, PreferencesPrompt)}
+				/>
 				<ChooserButton label="Save file manager" shortcut="Alt+S" />
 			</SidebarButton>
 			<SidebarButton icon={infoIcon} reverse>

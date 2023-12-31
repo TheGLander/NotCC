@@ -7,6 +7,7 @@ import { Preloader } from "./components/Preloader"
 import { LevelPlayerPage } from "./pages/LevelPlayerPage"
 import { levelAtom, levelSetAtom, resolveHashLevel } from "./levelData"
 import { EffectFn, ignorantAtomEffectHook } from "./helpers"
+import { preferenceWritingAtom } from "./preferences"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -163,8 +164,10 @@ export function Router() {
 	}, [])
 	useHashToInternalLocationSync()
 	useAtom(internalToHashLocationSyncAtom)
+	useAtom(preferenceWritingAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />
+
 	const page = pages[pageName]
 	if (page === undefined) return <PageNotFound pageName={pageName} />
 	const Page = page.component

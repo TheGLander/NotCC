@@ -3,6 +3,7 @@ import { atom, useAtom, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
 import { encodeBase64, zlibAsync } from "@/helpers"
 import prewriteIcon from "../prewrite.png"
+import { preferenceAtom } from "@/preferences"
 
 const altLogoAtom = atom(false)
 
@@ -28,7 +29,7 @@ function Header() {
 	)
 }
 
-export const embedLevelInfoAtom = atom(false)
+export const embedLevelInfoAtom = preferenceAtom("embedLevelInfoInUrl", false)
 
 function UploadBox() {
 	const openFile = useOpenFile()

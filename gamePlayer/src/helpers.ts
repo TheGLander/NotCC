@@ -1,4 +1,4 @@
-import { unzlib, zlib } from "fflate"
+import { AsyncZippable, unzip, unzlib, zip, zlib } from "fflate"
 import { Getter, Setter, useStore } from "jotai"
 import { Ref } from "preact"
 import { useEffect } from "preact/hooks"
@@ -24,6 +24,22 @@ export function unzlibAsync(buf: Uint8Array): Promise<Uint8Array> {
 export function zlibAsync(buf: Uint8Array): Promise<Uint8Array> {
 	return new Promise((res, rej) => {
 		zlib(buf, (err, data) => {
+			if (err) rej(err)
+			else res(data)
+		})
+	})
+}
+export function zipAsync(data: AsyncZippable): Promise<Uint8Array> {
+	return new Promise((res, rej) => {
+		zip(data, (err, data) => {
+			if (err) rej(err)
+			else res(data)
+		})
+	})
+}
+export function uzipAsync(data: Uint8Array): Promise<AsyncZippable> {
+	return new Promise((res, rej) => {
+		unzip(data, (err, data) => {
 			if (err) rej(err)
 			else res(data)
 		})

@@ -41,4 +41,7 @@
 		--high-color: theme(colors.theme.800);
 		--low-color: theme(colors.theme.900);
 	}
+	select {
+		@apply bg-theme-950 p-1;
+	}
 }
