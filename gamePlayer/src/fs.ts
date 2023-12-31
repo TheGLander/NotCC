@@ -1,9 +1,11 @@
 import { AsyncZippable } from "fflate"
-import { createStore, del, get, set, update } from "idb-keyval"
+import { UseStore, createStore, del, get, set, update } from "idb-keyval"
 import { join, parse } from "path"
 import { zipAsync } from "./helpers"
 
-const store = createStore("notcc", "fs")
+const store = !globalThis.window
+	? (null as unknown as UseStore)
+	: createStore("notcc", "fs")
 
 async function addDirEnt(path: string): Promise<void> {
 	const parsedPath = parse(path)
