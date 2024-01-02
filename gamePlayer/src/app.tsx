@@ -1,12 +1,29 @@
 import "./index.css"
 import { Sidebar } from "./components/Sidebar"
 import { makeThemeCssVars, colorSchemeAtom } from "./themeHelper"
-import { Router } from "./routing"
+import { Router, embedModeAtom, embedReadyAtom } from "./routing"
 import { Prompts } from "./prompts"
 import { useAtomValue } from "jotai"
+import { useEffect } from "preact/hooks"
 
 export function App() {
 	const colorScheme = useAtomValue(colorSchemeAtom)
+	const embedMode = useAtomValue(embedModeAtom)
+	const embedReady = useAtomValue(embedReadyAtom)
+	useEffect(() => {
+		if (!embedReady) return
+		top?.postMessage(
+			{ width: document.body.scrollWidth, height: document.body.scrollHeight },
+			"*"
+		)
+	}, [embedReady])
+	if (embedMode) {
+		return (
+			<div style={makeThemeCssVars(colorScheme)} class="h-full">
+				<Router />
+			</div>
+		)
+	}
 	return (
 		<div
 			style={makeThemeCssVars(colorScheme)}

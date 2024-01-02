@@ -5,10 +5,11 @@ import {
 	createLevelFromData,
 } from "@notcc/logic"
 import { GameRenderer } from "./GameRenderer"
-import { useAtomValue } from "jotai"
+import { useAtomValue, useSetAtom } from "jotai"
 import { tilesetAtom } from "./Preloader"
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
 import { IntervalTimer, TimeoutTimer } from "@/helpers"
+import { embedReadyAtom, embedModeAtom } from "@/routing"
 
 type RepeatKeyType = "released" | "held" | "repeated"
 
@@ -133,6 +134,12 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 		const timer = new IntervalTimer(() => tickLevel(), 1 / 60)
 		return () => timer.cancel()
 	}, [autoTick, level])
+	const embedMode = useAtomValue(embedModeAtom)
+	const setEmbedReady = useSetAtom(embedReadyAtom)
+	useEffect(() => {
+		if (!embedMode) return
+		setEmbedReady(true)
+	}, [embedMode])
 
 	return (
 		<div class="box m-auto flex flex-col gap-1 p-1">

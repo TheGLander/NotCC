@@ -152,6 +152,9 @@ function PageNotFound(props: { pageName: string }) {
 	return <div class="box m-auto">Page "{props.pageName}" doesn't exist.</div>
 }
 
+export const embedModeAtom = atom(get => !!get(searchParamsAtom).embed)
+export const embedReadyAtom = atom(false)
+
 export function Router() {
 	const [preloadComplete, setPreloadComplete] = useState(false)
 	const pageName = useAtomValue(pageNameAtom)
