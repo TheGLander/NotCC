@@ -5,6 +5,7 @@ import { Router, embedModeAtom, embedReadyAtom } from "./routing"
 import { Prompts } from "./prompts"
 import { useAtomValue } from "jotai"
 import { useEffect } from "preact/hooks"
+import { twJoin } from "tailwind-merge"
 
 export function App() {
 	const colorScheme = useAtomValue(colorSchemeAtom)
@@ -17,21 +18,17 @@ export function App() {
 			"*"
 		)
 	}, [embedReady])
-	if (embedMode) {
-		return (
-			<div style={makeThemeCssVars(colorScheme)} class="h-full">
-				<Router />
-			</div>
-		)
-	}
 	return (
 		<div
 			style={makeThemeCssVars(colorScheme)}
-			class="from-theme-500 to-theme-800 flex h-full w-full flex-col-reverse bg-gradient-to-br font-sans text-neutral-100 md:flex-row"
+			class={twJoin(
+				"flex h-full w-full flex-col-reverse font-sans text-neutral-100 md:flex-row",
+				!embedMode && "from-theme-500 to-theme-800 bg-gradient-to-br"
+			)}
 		>
 			<Prompts />
-			<Sidebar />
-			<div class="mx-1 mt-1 flex-1 overflow-y-auto">
+			{!embedMode && <Sidebar />}
+			<div class={twJoin("flex-1", !embedMode && "mx-1 mt-1 overflow-y-auto")}>
 				<Router />
 			</div>
 		</div>

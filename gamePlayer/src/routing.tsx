@@ -1,12 +1,11 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
-import { atomEffect } from "jotai-effect"
 import { useEffect, useState } from "preact/hooks"
 import { SetSelectorPage } from "./pages/SetSelectorPage"
 import { FunctionComponent } from "preact"
 import { Preloader } from "./components/Preloader"
 import { LevelPlayerPage } from "./pages/LevelPlayerPage"
 import { levelAtom, levelSetAtom, resolveHashLevel } from "./levelData"
-import { EffectFn, ignorantAtomEffectHook } from "./helpers"
+import { EffectFn, useChainedAtomEffects } from "./helpers"
 import { preferenceWritingAtom } from "./preferences"
 
 function searchParamsToObj(query: string): SearchParams {
@@ -88,7 +87,7 @@ export const pageAtom = atom<Page | null, [pageName: string], void>(
 )
 export const preventImmediateHashUpdateAtom = atom(false)
 
-const useHashToInternalLocationSync = ignorantAtomEffectHook((get, set) => {
+const hashToInternalLocationSyncEffect: EffectFn = (get, set) => {
 	const listener = () => {
 		const hashLoc = parseHashLocation()
 
@@ -111,10 +110,9 @@ const useHashToInternalLocationSync = ignorantAtomEffectHook((get, set) => {
 	listener()
 	window.addEventListener("hashchange", listener)
 	return () => window.removeEventListener("hashchange", listener)
-})
+}
 
-const internalToHashLocationSyncAtom = atomEffect((get, set) => {
-	discardUselessLevelData(get, set)
+const internalToHashLocationSyncEffect: EffectFn = (get, set) => {
 	const levelN = get(levelNAtom)
 	const levelSetIdent = get(levelSetIdentAtom)
 	const pageName = get(pageNameAtom)
@@ -133,9 +131,9 @@ const internalToHashLocationSyncAtom = atomEffect((get, set) => {
 		].filter((part): part is string => part !== null),
 		searchParams,
 	})
-})
+}
 
-const discardUselessLevelData: EffectFn = (get, set) => {
+const discardUselessLevelDataEffect: EffectFn = (get, set) => {
 	const page = get(pageAtom)
 	if (!page?.isLevelPlayer) {
 		set(levelSetIdentAtom, null)
@@ -165,8 +163,11 @@ export function Router() {
 		// Prevent internalToHashLocationSyncAtom from writing to the hash on mount
 		setPreventImmediateHashUpdate(true)
 	}, [])
-	useHashToInternalLocationSync()
-	useAtom(internalToHashLocationSyncAtom)
+	useChainedAtomEffects([
+		{ fn: hashToInternalLocationSyncEffect, ignorant: true },
+		discardUselessLevelDataEffect,
+		internalToHashLocationSyncEffect,
+	])
 	useAtom(preferenceWritingAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />

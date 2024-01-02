@@ -1,7 +1,8 @@
 import { AsyncZippable, unzip, unzlib, zip, zlib } from "fflate"
-import { Getter, Setter, useStore } from "jotai"
+import { Getter, Setter, useAtom, useStore } from "jotai"
+import { atomEffect } from "jotai-effect"
 import { Ref } from "preact"
-import { useEffect } from "preact/hooks"
+import { useEffect, useMemo } from "preact/hooks"
 
 export type EffectFn = (get: Getter, set: Setter) => void | (() => void)
 type AnyFunction = (...args: any[]) => any
@@ -11,6 +12,25 @@ export function ignorantAtomEffectHook(effectFn: EffectFn) {
 		const { get, set } = useStore()
 		useEffect(() => effectFn(get, set), [])
 	}
+}
+
+export type AtomEffect = EffectFn | { ignorant: boolean; fn: EffectFn }
+
+export function useChainedAtomEffects(effects: AtomEffect[]) {
+	// const { get } = useStore()
+	const efFns: (() => void)[] = useMemo(
+		() =>
+			effects.map(ef => {
+				if (typeof ef === "function") ef = { ignorant: false, fn: ef }
+				if (ef.ignorant) return ignorantAtomEffectHook(ef.fn)
+				const fn = ef.fn
+				return () => {
+					useAtom(useMemo(() => atomEffect(fn), [fn]))
+				}
+			}),
+		[]
+	)
+	efFns.map(fn => fn())
 }
 
 export function unzlibAsync(buf: Uint8Array): Promise<Uint8Array> {
