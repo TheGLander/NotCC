@@ -22,13 +22,14 @@ export function App() {
 		<div
 			style={makeThemeCssVars(colorScheme)}
 			class={twJoin(
-				"flex h-full w-full flex-col-reverse font-sans text-neutral-100 md:flex-row",
-				!embedMode && "from-theme-500 to-theme-800 bg-gradient-to-br"
+				"h-full w-full font-sans text-neutral-100",
+				!embedMode &&
+					"from-theme-500 to-theme-800 flex flex-col-reverse bg-gradient-to-br md:flex-row"
 			)}
 		>
 			<Prompts />
 			{!embedMode && <Sidebar />}
-			<div class={twJoin("flex-1", !embedMode && "mx-1 mt-1 overflow-y-auto")}>
+			<div class={twJoin(!embedMode && "mx-1 mt-1 flex-1 overflow-y-auto")}>
 				<Router />
 			</div>
 		</div>
