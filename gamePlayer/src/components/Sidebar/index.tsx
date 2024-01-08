@@ -112,7 +112,13 @@ const SidebarTooltip = forwardRef<
 					props.reverse && "mt-auto"
 				)}
 			/>
-			<dialog {...props} open tabIndex={0} ref={fref} class="box static" />
+			<dialog
+				{...props}
+				open
+				tabIndex={0}
+				ref={fref}
+				class="box static border-none"
+			/>
 		</div>
 	)
 })
@@ -133,7 +139,7 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 				}}
 				onAnimationEnd={endClosingAnim}
 				class={twJoin(
-					"box fixed bottom-20 left-0 right-0 z-10 mx-auto w-screen rounded-b-none shadow-none [transform-origin:0_100%]",
+					"box fixed bottom-20 left-0 right-0 z-10 mx-auto w-screen rounded-b-none border-b-0 shadow-none [transform-origin:0_100%]",
 					props.open && "animate-drawer-open",
 					closingAnim && "animate-drawer-close"
 				)}
@@ -201,7 +207,7 @@ function SidebarButton(props: {
 
 export function Sidebar() {
 	return (
-		<div class="box flex h-full w-20 flex-col rounded-none p-0 max-md:h-20 max-md:w-full max-md:flex-row md:gap-4 md:py-2 xl:w-28">
+		<div class="box flex h-full w-20 flex-col rounded-none border-none p-0 max-md:h-20 max-md:w-full max-md:flex-row md:gap-4 md:py-2 xl:w-28">
 			<SidebarButton icon={leafIcon}>
 				<ChooserButton
 					label="Set selector"
