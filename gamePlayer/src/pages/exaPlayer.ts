@@ -356,7 +356,7 @@ export const exaPlayerPage = {
 							LevelName: levelTitle,
 							LevelNumber: levelN,
 							Set: pager.loadedSet!.scriptRunner.state.scriptTitle!,
-					  },
+						},
 			Blobmod: level.blobPrngValue,
 			// When importing and exporting, convert RFF direction to be a string enum value,
 			// to keep compat with SuperCC
