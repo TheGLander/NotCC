@@ -120,9 +120,10 @@ export const exaPlayerPage = {
 	},
 	doTick(level: LevelState): void {
 		level.tick()
-		if (level.gameState !== GameState.PLAYING) return
+		if (level.gameState === GameState.WON) return
 		level.tick()
-		if (level.gameState !== GameState.PLAYING) return
+		// @ts-ignore Typescript bug: level.tick actually mutates level.gameState lol
+		if (level.gameState === GameState.WON) return
 		level.tick()
 	},
 	getRouteTicks(): number {
