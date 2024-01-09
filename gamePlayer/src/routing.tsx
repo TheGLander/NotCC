@@ -30,32 +30,36 @@ function parseHashLocation(): HashLocation {
 		...searchParamsToObj(notccLocation.search),
 		...searchParamsToObj(location.search),
 	}
+	const hashLoc: HashLocation = { pagePath, searchParams }
 	if (location.search !== "") {
-		const newLoc = new URL(location.toString())
+		const newLoc = new URL(location.href)
 		newLoc.search = ""
+		newLoc.hash = makeHashFromLoc(hashLoc)
 		history.replaceState(null, "", newLoc)
 	}
-	return { pagePath, searchParams }
+	return hashLoc
 }
 
-function applyHashLocation(hashLoc: HashLocation): void {
-	const newLoc = new URL(location.toString())
+function makeHashFromLoc(hashLoc: HashLocation): string {
 	if (
 		hashLoc.pagePath.length === 0 &&
 		Object.keys(hashLoc.searchParams).length === 0
 	) {
-		newLoc.hash = ""
-	} else {
-		newLoc.hash = `#/${hashLoc.pagePath.join("/")}${
-			Object.keys(hashLoc.searchParams).length === 0
-				? ""
-				: // Bad TS types
-				  `?${new URLSearchParams(
-						hashLoc.searchParams as Record<string, string>
-				  )}`
-		}`
+		return ""
 	}
+	return `#/${hashLoc.pagePath.join("/")}${
+		Object.keys(hashLoc.searchParams).length === 0
+			? ""
+			: // Bad TS types
+			  `?${new URLSearchParams(
+					hashLoc.searchParams as Record<string, string>
+			  )}`
+	}`
+}
 
+function applyHashLocation(hashLoc: HashLocation): void {
+	const newLoc = new URL(location.href)
+	newLoc.hash = makeHashFromLoc(hashLoc)
 	history.pushState(null, "", newLoc)
 }
 interface Page {
@@ -76,7 +80,11 @@ const pages: Partial<Record<string, Page>> = {
 export const CUSTOM_LEVEL_SET_IDENT = "*custom-level"
 export const CUSTOM_SET_SET_IDENT = "*custom-level"
 
-export const pageNameAtom = atom<string>("")
+export const nullablePageNameAtom = atom<string | null>(null)
+export const pageNameAtom = atom(
+	get => get(nullablePageNameAtom) ?? "",
+	(_get, set, val: string) => set(nullablePageNameAtom, val)
+)
 export const levelNAtom = atom<number | null>(null)
 export const levelSetIdentAtom = atom<string | null>(null)
 export const searchParamsAtom = atom<SearchParams>({})
@@ -91,8 +99,11 @@ const hashToInternalLocationSyncEffect: EffectFn = (get, set) => {
 	const listener = () => {
 		const hashLoc = parseHashLocation()
 
-		const pageName = hashLoc.pagePath[0] ?? ""
-		set(pageNameAtom, pageName)
+		const pageName = hashLoc.pagePath[0]
+		set(
+			nullablePageNameAtom,
+			pageName === "" || pageName === undefined ? null : pageName
+		)
 
 		const page = pages[pageName]
 		set(searchParamsAtom, hashLoc.searchParams)
@@ -134,8 +145,9 @@ const internalToHashLocationSyncEffect: EffectFn = (get, set) => {
 }
 
 const discardUselessLevelDataEffect: EffectFn = (get, set) => {
+	const nullablePageName = get(nullablePageNameAtom)
 	const page = get(pageAtom)
-	if (!page?.isLevelPlayer) {
+	if (nullablePageName !== null && !page?.isLevelPlayer) {
 		set(levelSetIdentAtom, null)
 		set(levelNAtom, null)
 		set(levelAtom, null)
