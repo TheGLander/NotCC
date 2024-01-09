@@ -13,7 +13,7 @@ import { atomEffect } from "jotai-effect"
 import { loadable, unwrap } from "jotai/utils"
 import { Dialog } from "./components/Dialog"
 import { useRef } from "preact/hooks"
-import { PromptComponent, showPrompt } from "./prompts"
+import { PromptComponent, hidePrompt, showPrompt } from "./prompts"
 import { decodeBase64, unzlibAsync } from "./helpers"
 
 export const levelAtom = atom<Promise<LevelData> | null>(null)
@@ -166,6 +166,7 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 	const levelSetIdent = get(levelSetIdentAtom)
 	const levelN = get(levelNAtom)
 	const searchParams = get(searchParamsAtom)
+	hidePrompt(get, set, resolveHashLevelPromptIdent)
 	if (searchParams.level) {
 		let buf = decodeBase64(searchParams.level)
 		if (buf[0] == 0x78) {

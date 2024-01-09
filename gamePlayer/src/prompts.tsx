@@ -73,6 +73,21 @@ export function showPrompt<T>(
 	return promise
 }
 
+export function hidePrompt(
+	get: (atom: typeof promptsAtom) => Prompt<unknown>[],
+	set: (atom: typeof promptsAtom, val: Prompt<unknown>[]) => void,
+	ident: unknown
+): void {
+	const prompts = get(promptsAtom).concat()
+	const idx = prompts.findIndex(
+		prompt => prompt.ident && prompt.ident === ident
+	)
+	if (idx !== -1) {
+		prompts.splice(idx, 1)
+		set(promptsAtom, prompts)
+	}
+}
+
 export function Prompts() {
 	const prompts = useAtomValue(promptsAtom)
 	return (
