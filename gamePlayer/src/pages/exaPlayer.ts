@@ -102,7 +102,6 @@ export const exaPlayerPage = {
 				level: cloneLevel(this.currentLevel!),
 			},
 		]
-		this.currentLevel!.inputProvider = localIp
 		this.levelN = pager.loadedSet?.currentLevel ?? 0
 		this.renderer!.updateTileSize()
 		// Tile scale, automatically make things bigger if the page size allows
@@ -218,6 +217,7 @@ export const exaPlayerPage = {
 	},
 	// Automatically skip in time until *something* can be done
 	autoSkip(): void {
+		if (this.isBlocked) return
 		const level = this.currentLevel!
 		while (
 			level.gameState === GameState.PLAYING &&
