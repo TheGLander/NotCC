@@ -732,6 +732,19 @@ canvas {
 	.viewportContainer {
 		grid-area: viewport;
 		padding: calc(2 * var(--quarter-tile));
+		.viewportArea {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			.blockedMessage {
+				display: none;
+				position: absolute;
+				margin: auto;
+				&.show {
+					display: block;
+				}
+			}
+		}
 	}
 	.movesContainer {
 		height: 0;

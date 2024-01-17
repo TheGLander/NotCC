@@ -76,6 +76,8 @@ export const exaPlayerPage = {
 			page.querySelector<HTMLSpanElement>(".composingPreview")
 		this.totalScoreText =
 			page.querySelector<HTMLOutputElement>(".totalScoreText")
+		this.blockedMessageDiv =
+			page.querySelector<HTMLDivElement>(".blockedMessage")
 	},
 	loadLevel(pager: Pager, initIp?: InputProvider): void {
 		playerPageBase.loadLevel.call(this, pager)
@@ -96,6 +98,7 @@ export const exaPlayerPage = {
 		while (level.subtick !== 1) {
 			level.tick()
 		}
+		level.inputProvider = localIp
 		this.updateTextOutputs()
 		this.snapshots = [
 			{
@@ -244,6 +247,7 @@ export const exaPlayerPage = {
 		})
 	},
 	seekTo(newPosition: number, snapToMove = true): void {
+		if (this.isBlocked) return
 		let targetPosition: number
 		if (snapToMove) {
 			targetPosition = this.areMovesPlayerInput.lastIndexOf(true, newPosition)
@@ -265,11 +269,13 @@ export const exaPlayerPage = {
 		this.updateTextOutputs()
 	},
 	undo(): void {
+		if (this.isBlocked) return
 		const level = this.currentLevel!
 		if (level.currentTick <= 0) return
 		this.seekTo(this.getRouteTicks() - 1)
 	},
 	redo(): void {
+		if (this.isBlocked) return
 		const level = this.currentLevel
 		if (level === null) throw new Error("Current level required")
 		if (level.currentTick >= this.recordedMoves.length) return
@@ -291,20 +297,31 @@ export const exaPlayerPage = {
 			snap => snap.level.currentTick <= movePos
 		)
 	},
+	isBlocked: false,
+	blockedMessageDiv: null as HTMLDivElement | null,
+	setIsBlocked(blocked: boolean) {
+		this.isBlocked = blocked
+		this.blockedMessageDiv?.classList.toggle("show", blocked)
+	},
 	async transcribeInputs(ip: InputProvider) {
-		const level = this.currentLevel!
-		let moveCount = 0
-		while (!ip.outOfInput(level)) {
-			this.appendInput(ip.getInput(level))
-			if (level.gameState !== GameState.PLAYING) break
-			moveCount += 1
-			if (moveCount % 100 === 0) {
-				this.updateRecordedMovesArea()
-				this.updateRender()
-				this.updateTextOutputs()
-				// Have a breather every 100 moves
-				await sleep(0)
+		this.setIsBlocked(true)
+		try {
+			const level = this.currentLevel!
+			let moveCount = 0
+			while (!ip.outOfInput(level)) {
+				this.appendInput(ip.getInput(level))
+				if (level.gameState !== GameState.PLAYING) break
+				moveCount += 1
+				if (moveCount % 100 === 0) {
+					this.updateRecordedMovesArea()
+					this.updateRender()
+					this.updateTextOutputs()
+					// Have a breather every 100 moves
+					await sleep(0)
+				}
 			}
+		} finally {
+			this.setIsBlocked(false)
 		}
 		this.updateRecordedMovesArea()
 		this.updateRender()
@@ -383,6 +400,7 @@ export const exaPlayerPage = {
 		)
 	},
 	commitCurrentInput(): void {
+		if (this.isBlocked) return
 		this.autoDiagonalsTimer = null
 		this.appendInput(this.currentInput)
 		this.updateRecordedMovesArea()
@@ -393,6 +411,7 @@ export const exaPlayerPage = {
 	},
 	setupKeyListener(): void {
 		this.keyListener = new KeyListener(ev => {
+			if (this.isBlocked) return
 			if (!isValidStartKey(ev.code)) return
 			if (this.currentLevel?.gameState !== GameState.PLAYING) return
 			let inputType = keyToInputMap[ev.code]
