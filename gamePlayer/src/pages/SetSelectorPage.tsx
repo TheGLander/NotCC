@@ -1,5 +1,5 @@
 import { useOpenFile } from "../levelData"
-import { atom, useAtom, useSetAtom } from "jotai"
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
 import { encodeBase64, zlibAsync } from "@/helpers"
 import prewriteIcon from "../prewrite.png"
@@ -10,7 +10,7 @@ const altLogoAtom = atom(false)
 function Header() {
 	const [altLogo, setAltLogo] = useAtom(altLogoAtom)
 	return (
-		<div class="box max-w-4/5 mx-auto mb-4 mt-3 flex w-fit flex-row items-center max-sm:max-w-sm max-sm:flex-wrap">
+		<div class="box max-w-4/5 mx-auto mt-3 flex w-fit flex-row items-center max-sm:max-w-sm max-sm:flex-wrap">
 			<img
 				class="inline-block aspect-square max-sm:ml-auto max-sm:h-10"
 				src={altLogo ? "./iconBigAlt.png" : "./iconBig.png"}
@@ -80,9 +80,12 @@ function UploadBox() {
 	)
 }
 
+const alphaHeaderClosedAtom = preferenceAtom("alphaHeaderClosed", false)
+
 function AlphaHeader() {
+	const setAlphaHeaderClosed = useSetAtom(alphaHeaderClosedAtom)
 	return (
-		<div class="box max-w-lg lg:max-w-xl">
+		<div class="box relative mt-2 max-w-lg lg:max-w-xl">
 			<h2 class="text-center">
 				<img
 					class="inline-block [image-rendering:pixelated]"
@@ -115,15 +118,19 @@ function AlphaHeader() {
 				<li>SFXsets</li>
 				<li>Embed support for the bb.club wiki</li>
 			</ul>
+			<button class="ml-auto block" onClick={() => setAlphaHeaderClosed(true)}>
+				Ok, cool
+			</button>
 		</div>
 	)
 }
 
 export function SetSelectorPage() {
+	const alphaHeaderClosed = useAtomValue(alphaHeaderClosedAtom)
 	return (
 		<div class="flex flex-col items-center">
 			<Header />
-			<AlphaHeader />
+			{!alphaHeaderClosed && <AlphaHeader />}
 			<UploadBox />
 		</div>
 	)
