@@ -207,7 +207,10 @@ function SidebarButton(props: {
 
 export function Sidebar() {
 	return (
-		<div class="box flex h-full w-20 flex-col rounded-none border-none p-0 max-md:h-20 max-md:w-full max-md:flex-row md:gap-4 md:py-2 xl:w-28">
+		<div
+			id="sidebar"
+			class="box flex h-full w-20 flex-col rounded-none border-none p-0 max-md:h-20 max-md:w-full max-md:flex-row md:gap-4 md:py-2 xl:w-28"
+		>
 			<SidebarButton icon={leafIcon}>
 				<ChooserButton
 					label="Set selector"
