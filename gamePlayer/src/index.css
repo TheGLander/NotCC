@@ -48,12 +48,12 @@
 		/* Mobile */
 		#sidebar {
 			@apply h-20 w-full flex-row;
-			> div {
-				@apply flex-1;
-				img {
-					@apply h-4/5;
-				}
-			}
+		}
+		#sidebar > div {
+			@apply flex-1;
+		}
+		#sidebar > div > img {
+			@apply h-4/5;
 		}
 	}
 	@media (min-aspect-ratio: 1/1) {
@@ -63,9 +63,9 @@
 		}
 		#sidebar {
 			@apply h-full w-20 flex-col gap-4 py-2 max-md:overflow-y-auto;
-			> div {
-				@apply [&:nth-last-child(2)]:mt-auto;
-			}
+		}
+		#sidebar > div {
+			@apply [&:nth-last-child(2)]:mt-auto;
 		}
 	}
 }
