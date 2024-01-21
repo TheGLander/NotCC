@@ -5,8 +5,9 @@ import { tilesetAtom } from "./Preloader"
 import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
 import { IntervalTimer } from "@/helpers"
 import { embedReadyAtom, embedModeAtom } from "@/routing"
-import { MobileControls } from "./MobileControls"
+import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { keyboardEventSource, useKeyInputs } from "@/inputs"
+import { twJoin } from "tailwind-merge"
 
 // A TW unit is 0.25rem
 function twUnit(tw: number): number {
@@ -88,11 +89,13 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 		if (!embedMode) return
 		setEmbedReady(true)
 	}, [embedMode])
+
 	const scale = useAutoScale({
 		cameraType: level.cameraType,
 		tileSize: tileset.tileSize,
 		twPadding: [2, 11],
 	})
+	const shouldShowMobileControls = useShouldShowMobileControls()
 
 	return (
 		<div class="box m-auto flex flex-col gap-1 p-1">
@@ -105,7 +108,7 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 			<button class="h-8" onClick={() => setAutoTick(!autoTick)}>
 				{!autoTick ? "Start" : "Stop"}
 			</button>
-			<div class="absolute md:hidden">
+			<div class={twJoin("absolute", !shouldShowMobileControls && "hidden")}>
 				<MobileControls handler={inputHandler} />
 			</div>
 		</div>

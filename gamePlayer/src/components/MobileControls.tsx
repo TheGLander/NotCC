@@ -2,6 +2,14 @@ import dpadImage from "@/dpad.svg"
 import { RepeatKeyHandler } from "@/inputs"
 import { InputType, KeyInputs, makeEmptyInputs } from "@notcc/logic"
 import { useEffect, useRef } from "preact/hooks"
+import { useMediaQuery } from "react-responsive"
+
+export function useShouldShowMobileControls(): boolean {
+	const lessThanMd = !useMediaQuery({ query: "(min-width: 768px)" })
+	if (lessThanMd) return true
+	if ("ontouchstart" in document.body) return true
+	return false
+}
 
 export function MobileControls(props: { handler: RepeatKeyHandler }) {
 	const onOffRef = useRef<

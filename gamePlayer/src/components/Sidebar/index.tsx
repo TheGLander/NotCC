@@ -128,6 +128,9 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 		const { endClosingAnim, closingAnim, ref, shouldRender } =
 			useSidebarChooserAnim<HTMLDialogElement>(!!props.open)
 		if (!shouldRender) return
+		const isSidebarAtBottom = !useMediaQuery({
+			query: "(min-aspect-ratio: 1/1)",
+		})
 
 		return (
 			<dialog
@@ -139,7 +142,10 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 				}}
 				onAnimationEnd={endClosingAnim}
 				class={twJoin(
-					"box fixed bottom-20 left-0 right-0 z-10 mx-auto w-screen rounded-b-none border-b-0 shadow-none [transform-origin:0_100%]",
+					"box fixed left-0 right-0 z-10 mx-auto rounded-b-none border-b-0 shadow-none [transform-origin:0_100%]",
+					isSidebarAtBottom
+						? "bottom-20 w-screen"
+						: "bottom-0 left-20 w-[calc(100vw_-_theme(spacing.20))]",
 					props.open && "animate-drawer-open",
 					closingAnim && "animate-drawer-close"
 				)}
@@ -165,12 +171,12 @@ function SidebarButton(props: {
 	const SidebarChooser = useDrawer ? SidebarDrawer : SidebarTooltip
 
 	return (
-		<div class="relative flex max-md:flex-1 md:[&:nth-last-child(2)]:mt-auto">
+		<div class="relative flex">
 			<img
 				tabIndex={0}
 				draggable={false}
 				src={props.icon}
-				class="m-auto block cursor-pointer select-none max-md:h-4/5 md:w-1/2 lg:w-3/5"
+				class="m-auto block cursor-pointer select-none md:w-1/2 lg:w-3/5"
 				onClick={() => {
 					setTooltipOpened(true)
 				}}
@@ -207,10 +213,7 @@ function SidebarButton(props: {
 
 export function Sidebar() {
 	return (
-		<div
-			id="sidebar"
-			class="box flex h-full w-20 flex-col rounded-none border-none p-0 max-md:h-20 max-md:w-full max-md:flex-row md:gap-4 md:py-2 xl:w-28"
-		>
+		<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">
 			<SidebarButton icon={leafIcon}>
 				<ChooserButton
 					label="Set selector"

@@ -24,7 +24,7 @@ export function App() {
 			class={twJoin(
 				"h-full w-full font-sans text-neutral-100",
 				!embedMode &&
-					"from-theme-500 to-theme-800 flex flex-col-reverse bg-gradient-to-br md:flex-row"
+					"from-theme-500 to-theme-800 flex flex-col-reverse bg-gradient-to-br"
 			)}
 		>
 			<Prompts />
