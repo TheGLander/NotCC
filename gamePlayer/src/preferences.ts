@@ -18,6 +18,7 @@ export function getTruePreferenceAtom<T>(
 }
 
 export function preferenceAtom<T>(key: string, defaultValue: T) {
+	if (preferenceAtoms[key]) return preferenceAtoms[key][1]
 	const prefAtom = atom<T | typeof DEFAULT_VALUE>(DEFAULT_VALUE)
 	const defaultPrefAtom = atom(
 		get => {
