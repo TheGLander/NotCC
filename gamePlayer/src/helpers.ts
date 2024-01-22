@@ -14,25 +14,6 @@ export function ignorantAtomEffectHook(effectFn: EffectFn) {
 	}
 }
 
-export type AtomEffect = EffectFn | { ignorant: boolean; fn: EffectFn }
-
-export function useChainedAtomEffects(effects: AtomEffect[]) {
-	// const { get } = useStore()
-	const efFns: (() => void)[] = useMemo(
-		() =>
-			effects.map(ef => {
-				if (typeof ef === "function") ef = { ignorant: false, fn: ef }
-				if (ef.ignorant) return ignorantAtomEffectHook(ef.fn)
-				const fn = ef.fn
-				return () => {
-					useAtom(useMemo(() => atomEffect(fn), [fn]))
-				}
-			}),
-		[]
-	)
-	efFns.map(fn => fn())
-}
-
 export function unzlibAsync(buf: Uint8Array): Promise<Uint8Array> {
 	return new Promise((res, rej) => {
 		unzlib(buf, (err, data) => {

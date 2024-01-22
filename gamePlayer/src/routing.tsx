@@ -5,8 +5,9 @@ import { FunctionComponent } from "preact"
 import { Preloader } from "./components/Preloader"
 import { LevelPlayerPage } from "./pages/LevelPlayerPage"
 import { levelAtom, levelSetAtom, resolveHashLevel } from "./levelData"
-import { EffectFn, useChainedAtomEffects } from "./helpers"
+import { EffectFn, ignorantAtomEffectHook } from "./helpers"
 import { preferenceWritingAtom } from "./preferences"
+import { atomEffect } from "jotai-effect"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -165,6 +166,11 @@ function PageNotFound(props: { pageName: string }) {
 export const embedModeAtom = atom(get => !!get(searchParamsAtom).embed)
 export const embedReadyAtom = atom(false)
 
+const routerEffectAtom = atomEffect((get, set) => {
+	discardUselessLevelDataEffect(get, set)
+	internalToHashLocationSyncEffect(get, set)
+})
+
 export function Router() {
 	const [preloadComplete, setPreloadComplete] = useState(false)
 	const pageName = useAtomValue(pageNameAtom)
@@ -175,11 +181,8 @@ export function Router() {
 		// Prevent internalToHashLocationSyncAtom from writing to the hash on mount
 		setPreventImmediateHashUpdate(true)
 	}, [])
-	useChainedAtomEffects([
-		{ fn: hashToInternalLocationSyncEffect, ignorant: true },
-		discardUselessLevelDataEffect,
-		internalToHashLocationSyncEffect,
-	])
+	ignorantAtomEffectHook(hashToInternalLocationSyncEffect)()
+	useAtom(routerEffectAtom)
 	useAtom(preferenceWritingAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />
