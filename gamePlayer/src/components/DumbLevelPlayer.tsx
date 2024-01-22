@@ -1,13 +1,25 @@
-import { CameraType, LevelData, createLevelFromData } from "@notcc/logic"
+import {
+	CameraType,
+	GameState,
+	LevelData,
+	createLevelFromData,
+} from "@notcc/logic"
 import { GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
 import { tilesetAtom } from "./Preloader"
-import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useState,
+} from "preact/hooks"
 import { IntervalTimer } from "@/helpers"
 import { embedReadyAtom, embedModeAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
-import { keyboardEventSource, useKeyInputs } from "@/inputs"
-import { twJoin } from "tailwind-merge"
+import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
+import { twJoin, twMerge } from "tailwind-merge"
+import { FunctionComponent, JSX, VNode } from "preact"
 
 // A TW unit is 0.25rem
 function twUnit(tw: number): number {
@@ -57,32 +69,149 @@ export function useAutoScale(args: {
 	return scale
 }
 
+type PlayerState =
+	| "pregame"
+	| "play"
+	| "pause"
+	| "dead"
+	| "timeout"
+	| "win"
+	| "gz"
+
+function Cover(props: {
+	class: string
+	header: VNode
+	buttons: [string, () => void][]
+	focusedButton?: string
+}) {
+	return (
+		<div
+			class={twMerge(
+				"bg-radial-gradient flex h-full w-full flex-col items-center text-center [text-shadow:black_1px_0px_10px]",
+				props.class
+			)}
+		>
+			{props.header}
+			{props.buttons.length !== 0 && (
+				<div class="box mb-5 mt-auto flex h-20 w-4/5 flex-row gap-1">
+					{props.buttons.map(([name, callback]) => (
+						<button
+							class="flex-1"
+							onClick={callback}
+							ref={ref => {
+								if (props.focusedButton === name || !props.focusedButton) {
+									ref?.focus()
+								}
+							}}
+						>
+							{name}
+						</button>
+					))}
+				</div>
+			)}
+		</div>
+	)
+}
+
+function PregameCover(props: {
+	level: LevelData
+	mobile?: boolean
+	onStart: () => void
+}) {
+	return (
+		<Cover
+			class="from-black/20 to-black/50"
+			header={
+				<>
+					<h2 class="mt-6 text-4xl">{props.level.name ?? "UNNAMED"}</h2>
+					<h3 class="text-xl">by ???</h3>
+				</>
+			}
+			buttons={props.mobile ? [["Start", props.onStart]] : []}
+		/>
+	)
+}
+
+function LoseCover(props: { timeout: boolean; onRestart: () => void }) {
+	return (
+		<Cover
+			class={twJoin(
+				props.timeout
+					? "from-blue-900/10 to-blue-950/90"
+					: "from-red-600/10 to-red-950/70"
+			)}
+			header={
+				<>
+					<h2 class="mt-6 text-4xl">
+						{props.timeout ? "Ran out of time" : "You lost..."}
+					</h2>
+				</>
+			}
+			buttons={[["Restart", props.onRestart]]}
+		/>
+	)
+}
+
+function WinCover(props: {}) {
+	return (
+		<Cover
+			class="from-yellow-900/30 to-yellow-600/70"
+			header={
+				<>
+					<h2 class="mt-6 text-4xl">You won!</h2>
+				</>
+			}
+			buttons={[
+				["Scores", () => {}],
+				["Next level", () => {}],
+				["Explode Jupiter", () => {}],
+			]}
+		/>
+	)
+}
+
 export function DumbLevelPlayer(props: { level: LevelData }) {
 	const tileset = useAtomValue(tilesetAtom)
 	if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
 
+	const [playerState, setPlayerState] = useState<PlayerState>("pregame")
+
+	// Inputs & LevelState
 	const { inputs, releaseKeys, handler: inputHandler } = useKeyInputs()
 	useEffect(() => {
 		inputHandler.addEventSource(keyboardEventSource)
-	})
-
-	const level = useMemo(() => createLevelFromData(props.level), [props.level])
+	}, [inputHandler])
+	const [level, setLevel] = useState(() => createLevelFromData(props.level))
+	function resetLevel() {
+		setPlayerState("pregame")
+		setLevel(createLevelFromData(props.level))
+	}
 	useEffect(() => {
 		level.gameInput = inputs
 	}, [level])
 
+	// Ticking
 	const tickLevel = useCallback(() => {
 		level.tick()
 		releaseKeys(level.releasedKeys)
+		if (level.gameState === GameState.WON) {
+			setPlayerState("win")
+		} else if (level.gameState === GameState.DEATH) {
+			setPlayerState("dead")
+		} else if (level.gameState === GameState.TIMEOUT) {
+			setPlayerState("timeout")
+		}
 	}, [level, releaseKeys])
 
-	const [autoTick, setAutoTick] = useState(false)
-	useEffect(() => {
+	const autoTick =
+		playerState === "play" || playerState === "dead" || playerState === "win"
+	useLayoutEffect(() => {
 		if (!autoTick) return
 		const timer = new IntervalTimer(() => tickLevel(), 1 / 60)
 		return () => timer.cancel()
-	}, [autoTick, level])
+	}, [autoTick, tickLevel])
 
+	// Report embed ready
 	const embedMode = useAtomValue(embedModeAtom)
 	const setEmbedReady = useSetAtom(embedReadyAtom)
 	useEffect(() => {
@@ -90,24 +219,56 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 		setEmbedReady(true)
 	}, [embedMode])
 
+	// Pregame
+	useEffect(() => {
+		if (playerState !== "pregame") return
+		const listener = (ev: KeyboardEvent) => {
+			if (ev.code in keyToInputMap || ev.code === "Space") {
+				setPlayerState("play")
+			}
+		}
+		document.addEventListener("keydown", listener)
+		return () => document.removeEventListener("keydown", listener)
+	}, [playerState])
+
+	// GUI stuff
 	const scale = useAutoScale({
 		cameraType: level.cameraType,
 		tileSize: tileset.tileSize,
-		twPadding: [2, 11],
+		twPadding: [2, 2],
 	})
 	const shouldShowMobileControls = useShouldShowMobileControls()
 
+	let cover: VNode | null
+	if (playerState === "pregame") {
+		cover = (
+			<PregameCover
+				level={props.level}
+				mobile={shouldShowMobileControls}
+				onStart={() => setPlayerState("play")}
+			/>
+		)
+	} else if (playerState === "dead" || playerState === "timeout") {
+		cover = (
+			<LoseCover timeout={playerState === "timeout"} onRestart={resetLevel} />
+		)
+	} else if (playerState === "win") {
+		cover = <WinCover />
+	} else {
+		cover = null
+	}
+
 	return (
 		<div class="box m-auto flex flex-col gap-1 p-1">
-			<GameRenderer
-				tileset={tileset}
-				level={level}
-				autoDraw={autoTick}
-				tileScale={scale}
-			/>
-			<button class="h-8" onClick={() => setAutoTick(!autoTick)}>
-				{!autoTick ? "Start" : "Stop"}
-			</button>
+			<div class="relative">
+				<GameRenderer
+					tileset={tileset}
+					level={level}
+					autoDraw={autoTick}
+					tileScale={scale}
+				/>
+				<div class={twJoin("absolute top-0 h-full w-full")}>{cover}</div>
+			</div>
 			<div class={twJoin("absolute", !shouldShowMobileControls && "hidden")}>
 				<MobileControls handler={inputHandler} />
 			</div>

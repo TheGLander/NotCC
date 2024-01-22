@@ -110,7 +110,7 @@ export function useKeyInputs(): {
 	}
 }
 
-const keyToInputMap: Record<string, InputType> = {
+export const keyToInputMap: Record<string, InputType> = {
 	ArrowUp: "up",
 	ArrowRight: "right",
 	ArrowDown: "down",
