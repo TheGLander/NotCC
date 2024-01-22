@@ -622,6 +622,9 @@ export abstract class Actor implements Wirable {
 		for (const thing of this.tile.allActors) {
 			thing.actorDestroyed?.(this)
 		}
+		for (const item of this.inventory.items) {
+			item.onCarrierDestroyed?.(this)
+		}
 		return true
 	}
 	getVisualPosition(): [number, number] {
