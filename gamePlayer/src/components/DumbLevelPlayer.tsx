@@ -7,19 +7,13 @@ import {
 import { GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
 import { tilesetAtom } from "./Preloader"
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useState,
-} from "preact/hooks"
+import { useCallback, useEffect, useLayoutEffect, useState } from "preact/hooks"
 import { IntervalTimer } from "@/helpers"
 import { embedReadyAtom, embedModeAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
-import { FunctionComponent, JSX, VNode } from "preact"
+import { VNode } from "preact"
 
 // A TW unit is 0.25rem
 function twUnit(tw: number): number {
@@ -152,7 +146,7 @@ function LoseCover(props: { timeout: boolean; onRestart: () => void }) {
 	)
 }
 
-function WinCover(props: {}) {
+function WinCover() {
 	return (
 		<Cover
 			class="from-yellow-900/30 to-yellow-600/70"

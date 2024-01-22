@@ -1,8 +1,7 @@
 import { AsyncZippable, unzip, unzlib, zip, zlib } from "fflate"
-import { Getter, Setter, useAtom, useStore } from "jotai"
-import { atomEffect } from "jotai-effect"
+import { Getter, Setter, useStore } from "jotai"
 import { Ref } from "preact"
-import { useEffect, useMemo } from "preact/hooks"
+import { useEffect } from "preact/hooks"
 
 export type EffectFn = (get: Getter, set: Setter) => void | (() => void)
 type AnyFunction = (...args: any[]) => any
