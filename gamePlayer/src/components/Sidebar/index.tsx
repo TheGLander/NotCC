@@ -1,11 +1,17 @@
-import { ComponentChildren, ComponentProps, Ref } from "preact"
+import { ComponentChildren, ComponentProps, Ref, createContext } from "preact"
 import leafIcon from "./tabIcons/leaf.svg"
 import levelIcon from "./tabIcons/level.svg"
 import floppyIcon from "./tabIcons/floppy.svg"
 import clockIcon from "./tabIcons/clock.svg"
 import toolsIcon from "./tabIcons/tools.svg"
 import infoIcon from "./tabIcons/info.svg"
-import { useLayoutEffect, useRef, useState } from "preact/hooks"
+import {
+	useContext,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "preact/hooks"
 import { forwardRef } from "preact/compat"
 import { twJoin } from "tailwind-merge"
 import { useMediaQuery } from "react-responsive"
@@ -15,6 +21,7 @@ import { showPrompt } from "@/prompts"
 import { AboutPrompt } from "../AboutDialog"
 import { applyRef } from "@/helpers"
 import { PreferencesPrompt } from "../PreferencesPrompt"
+import isHotkey from "is-hotkey"
 
 interface SidebarAction {
 	label: string
@@ -23,8 +30,17 @@ interface SidebarAction {
 	onTrigger?: (get: Getter, set: Setter) => void
 }
 
+const SidebarActionContext = createContext<SidebarAction[]>([])
+
 function ChooserButton(props: SidebarAction) {
 	const { get, set } = useStore()
+	const sidebarActions = useContext(SidebarActionContext)
+	useEffect(() => {
+		sidebarActions.push(props)
+		return () => {
+			sidebarActions.splice(sidebarActions.indexOf(props), 1)
+		}
+	}, [])
 	const isDisabled = props.disabled || !props.onTrigger
 	return (
 		<div
@@ -91,7 +107,6 @@ const SidebarTooltip = forwardRef<
 >(function SidebarTooltip(props, fref) {
 	const { endClosingAnim, closingAnim, ref, shouldRender } =
 		useSidebarChooserAnim<HTMLDivElement>(!!props.open)
-	if (!shouldRender) return
 
 	return (
 		<div
@@ -101,7 +116,8 @@ const SidebarTooltip = forwardRef<
 					? "bottom-1/3 [transform-origin:theme(spacing.2)_calc(100%_-_theme(spacing.2))]"
 					: "top-1/3 [transform-origin:theme(spacing.2)_theme(spacing.2)]",
 				props.open && "animate-tooltip-open",
-				closingAnim && "animate-tooltip-close"
+				closingAnim && "animate-tooltip-close",
+				!shouldRender && "hidden"
 			)}
 			onAnimationEnd={endClosingAnim}
 			ref={ref}
@@ -127,7 +143,6 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 	function SidebarDrawer(props, fref) {
 		const { endClosingAnim, closingAnim, ref, shouldRender } =
 			useSidebarChooserAnim<HTMLDialogElement>(!!props.open)
-		if (!shouldRender) return
 		const isSidebarAtBottom = !useMediaQuery({
 			query: "(min-aspect-ratio: 1/1)",
 		})
@@ -147,7 +162,8 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 						? "bottom-20 w-screen"
 						: "bottom-0 left-20 w-[calc(100vw_-_theme(spacing.20))]",
 					props.open && "animate-drawer-open",
-					closingAnim && "animate-drawer-close"
+					closingAnim && "animate-drawer-close",
+					!shouldRender && "hidden"
 				)}
 			/>
 		)
@@ -212,48 +228,66 @@ function SidebarButton(props: {
 }
 
 export function Sidebar() {
+	const sidebarActions: SidebarAction[] = useRef([]).current
+	const { get, set } = useStore()
+	useEffect(() => {
+		const listener = (ev: KeyboardEvent) => {
+			for (const action of sidebarActions) {
+				if (!action.shortcut) continue
+				if (!isHotkey(action.shortcut)(ev)) continue
+				if (action.disabled || !action.onTrigger) continue
+				action.onTrigger(get, set)
+			}
+		}
+		document.addEventListener("keydown", listener)
+		return () => {
+			document.removeEventListener("keydown", listener)
+		}
+	}, [])
 	return (
-		<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">
-			<SidebarButton icon={leafIcon}>
-				<ChooserButton
-					label="Set selector"
-					shortcut="Escape"
-					onTrigger={(_get, set) => set(pageAtom, "")}
-				/>
-			</SidebarButton>
-			{/* TODO dynamic icon */}
-			<SidebarButton icon={levelIcon}>
-				<ChooserButton label="Reset level" shortcut="Shift+R" />
-				<ChooserButton label="Pause" shortcut="P" />
-				<hr class="mx-2" />
-				<ChooserButton label="Next level" shortcut="Shift+N" />
-				<ChooserButton label="Previous level" shortcut="Shift+P" />
-				<ChooserButton label="Level list" shortcut="Shift+S" />
-			</SidebarButton>
-			<SidebarButton icon={floppyIcon}>
-				<ChooserButton label="No solutions yet!!" />
-				<hr class="mx-2" />
-				<ChooserButton label="All attempts" shortcut="Shift+A" />
-			</SidebarButton>
-			<SidebarButton icon={clockIcon}>
-				<ChooserButton label="Toggle ExaCC" shortcut="Shift+X" />
-			</SidebarButton>
+		<SidebarActionContext.Provider value={sidebarActions}>
+			<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">
+				<SidebarButton icon={leafIcon}>
+					<ChooserButton
+						label="Set selector"
+						shortcut="Escape"
+						onTrigger={(_get, set) => set(pageAtom, "")}
+					/>
+				</SidebarButton>
+				{/* TODO dynamic icon */}
+				<SidebarButton icon={levelIcon}>
+					<ChooserButton label="Reset level" shortcut="Shift+R" />
+					<ChooserButton label="Pause" shortcut="P" />
+					<hr class="mx-2" />
+					<ChooserButton label="Next level" shortcut="Shift+N" />
+					<ChooserButton label="Previous level" shortcut="Shift+P" />
+					<ChooserButton label="Level list" shortcut="Shift+S" />
+				</SidebarButton>
+				<SidebarButton icon={floppyIcon}>
+					<ChooserButton label="No solutions yet!!" />
+					<hr class="mx-2" />
+					<ChooserButton label="All attempts" shortcut="Shift+A" />
+				</SidebarButton>
+				<SidebarButton icon={clockIcon}>
+					<ChooserButton label="Toggle ExaCC" shortcut="Shift+X" />
+				</SidebarButton>
 
-			<SidebarButton icon={toolsIcon} reverse>
-				<ChooserButton
-					label="Preferences"
-					shortcut="Shift+C"
-					onTrigger={(get, set) => showPrompt(get, set, PreferencesPrompt)}
-				/>
-				<ChooserButton label="Save file manager" shortcut="Alt+S" />
-			</SidebarButton>
-			<SidebarButton icon={infoIcon} reverse>
-				<ChooserButton
-					label="About"
-					shortcut="F1"
-					onTrigger={(get, set) => showPrompt(get, set, AboutPrompt)}
-				/>
-			</SidebarButton>
-		</div>
+				<SidebarButton icon={toolsIcon} reverse>
+					<ChooserButton
+						label="Preferences"
+						shortcut="Shift+C"
+						onTrigger={(get, set) => showPrompt(get, set, PreferencesPrompt)}
+					/>
+					<ChooserButton label="Save file manager" shortcut="Alt+S" />
+				</SidebarButton>
+				<SidebarButton icon={infoIcon} reverse>
+					<ChooserButton
+						label="About"
+						shortcut="F1"
+						onTrigger={(get, set) => showPrompt(get, set, AboutPrompt)}
+					/>
+				</SidebarButton>
+			</div>
+		</SidebarActionContext.Provider>
 	)
 }
