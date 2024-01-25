@@ -8,9 +8,9 @@ process.env["VITE_LAST_COMMIT_INFO"] = execSync(
 	.toString("utf-8")
 	.trim()
 
-process.env["VITE_VERSION"] = execSync('git log -1 --format="%h"').toString(
-	"utf-8"
-)
+process.env["VITE_VERSION"] = execSync('git log -1 --format="%h"')
+	.toString("utf-8")
+	.trim()
 
 process.env["VITE_BUILD_TIME"] = new Date().toISOString()
 

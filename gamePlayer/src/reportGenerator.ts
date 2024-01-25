@@ -64,7 +64,7 @@ function determineMetricReportType(
 }
 
 function makeReportText(level: ReportLevel, mode: ReportMode): string {
-	let reportText = `#${level.levelN} ${level.levelName}: `
+	let reportText = `#${level.levelN} (${level.levelName}): `
 
 	const timeRepType = determineMetricReportType(level, "timeLeft")
 
