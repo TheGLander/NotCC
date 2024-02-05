@@ -123,12 +123,12 @@ export const keyToInputMap: Record<string, InputType> = {
 export const keyboardEventSource: RepeatKeyHandlerEventSource = (on, off) => {
 	const onHandler = (ev: KeyboardEvent) => {
 		if (ev.repeat) return
-		const inputType = keyToInputMap[ev.key]
+		const inputType = keyToInputMap[ev.code]
 		if (inputType === undefined) return
 		on(inputType)
 	}
 	const offHandler = (ev: KeyboardEvent) => {
-		const inputType = keyToInputMap[ev.key]
+		const inputType = keyToInputMap[ev.code]
 		if (inputType === undefined) return
 		off(inputType)
 	}
