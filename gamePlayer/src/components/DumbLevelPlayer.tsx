@@ -1,19 +1,29 @@
 import {
 	CameraType,
 	GameState,
+	Inventory as InventoryI,
 	LevelData,
 	createLevelFromData,
 } from "@notcc/logic"
 import { GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
 import { tilesetAtom } from "./Preloader"
-import { useCallback, useEffect, useLayoutEffect, useState } from "preact/hooks"
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "preact/hooks"
 import { IntervalTimer } from "@/helpers"
 import { embedReadyAtom, embedModeAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
 import { VNode } from "preact"
+import { useMediaQuery } from "react-responsive"
+import { Inventory } from "./Inventory"
 
 // A TW unit is 0.25rem
 function twUnit(tw: number): number {
@@ -21,13 +31,15 @@ function twUnit(tw: number): number {
 	return rem * tw * 0.25
 }
 
-export function useAutoScale(args: {
+export interface AutoScaleConfig {
 	tileSize: number
 	cameraType: CameraType
 	twPadding?: [number, number]
 	tilePadding?: [number, number]
 	safetyCoefficient?: number
-}) {
+}
+
+export function useAutoScale(args: AutoScaleConfig) {
 	const [scale, setScale] = useState(1)
 	function resize() {
 		const sidebar = document.querySelector<HTMLDivElement>("#sidebar")
@@ -53,13 +65,13 @@ export function useAutoScale(args: {
 		const scale = Math.min(xScale, yScale)
 		setScale(Math.floor(scale))
 	}
-	useEffect(() => {
+	useLayoutEffect(() => {
 		resize()
 		window.addEventListener("resize", resize)
 		return () => {
 			window.removeEventListener("resize", resize)
 		}
-	}, [])
+	}, [args])
 	return scale
 }
 
@@ -117,8 +129,8 @@ function PregameCover(props: {
 			class="from-black/20 to-black/50"
 			header={
 				<>
-					<h2 class="mt-6 text-4xl">{props.level.name ?? "UNNAMED"}</h2>
-					<h3 class="text-xl">by ???</h3>
+					<h2 class="mt-6 text-[2.25em]">{props.level.name ?? "UNNAMED"}</h2>
+					<h3 class="text-[1.25em]">by ???</h3>
 				</>
 			}
 			buttons={props.mobile ? [["Start", props.onStart]] : []}
@@ -136,7 +148,7 @@ function LoseCover(props: { timeout: boolean; onRestart: () => void }) {
 			)}
 			header={
 				<>
-					<h2 class="mt-6 text-4xl">
+					<h2 class="mt-6 text-[2.25em]">
 						{props.timeout ? "Ran out of time" : "You lost..."}
 					</h2>
 				</>
@@ -175,6 +187,7 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 	useEffect(() => {
 		inputHandler.addEventSource(keyboardEventSource)
 	}, [inputHandler])
+
 	const [level, setLevel] = useState(() => createLevelFromData(props.level))
 	function resetLevel() {
 		setPlayerState("pregame")
@@ -182,11 +195,27 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 	}
 	useEffect(() => {
 		level.gameInput = inputs
+		setChipsLeft(level.chipsLeft)
+		setTimeLeft(level.timeLeft)
+		setBonusPoints(level.bonusPoints)
+		setInventory(level.selectedPlayable?.inventory)
 	}, [level])
+
+	const renderInventoryRef = useRef<() => void>(null)
+
+	const [chipsLeft, setChipsLeft] = useState(0)
+	const [timeLeft, setTimeLeft] = useState(0)
+	const [bonusPoints, setBonusPoints] = useState(0)
+	const [inventory, setInventory] = useState<InventoryI | undefined>()
 
 	// Ticking
 	const tickLevel = useCallback(() => {
 		level.tick()
+		setChipsLeft(level.chipsLeft)
+		setTimeLeft(level.timeLeft)
+		setBonusPoints(level.bonusPoints)
+		setInventory(level.selectedPlayable?.inventory)
+		renderInventoryRef.current?.()
 		releaseKeys(level.releasedKeys)
 		if (level.gameState === GameState.WON) {
 			setPlayerState("win")
@@ -225,12 +254,22 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 		return () => document.removeEventListener("keydown", listener)
 	}, [playerState])
 
-	// GUI stuff
-	const scale = useAutoScale({
-		cameraType: level.cameraType,
-		tileSize: tileset.tileSize,
-		twPadding: [2, 2],
+	const verticalLayout = !useMediaQuery({
+		query: "(min-aspect-ratio: 1/1)",
 	})
+
+	const scaleArgs = useMemo<AutoScaleConfig>(
+		() => ({
+			cameraType: level.cameraType,
+			tileSize: tileset.tileSize,
+			twPadding: verticalLayout ? [4, 6] : [6, 4],
+			tilePadding: verticalLayout ? [0, 2] : [4, 0],
+		}),
+		[level, tileset, verticalLayout]
+	)
+
+	// GUI stuff
+	const scale = useAutoScale(scaleArgs)
 	const shouldShowMobileControls = useShouldShowMobileControls()
 
 	let cover: VNode | null
@@ -253,7 +292,14 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 	}
 
 	return (
-		<div class="box m-auto flex flex-col gap-1 p-1">
+		<div
+			class={twJoin(
+				"box m-auto flex gap-2 p-2 text-[length:calc(var(--tile-size)_*_0.3)]",
+				verticalLayout && "flex-col",
+				!verticalLayout && "flex-row"
+			)}
+			style={{ "--tile-size": `${scale * tileset.tileSize}px` }}
+		>
 			<div class="relative">
 				<GameRenderer
 					tileset={tileset}
@@ -262,6 +308,38 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 					tileScale={scale}
 				/>
 				<div class={twJoin("absolute top-0 h-full w-full")}>{cover}</div>
+			</div>
+			<div
+				class={
+					verticalLayout
+						? "flex h-[calc(var(--tile-size)_*_2)] w-auto flex-row-reverse justify-end gap-1"
+						: "flex w-[calc(var(--tile-size)_*_4)] flex-col gap-1"
+				}
+			>
+				<div
+					class={twJoin(
+						"grid w-auto items-center gap-x-2 [grid-template-columns:repeat(2,auto);]",
+						verticalLayout && "flex-1",
+						!verticalLayout && "ml-1 justify-start"
+					)}
+				>
+					<div class="justify-self-end text-end">Chips left:</div>
+					<div class="text-[1.5em]">{chipsLeft}</div>
+					<div class="justify-self-end text-end">Time left:</div>
+					<div class="text-[1.5em]">{Math.ceil(timeLeft / 60)}s</div>
+					<div class="justify-self-end text-end">Bonus points:</div>
+					<div class="text-[1.5em]">{bonusPoints}</div>
+				</div>
+				{inventory && (
+					<div class="self-center">
+						<Inventory
+							tileset={tileset}
+							tileScale={scale}
+							inventory={inventory}
+							renderRef={renderInventoryRef}
+						/>
+					</div>
+				)}
 			</div>
 			<div class={twJoin("absolute", !shouldShowMobileControls && "hidden")}>
 				<MobileControls handler={inputHandler} />
