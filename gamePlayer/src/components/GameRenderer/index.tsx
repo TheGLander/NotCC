@@ -4,6 +4,7 @@ import { LevelState } from "@notcc/logic"
 import { Ref } from "preact"
 import { AnimationTimer, applyRef } from "@/helpers"
 import { twJoin } from "tailwind-merge"
+import { memo } from "preact/compat"
 
 export interface GameRendererProps {
 	tileset: Tileset
@@ -14,7 +15,9 @@ export interface GameRendererProps {
 	renderRef?: Ref<() => void>
 }
 
-export function GameRenderer(props: GameRendererProps) {
+export const GameRenderer = memo(function GameRenderer(
+	props: GameRendererProps
+) {
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
 
 	const renderer = useMemo(() => new Renderer(props.tileset), [])
@@ -68,4 +71,4 @@ export function GameRenderer(props: GameRendererProps) {
 			}}
 		></canvas>
 	)
-}
+})

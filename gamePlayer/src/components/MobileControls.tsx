@@ -1,6 +1,7 @@
 import dpadImage from "@/dpad.svg"
 import { RepeatKeyHandler } from "@/inputs"
 import { InputType, KeyInputs, makeEmptyInputs } from "@notcc/logic"
+import { memo } from "preact/compat"
 import { useEffect, useRef } from "preact/hooks"
 import { useMediaQuery } from "react-responsive"
 
@@ -11,7 +12,9 @@ export function useShouldShowMobileControls(): boolean {
 	return false
 }
 
-export function MobileControls(props: { handler: RepeatKeyHandler }) {
+export const MobileControls = memo(function MobileControls(props: {
+	handler: RepeatKeyHandler
+}) {
 	const onOffRef = useRef<
 		[(key: InputType) => void, (key: InputType) => void] | null
 	>(null)
@@ -90,4 +93,4 @@ export function MobileControls(props: { handler: RepeatKeyHandler }) {
 			/>
 		</div>
 	)
-}
+})
