@@ -1,5 +1,12 @@
 import { Getter, Setter, atom, useAtomValue, useSetAtom } from "jotai"
-import { LevelData, LevelSet, parseC2M } from "@notcc/logic"
+import {
+	LevelData,
+	LevelSet,
+	LevelSetLoaderFunction,
+	findScriptName,
+	parseC2M,
+	parseNCCS,
+} from "@notcc/logic"
 import {
 	CUSTOM_LEVEL_SET_IDENT,
 	CUSTOM_SET_SET_IDENT,
@@ -15,6 +22,16 @@ import { Dialog } from "./components/Dialog"
 import { useRef } from "preact/hooks"
 import { PromptComponent, hidePrompt, showPrompt } from "./prompts"
 import { decodeBase64, unzlibAsync } from "./helpers"
+import {
+	IMPORTANT_SETS,
+	LevelSetData,
+	findEntryFilePath,
+	makeFileListFileLoader,
+	makeLoaderWithPrefix,
+	makeSetDataFromFiles,
+} from "./setLoading"
+import { basename, dirname } from "path-browserify"
+import { readFile } from "./fs"
 
 export const levelAtom = atom<Promise<LevelData> | null>(null)
 export const levelUnwrappedAtom = unwrap(levelAtom)
@@ -44,8 +61,32 @@ export const autoLevelfromLevelNAtom = atomEffect((get, set) => {
 	}
 })
 
+async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
+	let { loaderFunction, scriptFile } = setData
+	const filePrefix = dirname(scriptFile)
+	// If the zip file has the entry script in a subdirectory instead of the zip
+	// root, prefix all file paths with the entry file
+	if (filePrefix !== ".") {
+		loaderFunction = makeLoaderWithPrefix(filePrefix, loaderFunction)
+		scriptFile = basename(scriptFile)
+	}
+
+	const scriptData = (await loaderFunction(scriptFile, false)) as string
+	const scriptTitle = findScriptName(scriptData)!
+
+	const setInfo = await readFile(`./solutions/default/${scriptTitle}.nccs`)
+		.then(buf => parseNCCS(buf))
+		.catch(() => null)
+
+	if (setInfo !== null) {
+		return await LevelSet.constructAsync(setInfo, loaderFunction)
+	} else {
+		return await LevelSet.constructAsync(scriptFile, loaderFunction)
+	}
+}
+
 export function useSetLoaded(): {
-	setSet(set: Promise<LevelSet>, ident?: string): void
+	setSet(set: Promise<LevelSetData>, ident?: string): void
 	setLevel(level: Promise<LevelData>): void
 } {
 	const setLevelSet = useSetAtom(levelSetAtom)
@@ -55,13 +96,19 @@ export function useSetLoaded(): {
 	const setPageName = useSetAtom(pageAtom)
 	const page = useAtomValue(pageAtom)
 	return {
-		setSet(set, ident) {
+		setSet(setData, ident) {
+			const set = setData.then(data => loadSetSave(data))
 			setLevelSet(set)
-			setLevelSetIdent(ident ?? CUSTOM_SET_SET_IDENT)
 			setLevel(
 				set.then(set => set.getCurrentRecord()).then(rec => rec.levelData!)
 			)
-			set.then(set => setLevelN(set.currentLevel))
+			set.then(set => {
+				setLevelN(set.currentLevel)
+				const importantIdent = IMPORTANT_SETS.find(
+					iset => iset.setName === set.scriptRunner.state.scriptTitle!
+				)?.setIdent
+				setLevelSetIdent(ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
+			})
 			if (!page?.isLevelPlayer) {
 				setPageName("play")
 			}
@@ -81,7 +128,8 @@ export function useSetLoaded(): {
 // TODO Neutralino prompts
 async function showLoadPrompt(
 	extensions?: string[],
-	multiSelections: boolean = false
+	multiSelections: boolean = false,
+	dir: boolean = false
 ): Promise<File[]> {
 	const fileLoader = document.createElement("input")
 	fileLoader.type = "file"
@@ -89,6 +137,7 @@ async function showLoadPrompt(
 		fileLoader.accept = extensions.map(ext => `.${ext}`).join(",")
 	}
 	fileLoader.multiple = multiSelections
+	fileLoader.webkitdirectory = dir
 	return new Promise((res, rej) => {
 		fileLoader.addEventListener("change", () => {
 			if (fileLoader.files === null || fileLoader.files.length === 0) {
@@ -126,6 +175,22 @@ export function useOpenFile(): () => Promise<{
 	}
 }
 
+export async function showSetDirectoryPrompt(): Promise<LevelSetData> {
+	const files = await showLoadPrompt([], false, true)
+	return await makeSetDataFromFiles(files)
+}
+
+export function useOpenDir(): () => Promise<{
+	setData: LevelSetData
+}> {
+	const { setSet } = useSetLoaded()
+	return async () => {
+		const setData = showSetDirectoryPrompt()
+		setSet(setData)
+		return { setData: await setData }
+	}
+}
+
 export const LoadLevelPrompt: PromptComponent<LevelData | null> = function ({
 	onResolve,
 }) {
@@ -160,6 +225,30 @@ export const LoadLevelPrompt: PromptComponent<LevelData | null> = function ({
 	)
 }
 
+export const LoadSetPrompt: PromptComponent<void> = function ({ onResolve }) {
+	const setPage = useSetAtom(pageAtom)
+	return (
+		<Dialog
+			header={"Level file needed"}
+			section={
+				<>
+					The URL given does not specify a set name and thus cannot be loaded
+					automatically.
+				</>
+			}
+			buttons={[
+				[
+					"Back to set selector",
+					() => {
+						setPage("")
+					},
+				],
+			]}
+			onResolve={onResolve}
+		/>
+	)
+}
+
 const resolveHashLevelPromptIdent = Symbol()
 
 export async function resolveHashLevel(get: Getter, set: Setter) {
@@ -187,6 +276,8 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 				set(levelAtom, Promise.resolve(newLevel))
 			}
 		)
+	} else if (levelSetIdent === CUSTOM_SET_SET_IDENT) {
+		showPrompt(get, set, LoadSetPrompt, resolveHashLevelPromptIdent)
 	} else {
 		showPrompt<void>(
 			get,

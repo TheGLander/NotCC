@@ -1,4 +1,4 @@
-import { useOpenFile } from "../levelData"
+import { useOpenDir, useOpenFile } from "../levelData"
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
 import { encodeBase64, zlibAsync } from "@/helpers"
@@ -33,6 +33,7 @@ export const embedLevelInfoAtom = preferenceAtom("embedLevelInfoInUrl", false)
 
 function UploadBox() {
 	const openFile = useOpenFile()
+	const openDir = useOpenDir()
 	const [embedLevelInfo, setEmbedLevelInfo] = useAtom(embedLevelInfoAtom)
 	const setSearchParams = useSetAtom(searchParamsAtom)
 	return (
@@ -57,7 +58,12 @@ function UploadBox() {
 				>
 					Load file
 				</button>
-				<button class="flex-1" disabled>
+				<button
+					class="flex-1"
+					onClick={async () => {
+						openDir()
+					}}
+				>
 					Load directory
 				</button>
 			</div>

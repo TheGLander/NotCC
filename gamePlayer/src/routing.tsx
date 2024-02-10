@@ -79,7 +79,7 @@ const pages: Partial<Record<string, Page>> = {
 }
 
 export const CUSTOM_LEVEL_SET_IDENT = "*custom-level"
-export const CUSTOM_SET_SET_IDENT = "*custom-level"
+export const CUSTOM_SET_SET_IDENT = "*custom-set"
 
 export const nullablePageNameAtom = atom<string | null>(null)
 export const pageNameAtom = atom(
