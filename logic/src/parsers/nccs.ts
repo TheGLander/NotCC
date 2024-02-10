@@ -35,10 +35,12 @@ export function parseNCCS(data: ArrayBuffer): ISetInfo {
 
 	const versionLength = view.getUint32()
 	const versionValue = view.getStringUntilNull()
-	if (versionLength !== versionValue.length)
+	// +1 is for the null byte
+	if (versionLength !== versionValue.length + 1)
 		throw new Error("Wrong header length")
 	const [major] = versionValue.split(".").map(segment => parseInt(segment, 10))
-	if (major < 1) throw new Error("Pre-release of NCCS aren't supported")
+	if (major < 1)
+		throw new Error("Pre-release versions of NCCS aren't supported")
 	if (major > 1)
 		throw new Error(
 			`NCCS too new - parser version ${NCCS_VERSION}, file version ${versionValue}`

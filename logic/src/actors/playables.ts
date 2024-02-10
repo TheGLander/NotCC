@@ -36,7 +36,6 @@ export abstract class Playable extends Actor {
 	hasOverride = false
 	lastDecision = Decision.NONE
 	playerBonked = false
-	lastDecisionWasSliding = false
 	constructor(
 		level: LevelState,
 		position: [number, number],
@@ -86,7 +85,7 @@ export abstract class Playable extends Actor {
 	}
 	_internalDecide(forcedOnly: boolean): void {
 		this.moveDecision = Decision.NONE
-		if (this.cooldown) return
+		if (this.cooldown || this.frozen) return
 		this.isPushing = false
 		const wasBonked = this.playerBonked
 		if (!forcedOnly) this.playerBonked = false
@@ -129,7 +128,6 @@ export abstract class Playable extends Actor {
 				this.level.releasedKeys.drop = true
 			}
 		}
-		this.lastDecisionWasSliding = false
 		let bonked = false
 		const [vert, horiz] = getMovementDirections(this.level.gameInput)
 		if (
@@ -140,7 +138,6 @@ export abstract class Playable extends Actor {
 			this.moveDecision = this.direction + 1
 			if (this.slidingState === SlidingState.WEAK && !forcedOnly)
 				this.hasOverride = true
-			this.lastDecisionWasSliding = true
 		} else if (!canMove || (vert === undefined && horiz === undefined)) {
 			// We don't wanna move or we can't
 		} else {
@@ -186,10 +183,7 @@ export abstract class Playable extends Actor {
 				this.playerBonked = true
 			}
 		}
-		this.lastDecision =
-			this.lastDecisionWasSliding && this.noSlidingBonk
-				? Decision.NONE
-				: this.moveDecision
+		this.lastDecision = this.moveDecision
 	}
 	deathReason?: string
 	destroy(other?: Actor | null, anim?: string | null): boolean {
@@ -215,15 +209,7 @@ export abstract class Playable extends Actor {
 	}
 	_internalStep(direction: Direction): boolean {
 		const success = super._internalStep(direction)
-		if (
-			!success &&
-			this.lastDecisionWasSliding &&
-			this.slidingState &&
-			this.noSlidingBonk
-		) {
-			this.bonked = false
-		}
-		if (!success && this.bonked && this === this.level.selectedPlayable) {
+		if (!success && this === this.level.selectedPlayable) {
 			this.playerBonked = true
 		}
 		return success
@@ -237,6 +223,7 @@ export class Chip extends Playable {
 		"chip",
 		"can-reuse-key-green",
 		"scares-teeth-blue",
+		"overpowers-trap-sliding",
 		"plays-block-push-sfx",
 	]
 	transmogrifierTarget = "melinda"
@@ -252,6 +239,7 @@ export class Melinda extends Playable {
 		"melinda",
 		"can-reuse-key-yellow",
 		"scares-teeth-red",
+		"overpowers-trap-sliding",
 		"plays-block-push-sfx",
 	]
 	transmogrifierTarget = "chip"

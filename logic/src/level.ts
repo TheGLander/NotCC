@@ -142,7 +142,7 @@ export class LevelState {
 		}
 		if (this.timeLeft !== 0 && !this.timeFrozen) {
 			this.timeLeft--
-			if (this.timeLeft <= 0) this.gameState = GameState.TIMEOUT
+			if (this.timeLeft <= 1) this.gameState = GameState.TIMEOUT
 		}
 		if (this.inputProvider) {
 			this.gameInput = this.inputProvider.getInput(this)
@@ -173,7 +173,16 @@ export class LevelState {
 				this.debouncedInputs[debouncedKey]--
 			} */
 
-		if (this.playablesLeft <= 0) this.gameState = GameState.WON
+		if (this.gameState === GameState.TIMEOUT) {
+			if (this.timeLeft > 1) this.gameState = GameState.PLAYING
+			else this.timeLeft -= 1
+		}
+		if (this.playablesLeft <= 0) {
+			if (this.gameState === GameState.PLAYING && this.timeLeft > 0) {
+				this.timeLeft -= 1
+			}
+			this.gameState = GameState.WON
+		}
 		onLevelAfterTick.forEach(val => val(this))
 	}
 	/*
@@ -189,17 +198,14 @@ export class LevelState {
 		for (const actor of Array.from(this.actors)) {
 			actor.levelStarted?.()
 			actor.onCreation?.()
-			actor.noSlidingBonk = iterableSome(
-				actor.tile.allActors,
-				val => !!val.slidingPlayableShouldntBonk
-			)
-			if (actor.noSlidingBonk && actor instanceof Playable)
-				actor.hasOverride = true
 		}
 		onLevelStart.forEach(val => val(this))
 	}
 
-	constructor(public width: number, public height: number) {
+	constructor(
+		public width: number,
+		public height: number
+	) {
 		//Init field
 		this.field = []
 		for (let x = 0; x < width; x++) {
@@ -306,7 +312,7 @@ export function createLevelFromData(data: LevelData): LevelState {
 		level.blob4PatternsMode = data.blobMode === 4
 	}
 	level.cameraType = data.camera
-	level.timeLeft = Math.max(0, data.timeLimit * 60 - 1)
+	level.timeLeft = Math.max(0, data.timeLimit * 60)
 	if (data.playablesRequiredToExit !== "all")
 		level.playablesLeft = data.playablesRequiredToExit
 	level.hideWires = !!data.hideWires

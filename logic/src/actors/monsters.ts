@@ -320,11 +320,16 @@ export class LitTNT extends Monster {
 			// it means that the playable sneaked through the ring we are nuking this subtick
 			// by moving closer to the dynamite
 			for (const tile of this.tile.getDiamondSearch(this.explosionStage - 1)) {
-				if (
-					tile.findActor(actor =>
-						actor.getCompleteTags("tags").includes("real-playable")
-					)
-				) {
+				const playable = tile.findActor(actor =>
+					actor.getCompleteTags("tags").includes("real-playable")
+				)
+				if (!playable || !playable.oldTile) continue
+				// Also check if the playable was actually on a nuked tile last
+				// subtick, "sneaking" onto a 2-tile from outside the explosion range
+				// is 100% legal
+				const xOff = Math.abs(playable.oldTile.x - this.tile.x)
+				const yOff = Math.abs(playable.oldTile.y - this.tile.y)
+				if (xOff + yOff === this.explosionStage && xOff < 3 && yOff < 3) {
 					this.level.addGlitch({
 						glitchKind: GlitchInfo.KnownGlitches.DYNAMITE_EXPLOSION_SNEAKING,
 						location: { x: tile.x, y: tile.y },

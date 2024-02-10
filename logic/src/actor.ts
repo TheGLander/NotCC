@@ -187,7 +187,7 @@ export abstract class Actor implements Wirable {
 		this.bonked = false
 		this.moveDecision = Decision.NONE
 
-		if (this.cooldown) return // This is where the decision *actually* begins
+		if (this.cooldown || this.frozen) return // This is where the decision *actually* begins
 		this.currentMoveSpeed = null
 		this.isPushing = false
 		if (this.pendingDecision) {
@@ -343,7 +343,6 @@ export abstract class Actor implements Wirable {
 	}
 	enterTile(noOnTile = false): void {
 		let thisActor: Actor = this
-		this.noSlidingBonk = false
 		if (thisActor.oldTile) {
 			for (const actor of thisActor.oldTile.allActorsReverse) {
 				if (!thisActor._internalIgnores(actor)) {
@@ -355,10 +354,6 @@ export abstract class Actor implements Wirable {
 		for (const actor of thisActor.tile.allActorsReverse) {
 			if (actor === thisActor) continue
 			const notIgnores = !thisActor._internalIgnores(actor)
-			if (actor.slidingPlayableShouldntBonk && notIgnores)
-				this.noSlidingBonk = true
-			if (this.noSlidingBonk && hasOwnProperty(this, "hasOverride"))
-				this.hasOverride = true
 			if (notIgnores) actor.actorCompletelyJoined?.(thisActor)
 			else actor.actorCompletelyJoinedIgnored?.(thisActor)
 			if (thisActor.newActor) thisActor = thisActor.newActor
@@ -398,8 +393,12 @@ export abstract class Actor implements Wirable {
 	 * @param pushBlocks If true, it will push blocks
 	 * @returns If the actor *can* move in that direction
 	 */
-	checkCollision(direction: Direction, exitOnly = false, pull = true): boolean {
-		return this.checkCollisionFromTile(this.tile, direction, exitOnly, pull)
+	checkCollision(
+		direction: Direction,
+		redirectOnly = false,
+		pull = true
+	): boolean {
+		return this.checkCollisionFromTile(this.tile, direction, redirectOnly, pull)
 	}
 	/**
 	 * Checks if a specific actor can move in a certain direction to a certain tile
@@ -413,7 +412,7 @@ export abstract class Actor implements Wirable {
 		this: Actor,
 		fromTile: Tile,
 		direction: Direction,
-		exitOnly = false,
+		redirectOnly = false,
 		pull = true
 	): boolean {
 		// This is a pass by reference-esque thing, please don't die of cring
@@ -422,8 +421,7 @@ export abstract class Actor implements Wirable {
 		// Do stuff on the leaving tile
 
 		for (const exitActor of fromTile.allActorsReverse)
-			if (exitActor._internalExitBlocks(this, direction)) {
-				if (exitOnly && !exitActor.persistOnExitOnlyCollision) continue
+			if (!redirectOnly && exitActor._internalExitBlocks(this, direction)) {
 				exitActor.bumped?.(this, direction)
 				this.bumpedActor?.(exitActor, direction, true)
 				return false
@@ -441,7 +439,7 @@ export abstract class Actor implements Wirable {
 				this.onRedirect?.((redirection - direction + 4) % 4)
 				this.level.resolvedCollisionCheckDirection = direction = redirection
 			}
-		if (exitOnly) return true
+		if (redirectOnly) return true
 		const newTile = fromTile.getNeighbor(direction, false)
 		if (newTile === null) {
 			this.bumpedEdge?.(fromTile, direction)
@@ -517,6 +515,7 @@ export abstract class Actor implements Wirable {
 				}
 				pulledActor.isPulled = true
 				pulledActor.direction = direction
+				if (pulledActor.frozen) continue
 				pulledActor.pendingDecision = pulledActor.moveDecision = direction + 1
 			}
 		}
@@ -622,6 +621,9 @@ export abstract class Actor implements Wirable {
 		}
 		for (const thing of this.tile.allActors) {
 			thing.actorDestroyed?.(this)
+		}
+		for (const item of this.inventory.items) {
+			item.onCarrierDestroyed?.(this)
 		}
 		return true
 	}
@@ -758,11 +760,9 @@ export abstract class Actor implements Wirable {
 	onCreation?(): void
 	providesPower?: boolean
 	wired = false
-	/**
-	 * If true, this will be actually checked on exit-only collision checks
-	 */
-	persistOnExitOnlyCollision?: boolean
-	slidingPlayableShouldntBonk?: boolean
-	noSlidingBonk = false
 	onRedirect?(delta: number): void
+	/**
+	 * If true, the actor can't move at all
+	 */
+	frozen = false
 }

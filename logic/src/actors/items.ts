@@ -86,6 +86,7 @@ export abstract class Item extends Actor {
 	onCarrierCompleteJoin?(carrier: Actor): void
 	onCarrierJoin?(carrier: Actor): void
 	onCarrierBump?(carrier: Actor, bumpee: Actor, direction: Direction): void
+	onCarrierDestroyed?(carrier: Actor): void
 	canBeDropped?(carrier: Actor): boolean
 }
 
@@ -442,6 +443,9 @@ export class LightningBolt extends Item {
 			carrier.tile.poweringWires = carrier.tile.wires
 	}
 	onDrop(carrier: Actor): void {
+		if (!carrier.tile.hasLayer(Layer.STATIONARY)) carrier.tile.poweringWires = 0
+	}
+	onCarrierDestroyed(carrier: Actor): void {
 		if (!carrier.tile.hasLayer(Layer.STATIONARY)) carrier.tile.poweringWires = 0
 	}
 }
