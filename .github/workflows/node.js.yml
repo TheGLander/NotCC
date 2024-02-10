@@ -27,5 +27,5 @@ jobs:
         with:
           path: testSets
           key: ${{ runner.os }}-test-sets
-      - run: pnpm build-cli
+      - run: pnpm build:cli
       - run: pnpm test -- --sets-dir testSets --sync-dir syncfiles --set cc2lp1 --set CC2LP1V
