@@ -130,7 +130,7 @@ const SidebarTooltip = forwardRef<
 			/>
 			<dialog
 				{...props}
-				open
+				open={props.open || shouldRender}
 				tabIndex={0}
 				ref={fref}
 				class="box static border-none"
@@ -150,7 +150,7 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 		return (
 			<dialog
 				{...props}
-				open
+				open={props.open || shouldRender}
 				ref={dialog => {
 					applyRef(ref, dialog)
 					applyRef(fref, dialog)
@@ -232,6 +232,7 @@ export function Sidebar() {
 	const { get, set } = useStore()
 	useEffect(() => {
 		const listener = (ev: KeyboardEvent) => {
+			if (document.querySelector("dialog[open]")) return
 			for (const action of sidebarActions) {
 				if (!action.shortcut) continue
 				if (!isHotkey(action.shortcut)(ev)) continue
