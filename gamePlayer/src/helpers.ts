@@ -142,3 +142,10 @@ export class AnimationTimer {
 		cancelAnimationFrame(this.id)
 	}
 }
+
+export function useJotaiFn<A extends unknown[], R>(
+	fn: (get: Getter, set: Setter, ...args: A) => R
+): (...args: A) => R {
+	const { get, set } = useStore()
+	return (...args) => fn(get, set, ...args)
+}

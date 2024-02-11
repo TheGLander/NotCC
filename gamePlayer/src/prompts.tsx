@@ -1,4 +1,4 @@
-import { atom, useAtom, useAtomValue } from "jotai"
+import { atom, useAtomValue } from "jotai"
 import { ComponentType } from "preact"
 import { ReactNode } from "preact/compat"
 
@@ -15,19 +15,6 @@ export type PromptComponent<R> = ComponentType<{
 
 const promptsAtom = atom<Prompt<unknown>[]>([])
 
-export function useShowPrompt(): <T>(
-	Prompt: PromptComponent<T>,
-	uniqueIdent?: unknown
-) => Promise<T> {
-	const [prompts, setPrompts] = useAtom(promptsAtom)
-	return (Prompt, uniqueIdent?: unknown) =>
-		showPrompt(
-			() => prompts,
-			(_, val) => setPrompts(val),
-			Prompt,
-			uniqueIdent
-		)
-}
 export function showPrompt<T>(
 	get: (atom: typeof promptsAtom) => Prompt<unknown>[],
 	set: (atom: typeof promptsAtom, val: Prompt<unknown>[]) => void,
