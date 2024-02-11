@@ -183,7 +183,9 @@ function SidebarButton(props: {
 	}
 	const useDrawer = !globalThis.window
 		? false
-		: !useMediaQuery({ query: "(min-width: 768px)" })
+		: !useMediaQuery({
+				query: "(min-width: 768px) and (min-aspect-ratio: 1/1)",
+		  })
 	const SidebarChooser = useDrawer ? SidebarDrawer : SidebarTooltip
 
 	return (
