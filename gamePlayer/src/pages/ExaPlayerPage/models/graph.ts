@@ -1,5 +1,5 @@
 import { GameState, KeyInputs, LevelState } from "@notcc/logic"
-import { makeLevelHash } from "../hash"
+import { HashSettings, makeLevelHash } from "../hash"
 import {
 	MoveSeqenceInterval,
 	MoveSequence,
@@ -10,9 +10,12 @@ import {
 class GraphMoveSequence extends MoveSequence {
 	hashes: number[] = []
 	snapshotOffset = 1
+	constructor(public hashSettings: HashSettings) {
+		super()
+	}
 	_add_tickLevel(input: KeyInputs, level: LevelState): void {
 		super._add_tickLevel(input, level)
-		this.hashes.push(makeLevelHash(level))
+		this.hashes.push(makeLevelHash(level, this.hashSettings))
 	}
 	get lastHash() {
 		return this.hashes[this.tickLen - 1]
@@ -30,12 +33,17 @@ class GraphMoveSequence extends MoveSequence {
 class Node {
 	level: LevelState
 	hash: number
-	constructor(level: LevelState | Node) {
+	hashSettings: HashSettings
+	constructor(node: Node)
+	constructor(level: LevelState, hashSettings: HashSettings)
+	constructor(level: LevelState | Node, hashSettings?: HashSettings) {
 		if (level instanceof Node) {
 			this.hash = level.hash
 			this.level = level.level
+			this.hashSettings = level.hashSettings
 		} else {
-			this.hash = makeLevelHash(level)
+			this.hashSettings = hashSettings!
+			this.hash = makeLevelHash(level, hashSettings!)
 			this.level = level
 		}
 	}
@@ -163,14 +171,17 @@ export class GraphModel {
 	current: MovePtr | Node
 	nodeHashMap: Map<number, Node> = new Map()
 	hashMap: Map<number, MovePtr> = new Map()
-	constructor(public level: LevelState) {
-		this.rootNode = this.current = new Node(level)
+	constructor(
+		public level: LevelState,
+		public hashSettings: HashSettings
+	) {
+		this.rootNode = this.current = new Node(level, hashSettings)
 		this.nodeHashMap.set(this.rootNode.hash, this.rootNode)
 	}
 	addInput(input: KeyInputs): void {
 		let node: Node, moveSeq: GraphMoveSequence, parent: Node
 		if (!(this.current instanceof Node)) {
-			moveSeq = new GraphMoveSequence()
+			moveSeq = new GraphMoveSequence(this.hashSettings)
 			moveSeq.add(input, this.level)
 			const curMoveSeq = this.current.m.moves.slice(this.current.o)
 			if (moveSeq.moves.every((move, i) => curMoveSeq[i] === move)) {
@@ -201,7 +212,7 @@ export class GraphModel {
 			node.level = this.level
 			this.current = node
 		} else if (this.current.major || this.current === this.rootNode) {
-			moveSeq = new GraphMoveSequence()
+			moveSeq = new GraphMoveSequence(this.hashSettings)
 			this.level = cloneLevel(this.level)
 			moveSeq.add(input, this.level)
 			for (const [node, conns] of this.current.outConns) {

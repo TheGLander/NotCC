@@ -88,7 +88,7 @@ export async function openExaCC(get: Getter, set: Setter) {
 	if (openEv.model === "linear") {
 		model = new LinearModel(level)
 	} else if (openEv.model === "graph") {
-		model = new GraphModel(level)
+		model = new GraphModel(level, {})
 	} else {
 		throw new Error("Unsupported model :(")
 	}
