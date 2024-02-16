@@ -205,7 +205,7 @@ export function ExaPlayerPage() {
 
 	return (
 		<div class="flex h-full w-full">
-			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr/auto_1fr]">
+			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr/auto_min-content]">
 				<div class="box row-span-2">
 					<Render level={levelRef} renderRef={renderRef1} />
 				</div>
@@ -214,7 +214,7 @@ export function ExaPlayerPage() {
 					<Inv level={levelRef} renderRef={renderRef2} />
 					<div>blablahlblahblahhahah</div>
 				</div>
-				<div class="box col-start-2 h-full flex-1">
+				<div class="box col-start-2 h-full">
 					{model instanceof LinearModel && (
 						<LinearView model={model} inputs={inputs} />
 					)}
