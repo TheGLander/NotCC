@@ -88,7 +88,12 @@ export async function openExaCC(get: Getter, set: Setter) {
 	if (openEv.model === "linear") {
 		model = new LinearModel(level)
 	} else if (openEv.model === "graph") {
-		model = new GraphModel(level, {})
+		model = new GraphModel(level, {
+			ignoreBlockOrder: true,
+			ignoreFloorMimicParity: true,
+			ignoreTeethParity: true,
+			ignorePlayerBump: true,
+		})
 	} else {
 		throw new Error("Unsupported model :(")
 	}
