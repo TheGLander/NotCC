@@ -55,9 +55,18 @@ function Inv(props: {
 	renderRef: Ref<(() => void) | undefined>
 }) {
 	const tileset = useAtomValue(tilesetAtom)
+	const invRef = useMemo(
+		() => ({
+			get current() {
+				return props.level.current.selectedPlayable!.inventory
+			},
+			set current(_val) {},
+		}),
+		[props.level]
+	)
 	return (
 		<Inventory
-			inventory={props.level.current.selectedPlayable!.inventory}
+			inventory={invRef}
 			renderRef={props.renderRef}
 			tileset={tileset!}
 			tileScale={3}
