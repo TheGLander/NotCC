@@ -22,6 +22,9 @@ import { AboutPrompt } from "../AboutDialog"
 import { applyRef } from "@/helpers"
 import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
+import { Dialog } from "../Dialog"
+import { ScopePrompt } from "@/pages/ExaPlayer/ScopePrompt"
+import { openExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
 
 interface SidebarAction {
 	label: string
@@ -272,7 +275,11 @@ export function Sidebar() {
 					<ChooserButton label="All attempts" shortcut="Shift+A" />
 				</SidebarButton>
 				<SidebarButton icon={clockIcon}>
-					<ChooserButton label="Toggle ExaCC" shortcut="Shift+X" />
+					<ChooserButton
+						label="Toggle ExaCC"
+						shortcut="Shift+X"
+						onTrigger={openExaCC}
+					/>
 				</SidebarButton>
 
 				<SidebarButton icon={toolsIcon} reverse>

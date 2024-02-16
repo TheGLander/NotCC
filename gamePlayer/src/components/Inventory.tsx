@@ -10,11 +10,11 @@ import { applyRef } from "@/helpers"
 import { memo } from "preact/compat"
 
 export const Inventory = memo(function Inventory(props: {
-	inventory: InventoryI
+	inventory: InventoryI | { current: InventoryI }
 	cc1Boots?: boolean
 	tileScale: number
 	tileset: Tileset
-	renderRef?: Ref<() => void>
+	renderRef?: Ref<(() => void) | undefined | null>
 }) {
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
 	const ctx = useMemo(() => canvas?.getContext("2d"), [canvas])
@@ -59,20 +59,24 @@ export const Inventory = memo(function Inventory(props: {
 				sTileSize
 			)
 		}
+		const inv =
+			"current" in props.inventory ? props.inventory.current! : props.inventory
 
-		canvas!.width = props.inventory.itemMax * sTileSize
+		canvas!.width = inv.itemMax * sTileSize
+		canvas!.style.width = `${inv.itemMax * tileSize}px`
 		canvas!.height = 2 * sTileSize
+		canvas!.style.height = `${2 * tileSize}px`
 
 		if (props.cc1Boots) {
 			for (const [idx, itemId] of Object.entries(cc1BootNameList)) {
-				const hasBoot = props.inventory.items.some(item => item.id === itemId)
+				const hasBoot = inv.items.some(item => item.id === itemId)
 				drawFloor(parseInt(idx), 0)
 				if (!hasBoot) continue
 				drawItem(itemId, parseInt(idx), 0)
 			}
 		} else {
-			for (let idx = 0; idx < props.inventory.itemMax; idx += 1) {
-				const item = props.inventory.items[idx]
+			for (let idx = 0; idx < inv.itemMax; idx += 1) {
+				const item = inv.items[idx]
 				drawFloor(idx, 0)
 				if (item) {
 					drawItem(item.id, idx, 0)
@@ -81,7 +85,7 @@ export const Inventory = memo(function Inventory(props: {
 		}
 		for (const [idxStr, keyId] of Object.entries(keyNameList)) {
 			const idx = parseInt(idxStr)
-			const keyN = props.inventory.keys[keyId]?.amount
+			const keyN = inv.keys[keyId]?.amount
 
 			drawFloor(idx, 1)
 			if (!keyN || keyN < 1) continue
@@ -105,7 +109,7 @@ export const Inventory = memo(function Inventory(props: {
 	}, [props.tileset, props.cc1Boots, props.tileScale, ctx, props.inventory])
 	useEffect(() => {
 		render()
-	}, [ctx])
+	}, [render])
 
 	useEffect(() => {
 		if (props.renderRef) {
@@ -117,12 +121,6 @@ export const Inventory = memo(function Inventory(props: {
 		<canvas
 			class="[image-rendering:pixelated]"
 			ref={ref => setCanvas(ref)}
-			width={props.inventory.itemMax * sTileSize}
-			height={2 * sTileSize}
-			style={{
-				width: `${props.inventory.itemMax * tileSize}px`,
-				height: `${2 * tileSize}px`,
-			}}
 		></canvas>
 	)
 })

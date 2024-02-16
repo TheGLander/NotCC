@@ -304,6 +304,7 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 				<GameRenderer
 					tileset={tileset}
 					level={level}
+					cameraType={level.cameraType}
 					autoDraw={autoTick}
 					tileScale={scale}
 				/>

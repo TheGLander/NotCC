@@ -8,6 +8,7 @@ import { levelAtom, levelSetAtom, resolveHashLevel } from "./levelData"
 import { EffectFn, ignorantAtomEffectHook } from "./helpers"
 import { preferenceWritingAtom } from "./preferences"
 import { atomEffect } from "jotai-effect"
+import { ExaPlayerPage } from "./pages/ExaPlayerPage"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -73,6 +74,11 @@ const pages: Partial<Record<string, Page>> = {
 	"": { component: SetSelectorPage },
 	play: {
 		component: LevelPlayerPage,
+		requiresLevel: true,
+		isLevelPlayer: true,
+	},
+	exa: {
+		component: ExaPlayerPage,
 		requiresLevel: true,
 		isLevelPlayer: true,
 	},

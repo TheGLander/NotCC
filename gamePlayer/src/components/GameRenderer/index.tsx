@@ -1,18 +1,19 @@
-import { useEffect, useMemo, useState } from "preact/hooks"
+import { useCallback, useLayoutEffect, useMemo, useState } from "preact/hooks"
 import { Renderer, Tileset } from "./renderer"
-import { LevelState } from "@notcc/logic"
-import { Ref } from "preact"
+import { CameraType, LevelState } from "@notcc/logic"
+import { Ref as RefG } from "preact"
 import { AnimationTimer, applyRef } from "@/helpers"
 import { twJoin } from "tailwind-merge"
 import { memo } from "preact/compat"
 
 export interface GameRendererProps {
 	tileset: Tileset
-	level: LevelState
+	level: LevelState | { current: LevelState }
 	tileScale?: number
 	class?: string
 	autoDraw?: boolean
-	renderRef?: Ref<() => void>
+	renderRef?: RefG<(() => void) | null | undefined>
+	cameraType: CameraType
 }
 
 export const GameRenderer = memo(function GameRenderer(
@@ -25,17 +26,18 @@ export const GameRenderer = memo(function GameRenderer(
 		() => canvas?.getContext("2d", { alpha: false }),
 		[canvas]
 	)
-	useEffect(() => {
-		renderer.level = props.level
-		renderer.cameraSize = props.level.cameraType
+	useLayoutEffect(() => {
+		renderer.level =
+			"current" in props.level ? props.level.current : props.level
+		renderer.cameraSize = props.cameraType ?? renderer.level!.cameraType
 		renderer.tileset = props.tileset
 		if (canvas) {
 			renderer.updateTileSize(canvas)
 			renderer.frame(ctx!)
 		}
-	}, [props.tileset, props.level, canvas])
+	}, [props.tileset, props.cameraType, props.level, canvas])
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (!props.autoDraw || !ctx) return
 		let lastTick = -1
 		const timer = new AnimationTimer(() => {
@@ -46,12 +48,22 @@ export const GameRenderer = memo(function GameRenderer(
 		})
 		return () => timer.cancel()
 	}, [ctx, props.autoDraw])
-
-	useEffect(() => {
-		if (props.renderRef) {
-			applyRef(props.renderRef, () => renderer.frame(ctx!))
+	useLayoutEffect(() => {
+		if (ctx) {
+			renderer.frame(ctx)
 		}
-	}, [ctx, props.renderRef])
+	})
+	const render = useCallback(() => {
+		if ("current" in props.level) {
+			renderer.level = props.level.current
+		}
+		renderer.frame(ctx!)
+	}, [ctx, props.level])
+
+	useLayoutEffect(() => {
+		if (!props.renderRef) return
+		applyRef(props.renderRef, render)
+	}, [render, props.renderRef])
 
 	return (
 		<canvas
@@ -60,12 +72,12 @@ export const GameRenderer = memo(function GameRenderer(
 			style={{
 				width: `${
 					props.tileset.tileSize *
-					props.level.cameraType.width *
+					props.cameraType.width *
 					(props.tileScale ?? 1)
 				}px`,
 				height: `${
 					props.tileset.tileSize *
-					props.level.cameraType.height *
+					props.cameraType.height *
 					(props.tileScale ?? 1)
 				}px`,
 			}}

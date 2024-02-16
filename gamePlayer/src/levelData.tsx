@@ -13,6 +13,7 @@ import {
 	levelNAtom,
 	levelSetIdentAtom,
 	pageAtom,
+	pageNameAtom,
 	preventImmediateHashUpdateAtom,
 	searchParamsAtom,
 } from "./routing"
@@ -261,7 +262,9 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 		if (buf[0] == 0x78) {
 			buf = await unzlibAsync(buf)
 		}
-		set(pageAtom, "play")
+		if (get(pageNameAtom) === "") {
+			set(pageAtom, "play")
+		}
 		set(levelAtom, Promise.resolve(parseC2M(buf.buffer)))
 		set(levelSetIdentAtom, CUSTOM_LEVEL_SET_IDENT)
 		if (levelN === null) {

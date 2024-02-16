@@ -4,6 +4,8 @@ import { PluginOption, defineConfig } from "vite"
 import preact from "@preact/preset-vite"
 import { VitePWA } from "vite-plugin-pwa"
 import { readFileSync } from "fs"
+import jotaiDebugLabel from "jotai/babel/plugin-debug-label"
+import jotaiReactRefresh from "jotai/babel/plugin-react-refresh"
 
 process.env["VITE_LAST_COMMIT_INFO"] = execSync(
 	`git log -1 --format="%s (%h) at %cI"`
@@ -39,7 +41,7 @@ const prodBuild = !process.env.SSG && process.env.NODE_ENV === "production"
 
 export default defineConfig({
 	plugins: [
-		preact(),
+		preact({ babel: { plugins: [jotaiDebugLabel, jotaiReactRefresh] } }),
 		VitePWA({
 			registerType: "autoUpdate",
 			workbox: {
