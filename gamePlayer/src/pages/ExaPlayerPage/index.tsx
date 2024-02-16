@@ -90,15 +90,17 @@ function GraphView(props: {
 						}}
 					>
 						{node === props.model.current && "> "}
-						{node === props.model.rootNode && "root "}
-						{node.major || node === props.model.rootNode
-							? "major"
-							: "minor"}{" "}
-						{node.hash}: {node.outConns.size === 0 && "none"}
+						{node === props.model.rootNode
+							? "root"
+							: node.major
+							  ? "major"
+							  : "minor"}{" "}
+						{(node.hash >>> 0).toString(16)}:{" "}
+						{node.outConns.size === 0 && "none"}
 						{Array.from(node.outConns.entries())
 							.map(
 								([node, seqs]) =>
-									` to ${node.hash}: ${seqs
+									` to ${(node.hash >>> 0).toString(16)}: ${seqs
 										.map(seq => seq.displayMoves.join(""))
 										.join()}`
 							)
