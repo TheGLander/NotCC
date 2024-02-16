@@ -45,7 +45,7 @@ function NewProject(props: { onSubmit: (ev: ExaOpenEvent) => void }) {
 					branch containing the input and all previous moves.
 				</p>
 				<label>
-					<input type="radio" name={radioName} value="Graph" /> Graph
+					<input type="radio" name={radioName} value="graph" /> Graph
 				</label>
 				<p class="text-sm">
 					Move sequences are treated as bridges between level states, new inputs
