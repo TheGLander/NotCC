@@ -7,7 +7,7 @@ import {
 	cloneLevel,
 } from "./linear"
 
-class GraphMoveSequence extends MoveSequence {
+export class GraphMoveSequence extends MoveSequence {
 	hashes: number[] = []
 	snapshotOffset = 1
 	constructor(public hashSettings: HashSettings) {
@@ -30,7 +30,7 @@ class GraphMoveSequence extends MoveSequence {
 	}
 }
 
-class Node {
+export class Node {
 	level: LevelState
 	hash: number
 	hashSettings: HashSettings
@@ -154,6 +154,9 @@ class Node {
 			seq1.merge(seq2)
 			seqs.push(seq1)
 		}
+	}
+	getHashName(): string {
+		return (this.hash >>> 0).toString(16)
 	}
 }
 

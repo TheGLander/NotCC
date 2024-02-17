@@ -59,8 +59,9 @@ function hashActor(crc: CRC32, actor: Actor, settings: HashSettings) {
 	if (actor.isDeciding) {
 		crc.feed8(actor.cooldown)
 		if (
-			!(settings.ignoreBlockOrder && actor.tags?.includes("block")) &&
-			!(actor instanceof Playable && settings.ignorePlayerDir)
+			actor.slidingState ||
+			(!(settings.ignoreBlockOrder && actor.tags?.includes("block")) &&
+				!(actor instanceof Playable && settings.ignorePlayerDir))
 		) {
 			crc.feed8(actor.direction)
 		}

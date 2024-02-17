@@ -26,7 +26,7 @@ import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
 
 // A TW unit is 0.25rem
-function twUnit(tw: number): number {
+export function twUnit(tw: number): number {
 	const rem = parseFloat(getComputedStyle(document.body).fontSize)
 	return rem * tw * 0.25
 }

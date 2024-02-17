@@ -16,6 +16,7 @@ import { TimeoutTimer, useJotaiFn } from "@/helpers"
 import { keyToInputMap } from "@/inputs"
 import { openExaCC as openExaCCgs } from "./OpenExaPrompt"
 import { Inventory } from "@/components/Inventory"
+import { GraphView } from "./GraphView"
 
 export const modelAtom = atom<LinearModel | GraphModel | null>(null)
 // function useModel() {
@@ -83,59 +84,6 @@ function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 	)
 }
 
-function GraphView(props: {
-	model: GraphModel
-	inputs: KeyInputs
-	updateLevel: () => void
-}) {
-	return (
-		<div>
-			<div class="bg-theme-950 h-full w-full rounded">
-				{Array.from(props.model.nodeHashMap.values()).map(node => (
-					<div
-						onClick={() => {
-							props.model.goTo(node)
-							props.updateLevel()
-						}}
-					>
-						{node === props.model.current && "> "}
-						{node === props.model.rootNode
-							? "root"
-							: node.major
-							  ? "major"
-							  : "minor"}{" "}
-						{(node.hash >>> 0).toString(16)}:{" "}
-						{node.outConns.size === 0 && "none"}
-						{Array.from(node.outConns.entries())
-							.map(
-								([node, seqs]) =>
-									` to ${(node.hash >>> 0).toString(16)}: ${seqs
-										.map(seq => seq.displayMoves.join(""))
-										.join()}`
-							)
-							.join(";")}
-					</div>
-				))}
-			</div>
-			<button
-				onClick={() => {
-					props.model.undo()
-					props.updateLevel()
-				}}
-			>
-				Undo
-			</button>
-			<button
-				onClick={() => {
-					props.model.redo()
-					props.updateLevel()
-				}}
-			>
-				Redo
-			</button>
-		</div>
-	)
-}
 export function ExaPlayerPage() {
 	const levelData = useSwrLevel()
 	if (!levelData) return <div class="box m-auto">Loading™ level...</div>

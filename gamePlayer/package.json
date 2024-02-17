@@ -48,5 +48,8 @@
 		"vite": "^4.5.0",
 		"vite-plugin-pwa": "^0.17.4",
 		"workbox-window": "^7.0.0"
+	},
+	"dependencies": {
+		"@dagrejs/dagre": "^1.0.4"
 	}
 }
