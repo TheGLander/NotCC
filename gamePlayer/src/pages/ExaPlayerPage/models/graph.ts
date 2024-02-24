@@ -409,7 +409,7 @@ export class GraphModel {
 		while (nodesToVisit.length > 0) {
 			const node = nodesToVisit.shift()!
 			for (const [tNode, conns] of node.outConns.entries()) {
-				if (node.rootDepth > tNode.rootDepth || node === tNode) {
+				if (node.rootDepth >= tNode.rootDepth || node === tNode) {
 					for (const conn of conns) {
 						backConns.push({ n: node, m: conn })
 					}
