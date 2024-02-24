@@ -1,4 +1,4 @@
-import { KeyInputs } from "@notcc/logic"
+import { GameState, KeyInputs } from "@notcc/logic"
 import { GraphModel, GraphMoveSequence } from "./models/graph"
 import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin } from "tailwind-merge"
@@ -184,11 +184,13 @@ function SvgView(props: GraphViewProps) {
 						<circle
 							class={twJoin(
 								node === props.model.current && "stroke-theme-300",
-								node === props.model.rootNode && "fill-zinc-500",
-								!node.loose &&
-									node !== props.model.rootNode &&
-									"fill-theme-600",
-								node.loose && "fill-theme-400"
+								node === props.model.rootNode
+									? "fill-zinc-500"
+									: node.loose
+									  ? "fill-theme-400"
+									  : node.level.gameState === GameState.WON
+									    ? "fill-cyan-400"
+									    : "fill-theme-600"
 							)}
 							strokeWidth={OUTLINE_WIDTH}
 							r={twUnit(4)}
@@ -207,13 +209,53 @@ function SvgView(props: GraphViewProps) {
 	)
 }
 
+export function Infobox(props: GraphViewProps) {
+	const model = props.model
+	if ("m" in model.current || model.current.loose) {
+		let seq: GraphMoveSequence
+		let offset: number
+		if ("m" in model.current) {
+			seq = model.current.m
+			offset = model.current.o
+		} else {
+			seq = model.current.getLooseMoveSeq()
+			offset = -1
+		}
+		return (
+			<>
+				{"m" in model.current ? "Edge" : "Loose node"}
+				<br />
+				<span>{seq.displayMoves.slice(0, offset).join("")}</span>
+				<span class="text-zinc-400">
+					{seq.displayMoves.slice(offset).join("")}
+				</span>
+			</>
+		)
+	}
+	return (
+		<>
+			{model.current === model.rootNode
+				? "Root node"
+				: model.current.level.gameState === GameState.WON
+				  ? "Winning node"
+				  : "Node"}
+			<br />
+			Connections: {model.current.inNodes.length} in,{" "}
+			{model.current.outNodes.length} out
+		</>
+	)
+}
+
 export function GraphView(props: GraphViewProps) {
 	return (
-		<div class="flex h-full flex-col">
+		<div class="flex h-full flex-col gap-2">
 			<div class="bg-theme-950 relative h-full flex-1 overflow-auto scroll-smooth rounded">
 				<SvgView {...props} />
 			</div>
-			<div>
+			<div class="bg-theme-950 relative h-32 rounded p-1">
+				<Infobox {...props} />
+			</div>
+			<div class="flex justify-between">
 				<button
 					onClick={() => {
 						props.model.undo()
