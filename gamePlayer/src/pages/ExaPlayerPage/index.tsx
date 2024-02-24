@@ -8,6 +8,7 @@ import {
 	CameraType,
 	KeyInputs,
 	LevelState,
+	calculateLevelPoints,
 	keyInputToChar,
 	makeEmptyInputs,
 } from "@notcc/logic"
@@ -166,10 +167,22 @@ export function ExaPlayerPage() {
 				<div class="box row-span-2">
 					<Render level={levelRef} renderRef={renderRef1} />
 				</div>
-				{/* <div class="flex flex-col gap-2"> */}
-				<div class="box col-start-2 flex flex-row gap-2">
-					<Inv level={levelRef} renderRef={renderRef2} />
-					<div>blablahlblahblahhahah</div>
+				<div class="box col-start-2 grid w-auto items-center justify-items-end gap-2 gap-x-2 whitespace-nowrap text-end [grid-template-columns:repeat(3,auto);]">
+					<div class="row-span-3">
+						<Inv level={levelRef} renderRef={renderRef2} />
+					</div>
+					<div>Chips left:</div>
+					<div>{model.level.chipsLeft}</div>
+					<div>Bonus points:</div>
+					<div>{model.level.bonusPoints}</div>
+					<div>Total points:</div>
+					<div>
+						{calculateLevelPoints(
+							0,
+							Math.ceil(model.level.timeLeft / 60),
+							model.level.bonusPoints
+						)}
+					</div>
 				</div>
 				<div class="box col-start-2 h-full">
 					{model instanceof LinearModel && (
