@@ -33,6 +33,7 @@ export class GraphMoveSequence extends MoveSequence {
 export class Node {
 	level: LevelState
 	hash: number
+	rootDepth: number = 0
 	hashSettings: HashSettings
 	constructor(node: Node)
 	constructor(level: LevelState, hashSettings: HashSettings)
@@ -74,7 +75,25 @@ export class Node {
 		child.inNodes.push(this)
 		this.outConns.set(child, [inputs])
 		child.hash = inputs.lastHash
+		child.rootDepth = this.rootDepth + 1
 		return child
+	}
+	recalcRootDepth() {
+		if (this.rootDepth === 0) return
+		let bestDepth = Infinity
+		for (const node of this.inNodes) {
+			if (node.rootDepth < bestDepth) {
+				bestDepth = node.rootDepth
+			}
+		}
+		if (bestDepth + 1 === this.rootDepth) return
+		const nodesToRecalc = Array.from(this.outConns.keys()).filter(
+			node => node.rootDepth > this.rootDepth
+		)
+		this.rootDepth = bestDepth + 1
+		for (const node of nodesToRecalc) {
+			node.recalcRootDepth()
+		}
 	}
 	moveConnections(newNode: Node, oldNode: Node) {
 		if (newNode === oldNode) return
@@ -90,6 +109,8 @@ export class Node {
 			oldNode.inNodes.splice(oldNode.inNodes.indexOf(this), 1)
 			newNode.inNodes.push(this)
 		}
+		oldNode.recalcRootDepth()
+		newNode.recalcRootDepth()
 	}
 	findConnectedNode(seq: GraphMoveSequence): Node | undefined {
 		return Array.from(this.outConns.entries()).find(([, seqs]) =>
@@ -105,6 +126,7 @@ export class Node {
 			this.outConns.delete(endNode)
 		}
 		endNode.inNodes.splice(endNode.inNodes.indexOf(this), 1)
+		endNode.recalcRootDepth()
 	}
 	insertNodeOnSeq(
 		seq: GraphMoveSequence,
@@ -132,6 +154,7 @@ export class Node {
 		}
 		midNode.outConns.set(endNode, [seq2])
 		endNode.inNodes.push(midNode)
+		endNode.recalcRootDepth()
 		return { node: midNode, seq1: seq, seq2 }
 	}
 	getLooseMoveSeq(): GraphMoveSequence {
@@ -382,23 +405,18 @@ export class GraphModel {
 	}
 	findBackfeedConns(): ConnPtr[] {
 		const nodesToVisit: Node[] = [this.rootNode]
-		const nodeDists = new WeakMap<Node, number>()
 		const backConns: ConnPtr[] = []
-		nodeDists.set(this.rootNode, 0)
 		while (nodesToVisit.length > 0) {
 			const node = nodesToVisit.shift()!
-			const dist = nodeDists.get(node)!
 			for (const [tNode, conns] of node.outConns.entries()) {
-				const tDist = nodeDists.get(tNode)
-				if (tDist !== undefined && (dist > tDist || tNode === node)) {
+				if (node.rootDepth > tNode.rootDepth || node === tNode) {
 					for (const conn of conns) {
 						backConns.push({ n: node, m: conn })
 					}
 				} else {
-					if (tDist === undefined) {
+					if (!nodesToVisit.includes(tNode)) {
 						nodesToVisit.push(tNode)
 					}
-					nodeDists.set(tNode, dist + 1)
 				}
 			}
 		}
