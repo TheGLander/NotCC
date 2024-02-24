@@ -24,11 +24,7 @@ function DebugGraphView(props: GraphViewProps) {
 					}}
 				>
 					{node === props.model.current && "> "}
-					{node === props.model.rootNode
-						? "root"
-						: node.major
-						  ? "major"
-						  : "minor"}{" "}
+					{node === props.model.rootNode ? "r" : node.loose ? "l" : "m "}{" "}
 					{(node.hash >>> 0).toString(16)}: {node.outConns.size === 0 && "none"}
 					{Array.from(node.outConns.entries())
 						.map(
@@ -167,8 +163,10 @@ function SvgView(props: GraphViewProps) {
 							class={twJoin(
 								node === props.model.current && "stroke-theme-300",
 								node === props.model.rootNode && "fill-zinc-500",
-								node.major && node !== props.model.rootNode && "fill-theme-600",
-								!node.major && "fill-theme-400"
+								!node.loose &&
+									node !== props.model.rootNode &&
+									"fill-theme-600",
+								node.loose && "fill-theme-400"
 							)}
 							strokeWidth={OUTLINE_WIDTH}
 							r={twUnit(4)}

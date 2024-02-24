@@ -58,13 +58,15 @@ export class Node {
 		}
 		return nodes
 	}
-	get major(): boolean {
+	get loose(): boolean {
 		return (
-			this.level.gameState === GameState.WON ||
-			this.inNodes.length === 0 ||
-			this.inNodes.length > 1 ||
-			this.outNodes.length > 1
+			this.inNodes.length === 1 &&
+			this.outConns.size === 0 &&
+			this.level.gameState !== GameState.WON
 		)
+	}
+	get dissolvable(): boolean {
+		return this.inNodes.length === 1 && this.outNodes.length === 1
 	}
 
 	newChild(inputs: GraphMoveSequence): Node {
@@ -132,14 +134,14 @@ export class Node {
 		endNode.inNodes.push(midNode)
 		return { node: midNode, seq1: seq, seq2 }
 	}
-	getMinorMoveSeq(): GraphMoveSequence {
+	getLooseMoveSeq(): GraphMoveSequence {
 		if (this.inNodes.length > 1) {
 			throw new Error("Node has multiple move sequences")
 		}
 		return this.inNodes[0].outConns.get(this)![0]
 	}
-	dissolveMinorNode(): void {
-		if (this.major) throw new Error("Can't dissolve major node")
+	dissolveNode(): void {
+		if (!this.dissolvable) throw new Error("Can't dissolve undissolvable node")
 		const parent: Node = this.inNodes[0]
 		const child: Node | undefined = this.outNodes[0]
 		const seq1 = parent.outConns.get(this)![0]
@@ -160,11 +162,14 @@ export class Node {
 	}
 }
 
-interface MovePtr {
+interface ConnPtr {
 	// `i`nput node
 	n: Node
 	// co`n`nection
 	m: GraphMoveSequence
+}
+
+interface MovePtr extends ConnPtr {
 	// o`f`fset
 	o: number
 }
@@ -201,7 +206,7 @@ export class GraphModel {
 				seq2,
 			} = this.current.n.insertNodeOnSeq(this.current.m, this.current.o)
 			parent = parent2
-			// Promote minor node to major
+			// Promote implied, mid-seq node to explicit
 			this.hashMap.delete(parent.hash)
 			this.nodeHashMap.set(parent.hash, parent)
 			for (const hash of seq2.hashes) {
@@ -214,7 +219,7 @@ export class GraphModel {
 			node = parent.newChild(moveSeq)
 			node.level = this.level
 			this.current = node
-		} else if (this.current.major || this.current === this.rootNode) {
+		} else if (!this.current.loose || this.current === this.rootNode) {
 			moveSeq = new GraphMoveSequence(this.hashSettings)
 			this.level = cloneLevel(this.level)
 			moveSeq.add(input, this.level)
@@ -237,7 +242,7 @@ export class GraphModel {
 		} else {
 			node = this.current
 			parent = node.inNodes[0]
-			moveSeq = node.getMinorMoveSeq()
+			moveSeq = node.getLooseMoveSeq()
 			this.nodeHashMap.delete(node.hash)
 			this.hashMap.set(node.hash, {
 				n: parent,
@@ -284,7 +289,7 @@ export class GraphModel {
 			if (!into && this.current.inNodes.length === 1) {
 				into = this.current.inNodes[0].outConns.get(this.current)![0]
 			}
-			if (!into) throw new Error(`into is required for major nodes!`)
+			if (!into) throw new Error(`into is required for multi-input nodes!`)
 			const srcNode =
 				this.current.inNodes.length === 1
 					? this.current.inNodes[0]
@@ -316,7 +321,7 @@ export class GraphModel {
 			if (!into && this.current.outNodes.length === 1) {
 				into = Array.from(this.current.outConns.values())[0][0]
 			}
-			if (!into) throw new Error(`into is required for major nodes!`)
+			if (!into) throw new Error(`into is required for multi-out nodes!`)
 			this.current = {
 				n: this.current,
 				m: into,
@@ -348,16 +353,17 @@ export class GraphModel {
 	buildReferences() {
 		this.nodeHashMap.clear()
 		this.hashMap.clear()
+		this.rootNode.inNodes = []
 		const nodesToVisit: Node[] = [this.rootNode]
 		const visitedNodes = new WeakSet<Node>()
 		while (nodesToVisit.length > 0) {
 			const node = nodesToVisit.shift()!
-			node.inNodes = []
 			visitedNodes.add(node)
 			this.nodeHashMap.set(node.hash, node)
 			for (const [tNode, conns] of node.outConns.entries()) {
 				if (!visitedNodes.has(tNode)) {
 					nodesToVisit.push(tNode)
+					tNode.inNodes = []
 				}
 				for (const conn of conns) {
 					tNode.inNodes.push(node)
@@ -373,5 +379,29 @@ export class GraphModel {
 				}
 			}
 		}
+	}
+	findBackfeedConns(): ConnPtr[] {
+		const nodesToVisit: Node[] = [this.rootNode]
+		const nodeDists = new WeakMap<Node, number>()
+		const backConns: ConnPtr[] = []
+		nodeDists.set(this.rootNode, 0)
+		while (nodesToVisit.length > 0) {
+			const node = nodesToVisit.shift()!
+			const dist = nodeDists.get(node)!
+			for (const [tNode, conns] of node.outConns.entries()) {
+				const tDist = nodeDists.get(tNode)
+				if (tDist !== undefined && (dist > tDist || tNode === node)) {
+					for (const conn of conns) {
+						backConns.push({ n: node, m: conn })
+					}
+				} else {
+					if (tDist === undefined) {
+						nodesToVisit.push(tNode)
+					}
+					nodeDists.set(tNode, dist + 1)
+				}
+			}
+		}
+		return backConns
 	}
 }
