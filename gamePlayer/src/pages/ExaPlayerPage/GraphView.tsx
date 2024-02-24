@@ -230,6 +230,17 @@ export function GraphView(props: GraphViewProps) {
 				>
 					Redo
 				</button>
+				<button
+					onClick={() => {
+						for (const ptr of props.model.findBackfeedConns()) {
+							ptr.n.removeConnection(ptr.m)
+						}
+						props.model.buildReferences()
+						props.updateLevel()
+					}}
+				>
+					Prune backfeed
+				</button>
 			</div>
 		</div>
 	)
