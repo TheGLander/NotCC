@@ -1,11 +1,8 @@
 import { KeyInputs } from "@notcc/logic"
 import { GraphModel, GraphMoveSequence } from "./models/graph"
-import { Node } from "./models/graph"
 import { graphlib, layout } from "@dagrejs/dagre"
-import { useEffect, useMemo, useRef, useState } from "preact/hooks"
 import { twJoin } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
-import { MoveSequence } from "./models/linear"
 
 interface GraphViewProps {
 	model: GraphModel
@@ -51,7 +48,6 @@ function makeGraph(model: GraphModel) {
 		// nodesep: twUnit(8),
 		// edgesep: twUnit(8),
 		// ranksep: twUnit(16),
-		// align: "DL",
 		// marginx: PADDING,
 		// marginy: PADDING,
 		ranker: "tight-tree",
@@ -124,6 +120,30 @@ function SvgView(props: GraphViewProps) {
 			viewBox={`0 0 ${gWidth} ${gHeight}`}
 			class="absolute m-auto"
 		>
+			<defs>
+				<marker
+					id="arrow"
+					viewBox="0 0 10 10"
+					refX="11"
+					refY="5"
+					orient="auto"
+					class={twJoin("fill-theme-50", "stroke-theme-50")}
+				>
+					<path d="M 0 0 L 10 5 L 0 10 z" />
+				</marker>
+				<marker
+					id="arrow-hl"
+					viewBox="0 0 10 10"
+					refX="8"
+					refY="5"
+					orient="auto"
+					class={twJoin("fill-theme-300", "stroke-theme-300")}
+					markerWidth="2.5px"
+				>
+					<path d="M 0 0 L 10 5 L 0 10 z" />
+				</marker>
+			</defs>
+
 			<g>
 				{graph.edges().map(id => {
 					const edge = graph.edge(id)
@@ -144,12 +164,14 @@ function SvgView(props: GraphViewProps) {
 									strokeWidth={(EDGE_RADIUS + OUTLINE_WIDTH) * 2}
 									class={twJoin("fill-none", "stroke-theme-300")}
 									ref={ref => ref?.scrollIntoView()}
+									markerEnd="url(#arrow-hl)"
 								/>
 							)}
 							<path
 								d={strokePath}
 								strokeWidth={EDGE_RADIUS * 2}
 								class={twJoin("fill-none", "stroke-theme-50")}
+								markerEnd="url(#arrow)"
 							/>
 						</>
 					)
