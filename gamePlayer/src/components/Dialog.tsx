@@ -10,6 +10,7 @@ export const Dialog = forwardRef(function (
 		notModal?: boolean
 		buttons: [string, () => void | Promise<void>][]
 		onResolve?: () => void
+		onClose?: () => void
 	},
 	ref: Ref<HTMLDialogElement>
 ) {
@@ -28,6 +29,10 @@ export const Dialog = forwardRef(function (
 				}}
 				onClose={ev => {
 					ev.preventDefault()
+					if (props.onClose) {
+						props.onClose()
+						return
+					}
 					if (normalSubmitRef.current) return
 					props.onResolve?.()
 				}}
