@@ -168,7 +168,7 @@ export function ExaPlayerPage() {
 					<Render level={levelRef} renderRef={renderRef1} />
 				</div>
 				<div class="box col-start-2 grid w-auto items-center justify-items-end gap-2 gap-x-2 whitespace-nowrap text-end [grid-template-columns:repeat(3,auto);]">
-					<div class="row-span-3">
+					<div class="row-span-3 mr-16">
 						<Inv level={levelRef} renderRef={renderRef2} />
 					</div>
 					<div>Chips left:</div>

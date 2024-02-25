@@ -225,9 +225,11 @@ export function Infobox(props: GraphViewProps) {
 			<>
 				{"m" in model.current ? "Edge" : "Loose node"}
 				<br />
-				<span>{seq.displayMoves.slice(0, offset).join("")}</span>
-				<span class="text-zinc-400">
-					{seq.displayMoves.slice(offset).join("")}
+				<span class="[line-break:anywhere] [overflow-wrap:anywhere]">
+					<span>{seq.displayMoves.slice(0, offset).join("")}</span>
+					<span class="text-zinc-400">
+						{seq.displayMoves.slice(offset).join("")}
+					</span>
 				</span>
 			</>
 		)
