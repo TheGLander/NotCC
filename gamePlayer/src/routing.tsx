@@ -4,7 +4,12 @@ import { SetSelectorPage } from "./pages/SetSelectorPage"
 import { FunctionComponent } from "preact"
 import { Preloader } from "./components/Preloader"
 import { LevelPlayerPage } from "./pages/LevelPlayerPage"
-import { levelAtom, levelSetAtom, resolveHashLevel } from "./levelData"
+import {
+	levelAtom,
+	levelControlsAtom,
+	levelSetAtom,
+	resolveHashLevel,
+} from "./levelData"
 import { EffectFn, ignorantAtomEffectHook } from "./helpers"
 import { preferenceWritingAtom } from "./preferences"
 import { atomEffect } from "jotai-effect"
@@ -159,6 +164,7 @@ const discardUselessLevelDataEffect: EffectFn = (get, set) => {
 		set(levelNAtom, null)
 		set(levelAtom, null)
 		set(levelSetAtom, null)
+		set(levelControlsAtom, {})
 		const searchParams = get(searchParamsAtom)
 		delete searchParams.level
 		set(searchParamsAtom, searchParams)

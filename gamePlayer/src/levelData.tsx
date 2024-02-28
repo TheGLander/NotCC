@@ -2,7 +2,6 @@ import { Getter, Setter, atom, useAtomValue, useSetAtom } from "jotai"
 import {
 	LevelData,
 	LevelSet,
-	LevelSetLoaderFunction,
 	findScriptName,
 	parseC2M,
 	parseNCCS,
@@ -26,8 +25,6 @@ import { decodeBase64, unzlibAsync } from "./helpers"
 import {
 	IMPORTANT_SETS,
 	LevelSetData,
-	findEntryFilePath,
-	makeFileListFileLoader,
 	makeLoaderWithPrefix,
 	makeSetDataFromFiles,
 } from "./setLoading"
@@ -297,3 +294,10 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 		)
 	}
 }
+
+export interface LevelControls {
+	restart?(): void
+	pause?(): void
+}
+
+export const levelControlsAtom = atom<LevelControls>({})

@@ -16,17 +16,19 @@ import {
 	useRef,
 	useState,
 } from "preact/hooks"
-import { IntervalTimer } from "@/helpers"
+import { IntervalTimer, applyRef } from "@/helpers"
 import { embedReadyAtom, embedModeAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
-import { VNode } from "preact"
+import { Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
+import { LevelControls } from "@/levelData"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
+	if (!globalThis.window) return Infinity
 	const rem = parseFloat(getComputedStyle(document.body).fontSize)
 	return rem * tw * 0.25
 }
@@ -176,7 +178,10 @@ function WinCover() {
 	)
 }
 
-export function DumbLevelPlayer(props: { level: LevelData }) {
+export function DumbLevelPlayer(props: {
+	level: LevelData
+	controlsRef?: Ref<LevelControls | null>
+}) {
 	const tileset = useAtomValue(tilesetAtom)
 	if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
 
@@ -190,8 +195,8 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 
 	const [level, setLevel] = useState(() => createLevelFromData(props.level))
 	function resetLevel() {
-		setPlayerState("pregame")
 		setLevel(createLevelFromData(props.level))
+		setPlayerState("pregame")
 	}
 	useEffect(() => {
 		level.gameInput = inputs
@@ -246,7 +251,12 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 	useEffect(() => {
 		if (playerState !== "pregame") return
 		const listener = (ev: KeyboardEvent) => {
-			if (ev.code in keyToInputMap || ev.code === "Space") {
+			if (
+				!ev.shiftKey &&
+				!ev.ctrlKey &&
+				!ev.altKey &&
+				(ev.code in keyToInputMap || ev.code === "Space")
+			) {
 				setPlayerState("play")
 			}
 		}
@@ -290,6 +300,23 @@ export function DumbLevelPlayer(props: { level: LevelData }) {
 	} else {
 		cover = null
 	}
+
+	useEffect(() => {
+		applyRef(props.controlsRef, {
+			restart() {
+				resetLevel()
+			},
+			pause:
+				playerState === "pause"
+					? () => setPlayerState("play")
+					: playerState === "play"
+					  ? () => setPlayerState("pause")
+					  : undefined,
+		})
+		return () => {
+			applyRef(props.controlsRef, null)
+		}
+	}, [props.controlsRef, playerState])
 
 	return (
 		<div

@@ -60,7 +60,7 @@ export function encodeBase64(bytes: ArrayBuffer): string {
 	return btoa(bufferToLatin1(bytes)).replace(/\+/g, "-").replace(/\//g, "_")
 }
 
-export function applyRef<T>(ref: Ref<T>, val: T | null): void {
+export function applyRef<T>(ref: Ref<T> | undefined, val: T | null): void {
 	if (typeof ref === "function") ref(val)
 	else if (ref) ref.current = val
 }

@@ -15,16 +15,15 @@ import {
 import { forwardRef } from "preact/compat"
 import { twJoin } from "tailwind-merge"
 import { useMediaQuery } from "react-responsive"
-import { Getter, Setter, useStore } from "jotai"
+import { Getter, Setter, useAtomValue, useStore } from "jotai"
 import { pageAtom } from "@/routing"
 import { showPrompt } from "@/prompts"
 import { AboutPrompt } from "../AboutDialog"
 import { applyRef } from "@/helpers"
 import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
-import { Dialog } from "../Dialog"
-import { ScopePrompt } from "@/pages/ExaPlayer/ScopePrompt"
 import { openExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
+import { levelControlsAtom } from "@/levelData"
 
 interface SidebarAction {
 	label: string
@@ -43,7 +42,7 @@ function ChooserButton(props: SidebarAction) {
 		return () => {
 			sidebarActions.splice(sidebarActions.indexOf(props), 1)
 		}
-	}, [])
+	}, [props])
 	const isDisabled = props.disabled || !props.onTrigger
 	return (
 		<div
@@ -234,6 +233,7 @@ function SidebarButton(props: {
 
 export function Sidebar() {
 	const sidebarActions: SidebarAction[] = useRef([]).current
+	const levelControls = useAtomValue(levelControlsAtom)
 	const { get, set } = useStore()
 	useEffect(() => {
 		const listener = (ev: KeyboardEvent) => {
@@ -249,7 +249,7 @@ export function Sidebar() {
 		return () => {
 			document.removeEventListener("keydown", listener)
 		}
-	}, [])
+	}, [levelControls])
 	return (
 		<SidebarActionContext.Provider value={sidebarActions}>
 			<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">
@@ -262,8 +262,18 @@ export function Sidebar() {
 				</SidebarButton>
 				{/* TODO dynamic icon */}
 				<SidebarButton icon={levelIcon}>
-					<ChooserButton label="Reset level" shortcut="Shift+R" />
-					<ChooserButton label="Pause" shortcut="P" />
+					<ChooserButton
+						label="Reset level"
+						shortcut="Shift+R"
+						disabled={!levelControls.restart}
+						onTrigger={() => levelControls.restart!()}
+					/>
+					<ChooserButton
+						label="Pause"
+						shortcut="P"
+						disabled={!levelControls.pause}
+						onTrigger={() => levelControls.pause!()}
+					/>
 					<hr class="mx-2" />
 					<ChooserButton label="Next level" shortcut="Shift+N" />
 					<ChooserButton label="Previous level" shortcut="Shift+P" />
