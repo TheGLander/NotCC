@@ -10,32 +10,32 @@ interface GraphViewProps {
 	updateLevel: () => void
 }
 
-function DebugGraphView(props: GraphViewProps) {
-	return (
-		<>
-			{Array.from(props.model.nodeHashMap.values()).map(node => (
-				<div
-					onClick={() => {
-						props.model.goTo(node)
-						props.updateLevel()
-					}}
-				>
-					{node === props.model.current && "> "}
-					{node === props.model.rootNode ? "r" : node.loose ? "l" : "m "}{" "}
-					{(node.hash >>> 0).toString(16)}: {node.outConns.size === 0 && "none"}
-					{Array.from(node.outConns.entries())
-						.map(
-							([node, seqs]) =>
-								` to ${(node.hash >>> 0).toString(16)}: ${seqs
-									.map(seq => seq.displayMoves.join(""))
-									.join()}`
-						)
-						.join(";")}
-				</div>
-			))}
-		</>
-	)
-}
+// function DebugGraphView(props: GraphViewProps) {
+// 	return (
+// 		<>
+// 			{Array.from(props.model.nodeHashMap.values()).map(node => (
+// 				<div
+// 					onClick={() => {
+// 						props.model.goTo(node)
+// 						props.updateLevel()
+// 					}}
+// 				>
+// 					{node === props.model.current && "> "}
+// 					{node === props.model.rootNode ? "r" : node.loose ? "l" : "m "}{" "}
+// 					{(node.hash >>> 0).toString(16)}: {node.outConns.size === 0 && "none"}
+// 					{Array.from(node.outConns.entries())
+// 						.map(
+// 							([node, seqs]) =>
+// 								` to ${(node.hash >>> 0).toString(16)}: ${seqs
+// 									.map(seq => seq.displayMoves.join(""))
+// 									.join()}`
+// 						)
+// 						.join(";")}
+// 				</div>
+// 			))}
+// 		</>
+// 	)
+// }
 
 const EDGE_RADIUS = twUnit(0.75)
 const NODE_RADIUS = twUnit(4)

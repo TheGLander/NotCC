@@ -1,6 +1,6 @@
-import { LevelSet, LevelSetLoaderFunction, findScriptName } from "@notcc/logic"
+import { LevelSetLoaderFunction, findScriptName } from "@notcc/logic"
 import { AsyncUnzipOptions, Unzipped, unzip, unzipSync } from "fflate"
-import { basename, dirname, join, normalize } from "path-browserify"
+import { join, normalize } from "path-browserify"
 
 function getFilePath(file: File): string {
 	return file.webkitRelativePath ?? file.name

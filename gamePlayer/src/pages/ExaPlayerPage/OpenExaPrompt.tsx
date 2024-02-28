@@ -1,16 +1,12 @@
 import { Dialog } from "@/components/Dialog"
 import { PromptComponent, showPrompt } from "@/prompts"
-import { pageAtom } from "@/routing"
-import { Route as RouteFile, createLevelFromData } from "@notcc/logic"
+import { Route as RouteFile } from "@notcc/logic"
 import { Getter, Setter } from "jotai"
 import { useState } from "preact/hooks"
-import { LinearModel } from "./models/linear"
-import { GraphModel } from "./models/graph"
 import { levelAtom } from "@/levelData"
-import { modelAtom } from "."
-import { HashSettings, makeLevelHash } from "./hash"
+import type { HashSettings } from "./hash"
 
-type ExaOpenEvent =
+export type ExaOpenEvent =
 	| { type: "new"; model: MoveModel; hashSettings?: HashSettings }
 	| { type: "open"; file: RouteFile }
 
@@ -100,7 +96,7 @@ function HashSettingsInput(props: {
 	)
 }
 
-const DEFAULT_HASH_SETTINGS: HashSettings = {
+export const DEFAULT_HASH_SETTINGS: HashSettings = {
 	ignoreFloorMimicParity: true,
 	ignoreTeethParity: true,
 	ignoreBlockOrder: true,
@@ -187,21 +183,7 @@ export async function openExaCC(get: Getter, set: Setter) {
 	const levelData = await get(levelAtom)
 	if (!levelData) return
 	const openEv = await showPrompt(get, set, OpenExaPrompt)
-	if (!openEv || openEv.type !== "new") return
-	const level = createLevelFromData(levelData)
-	level.tick()
-	level.tick()
-
-	let model: LinearModel | GraphModel
-	if (openEv.model === "linear") {
-		model = new LinearModel(level)
-	} else if (openEv.model === "graph") {
-		model = new GraphModel(level, openEv.hashSettings ?? DEFAULT_HASH_SETTINGS)
-	} else {
-		throw new Error("Unsupported model :(")
-	}
-	//@ts-ignore Temporary
-	globalThis.NotCC.exa = { model, makeLevelHash }
-	set(pageAtom, "exa")
-	set(modelAtom, model)
+	if (!openEv) return
+	const realIndex = await import("./exaPlayer")
+	realIndex.openExaCCReal(get, set, openEv, levelData)
 }

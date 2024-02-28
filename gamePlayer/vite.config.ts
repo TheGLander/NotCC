@@ -62,6 +62,7 @@ export default defineConfig({
 			"@": "/src",
 		},
 	},
+	ssr: process.env.SSG ? { noExternal: new RegExp("", "g") } : {},
 	esbuild: { sourcemap: true },
 	build: { sourcemap: true, emptyOutDir: !prodBuild },
 })
