@@ -126,7 +126,7 @@ function AlphaHeader() {
 				</li>
 				<li>External SFX, and maybe an update to the existing set</li>
 				<li>
-					(External) Music! While NotCC doesn't have it's own soundtrack to use,
+					(External) Music! While NotCC doesn't have its own soundtrack to use,
 					I intend to add support for user-provided music anyways
 				</li>
 				<li>Embed support for the bb.club wiki</li>
