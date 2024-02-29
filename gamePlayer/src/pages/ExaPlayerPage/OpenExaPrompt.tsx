@@ -5,6 +5,8 @@ import { Getter, Setter } from "jotai"
 import { useState } from "preact/hooks"
 import { levelAtom } from "@/levelData"
 import type { HashSettings } from "./hash"
+import { pageAtom, pageNameAtom } from "@/routing"
+import { preferenceAtom } from "@/preferences"
 
 export type ExaOpenEvent =
 	| { type: "new"; model: MoveModel; hashSettings?: HashSettings }
@@ -103,14 +105,23 @@ export const DEFAULT_HASH_SETTINGS: HashSettings = {
 	ignorePlayerBump: true,
 }
 
-function NewProject(props: { onSubmit: (ev: ExaOpenEvent) => void }) {
+function NewProject(props: {
+	onSubmit: (ev: ExaOpenEvent & { byDefault: boolean }) => void
+	toggleMode?: boolean
+}) {
 	const [moveModel, setMoveModel] = useState<MoveModel>("linear")
 	const [hashSettings, setHashSettings] = useState<HashSettings>(
 		DEFAULT_HASH_SETTINGS
 	)
+	const [useByDefault, setUseByDefault] = useState(false)
 	const createNewModel = (ev: Event) => {
 		ev.preventDefault()
-		props.onSubmit({ type: "new", model: moveModel, hashSettings })
+		props.onSubmit({
+			type: "new",
+			model: moveModel,
+			hashSettings,
+			byDefault: !!props.toggleMode && useByDefault,
+		})
 	}
 	return (
 		<form onSubmit={createNewModel} class="flex-1">
@@ -156,33 +167,82 @@ function NewProject(props: { onSubmit: (ev: ExaOpenEvent) => void }) {
 					onChange={setHashSettings}
 					disabled={moveModel !== "graph"}
 				/>
+				{props.toggleMode && (
+					<label>
+						<input
+							type="checkbox"
+							checked={useByDefault}
+							onChange={ev => setUseByDefault(ev.currentTarget.checked)}
+						/>{" "}
+						Always use this configuration when toggling into ExaCC
+					</label>
+				)}
 			</div>
+
 			<button type="submit">New project</button>
 		</form>
 	)
 }
 
-export const OpenExaPrompt: PromptComponent<ExaOpenEvent | null> = props => {
-	return (
-		<Dialog
-			header="ExaCC Studio"
-			section={
-				<div class="flex flex-row">
-					<NewProject onSubmit={props.onResolve} />
-					{/* <NewProject onSubmit={props.onResolve} /> */}
-					{/* <OpenProject /> */}
-				</div>
+export const OpenExaPrompt: (props: {
+	toggleMode: boolean
+}) => PromptComponent<(ExaOpenEvent & { byDefault?: boolean }) | null> =
+	({ toggleMode }) =>
+	props => {
+		return (
+			<Dialog
+				header="ExaCC Studio"
+				section={
+					<div class="flex flex-row">
+						<NewProject onSubmit={props.onResolve} toggleMode={toggleMode} />
+						{/* <NewProject onSubmit={props.onResolve} /> */}
+						{/* <OpenProject /> */}
+					</div>
+				}
+				buttons={[["Cancel", () => props.onResolve(null)]]}
+				onClose={() => props.onResolve(null)}
+			/>
+		)
+	}
+
+export const exaToggleConfig = preferenceAtom<ExaOpenEvent | null>(
+	"exaToggleConfig",
+	null
+)
+
+export async function toggleExaCC(get: Getter, set: Setter) {
+	const pageName = get(pageNameAtom)
+	if (pageName === "exa") {
+		set(pageAtom, "play")
+	} else {
+		const levelData = await get(levelAtom)
+		if (!levelData) return
+		let config = get(exaToggleConfig)
+		if (!config) {
+			const openEv = await showPrompt(
+				get,
+				set,
+				OpenExaPrompt({ toggleMode: true })
+			)
+			if (openEv?.byDefault) {
+				set(exaToggleConfig, openEv)
 			}
-			buttons={[["Cancel", () => props.onResolve(null)]]}
-			onClose={() => props.onResolve(null)}
-		/>
-	)
+			config = openEv
+		}
+		if (!config) return
+		const realIndex = await import("./exaPlayer")
+		realIndex.openExaCCReal(get, set, config, levelData)
+	}
 }
 
 export async function openExaCC(get: Getter, set: Setter) {
 	const levelData = await get(levelAtom)
 	if (!levelData) return
-	const openEv = await showPrompt(get, set, OpenExaPrompt)
+	const openEv = await showPrompt(
+		get,
+		set,
+		OpenExaPrompt({ toggleMode: false })
+	)
 	if (!openEv) return
 	const realIndex = await import("./exaPlayer")
 	realIndex.openExaCCReal(get, set, openEv, levelData)

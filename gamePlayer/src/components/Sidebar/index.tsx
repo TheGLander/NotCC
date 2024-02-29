@@ -22,7 +22,7 @@ import { AboutPrompt } from "../AboutDialog"
 import { applyRef } from "@/helpers"
 import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
-import { openExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
+import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
 import { levelControlsAtom } from "@/levelData"
 
 interface SidebarAction {
@@ -288,6 +288,11 @@ export function Sidebar() {
 					<ChooserButton
 						label="Toggle ExaCC"
 						shortcut="Shift+X"
+						onTrigger={toggleExaCC}
+					/>
+					<ChooserButton
+						label="New ExaCC route"
+						shortcut="Ctrl+Shift+X"
 						onTrigger={openExaCC}
 					/>
 				</SidebarButton>

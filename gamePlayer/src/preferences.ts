@@ -1,4 +1,4 @@
-import { PrimitiveAtom, WritableAtom, atom } from "jotai"
+import { Atom, PrimitiveAtom, WritableAtom, atom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { writeFile } from "@/fs"
 
@@ -17,7 +17,10 @@ export function getTruePreferenceAtom<T>(
 	)?.[0]
 }
 
-export function preferenceAtom<T>(key: string, defaultValue: T) {
+export function preferenceAtom<T>(
+	key: string,
+	defaultValue: T
+): PrimitiveAtom<T> {
 	if (preferenceAtoms[key]) return preferenceAtoms[key][1]
 	const prefAtom = atom<T | typeof DEFAULT_VALUE>(DEFAULT_VALUE)
 	const defaultPrefAtom = atom(
@@ -28,7 +31,7 @@ export function preferenceAtom<T>(key: string, defaultValue: T) {
 		(_get, set, val: T | typeof DEFAULT_VALUE) => set(prefAtom, val)
 	)
 	preferenceAtoms[key] = [prefAtom, defaultPrefAtom]
-	return defaultPrefAtom
+	return defaultPrefAtom as PrimitiveAtom<T>
 }
 
 export const allPreferencesAtom = atom(
