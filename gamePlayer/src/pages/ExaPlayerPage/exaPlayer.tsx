@@ -10,7 +10,6 @@ import {
 	LevelState,
 	calculateLevelPoints,
 	createLevelFromData,
-	keyInputToChar,
 	makeEmptyInputs,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/Preloader"
@@ -22,7 +21,7 @@ import {
 	openExaCC as openExaCCgs,
 } from "./OpenExaPrompt"
 import { Inventory } from "@/components/Inventory"
-import { GraphView } from "./GraphView"
+import { GraphView, MovesList } from "./GraphView"
 import { pageAtom } from "@/routing"
 import { makeLevelHash } from "./hash"
 
@@ -111,9 +110,12 @@ function Inv(props: {
 
 function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 	return (
-		<div class="bg-theme-950 h-full w-full rounded font-mono [line-break:anywhere] [overflow-wrap:anywhere]">
-			<span>{props.model.moveSeq.displayMoves.join("")}</span>
-			<span>{keyInputToChar(props.inputs, false, true)}</span>
+		<div class="bg-theme-950 h-full w-full rounded">
+			<MovesList
+				seq={props.model.moveSeq}
+				offset={props.model.moveSeq.tickLen}
+				composeOverlay={props.inputs}
+			/>
 		</div>
 	)
 }

@@ -1,8 +1,9 @@
-import { GameState, KeyInputs } from "@notcc/logic"
+import { GameState, KeyInputs, keyInputToChar } from "@notcc/logic"
 import { GraphModel, GraphMoveSequence } from "./models/graph"
 import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
+import { MoveSequence } from "./models/linear"
 
 interface GraphViewProps {
 	model: GraphModel
@@ -209,6 +210,40 @@ function SvgView(props: GraphViewProps) {
 	)
 }
 
+export function MovesList(props: {
+	seq: MoveSequence
+	offset: number
+	composeOverlay: KeyInputs
+}) {
+	const { seq, offset, composeOverlay } = props
+	const composeText = keyInputToChar(composeOverlay, false, true)
+	return (
+		<span class="relative font-mono [line-break:anywhere] [overflow-wrap:anywhere]">
+			<span>
+				{(offset === undefined
+					? seq.displayMoves
+					: seq.displayMoves.slice(0, offset)
+				).join("")}
+			</span>
+			<span class="text-zinc-400">
+				{composeText !== "" || offset == seq.tickLen ? (
+					<>
+						<span class="bg-theme-700 text-theme-200 pointer-events-none absolute top-0 h-full whitespace-pre rounded-sm">
+							{composeText}{" "}
+						</span>
+						{seq.displayMoves[offset]}
+					</>
+				) : (
+					<span class="bg-theme-700 text-theme-200 rounded-sm">
+						{seq.displayMoves[offset]}
+					</span>
+				)}
+				{seq.displayMoves.slice(offset + 1).join("")}
+			</span>
+		</span>
+	)
+}
+
 export function Infobox(props: GraphViewProps) {
 	const model = props.model
 	if ("m" in model.current || model.current.loose) {
@@ -219,18 +254,13 @@ export function Infobox(props: GraphViewProps) {
 			offset = model.current.o
 		} else {
 			seq = model.current.getLooseMoveSeq()
-			offset = -1
+			offset = seq.tickLen
 		}
 		return (
 			<>
 				{"m" in model.current ? "Edge" : "Loose node"}
 				<br />
-				<span class="[line-break:anywhere] [overflow-wrap:anywhere]">
-					<span>{seq.displayMoves.slice(0, offset).join("")}</span>
-					<span class="text-zinc-400">
-						{seq.displayMoves.slice(offset).join("")}
-					</span>
-				</span>
+				<MovesList seq={seq} offset={offset} composeOverlay={props.inputs} />
 			</>
 		)
 	}
