@@ -109,19 +109,26 @@ function AlphaHeader() {
 			</h2>
 			<p>
 				Welcome to the Prewrite Alpha! This is a currently in-development
-				version of NotCC which uses frameworks like Preact and TailwindCSS
-				instead of vanilla JS, HTML, and CSS. This rewrite will be used as an
-				opportunity for a UI touch-up and for new features such as:
+				version of NotCC, being rewritten from scratch. Here are some cool
+				things I intend to add with the (p)rewrite:
 			</p>
 			<ul class="list-disc pl-4">
 				<li>Mobile support</li>
+				<li>Less janky UI, including loading indicators</li>
 				<li>NCCS and settings import and export</li>
 				<li>
-					More ExaCC features (scrubbing scrollbar, RFF and RNG setting,
-					savestates, inline editing)
+					A completely new ExaCC experience: graph and tree (trie?) modes, route
+					timeline, camera and RNG controls, etc
 				</li>
-				<li>Ability to locally save levelsets (including CC1 Steam and CC2)</li>
-				<li>SFXsets</li>
+				<li>
+					Ability to locally save levelsets (including CC1 Steam and CC2, say
+					goodbye to the annoying non-free dialog!!)
+				</li>
+				<li>External SFX, and maybe an update to the existing set</li>
+				<li>
+					(External) Music! While NotCC doesn't have it's own soundtrack to use,
+					I intend to add support for user-provided music anyways
+				</li>
 				<li>Embed support for the bb.club wiki</li>
 			</ul>
 			<button class="ml-auto block" onClick={() => setAlphaHeaderClosed(true)}>
