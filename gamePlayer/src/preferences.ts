@@ -1,4 +1,4 @@
-import { Atom, PrimitiveAtom, WritableAtom, atom } from "jotai"
+import { PrimitiveAtom, WritableAtom, atom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { writeFile } from "@/fs"
 
