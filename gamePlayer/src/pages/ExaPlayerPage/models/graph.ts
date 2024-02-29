@@ -218,6 +218,7 @@ export class GraphModel {
 			if (moveSeq.moves.every((move, i) => curMoveSeq[i] === move)) {
 				if (this.current.o + moveSeq.tickLen === this.current.m.tickLen) {
 					this.current = this.nodeHashMap.get(moveSeq.lastHash)!
+					this.level = this.current.level
 				} else {
 					this.current.o += moveSeq.tickLen
 				}
@@ -251,6 +252,7 @@ export class GraphModel {
 					if (moveSeq.moves.every((move, i) => move === conn.moves[i])) {
 						if (conn.tickLen === moveSeq.tickLen) {
 							this.current = node
+							this.level = node.level
 						} else {
 							this.current = { n: this.current, m: conn, o: moveSeq.tickLen }
 						}
