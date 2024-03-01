@@ -12,6 +12,7 @@ import {
 } from "preact/hooks"
 import {
 	CameraType,
+	GameState,
 	KeyInputs,
 	LevelData,
 	LevelState,
@@ -185,6 +186,7 @@ export function RealExaPlayerPage() {
 		function finalizeInput() {
 			timer = null
 			try {
+				if (model?.level.gameState !== GameState.PLAYING) return
 				model!.addInput(inputRef.current, model!.level)
 				render()
 			} finally {
