@@ -171,8 +171,10 @@ export function RealExaPlayerPage() {
 		let timer: TimeoutTimer | null = null
 		const listener = (ev: KeyboardEvent) => {
 			const input = keyToInputMap[ev.code]
-			if (input === undefined) return
-			if (
+			const isWait = ev.code === "Space"
+			if (isWait) {
+				finalizeInput()
+			} else if (
 				input === "up" ||
 				input === "right" ||
 				input === "down" ||
@@ -182,7 +184,7 @@ export function RealExaPlayerPage() {
 				if (timer === null) {
 					timer = new TimeoutTimer(finalizeInput, 0.05)
 				}
-			} else {
+			} else if (input !== undefined) {
 				setInput({ ...inputRef.current, [input]: !inputRef.current[input] })
 			}
 		}
