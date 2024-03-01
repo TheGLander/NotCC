@@ -24,6 +24,8 @@ import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
 import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
 import { levelControlsAtom } from "@/levelData"
+import { modelAtom } from "@/pages/ExaPlayerPage"
+import type { GraphModel } from "@/pages/ExaPlayerPage/models/graph"
 
 interface SidebarAction {
 	label: string
@@ -234,6 +236,7 @@ function SidebarButton(props: {
 export function Sidebar() {
 	const sidebarActions: SidebarAction[] = useRef([]).current
 	const levelControls = useAtomValue(levelControlsAtom)
+	const exaModel = useAtomValue(modelAtom)
 	const { get, set } = useStore()
 	useEffect(() => {
 		const listener = (ev: KeyboardEvent) => {
@@ -249,7 +252,7 @@ export function Sidebar() {
 		return () => {
 			document.removeEventListener("keydown", listener)
 		}
-	}, [levelControls])
+	}, [levelControls, exaModel])
 	return (
 		<SidebarActionContext.Provider value={sidebarActions}>
 			<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">
@@ -294,6 +297,37 @@ export function Sidebar() {
 						label="New ExaCC route"
 						shortcut="Ctrl+Shift+X"
 						onTrigger={openExaCC}
+					/>
+					<ChooserButton
+						label="Undo"
+						shortcut="Backspace"
+						onTrigger={() => {
+							exaModel!.undo()
+							levelControls.updateLevel?.()
+						}}
+						disabled={!exaModel}
+					/>
+					<ChooserButton
+						label="Redo"
+						shortcut="Enter"
+						onTrigger={() => {
+							exaModel!.redo()
+							levelControls.updateLevel?.()
+						}}
+						disabled={!exaModel}
+					/>
+					<ChooserButton
+						label="Prune backfeed"
+						onTrigger={() => {
+							// TODO Not have this be here??
+							const model = exaModel! as GraphModel
+							for (const ptr of model.findBackfeedConns()) {
+								ptr.n.removeConnection(ptr.m)
+							}
+							model.buildReferences()
+							levelControls.updateLevel?.()
+						}}
+						disabled={!exaModel || !("findBackfeedConns" in exaModel)}
 					/>
 				</SidebarButton>
 

@@ -293,35 +293,6 @@ export function GraphView(props: GraphViewProps) {
 			<div class="bg-theme-950 relative h-32 rounded p-1">
 				<Infobox {...props} />
 			</div>
-			<div class="flex justify-between">
-				<button
-					onClick={() => {
-						props.model.undo()
-						props.updateLevel()
-					}}
-				>
-					Undo
-				</button>
-				<button
-					onClick={() => {
-						props.model.redo()
-						props.updateLevel()
-					}}
-				>
-					Redo
-				</button>
-				<button
-					onClick={() => {
-						for (const ptr of props.model.findBackfeedConns()) {
-							ptr.n.removeConnection(ptr.m)
-						}
-						props.model.buildReferences()
-						props.updateLevel()
-					}}
-				>
-					Prune backfeed
-				</button>
-			</div>
 		</div>
 	)
 }

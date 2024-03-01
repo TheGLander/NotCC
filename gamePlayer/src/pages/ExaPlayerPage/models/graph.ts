@@ -375,6 +375,9 @@ export class GraphModel {
 		this.level = cloneLevel(closestSnapshot.level)
 		pos.m.applyToLevel(this.level, [closestSnapshot.tick, pos.o])
 	}
+	resetLevel() {
+		this.goTo(this.rootNode)
+	}
 	buildReferences() {
 		this.nodeHashMap.clear()
 		this.hashMap.clear()

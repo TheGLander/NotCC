@@ -63,11 +63,11 @@ export class MoveSequence {
 		}
 	}
 	_add_tickLevel(input: KeyInputs, level: LevelState) {
-		level.gameInput = input
-		tickLevel(level)
 		if ((this.tickLen + this.snapshotOffset) % SNAPSHOT_PERIOD === 0) {
 			this.snapshots.push({ tick: this.tickLen, level: cloneLevel(level) })
 		}
+		level.gameInput = input
+		tickLevel(level)
 	}
 	add(input: KeyInputs, level: LevelState) {
 		const ogInput = input
@@ -97,7 +97,7 @@ export class MoveSequence {
 		this.displayMoves.splice(...interval)
 		this.userMoves.splice(...interval)
 		this.snapshots = this.snapshots.filter(
-			snap => snap.tick >= interval[0] && snap.tick < interval[1]
+			snap => !(snap.tick >= interval[0] && snap.tick < interval[1])
 		)
 	}
 	clone(): this {
@@ -113,16 +113,67 @@ export class MoveSequence {
 		return cloned
 	}
 	merge(other: this) {
+		const otherOffset = this.tickLen
 		this.moves.push(...other.moves)
 		this.displayMoves.push(...other.displayMoves)
 		this.userMoves.push(...other.userMoves)
+		for (const oSnapshot of other.snapshots) {
+			this.snapshots.push({ ...oSnapshot, tick: oSnapshot.tick + otherOffset })
+		}
 	}
 }
 
 export class LinearModel {
 	moveSeq = new MoveSequence()
+	offset = 0
 	constructor(public level: LevelState) {}
 	addInput(inputs: KeyInputs, level: LevelState): void {
-		this.moveSeq.add(inputs, level)
+		if (this.offset !== this.moveSeq.tickLen) {
+			const newSeq = new MoveSequence()
+			newSeq.snapshotOffset = this.offset
+			newSeq.add(inputs, level)
+			if (
+				newSeq.moves.every(
+					(m, idx) => m === this.moveSeq.moves[idx + this.offset]
+				)
+			) {
+				this.offset += newSeq.tickLen
+			} else {
+				this.moveSeq.trim([this.offset, Infinity])
+				this.moveSeq.merge(newSeq)
+				this.offset = this.moveSeq.tickLen
+			}
+		} else {
+			this.moveSeq.add(inputs, level)
+			this.offset = this.moveSeq.tickLen
+		}
+	}
+	undo() {
+		if (this.offset === 0) return
+		this.offset = this.moveSeq.userMoves.slice(0, this.offset).lastIndexOf(true)
+		this.goTo(this.offset)
+	}
+	redo() {
+		const lastOffset = this.offset
+		const newOffset = this.moveSeq.userMoves
+			.slice(this.offset + 1)
+			.indexOf(true)
+		if (newOffset === -1) {
+			this.offset = this.moveSeq.tickLen
+		} else {
+			this.offset += newOffset + 1
+		}
+		this.moveSeq.applyToLevel(this.level, [lastOffset, this.offset])
+	}
+	goTo(pos: number): void {
+		this.offset = pos
+		const closestSnapshot: Snapshot = this.moveSeq.snapshots.find(
+			snap => snap.tick <= pos
+		)!
+		this.level = cloneLevel(closestSnapshot.level)
+		this.moveSeq.applyToLevel(this.level, [closestSnapshot.tick, pos])
+	}
+	resetLevel() {
+		this.goTo(0)
 	}
 }

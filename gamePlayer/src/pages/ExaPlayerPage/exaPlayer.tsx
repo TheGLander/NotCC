@@ -1,8 +1,15 @@
 import { GameRenderer } from "@/components/GameRenderer"
-import { Getter, Setter, atom, useAtomValue } from "jotai"
+import { Getter, Setter, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { LinearModel } from "./models/linear"
 import { GraphModel } from "./models/graph"
-import { Ref, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks"
+import {
+	Ref,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "preact/hooks"
 import {
 	CameraType,
 	KeyInputs,
@@ -24,8 +31,8 @@ import { Inventory } from "@/components/Inventory"
 import { GraphView, MovesList } from "./GraphView"
 import { pageAtom } from "@/routing"
 import { makeLevelHash } from "./hash"
-
-export const modelAtom = atom<LinearModel | GraphModel | null>(null)
+import { levelControlsAtom } from "@/levelData"
+import { modelAtom } from "."
 
 export function openExaCCReal(
 	_get: Getter,
@@ -113,7 +120,7 @@ function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 		<div class="bg-theme-950 h-full w-full rounded">
 			<MovesList
 				seq={props.model.moveSeq}
-				offset={props.model.moveSeq.tickLen}
+				offset={props.model.offset}
 				composeOverlay={props.inputs}
 			/>
 		</div>
@@ -121,12 +128,28 @@ function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 }
 
 export function RealExaPlayerPage() {
-	const model = useAtomValue(modelAtom)!
+	const [model, setModel] = useAtom(modelAtom)
+	const setControls = useSetAtom(levelControlsAtom)
 	const openExaCC = useJotaiFn(openExaCCgs)
 	if (!model) {
 		openExaCC()
 		return <></>
 	}
+	useEffect(() => {
+		setControls({
+			updateLevel: updateLevel,
+			restart: () => {
+				model.resetLevel()
+				updateLevel()
+			},
+		})
+	}, [model])
+	useEffect(() => {
+		return () => {
+			setControls({})
+			setModel(null)
+		}
+	}, [])
 	const renderRef1 = useRef<() => void>()
 	const renderRef2 = useRef<() => void>()
 	function render() {
@@ -162,7 +185,7 @@ export function RealExaPlayerPage() {
 		function finalizeInput() {
 			timer = null
 			try {
-				model.addInput(inputRef.current, model.level)
+				model!.addInput(inputRef.current, model!.level)
 				render()
 			} finally {
 				setInput(makeEmptyInputs())

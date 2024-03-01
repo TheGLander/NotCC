@@ -298,6 +298,7 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 export interface LevelControls {
 	restart?(): void
 	pause?(): void
+	updateLevel?(): void
 }
 
 export const levelControlsAtom = atom<LevelControls>({})
