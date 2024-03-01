@@ -4,6 +4,7 @@ import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
 import { MoveSequence } from "./models/linear"
+import { VNode } from "preact"
 
 interface GraphViewProps {
 	model: GraphModel
@@ -217,29 +218,34 @@ export function MovesList(props: {
 }) {
 	const { seq, offset, composeOverlay } = props
 	const composeText = keyInputToChar(composeOverlay, false, true)
-	return (
-		<span class="relative font-mono [line-break:anywhere] [overflow-wrap:anywhere]">
-			<span>
-				{(offset === undefined
-					? seq.displayMoves
-					: seq.displayMoves.slice(0, offset)
-				).join("")}
-			</span>
-			<span class="text-zinc-400">
-				{composeText !== "" || offset == seq.tickLen ? (
-					<>
-						<span class="bg-theme-700 text-theme-200 pointer-events-none absolute top-0 h-full whitespace-pre rounded-sm">
-							{composeText}{" "}
-						</span>
-						{seq.displayMoves[offset]}
-					</>
-				) : (
-					<span class="bg-theme-700 text-theme-200 rounded-sm">
-						{seq.displayMoves[offset]}
-					</span>
-				)}
+	let futureMoves: VNode
+	const boxClass =
+		"bg-theme-700 text-theme-200 whitespace-break-spaces rounded-sm"
+	if (offset === seq.tickLen) {
+		futureMoves = <span class={boxClass}>{composeText} </span>
+	} else if (!composeText) {
+		futureMoves = (
+			<>
+				<span class={boxClass}>{seq.displayMoves[offset]}</span>
 				{seq.displayMoves.slice(offset + 1).join("")}
-			</span>
+			</>
+		)
+	} else {
+		const movesStr = seq.displayMoves
+			.slice(offset)
+			.join("")
+			.slice(composeText.length + 1)
+		futureMoves = (
+			<>
+				<span class={boxClass}>{composeText} </span>
+				{movesStr}
+			</>
+		)
+	}
+	return (
+		<span class="font-mono [line-break:anywhere] [overflow-wrap:anywhere]">
+			{seq.displayMoves.slice(0, offset).join("")}
+			<span class="relative text-zinc-400">{futureMoves}</span>
 		</span>
 	)
 }
