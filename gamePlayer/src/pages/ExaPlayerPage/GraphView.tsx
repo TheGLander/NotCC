@@ -245,7 +245,7 @@ export function MovesList(props: {
 	return (
 		<span class="font-mono [line-break:anywhere] [overflow-wrap:anywhere]">
 			{seq.displayMoves.slice(0, offset).join("")}
-			<span class="relative text-zinc-400">{futureMoves}</span>
+			<span class="text-zinc-400">{futureMoves}</span>
 		</span>
 	)
 }

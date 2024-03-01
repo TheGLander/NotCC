@@ -7,9 +7,8 @@ import { Frame, Tileset } from "./GameRenderer/renderer"
 import { Ref } from "preact"
 import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
 import { applyRef } from "@/helpers"
-import { memo } from "preact/compat"
 
-export const Inventory = memo(function Inventory(props: {
+export function Inventory(props: {
 	inventory: InventoryI | { current: InventoryI }
 	cc1Boots?: boolean
 	tileScale: number
@@ -123,4 +122,4 @@ export const Inventory = memo(function Inventory(props: {
 			ref={ref => setCanvas(ref)}
 		></canvas>
 	)
-})
+}

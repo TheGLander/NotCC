@@ -41,31 +41,34 @@ export interface AutoScaleConfig {
 	safetyCoefficient?: number
 }
 
+export function calcScale(args: AutoScaleConfig) {
+	const sidebar = document.querySelector<HTMLDivElement>("#sidebar")
+	if (!sidebar) return 1
+	const sidebarRect = sidebar.getBoundingClientRect()
+	const availableSize = document.body.getBoundingClientRect()
+	if (sidebarRect.width > sidebarRect.height) {
+		availableSize.height -= sidebarRect.height
+	} else {
+		availableSize.width -= sidebarRect.width
+	}
+	availableSize.width -= twUnit(args.twPadding?.[0] ?? 0)
+	availableSize.height -= twUnit(args.twPadding?.[1] ?? 0)
+	availableSize.width *= args.safetyCoefficient ?? 0.97
+	availableSize.height *= args.safetyCoefficient ?? 0.97
+
+	const xTiles = args.cameraType.width + (args.tilePadding?.[0] ?? 0)
+	const yTiles = args.cameraType.height + (args.tilePadding?.[1] ?? 0)
+
+	const xScale = availableSize.width / (xTiles * args.tileSize)
+	const yScale = availableSize.height / (yTiles * args.tileSize)
+
+	return Math.min(xScale, yScale)
+}
+
 export function useAutoScale(args: AutoScaleConfig) {
 	const [scale, setScale] = useState(1)
 	function resize() {
-		const sidebar = document.querySelector<HTMLDivElement>("#sidebar")
-		if (!sidebar) return
-		const sidebarRect = sidebar.getBoundingClientRect()
-		const availableSize = document.body.getBoundingClientRect()
-		if (sidebarRect.width > sidebarRect.height) {
-			availableSize.height -= sidebarRect.height
-		} else {
-			availableSize.width -= sidebarRect.width
-		}
-		availableSize.width -= twUnit(args.twPadding?.[0] ?? 0)
-		availableSize.height -= twUnit(args.twPadding?.[1] ?? 0)
-		availableSize.width *= args.safetyCoefficient ?? 0.97
-		availableSize.height *= args.safetyCoefficient ?? 0.97
-
-		const xTiles = args.cameraType.width + (args.tilePadding?.[0] ?? 0)
-		const yTiles = args.cameraType.height + (args.tilePadding?.[1] ?? 0)
-
-		const xScale = availableSize.width / (xTiles * args.tileSize)
-		const yScale = availableSize.height / (yTiles * args.tileSize)
-
-		const scale = Math.min(xScale, yScale)
-		setScale(Math.floor(scale))
+		setScale(Math.floor(calcScale(args)))
 	}
 	useLayoutEffect(() => {
 		resize()
@@ -183,9 +186,9 @@ export function DumbLevelPlayer(props: {
 	controlsRef?: Ref<LevelControls | null>
 }) {
 	const tileset = useAtomValue(tilesetAtom)
-	if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
+	// if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
 
-	const [playerState, setPlayerState] = useState<PlayerState>("pregame")
+	const [playerState, setPlayerState] = useState("pregame" as PlayerState)
 
 	// Inputs & LevelState
 	const { inputs, releaseKeys, handler: inputHandler } = useKeyInputs()

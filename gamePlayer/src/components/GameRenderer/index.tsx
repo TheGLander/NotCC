@@ -4,7 +4,6 @@ import { CameraType, LevelState } from "@notcc/logic"
 import { Ref as RefG } from "preact"
 import { AnimationTimer, applyRef } from "@/helpers"
 import { twJoin } from "tailwind-merge"
-import { memo } from "preact/compat"
 
 export interface GameRendererProps {
 	tileset: Tileset
@@ -16,9 +15,7 @@ export interface GameRendererProps {
 	cameraType: CameraType
 }
 
-export const GameRenderer = memo(function GameRenderer(
-	props: GameRendererProps
-) {
+export function GameRenderer(props: GameRendererProps) {
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
 
 	const renderer = useMemo(() => new Renderer(props.tileset), [])
@@ -48,17 +45,12 @@ export const GameRenderer = memo(function GameRenderer(
 		})
 		return () => timer.cancel()
 	}, [ctx, props.autoDraw])
-	useLayoutEffect(() => {
-		if (ctx) {
-			renderer.frame(ctx)
-		}
-	})
 	const render = useCallback(() => {
 		if ("current" in props.level) {
 			renderer.level = props.level.current
 		}
 		renderer.frame(ctx!)
-	}, [ctx, props.level])
+	}, [ctx, renderer, props.level])
 
 	useLayoutEffect(() => {
 		if (!props.renderRef) return
@@ -83,4 +75,4 @@ export const GameRenderer = memo(function GameRenderer(
 			}}
 		></canvas>
 	)
-})
+}

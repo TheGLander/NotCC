@@ -2,6 +2,7 @@ import { applyRef } from "@/helpers"
 import { Ref } from "preact"
 import { ReactNode, forwardRef, useRef } from "preact/compat"
 import Draggable from "react-draggable"
+import { twJoin } from "tailwind-merge"
 
 export const Dialog = forwardRef(function (
 	props: {
@@ -18,7 +19,10 @@ export const Dialog = forwardRef(function (
 	return (
 		<Draggable handle=".dialog-handle">
 			<dialog
-				class="box fixed bottom-0 top-0 flex max-h-[75vh] min-w-[33vw] max-w-[75vw] flex-col p-0 backdrop:bg-black/50 max-sm:max-w-[95vw]"
+				class={twJoin(
+					"box fixed bottom-0 top-0 flex max-h-[75vh] max-w-[75vw] flex-col p-0 backdrop:bg-black/50 max-sm:max-w-[95vw]",
+					!props.notModal && "min-w-[33vw]"
+				)}
 				ref={refVal => {
 					if (props.notModal) {
 						refVal?.show()
