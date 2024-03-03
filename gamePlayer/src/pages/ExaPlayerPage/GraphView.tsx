@@ -5,6 +5,7 @@ import { twJoin } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
 import { MoveSequence } from "./models/linear"
 import { VNode } from "preact"
+import { formatTicks } from "./exaPlayer"
 
 interface GraphViewProps {
 	model: GraphModel
@@ -280,6 +281,11 @@ export function Infobox(props: GraphViewProps) {
 			<br />
 			Connections: {model.current.inNodes.length} in,{" "}
 			{model.current.outNodes.length} out
+			<br />
+			Dists: root {formatTicks(model.current.rootDistance)}s /{" "}
+			{model.current.winDistance === undefined
+				? "not won"
+				: `win ${formatTicks(model.current.winDistance)}s`}
 		</>
 	)
 }

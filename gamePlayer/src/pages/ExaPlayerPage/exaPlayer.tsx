@@ -1,7 +1,7 @@
 import { GameRenderer } from "@/components/GameRenderer"
 import { Getter, Setter, atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { LinearModel } from "./models/linear"
-import { GraphModel } from "./models/graph"
+import { GraphModel, Node } from "./models/graph"
 import {
 	Ref,
 	useEffect,
@@ -26,7 +26,7 @@ import { keyToInputMap } from "@/inputs"
 import { DEFAULT_HASH_SETTINGS, ExaOpenEvent } from "./OpenExaPrompt"
 import { Inventory } from "@/components/Inventory"
 import { GraphView, MovesList } from "./GraphView"
-import { pageAtom } from "@/routing"
+import { levelNAtom, pageAtom } from "@/routing"
 import { makeLevelHash } from "./hash"
 import { levelControlsAtom } from "@/levelData"
 import { modelAtom } from "."
@@ -162,9 +162,43 @@ const CameraUtil: PromptComponent<void> = pProps => {
 const cameraTypeAtom = atom<CameraType>({ screens: 1, width: 10, height: 10 })
 const tileScaleAtom = atom<number>(1)
 
+export function formatTimeLeft(timeLeft: number) {
+	let sign = ""
+	if (timeLeft < 0) {
+		timeLeft = -timeLeft
+		sign = "-"
+	}
+	const subtickStr = ["", "⅓", "⅔"]
+	const subtick = timeLeft % 3
+	const int = Math.ceil(timeLeft / 60)
+	let decimal = (Math.floor((timeLeft / 3) % 20) * 5)
+		.toString()
+		.padStart(2, "0")
+	if (decimal === "00" && subtick === 0) {
+		decimal = "100"
+	}
+	return `${sign}${int}.${decimal}${subtickStr[subtick]}`
+}
+
+export function formatTicks(timeLeft: number) {
+	let sign = ""
+	if (timeLeft < 0) {
+		timeLeft = -timeLeft
+		sign = "-"
+	}
+	const subtickStr = ["", "⅓", "⅔"]
+	const subtick = timeLeft % 3
+	const int = Math.floor(timeLeft / 60)
+	let decimal = (Math.floor((timeLeft / 3) % 20) * 5)
+		.toString()
+		.padStart(2, "0")
+	return `${sign}${int}.${decimal}${subtickStr[subtick]}`
+}
+
 export function RealExaPlayerPage() {
 	const [modelM, _setModel] = useAtom(modelAtom)
 	const model = modelM!
+	const levelN = useAtomValue(levelNAtom)
 	const setControls = useSetAtom(levelControlsAtom)
 	// Sidebar and router comms, level state
 	function purgeBackfeed() {
@@ -297,7 +331,21 @@ export function RealExaPlayerPage() {
 			timer?.cancel()
 		}
 	}, [model])
-
+	let rootTimeLeft: number | undefined
+	if (model instanceof GraphModel) {
+		let distFromRoot: number
+		if (model.current instanceof Node) {
+			distFromRoot = model.current.rootDistance
+			if (model.current.level.gameState === GameState.WON) {
+				// This doesn't correctly emulate cases where a playable dies on a winning node,
+				// since in those cases you actually *don't* lose a subtick, but it doesn't matter too much
+				distFromRoot += 1
+			}
+		} else {
+			distFromRoot = model.current.n.rootDistance + model.current.o * 3
+		}
+		rootTimeLeft = Math.max(0, model.initialTimeLeft - distFromRoot)
+	}
 	return (
 		<div class="flex h-full w-full">
 			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr/auto_min-content]">
@@ -310,25 +358,29 @@ export function RealExaPlayerPage() {
 						cameraType={cameraType}
 					/>
 				</div>
-				<div class="box col-start-2 grid w-auto items-center justify-items-end gap-2 gap-x-2 whitespace-nowrap text-end [grid-template-columns:repeat(3,auto);]">
-					<div class="row-span-3 mr-16">
+				<div class="box col-start-2 flex w-auto gap-2">
+					<div class="row-span-full mr-16">
 						<Inv
 							level={levelRef}
 							renderRef={renderRef2}
 							tileScale={tileScale}
 						/>
 					</div>
-					<div>Chips left:</div>
-					<div>{model.level.chipsLeft}</div>
-					<div>Bonus points:</div>
-					<div>{model.level.bonusPoints}</div>
-					<div>Total points:</div>
-					<div>
-						{calculateLevelPoints(
-							0,
-							Math.ceil(model.level.timeLeft / 60),
-							model.level.bonusPoints
-						)}
+					<div class="grid items-center justify-items-end gap-2 gap-x-2 whitespace-nowrap text-end [grid-template-columns:repeat(2,auto);]">
+						<div>Time left:</div>
+						<div>{formatTimeLeft(rootTimeLeft ?? model.level.timeLeft)}s</div>
+						<div>Chips left:</div>
+						<div>{model.level.chipsLeft}</div>
+						<div>Bonus points:</div>
+						<div>{model.level.bonusPoints}</div>
+						<div>Total points:</div>
+						<div>
+							{calculateLevelPoints(
+								levelN!,
+								Math.ceil((rootTimeLeft ?? model.level.timeLeft) / 60),
+								model.level.bonusPoints
+							)}
+						</div>
 					</div>
 				</div>
 				<div class="box col-start-2 h-full">

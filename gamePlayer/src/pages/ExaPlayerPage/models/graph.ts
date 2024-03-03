@@ -33,8 +33,13 @@ export class GraphMoveSequence extends MoveSequence {
 export class Node {
 	level: LevelState
 	hash: number
-	rootDepth: number = 0
 	hashSettings: HashSettings
+	winDistance?: number
+	winTargetNode?: Node
+	winTargetSeq?: GraphMoveSequence
+	rootDistance: number = 0
+	rootTargetNode?: Node
+	rootTargetSeq?: GraphMoveSequence
 	constructor(node: Node)
 	constructor(level: LevelState, hashSettings: HashSettings)
 	constructor(level: LevelState | Node, hashSettings?: HashSettings) {
@@ -70,31 +75,87 @@ export class Node {
 		return this.inNodes.length === 1 && this.outNodes.length === 1
 	}
 
+	getWinSubtickOffset() {
+		if (this.level.gameState !== GameState.WON) return 0
+		return this.level.subtick - 1
+	}
 	newChild(inputs: GraphMoveSequence): Node {
 		const child = new Node(this)
 		child.inNodes.push(this)
 		this.outConns.set(child, [inputs])
 		child.hash = inputs.lastHash
-		child.rootDepth = this.rootDepth + 1
+		child.rootDistance = this.rootDistance + inputs.tickLen * 3
+		child.rootTargetNode = this
+		child.rootTargetSeq = inputs
 		return child
 	}
-	recalcRootDepth() {
-		if (this.rootDepth === 0) return
-		let bestDepth = Infinity
-		for (const node of this.inNodes) {
-			if (node.rootDepth < bestDepth) {
-				bestDepth = node.rootDepth
+	findShortestParentConns(): ConnPtr[] {
+		return Array.from(this.inNodes)
+			.filter((node, i, arr) => arr.indexOf(node) === i)
+			.map<ConnPtr>(node => {
+				const connArr = node.outConns.get(this)!
+				const shortestSeq = connArr.reduce(
+					(acc, val) => (val.tickLen < acc.tickLen ? val : acc),
+					connArr[0]
+				)
+				return { n: node, m: shortestSeq }
+			})
+	}
+	findShortestChildConns(): ConnPtr[] {
+		return Array.from(this.outConns).map<ConnPtr>(([node, seqs]) => {
+			const shortestSeq = seqs.reduce(
+				(acc, val) => (val.tickLen < acc.tickLen ? val : acc),
+				seqs[0]
+			)
+			return { n: node, m: shortestSeq }
+		})
+	}
+	cascadeWinDist() {
+		if (this.winDistance === undefined) return
+		const toCascade: Node[] = [this]
+		while (toCascade.length > 0) {
+			const node = toCascade.reduce(
+				(acc, val) => (val.winDistance! < acc.winDistance! ? val : acc),
+				toCascade[0]
+			)
+			toCascade.splice(toCascade.indexOf(node), 1)
+			const conns = node.findShortestParentConns()
+			for (const conn of conns) {
+				const newDist =
+					node.winDistance! + node.getWinSubtickOffset() + conn.m.tickLen * 3
+				if (conn.n.winDistance !== undefined && newDist > conn.n.winDistance) {
+					continue
+				}
+				conn.n.winDistance = newDist
+				conn.n.winTargetNode = node
+				conn.n.winTargetSeq = conn.m
+				toCascade.push(conn.n)
 			}
 		}
-		if (bestDepth + 1 === this.rootDepth) return
-		const nodesToRecalc = Array.from(this.outConns.keys()).filter(
-			node => node.rootDepth > this.rootDepth
-		)
-		this.rootDepth = bestDepth + 1
-		for (const node of nodesToRecalc) {
-			node.recalcRootDepth()
+	}
+	cascadeRootDist() {
+		const toCascade: Node[] = [this]
+		while (toCascade.length > 0) {
+			const node = toCascade.reduce(
+				(acc, val) => (val.rootDistance! < acc.rootDistance! ? val : acc),
+				toCascade[0]
+			)
+			toCascade.splice(toCascade.indexOf(node), 1)
+			const conns = node.findShortestChildConns()
+			for (const conn of conns) {
+				const newDist =
+					node.rootDistance + conn.m.tickLen * 3 + conn.n.getWinSubtickOffset()
+				if (newDist > conn.n.rootDistance) {
+					continue
+				}
+				conn.n.rootDistance = newDist
+				conn.n.rootTargetNode = node
+				conn.n.rootTargetSeq = conn.m
+				toCascade.push(conn.n)
+			}
 		}
 	}
+
 	moveConnections(newNode: Node, oldNode: Node) {
 		if (newNode === oldNode) return
 		let newSeqs = this.outConns.get(newNode)
@@ -109,8 +170,8 @@ export class Node {
 			oldNode.inNodes.splice(oldNode.inNodes.indexOf(this), 1)
 			newNode.inNodes.push(this)
 		}
-		oldNode.recalcRootDepth()
-		newNode.recalcRootDepth()
+		newNode.cascadeWinDist()
+		this.cascadeRootDist()
 	}
 	findConnectedNode(seq: GraphMoveSequence): Node | undefined {
 		return Array.from(this.outConns.entries()).find(([, seqs]) =>
@@ -126,7 +187,6 @@ export class Node {
 			this.outConns.delete(endNode)
 		}
 		endNode.inNodes.splice(endNode.inNodes.indexOf(this), 1)
-		endNode.recalcRootDepth()
 	}
 	insertNodeOnSeq(
 		seq: GraphMoveSequence,
@@ -154,7 +214,8 @@ export class Node {
 		}
 		midNode.outConns.set(endNode, [seq2])
 		endNode.inNodes.push(midNode)
-		endNode.recalcRootDepth()
+		endNode.cascadeWinDist()
+		this.cascadeRootDist()
 		return { node: midNode, seq1: seq, seq2 }
 	}
 	getLooseMoveSeq(): GraphMoveSequence {
@@ -198,6 +259,7 @@ interface MovePtr extends ConnPtr {
 }
 
 export class GraphModel {
+	initialTimeLeft: number
 	rootNode: Node
 	current: MovePtr | Node
 	nodeHashMap: Map<number, Node> = new Map()
@@ -206,6 +268,8 @@ export class GraphModel {
 		public level: LevelState,
 		public hashSettings: HashSettings
 	) {
+		this.initialTimeLeft = level.timeLeft
+		level.timeLeft = 0
 		this.rootNode = this.current = new Node(level, hashSettings)
 		this.nodeHashMap.set(this.rootNode.hash, this.rootNode)
 	}
@@ -276,6 +340,7 @@ export class GraphModel {
 			})
 			moveSeq.add(input, this.level)
 			node.hash = moveSeq.lastHash
+			node.rootDistance = parent.rootDistance + moveSeq.tickLen * 3
 		}
 		const newHash = moveSeq.lastHash
 		const nodeMergee = this.nodeHashMap.get(newHash)
@@ -303,6 +368,11 @@ export class GraphModel {
 			}
 		} else {
 			this.nodeHashMap.set(node.hash, node)
+			if (node.level.gameState === GameState.WON) {
+				node.winDistance = 0
+				node.rootDistance += node.getWinSubtickOffset()
+				node.cascadeWinDist()
+			}
 		}
 	}
 	undo(into?: GraphMoveSequence) {
@@ -366,7 +436,7 @@ export class GraphModel {
 	goTo(pos: MovePtr | Node): void {
 		this.current = pos
 		if (pos instanceof Node) {
-			this.level = cloneLevel(pos.level)
+			this.level = pos.level
 			return
 		}
 		const closestSnapshot: Snapshot = pos.m.snapshots.find(
@@ -409,20 +479,20 @@ export class GraphModel {
 		}
 	}
 	findBackfeedConns(): ConnPtr[] {
-		const nodesToVisit: Node[] = [this.rootNode]
+		const nodesToVisit: [Node, Node[]][] = [[this.rootNode, []]]
 		const visited: WeakSet<Node> = new WeakSet()
 		visited.add(this.rootNode)
 		const backConns: ConnPtr[] = []
 		while (nodesToVisit.length > 0) {
-			const node = nodesToVisit.shift()!
+			const [node, parents] = nodesToVisit.shift()!
 			for (const [tNode, conns] of node.outConns.entries()) {
-				if (node.rootDepth > tNode.rootDepth || node === tNode) {
+				if (parents.includes(tNode)) {
 					for (const conn of conns) {
 						backConns.push({ n: node, m: conn })
 					}
 				} else {
 					if (!visited.has(tNode)) {
-						nodesToVisit.push(tNode)
+						nodesToVisit.push([tNode, parents.concat(node)])
 						visited.add(tNode)
 					}
 				}

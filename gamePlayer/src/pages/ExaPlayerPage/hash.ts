@@ -1,5 +1,6 @@
 import {
 	Actor,
+	Animation,
 	CounterGate,
 	LatchGate,
 	LatchGateMirror,
@@ -55,6 +56,9 @@ function hashActor(crc: CRC32, actor: Actor, settings: HashSettings) {
 		) {
 			crc.feed8(actor.memory)
 		}
+	}
+	if (actor instanceof Animation) {
+		crc.feed8(actor.animationCooldown)
 	}
 	if (actor.isDeciding) {
 		crc.feed8(actor.cooldown)
