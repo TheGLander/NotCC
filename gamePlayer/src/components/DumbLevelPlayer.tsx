@@ -185,7 +185,7 @@ export function DumbLevelPlayer(props: {
 	level: LevelData
 	controlsRef?: Ref<LevelControls | null>
 }) {
-	const tileset = useAtomValue(tilesetAtom)
+	const tileset = useAtomValue(tilesetAtom)!
 	// if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
 
 	const [playerState, setPlayerState] = useState("pregame" as PlayerState)
