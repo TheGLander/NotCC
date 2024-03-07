@@ -218,11 +218,29 @@ export function RealExaPlayerPage() {
 			},
 			exa: {
 				undo: () => {
-					model.undo()
+					try {
+						model.undo()
+					} catch (err: any) {
+						// Dumbest hack of all time
+						if (
+							!(err as Error).message.startsWith("into is required for multi-")
+						) {
+							throw err
+						}
+					}
 					updateLevel()
 				},
 				redo: () => {
-					model.redo()
+					try {
+						model.redo()
+					} catch (err: any) {
+						// Dumbest hack of all time
+						if (
+							!(err as Error).message.startsWith("into is required for multi-")
+						) {
+							throw err
+						}
+					}
 					updateLevel()
 				},
 				purgeBackfeed: model instanceof GraphModel ? purgeBackfeed : undefined,
