@@ -7,6 +7,7 @@ import { levelAtom } from "@/levelData"
 import type { HashSettings } from "./hash"
 import { pageAtom, pageNameAtom } from "@/routing"
 import { preferenceAtom } from "@/preferences"
+import { Expl } from "@/components/Expl"
 
 export type ExaOpenEvent =
 	| { type: "new"; model: MoveModel; hashSettings?: HashSettings }
@@ -25,7 +26,7 @@ function HashSettingsInput(props: {
 		desc: string
 	}) {
 		return (
-			<>
+			<div>
 				<label>
 					<input
 						type="checkbox"
@@ -39,8 +40,8 @@ function HashSettingsInput(props: {
 					/>{" "}
 					{props2.name}
 				</label>
-				<p class="text-sm">{props2.desc}</p>
-			</>
+				<Expl>{props2.desc}</Expl>
+			</div>
 		)
 	}
 	return (
@@ -68,11 +69,12 @@ function HashSettingsInput(props: {
 					<option value="mimic">floor mimic (16 ticks)</option>
 				</select>
 			</label>
-			<p class="text-sm">
-				If set to anything other than None, tick parity will be taken account
-				for level state discrimination purposes. Only use if the selected
-				monster is in the level and affects routing.
-			</p>
+			<Expl>
+				If set to anything other than none, tick parity will be taken account
+				when calculating the hash. Only use if the selected monster is in the
+				level and affects routing.
+			</Expl>
+			<br />
 			<Input
 				id="ignoreBlockOrder"
 				name="Ignore block order"
@@ -89,8 +91,8 @@ function HashSettingsInput(props: {
 			/>
 			<Input
 				id="ignorePlayerBump"
-				name="Ignore mirror player buffered inputs"
-				desc="If set, buffered decision info will not matter when comparing level
+				name="Ignore player bonk state"
+				desc="If set, player bonk state from last tick info will not matter when comparing level
 				state. This only affects levels with mirror players, and should
 				be set otherwise."
 			/>
@@ -126,7 +128,14 @@ function NewProject(props: {
 	return (
 		<form onSubmit={createNewModel} class="flex-1">
 			<h3 class="text-xl">New</h3>
-			<legend>Select ExaCC move model:</legend>
+			<legend>
+				Select ExaCC move model:
+				<Expl>
+					The move model determines how the inputs will be tracked. More complex
+					move models make routing easier, but are harder to grasp and require
+					more system resources.
+				</Expl>
+			</legend>
 			<fieldset
 				class="pl-2"
 				onChange={ev => {
@@ -137,30 +146,41 @@ function NewProject(props: {
 				}}
 			>
 				<label>
-					<input type="radio" name="moveMode" value="linear" /> Linear
+					<input type="radio" name="moveMode" value="linear" defaultChecked />{" "}
+					Linear
 				</label>
-				<p class="text-sm">
+				<Expl>
 					The SuperCC experience. There is one move sequence, adding inputs over
 					existing moves overwrites them.
-				</p>
+				</Expl>
+				<br />
 				<label>
 					<input disabled type="radio" name="moveMode" value="tree" /> Tree
 				</label>
-				<p class="text-sm">
+				<Expl>
 					The MVS experience. Adding inputs over existing moves creates a new
 					branch containing the input and all previous moves.
-				</p>
+				</Expl>
+				<br />
 				<label>
 					<input type="radio" name="moveMode" value="graph" /> Graph
 				</label>
-				<p class="text-sm">
+				<Expl>
 					Move sequences are treated as bridges between level states, new inputs
 					creating and merging branches as necessary. Different level states
 					with effectively equal positions can be manually tied to be treated as
 					the same level state.
-				</p>
+				</Expl>
 			</fieldset>
-			<h3 class="mt-2">Hash settings</h3>
+			<h3 class="mt-2">
+				Hash settings
+				<Expl>
+					Graph mode deems two level states identical if their hashes are equal.
+					By ignoring some of the level state when calculating the hash, two
+					level states which have minor, unimportant differences will be
+					considered as the same state.
+				</Expl>
+			</h3>
 			<div class="pl-2">
 				<HashSettingsInput
 					settings={hashSettings}
@@ -193,7 +213,7 @@ export const OpenExaPrompt: (props: {
 			<Dialog
 				header="ExaCC Studio"
 				section={
-					<div class="flex flex-row">
+					<div class="flex w-[40vw] flex-row">
 						<NewProject onSubmit={props.onResolve} toggleMode={toggleMode} />
 						{/* <NewProject onSubmit={props.onResolve} /> */}
 						{/* <OpenProject /> */}

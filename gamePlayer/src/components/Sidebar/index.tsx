@@ -24,9 +24,12 @@ import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
 import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
 import { levelControlsAtom } from "@/levelData"
+import { Expl } from "../Expl"
+import backfeedPruningImg from "./backfeedPruning.png"
 
 interface SidebarAction {
 	label: string
+	expl?: ComponentChildren
 	shortcut?: string
 	disabled?: boolean
 	onTrigger?: (get: Getter, set: Setter) => void
@@ -61,6 +64,11 @@ function ChooserButton(props: SidebarAction) {
 				)}
 			>
 				{props.label}
+				{props.expl && (
+					<Expl mode="dialog" title={props.label}>
+						{props.expl}
+					</Expl>
+				)}
 			</div>
 			{props.shortcut && (
 				<div class="closes-tooltip ml-auto pb-1 pl-8 max-md:hidden">
@@ -289,6 +297,11 @@ export function Sidebar() {
 						label="Toggle ExaCC"
 						shortcut="Shift+X"
 						onTrigger={toggleExaCC}
+						expl={
+							<>
+								ExaCC is a tool for routing levels based on NotCC's game logic.
+							</>
+						}
 					/>
 					<ChooserButton
 						label="New ExaCC route"
@@ -324,6 +337,14 @@ export function Sidebar() {
 							levelControls.exa!.purgeBackfeed!()
 						}}
 						disabled={!levelControls.exa?.purgeBackfeed}
+						expl={
+							<>
+								<img src={backfeedPruningImg} class="float-left" />
+								Pressing "prune backfeed" will remove all edges which "feed"
+								into parent nodes. This is useful for decluttering the graph, as
+								these edges cannot possibly be part of an optimal route.
+							</>
+						}
 					/>
 				</SidebarButton>
 
