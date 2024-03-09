@@ -75,7 +75,7 @@ function hashActor(crc: CRC32, actor: Actor, settings: HashSettings) {
 		crc.feed8(actor.pendingDecision)
 		if (actor instanceof Playable) {
 			if (!settings.ignorePlayerBump) {
-				crc.feed8(actor.lastDecision)
+				crc.feed8(actor.playerBonked)
 			}
 			crc.feed8(actor.hasOverride)
 		} else if (actor instanceof LitTNT) {
