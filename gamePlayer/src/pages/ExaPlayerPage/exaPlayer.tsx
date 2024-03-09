@@ -377,7 +377,7 @@ export function RealExaPlayerPage() {
 					/>
 				</div>
 				<div class="box col-start-2 flex w-auto gap-2">
-					<div class="row-span-full mr-16">
+					<div class="row-span-full mr-16 self-center justify-self-center">
 						<Inv
 							level={levelRef}
 							renderRef={renderRef2}

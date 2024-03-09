@@ -349,16 +349,16 @@ export function DumbLevelPlayer(props: {
 			>
 				<div
 					class={twJoin(
-						"grid w-auto items-center gap-x-2 [grid-template-columns:repeat(2,auto);]",
+						"grid w-auto items-center justify-items-end gap-x-2 [grid-template-columns:repeat(2,auto);]",
 						verticalLayout && "flex-1",
-						!verticalLayout && "ml-1 justify-start"
+						!verticalLayout && "ml-1 "
 					)}
 				>
-					<div class="justify-self-end text-end">Chips left:</div>
+					<div>Chips left:</div>
 					<div class="text-[1.5em]">{chipsLeft}</div>
-					<div class="justify-self-end text-end">Time left:</div>
+					<div>Time left:</div>
 					<div class="text-[1.5em]">{Math.ceil(timeLeft / 60)}s</div>
-					<div class="justify-self-end text-end">Bonus points:</div>
+					<div>Bonus points:</div>
 					<div class="text-[1.5em]">{bonusPoints}</div>
 				</div>
 				{inventory && (
