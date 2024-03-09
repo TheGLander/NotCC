@@ -246,14 +246,14 @@ export class Node {
 	}
 }
 
-interface ConnPtr {
+export interface ConnPtr {
 	// `i`nput node
 	n: Node
 	// co`n`nection
 	m: GraphMoveSequence
 }
 
-interface MovePtr extends ConnPtr {
+export interface MovePtr extends ConnPtr {
 	// o`f`fset
 	o: number
 }

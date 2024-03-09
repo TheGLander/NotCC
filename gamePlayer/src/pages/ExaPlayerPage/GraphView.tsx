@@ -1,5 +1,5 @@
 import { GameState, KeyInputs, keyInputToChar } from "@notcc/logic"
-import { GraphModel, GraphMoveSequence } from "./models/graph"
+import { ConnPtr, GraphModel, GraphMoveSequence, Node } from "./models/graph"
 import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
@@ -64,11 +64,10 @@ function makeGraph(model: GraphModel) {
 	}
 	for (const node of model.nodeHashMap.values()) {
 		for (const [tNode, conns] of node.outConns.entries()) {
-			for (const conn of conns) {
-				graph.setEdge(node.getHashName(), tNode.getHashName(), {
-					conn,
-				})
-			}
+			graph.setEdge(node.getHashName(), tNode.getHashName(), {
+				node,
+				conns,
+			})
 		}
 	}
 	return graph
@@ -150,7 +149,8 @@ function SvgView(props: GraphViewProps) {
 			<g>
 				{graph.edges().map(id => {
 					const edge = graph.edge(id)
-					const seq = edge.conn as GraphMoveSequence
+					// const node = edge.node as Node
+					const conns = edge.conns as GraphMoveSequence[]
 					const strokePath = `M${edge.points[0].x + marginLeft},${
 						edge.points[0].y + marginTop
 					}L${edge.points
@@ -158,7 +158,7 @@ function SvgView(props: GraphViewProps) {
 						.map(p => `${p.x + marginLeft},${p.y + marginTop}`)
 						.join(",")}`
 					const isCurrent =
-						"m" in props.model.current && props.model.current.m === seq
+						"m" in props.model.current && conns.includes(props.model.current.m)
 					return (
 						<>
 							{isCurrent && (
@@ -173,6 +173,7 @@ function SvgView(props: GraphViewProps) {
 							<path
 								d={strokePath}
 								strokeWidth={EDGE_RADIUS * 2}
+								strokeDasharray={conns.length > 1 ? "6 3" : undefined}
 								class={twJoin("fill-none", "stroke-theme-50")}
 								markerEnd="url(#arrow)"
 							/>
@@ -212,6 +213,9 @@ function SvgView(props: GraphViewProps) {
 	)
 }
 
+const MOVE_CURSOR_CLASS =
+	"bg-theme-700 text-theme-200 whitespace-break-spaces rounded-sm font-mono"
+
 export function MovesList(props: {
 	seq: MoveSequence
 	offset: number
@@ -220,14 +224,12 @@ export function MovesList(props: {
 	const { seq, offset, composeOverlay } = props
 	const composeText = keyInputToChar(composeOverlay, false, true)
 	let futureMoves: VNode
-	const boxClass =
-		"bg-theme-700 text-theme-200 whitespace-break-spaces rounded-sm"
 	if (offset === seq.tickLen) {
-		futureMoves = <span class={boxClass}>{composeText} </span>
+		futureMoves = <span class={MOVE_CURSOR_CLASS}>{composeText} </span>
 	} else if (!composeText) {
 		futureMoves = (
 			<>
-				<span class={boxClass}>{seq.displayMoves[offset]}</span>
+				<span class={MOVE_CURSOR_CLASS}>{seq.displayMoves[offset]}</span>
 				{seq.displayMoves.slice(offset + 1).join("")}
 			</>
 		)
@@ -238,7 +240,7 @@ export function MovesList(props: {
 			.slice(composeText.length + 1)
 		futureMoves = (
 			<>
-				<span class={boxClass}>{composeText} </span>
+				<span class={MOVE_CURSOR_CLASS}>{composeText} </span>
 				{movesStr}
 			</>
 		)
@@ -253,6 +255,7 @@ export function MovesList(props: {
 
 export function Infobox(props: GraphViewProps) {
 	const model = props.model
+	const composeText = keyInputToChar(props.inputs, false, true)
 	if ("m" in model.current || model.current.loose) {
 		let seq: GraphMoveSequence
 		let offset: number
@@ -279,13 +282,31 @@ export function Infobox(props: GraphViewProps) {
 				  ? "Winning node"
 				  : "Node"}
 			<br />
-			Connections: {model.current.inNodes.length} in,{" "}
-			{model.current.outNodes.length} out
-			<br />
 			Dists: root {formatTicks(model.current.rootDistance)}s /{" "}
 			{model.current.winDistance === undefined
 				? "not won"
 				: `win ${formatTicks(model.current.winDistance)}s`}
+			<br />
+			Edges:{" "}
+			{Array.from(model.current.outConns.values())
+				.flat()
+				.map((seq, i) => (
+					<>
+						{i !== 0 && ", "}
+						<span class="font-mono text-zinc-400">
+							{seq.tickLen <= 16
+								? seq.displayMoves.join("")
+								: seq.displayMoves.slice(0, 16).join("") + "…"}
+						</span>
+					</>
+				))}
+			{composeText && (
+				<>
+					{model.current.outConns.size !== 0 && ", "}
+					<span class={MOVE_CURSOR_CLASS}>{composeText}</span>
+				</>
+			)}
+			{!composeText && model.current.outConns.size === 0 && "none"}
 		</>
 	)
 }
