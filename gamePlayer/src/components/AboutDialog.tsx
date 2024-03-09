@@ -64,8 +64,8 @@ export const AboutPrompt: PromptComponent<void> = props => {
 							<a target="_blank" href="https://github.com/SicklySilverMoon">
 								Sickly
 							</a>
-							, for creating and maintaining SuperCC, the optimization tool
-							ExaCC is heavily inspired by.
+							, for creating and maintaining SuperCC, the first real
+							optimization tool, which heavily inspired the original ExaCC.
 						</li>
 						<li>
 							<a target="_blank" href="https://github.com/zrax">
@@ -111,6 +111,14 @@ export const AboutPrompt: PromptComponent<void> = props => {
 							</a>
 							, for providing details and feedback on non-legal glitches and
 							their prevention.
+						</li>
+						<li>
+							ChosenID, for creating the extremely powerful{" "}
+							<a target="_blank" href="http://cc-optimization.byethost12.com/">
+								Melinda Vicinity Searcher
+							</a>
+							, which ExaCC's graph mode is influenced and inspired by, and
+							ExaCC's tree mode is "inspired" by.
 						</li>
 					</ul>
 					<p class="text-sm">
