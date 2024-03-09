@@ -1,5 +1,5 @@
 import { GameState, KeyInputs, keyInputToChar } from "@notcc/logic"
-import { ConnPtr, GraphModel, GraphMoveSequence, Node } from "./models/graph"
+import { GraphModel, GraphMoveSequence } from "./models/graph"
 import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
