@@ -467,8 +467,8 @@ export class Trap extends Actor {
 		actor.frozen = true
 	}
 	setFrozenAll(): void {
-		for (const actor of this.tile[Layer.MOVABLE]) {
-			this.setFrozen(actor)
+		if (this.tile[Layer.MOVABLE]) {
+			this.setFrozen(this.tile[Layer.MOVABLE])
 		}
 	}
 	buttonPressed(_type: string, data?: string): void {
@@ -477,7 +477,8 @@ export class Trap extends Actor {
 		else this.openRequests++
 		this.openRequestAt = this.level.currentTick * 3 + this.level.subtick
 		if (data !== "init" && !wasOpen && this.isOpen) {
-			for (const movable of this.tile[Layer.MOVABLE]) {
+			const movable = this.tile[Layer.MOVABLE]
+			if (movable) {
 				this.setFrozen(movable)
 				if (movable._internalStep(movable.direction)) movable.cooldown--
 			}
@@ -535,7 +536,8 @@ export class CloneMachine extends Actor {
 		return !this.isCloning
 	}
 	levelStarted(): void {
-		for (const movable of this.tile[Layer.MOVABLE]) {
+		const movable = this.tile[Layer.MOVABLE]
+		if (movable) {
 			movable.frozen = true
 		}
 	}
@@ -557,41 +559,45 @@ export class CloneMachine extends Actor {
 	}
 	// Cloning with rotation happens at the start of the tick (pre-wire tick), so the extra cooldown is not needed
 	clone(attemptToRotate: boolean): void {
+		let clonee = this.tile[Layer.MOVABLE]
+		if (!clonee) return
 		this.isCloning = true
-		for (let clonee of [...this.tile[Layer.MOVABLE]]) {
-			if (clonee.cooldown) continue
-			clonee.frozen = false
-			clonee.slidingState = SlidingState.STRONG
-			if (this.tryMovingInto(clonee, clonee.direction)) {
-				clonee.cooldown--
-			} else {
-				if (clonee.newActor) clonee = clonee.newActor
-				const ogDir = clonee.direction
-				if (attemptToRotate) {
-					for (let i = 1; i <= 3; i++) {
-						if (this.tryMovingInto(clonee, (ogDir + i) % 4)) {
-							clonee.cooldown--
+		if (clonee.cooldown) {
+			this.isCloning = false
+			return
+		}
+		clonee.frozen = false
+		clonee.slidingState = SlidingState.STRONG
+		if (this.tryMovingInto(clonee, clonee.direction)) {
+			clonee.cooldown--
+		} else {
+			if (clonee.newActor) clonee = clonee.newActor
+			const ogDir = clonee.direction
+			if (attemptToRotate) {
+				for (let i = 1; i <= 3; i++) {
+					if (this.tryMovingInto(clonee, (ogDir + i) % 4)) {
+						clonee.cooldown--
 
-							break
-						}
-						if (clonee.newActor) clonee = clonee.newActor
+						break
 					}
-				}
-				if (clonee.cooldown === 0) {
-					clonee.direction = ogDir
-					clonee.frozen = true
-					clonee.slidingState = SlidingState.NONE
-					continue
+					if (clonee.newActor) clonee = clonee.newActor
 				}
 			}
-			const newClone = new actorDB[clonee.id](
-				this.level,
-				this.tile.position,
-				clonee.customData
-			)
-			newClone.direction = clonee.direction
-			newClone.frozen = true
+			if (clonee.cooldown === 0) {
+				clonee.direction = ogDir
+				clonee.frozen = true
+				clonee.slidingState = SlidingState.NONE
+				this.isCloning = false
+				return
+			}
 		}
+		const newClone = new actorDB[clonee.id](
+			this.level,
+			this.tile.position,
+			clonee.customData
+		)
+		newClone.direction = clonee.direction
+		newClone.frozen = true
 		this.isCloning = false
 	}
 	buttonPressed(): boolean {

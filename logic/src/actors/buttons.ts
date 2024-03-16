@@ -223,12 +223,12 @@ export class ButtonBlack extends Actor {
 		this.level.sfxManager?.playOnce("button press")
 	}
 	processOutput() {
-		for (const movable of this.tile[Layer.MOVABLE]) {
-			if (movable.cooldown <= 0) {
-				this.poweringWires = 0
-				return
-			}
+		const movable = this.tile[Layer.MOVABLE]
+		if (movable && movable.cooldown <= 0) {
+			this.poweringWires = 0
+			return
 		}
+
 		this.poweringWires = 0b1111
 	}
 	providesPower = true

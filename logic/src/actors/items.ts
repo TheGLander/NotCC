@@ -22,8 +22,7 @@ export abstract class Item extends Actor {
 	carrierTags?: Record<string, string[]> = {}
 	carrierSpeedMod?(actor: Actor, mult: number): number
 	hasItemMod(): boolean {
-		for (const mod of this.tile[Layer.ITEM_SUFFIX])
-			if (mod.tags?.includes("ignoreItem")) return true
+		if (this.tile[Layer.ITEM_SUFFIX]?.tags?.includes("ignoreItem")) return true
 		return false
 	}
 	blocks?(other: Actor): boolean {
@@ -365,8 +364,8 @@ export class BowlingBall extends Item {
 		const rollingGuy = this.replaceWith(RollingBowlingBall)
 		if (rollingGuy._internalStep(dropper.direction)) rollingGuy.cooldown--
 		// Hello animation from rolling bowling ball movement failure, please die so my dropper can go back
-		for (const movable of dropper.tile[Layer.MOVABLE])
-			if (movable instanceof Explosion) movable.destroy(null, null)
+		const movable = dropper.tile[Layer.MOVABLE]
+		if (movable instanceof Explosion) movable.destroy(null, null)
 		dropper.tile.addActors(dropper)
 	}
 }

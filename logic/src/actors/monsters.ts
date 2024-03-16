@@ -239,8 +239,9 @@ export class BlobMonster extends Monster {
 	blockedBy(other: Actor) {
 		return (
 			other.getCompleteTags("tags").includes("canopy") &&
-			iterableSome(this.tile[Layer.SPECIAL], val =>
-				val.getCompleteTags("tags").includes("canopy")
+			!!(
+				this.tile[Layer.SPECIAL] &&
+				this.tile[Layer.SPECIAL].getCompleteTags("tags").includes("canopy")
 			)
 		)
 	}

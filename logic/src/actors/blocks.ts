@@ -26,10 +26,10 @@ export class DirtBlock extends Actor {
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile.findActor(Layer.STATIONARY, val =>
-			val.getCompleteTags("tags").includes("water")
-		)
-		if (water && !water._internalIgnores(this)) {
+		const water = this.tile[Layer.STATIONARY]
+		if (!water?.getCompleteTags("tags").includes("water")) return
+
+		if (!water._internalIgnores(this)) {
 			this.destroy(this, "splash")
 			water.destroy(null, null)
 			new Dirt(this.level, this.tile.position)
@@ -68,20 +68,21 @@ export class IceBlock extends Actor {
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile.findActor(Layer.STATIONARY, val =>
-			val.getCompleteTags("tags").includes("water")
-		)
-		const melting = this.tile.findActor(Layer.STATIONARY, val =>
-			val.getCompleteTags("tags").includes("melting")
-		)
-		if (water && !water._internalIgnores(this)) {
+		const terrain = this.tile[Layer.STATIONARY]
+		if (
+			terrain?.getCompleteTags("tags").includes("water") &&
+			!terrain._internalIgnores(this)
+		) {
 			this.destroy(this, "splash")
-			water.destroy(null, null)
+			terrain.destroy(null, null)
 			new Ice(this.level, this.tile.position)
 		}
-		if (melting && !melting._internalIgnores(this)) {
+		if (
+			terrain?.getCompleteTags("tags").includes("melting") &&
+			!terrain._internalIgnores(this)
+		) {
 			this.destroy(this, "splash")
-			melting.destroy(null, null)
+			terrain.destroy(null, null)
 			new Water(this.level, this.tile.position)
 		}
 	}
@@ -89,7 +90,7 @@ export class IceBlock extends Actor {
 		if (
 			other.getCompleteTags("tags").includes("melting") &&
 			(!this.tile.hasLayer(Layer.STATIONARY) ||
-				this.tile[Layer.STATIONARY].next().value.id === "water")
+				this.tile[Layer.STATIONARY]!.id === "water")
 		) {
 			this.destroy(this, "splash")
 			if (!this.tile.hasLayer(Layer.STATIONARY))
@@ -135,10 +136,11 @@ export class DirectionalBlock extends Actor {
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile.findActor(Layer.STATIONARY, val =>
-			val.getCompleteTags("tags").includes("water")
-		)
-		if (water && !water._internalIgnores(this)) {
+		const water = this.tile[Layer.STATIONARY]
+		if (
+			water?.getCompleteTags("tags").includes("water") &&
+			!water._internalIgnores(this)
+		) {
 			water.destroy(null, null)
 			this.destroy(this, "splash")
 		}

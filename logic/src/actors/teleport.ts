@@ -22,9 +22,10 @@ function findNextTeleport<T extends Actor>(
 	for (const tile of teleport.level.tiles(rro, teleport.tile.position)) {
 		if (!rolledOver && Math.abs(tile.y - lastY) > 1) rolledOver = true
 		lastY = tile.y
-		const newTeleport = iterableFind(
-			tile[teleport.layer],
-			val => val instanceof thisConstructor
+		const newTeleport = (
+			tile[teleport.layer] instanceof thisConstructor
+				? tile[teleport.layer]
+				: null
 		) as T | null
 		if (
 			newTeleport &&
@@ -143,9 +144,7 @@ export class BlueTeleport extends Teleport implements BlueTeleportTarget {
 	takeTeleport(other: Actor): void {
 		other.oldTile = other.tile
 		other.tile = this.tile
-		other._internalUpdateTileStates(
-			!iterableIncludes(other.oldTile[other.layer], other)
-		)
+		other._internalUpdateTileStates(other.oldTile[other.layer] !== other)
 		other.slidingState = SlidingState.STRONG
 	}
 	giveUpTeleport(other: Actor): void {

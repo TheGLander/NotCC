@@ -140,7 +140,7 @@ export abstract class Actor implements Wirable {
 		if (this.despawned) {
 			console.warn("Dropping items while despawned in undefined behaviour.")
 		}
-		if (this.tile.hasLayer(itemToDrop.layer)) return false
+		if (this.tile[itemToDrop.layer]) return false
 		if (itemToDrop.canBeDropped && !itemToDrop.canBeDropped(this)) return false
 		this.inventory.items.splice(id, 1)
 		itemToDrop.oldTile = null
@@ -455,29 +455,26 @@ export abstract class Actor implements Wirable {
 			Layer.STATIONARY,
 			Layer.MOVABLE,
 			Layer.ITEM,
-		])
-			for (let blockActor of newTile[layer]) {
-				for (const item of this.inventory.items) {
-					item.onCarrierBump?.(this, blockActor, direction)
-					if (blockActor.newActor) blockActor = blockActor.newActor
-				}
-				blockActor.bumped?.(this, direction)
-				this.bumpedActor?.(blockActor, direction, false)
-				if (blockActor._internalBlocks(this, direction))
-					if (this._internalCanPush(blockActor, direction))
-						toPush.push(blockActor)
-					else {
-						this.level.resolvedCollisionCheckDirection = direction
-						return false
-					}
-				if (
-					layer === Layer.MOVABLE &&
-					iterableIndexOf(newTile[layer], blockActor) ===
-						newTile.layerLength(layer) - 1
-				)
-					// This is dumb
-					break loop
+		]) {
+			let blockActor = newTile[layer]
+			if (!blockActor) continue
+			for (const item of this.inventory.items) {
+				item.onCarrierBump?.(this, blockActor, direction)
+				if (blockActor.newActor) blockActor = blockActor.newActor
 			}
+			blockActor.bumped?.(this, direction)
+			this.bumpedActor?.(blockActor, direction, false)
+			if (blockActor._internalBlocks(this, direction))
+				if (this._internalCanPush(blockActor, direction))
+					toPush.push(blockActor)
+				else {
+					this.level.resolvedCollisionCheckDirection = direction
+					return false
+				}
+			if (layer === Layer.MOVABLE)
+				// This is dumb
+				break loop
+		}
 
 		for (const pushable of toPush) {
 			this.level.resolvedCollisionCheckDirection = direction
@@ -499,10 +496,12 @@ export abstract class Actor implements Wirable {
 			}
 		}
 		this.level.resolvedCollisionCheckDirection = direction
+		if (toPush.length !== 0) this.isPushing = true
 		if (pull && this.getCompleteTags("tags").includes("pulling")) {
 			const backTile = this.tile.getNeighbor((direction + 2) % 4)
 			if (!backTile) return true
-			for (const pulledActor of backTile[Layer.MOVABLE]) {
+			const pulledActor = backTile[Layer.MOVABLE]
+			if (pulledActor) {
 				if (pulledActor.cooldown && pulledActor.moveSpeed) return false
 
 				if (
@@ -511,15 +510,14 @@ export abstract class Actor implements Wirable {
 					(pulledActor.canBePushed && !pulledActor.canBePushed(this, direction))
 				) {
 					pulledActor.isPulled = true
-					continue
+					return true
 				}
 				pulledActor.isPulled = true
 				pulledActor.direction = direction
-				if (pulledActor.frozen) continue
+				if (pulledActor.frozen) return true
 				pulledActor.pendingDecision = pulledActor.moveDecision = direction + 1
 			}
 		}
-		if (toPush.length !== 0) this.isPushing = true
 		return true
 	}
 	/**
@@ -596,11 +594,7 @@ export abstract class Actor implements Wirable {
 		}
 		this.tile.removeActors(this)
 		this.exists = false
-		if (
-			animType &&
-			actorDB[`${animType}Anim`] &&
-			!this.tile.hasLayer(Layer.MOVABLE)
-		) {
+		if (animType && actorDB[`${animType}Anim`] && !this.tile[Layer.MOVABLE]) {
 			const anim = new actorDB[`${animType}Anim`](
 				this.level,
 				this.tile.position,
