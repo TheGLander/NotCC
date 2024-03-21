@@ -121,15 +121,11 @@ export const playerPageBase = {
 		function giveItem(id: string) {
 			if (!player) return
 			const tile = level!.field[0][0]
-			const ogItems = [...tile[Layer.ITEM]]
-			for (const ogItem of ogItems) {
-				ogItem.despawn()
-			}
+			const ogItem = tile[Layer.ITEM]
+			ogItem?.despawn()
 			const item = new actorDB[id](level!, [0, 0]) as Item
 			item.pickup(player)
-			for (const ogItem of ogItems) {
-				ogItem.respawn()
-			}
+			ogItem?.respawn()
 		}
 		if (!player) return
 		for (const [color, n] of Object.entries(state.inventoryKeys ?? {})) {
