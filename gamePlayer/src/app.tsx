@@ -8,6 +8,7 @@ import { useEffect } from "preact/hooks"
 import { twJoin } from "tailwind-merge"
 import { useJotaiFn } from "./helpers"
 import { Dialog } from "./components/Dialog"
+import { registerSW } from "virtual:pwa-register"
 
 const ErrorPrompt =
 	(err: Error): PromptComponent<void> =>
@@ -41,11 +42,37 @@ const ErrorPrompt =
 		/>
 	)
 
+const UpdatePrompt =
+	(updateSW: () => void): PromptComponent<void> =>
+	props => (
+		<Dialog
+			notModal
+			header="New update!"
+			section={
+				"There has been an update for NotCC! Press Apply to refresh the page and apply the update!"
+			}
+			buttons={[
+				["Apply", () => updateSW()],
+				["Dismiss", () => {}],
+			]}
+			onResolve={props.onResolve}
+		/>
+	)
+
 export function App() {
 	const colorScheme = useAtomValue(colorSchemeAtom)
 	const embedMode = useAtomValue(embedModeAtom)
 	const embedReady = useAtomValue(embedReadyAtom)
 	const showPrompt = useJotaiFn(showPromptGs)
+	useEffect(() => {
+		const updateSW = registerSW({
+			onNeedRefresh() {
+				showPrompt(UpdatePrompt(updateSW))
+			},
+			onOfflineReady() {},
+			immediate: true,
+		})
+	}, [])
 	useEffect(() => {
 		if (!embedReady) return
 		top?.postMessage(

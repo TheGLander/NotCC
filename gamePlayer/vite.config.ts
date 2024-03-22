@@ -43,7 +43,7 @@ export default defineConfig({
 	plugins: [
 		preact({ babel: { plugins: [jotaiDebugLabel, jotaiReactRefresh] } }),
 		VitePWA({
-			registerType: "autoUpdate",
+			registerType: "prompt",
 			workbox: {
 				globIgnores: ["**/ssg/**/*", "**/node_modules/**/*"],
 				globPatterns: ["**/*.{js,css,html,png,svg,wav,ogg,mp3}"],
