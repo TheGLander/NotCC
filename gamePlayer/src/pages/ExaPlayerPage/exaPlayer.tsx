@@ -96,7 +96,7 @@ function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 	return (
 		<div class="bg-theme-950 h-full w-full rounded">
 			<MovesList
-				seq={props.model.moveSeq}
+				moves={props.model.moveSeq.displayMoves}
 				offset={props.model.offset}
 				composeOverlay={props.inputs}
 			/>

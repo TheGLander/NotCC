@@ -1,11 +1,12 @@
 import { GameState, KeyInputs, keyInputToChar } from "@notcc/logic"
-import { GraphModel, GraphMoveSequence } from "./models/graph"
+import { ConnPtr, GraphModel, GraphMoveSequence, Node } from "./models/graph"
 import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
-import { MoveSequence } from "./models/linear"
 import { VNode } from "preact"
 import { formatTicks } from "./exaPlayer"
+import { useCallback, useState } from "preact/hooks"
+import { HTMLAttributes } from "preact/compat"
 
 interface GraphViewProps {
 	model: GraphModel
@@ -129,7 +130,17 @@ function SvgView(props: GraphViewProps) {
 					refX="11"
 					refY="5"
 					orient="auto"
-					class={twJoin("fill-theme-50", "stroke-theme-50")}
+					class="fill-neutral-50 stroke-neutral-50"
+				>
+					<path d="M 0 0 L 10 5 L 0 10 z" />
+				</marker>
+				<marker
+					id="arrow-route"
+					viewBox="0 0 10 10"
+					refX="11"
+					refY="5"
+					orient="auto"
+					class="fill-theme-500 stroke-theme-500"
 				>
 					<path d="M 0 0 L 10 5 L 0 10 z" />
 				</marker>
@@ -139,7 +150,7 @@ function SvgView(props: GraphViewProps) {
 					refX="8"
 					refY="5"
 					orient="auto"
-					class={twJoin("fill-theme-300", "stroke-theme-300")}
+					class="fill-theme-300 stroke-theme-300"
 					markerWidth="2.5px"
 				>
 					<path d="M 0 0 L 10 5 L 0 10 z" />
@@ -159,6 +170,9 @@ function SvgView(props: GraphViewProps) {
 						.join(",")}`
 					const isCurrent =
 						"m" in props.model.current && conns.includes(props.model.current.m)
+					const isRoute = props.model.constructedRoute.some(ptr =>
+						conns.includes(ptr.m)
+					)
 					return (
 						<>
 							{isCurrent && (
@@ -174,8 +188,11 @@ function SvgView(props: GraphViewProps) {
 								d={strokePath}
 								strokeWidth={EDGE_RADIUS * 2}
 								strokeDasharray={conns.length > 1 ? "6 3" : undefined}
-								class={twJoin("fill-none", "stroke-theme-50")}
-								markerEnd="url(#arrow)"
+								class={twJoin(
+									"fill-none",
+									isRoute ? "stroke-theme-600" : "stroke-neutral-300"
+								)}
+								markerEnd={`url(#arrow${isRoute ? "-route" : ""})`}
 							/>
 						</>
 					)
@@ -188,13 +205,7 @@ function SvgView(props: GraphViewProps) {
 						<circle
 							class={twJoin(
 								node === props.model.current && "stroke-theme-300",
-								node === props.model.rootNode
-									? "fill-zinc-500"
-									: node.loose
-									  ? "fill-theme-400"
-									  : node.level.gameState === GameState.WON
-									    ? "fill-cyan-400"
-									    : "fill-theme-600"
+								`fill-${getNodeColor(props.model, node)}`
 							)}
 							strokeWidth={OUTLINE_WIDTH}
 							r={twUnit(4)}
@@ -212,29 +223,44 @@ function SvgView(props: GraphViewProps) {
 		</svg>
 	)
 }
+const twClasses = `from-zinc-500 to-zinc-500 bg-zinc-500 fill-zinc-500
+from-theme-400 to-theme-400 bg-theme-400 fill-theme-400
+from-cyan-400 to-cyan-400 bg-cyan-400 fill-cyan-400
+from-theme-600 to-theme-600 bg-theme-600 fill-theme-600`
+void twClasses
+
+function getNodeColor(model: GraphModel, node: Node) {
+	return node === model.rootNode
+		? "zinc-500"
+		: node.loose
+		  ? "theme-400"
+		  : node.level.gameState === GameState.WON
+		    ? "cyan-400"
+		    : "theme-600"
+}
 
 const MOVE_CURSOR_CLASS =
 	"bg-theme-700 text-theme-200 whitespace-break-spaces rounded-sm font-mono"
 
 export function MovesList(props: {
-	seq: MoveSequence
 	offset: number
 	composeOverlay: KeyInputs
+	moves: string[]
 }) {
-	const { seq, offset, composeOverlay } = props
+	const { moves, offset, composeOverlay } = props
 	const composeText = keyInputToChar(composeOverlay, false, true)
 	let futureMoves: VNode
-	if (offset === seq.tickLen) {
+	if (offset === moves.length) {
 		futureMoves = <span class={MOVE_CURSOR_CLASS}>{composeText} </span>
 	} else if (!composeText) {
 		futureMoves = (
 			<>
-				<span class={MOVE_CURSOR_CLASS}>{seq.displayMoves[offset]}</span>
-				{seq.displayMoves.slice(offset + 1).join("")}
+				<span class={MOVE_CURSOR_CLASS}>{moves[offset]}</span>
+				{moves.slice(offset + 1).join("")}
 			</>
 		)
 	} else {
-		const movesStr = seq.displayMoves
+		const movesStr = moves
 			.slice(offset)
 			.join("")
 			.slice(composeText.length + 1)
@@ -247,7 +273,7 @@ export function MovesList(props: {
 	}
 	return (
 		<span class="font-mono [line-break:anywhere] [overflow-wrap:anywhere]">
-			{seq.displayMoves.slice(0, offset).join("")}
+			{moves.slice(0, offset).join("")}
 			<span class="text-zinc-400">{futureMoves}</span>
 		</span>
 	)
@@ -270,7 +296,11 @@ export function Infobox(props: GraphViewProps) {
 			<>
 				{"m" in model.current ? "Edge" : "Loose node"}
 				<br />
-				<MovesList seq={seq} offset={offset} composeOverlay={props.inputs} />
+				<MovesList
+					moves={seq.displayMoves}
+					offset={offset}
+					composeOverlay={props.inputs}
+				/>
 			</>
 		)
 	}
@@ -311,15 +341,162 @@ export function Infobox(props: GraphViewProps) {
 	)
 }
 
+function ConstructionNode(
+	props: HTMLAttributes<HTMLDivElement> & { node: Node; model: GraphModel }
+) {
+	const nodeColor = getNodeColor(props.model, props.node)
+	const leftColor =
+		props.node.inNodes.length > 1
+			? "var(--tw-gradient-from)"
+			: "var(--tw-gradient-to)"
+	const rightColor =
+		props.node.outNodes.length > 1
+			? "var(--tw-gradient-from)"
+			: "var(--tw-gradient-to)"
+
+	return (
+		<div
+			class={twJoin(
+				"absolute left-[-0.35rem] top-[-0.1rem] z-10 h-5 w-5 rounded-full",
+				props.model.current === props.node && "border-theme-200 border-2",
+				`from-theme-500 to-${nodeColor}`
+			)}
+			style={{
+				backgroundImage: `linear-gradient(to right, ${leftColor} 0%, ${leftColor} 50%, ${rightColor} 50%, ${rightColor} 100%)`,
+			}}
+			{...props}
+		></div>
+	)
+}
+
+function ConstrPart(
+	props: GraphViewProps & {
+		ptr: ConnPtr
+		offset: number
+		inFuture: boolean
+		inPast: boolean
+	}
+) {
+	const goToNode = useCallback(() => {
+		props.model.goTo(props.ptr.n)
+		props.updateLevel()
+	}, [props.model, props.ptr, props.updateLevel])
+	return (
+		<>
+			<span class="relative ml-2">
+				<ConstructionNode
+					onClick={goToNode}
+					node={props.ptr.n}
+					model={props.model}
+				/>
+				<span
+					class={twJoin("relative z-20", props.inFuture && "text-zinc-400")}
+				>
+					<span
+						class={twJoin("mr-2", props.inFuture && "text-zinc-300")}
+						onClick={goToNode}
+					>
+						{props.ptr.m.displayMoves[0]}
+					</span>
+					{props.inPast || props.inFuture ? (
+						props.ptr.m.displayMoves.slice(1)
+					) : (
+						<MovesList
+							moves={props.ptr.m.displayMoves.slice(1)}
+							offset={props.offset === 0 ? 0 : props.offset - 1}
+							composeOverlay={props.inputs}
+						/>
+					)}
+				</span>
+			</span>
+		</>
+	)
+}
+
+function ConstructionView(props: GraphViewProps) {
+	const constrParts: VNode[] = []
+	const curNode =
+		props.model.current instanceof Node
+			? props.model.current
+			: props.model.current.n
+	let constrIdx = props.model.constructedRoute.findIndex(
+		ptr => ptr.n === curNode
+	)
+	if (constrIdx === -1) {
+		constrIdx = props.model.constructedRoute.length
+	}
+	let idx = 0
+	for (const ptr of props.model.constructedRoute) {
+		constrParts.push(
+			<ConstrPart
+				{...props}
+				ptr={ptr}
+				inFuture={idx > constrIdx}
+				inPast={idx < constrIdx}
+				offset={
+					idx < constrIdx
+						? ptr.m.tickLen
+						: idx === constrIdx
+						  ? !(props.model.current instanceof Node)
+								? props.model.current.o
+								: 0
+						  : 0
+				}
+			/>
+		)
+		idx += 1
+	}
+	const lastNode = props.model.constructionLastNode()
+	constrParts.push(
+		<span class="relative ml-2">
+			<ConstructionNode
+				onClick={() => {
+					props.model.goTo(lastNode)
+					props.updateLevel()
+				}}
+				node={lastNode}
+				model={props.model}
+			/>
+		</span>
+	)
+	return (
+		<span class="relative font-mono [line-break:anywhere] [overflow-wrap:anywhere]">
+			{constrParts}
+		</span>
+	)
+}
+
 export function GraphView(props: GraphViewProps) {
+	const [view, setView] = useState<"construction" | "graph">("construction")
 	return (
 		<div class="flex h-full flex-col gap-2">
-			<div class="bg-theme-950 relative h-full flex-1 overflow-auto scroll-smooth rounded">
-				<SvgView {...props} />
+			<div>
+				<select
+					class="ml-auto block w-auto"
+					onChange={ev => {
+						setView(ev.currentTarget.value as "graph")
+					}}
+				>
+					<option value="construction" defaultChecked>
+						Construction
+					</option>
+					<option value="graph">Graph</option>
+				</select>
 			</div>
-			<div class="bg-theme-950 relative h-32 rounded p-1">
-				<Infobox {...props} />
-			</div>
+			{view === "construction" ? (
+				<div class="bg-theme-950 h-full flex-1 overflow-auto rounded">
+					<ConstructionView {...props} />
+				</div>
+			) : (
+				<>
+					<div class="bg-theme-950 relative h-full flex-1 overflow-auto scroll-smooth rounded">
+						<SvgView {...props} />
+					</div>
+					<div class="bg-theme-950 relative h-32 rounded p-1">
+						<Infobox {...props} />
+					</div>
+				</>
+			)}
 		</div>
 	)
 }

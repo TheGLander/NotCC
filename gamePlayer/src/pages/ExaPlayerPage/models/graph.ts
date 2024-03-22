@@ -8,17 +8,22 @@ import {
 } from "./linear"
 
 export class GraphMoveSequence extends MoveSequence {
-	hashes: number[] = []
+	hashes: (number | null)[] = []
 	snapshotOffset = 1
 	constructor(public hashSettings: HashSettings) {
 		super()
 	}
-	_add_tickLevel(input: KeyInputs, level: LevelState): void {
-		super._add_tickLevel(input, level)
+	add(input: KeyInputs, level: LevelState): void {
+		const lastTickLen = this.tickLen
+		super.add(input, level)
+		const nullsN = this.tickLen - lastTickLen - 1
+		for (let i = 0; i < nullsN; i += 1) {
+			this.hashes.push(null)
+		}
 		this.hashes.push(makeLevelHash(level, this.hashSettings))
 	}
 	get lastHash() {
-		return this.hashes[this.tickLen - 1]
+		return this.hashes[this.tickLen - 1]!
 	}
 	trim(interval: MoveSeqenceInterval): void {
 		super.trim(interval)
@@ -262,6 +267,7 @@ export class GraphModel {
 	initialTimeLeft: number
 	rootNode: Node
 	current: MovePtr | Node
+	constructedRoute: ConnPtr[] = []
 	nodeHashMap: Map<number, Node> = new Map()
 	hashMap: Map<number, MovePtr> = new Map()
 	constructor(
@@ -286,18 +292,26 @@ export class GraphModel {
 				} else {
 					this.current.o += moveSeq.tickLen
 				}
+				this.cleanConstruction()
 				return
 			}
+			const constrIdx = this.constructedRoute.findIndex(
+				conn => conn.n === (this.current as MovePtr).n
+			)
 			const {
 				node: parent2,
 				seq1,
 				seq2,
 			} = this.current.n.insertNodeOnSeq(this.current.m, this.current.o)
+			this.constructedRoute.splice(constrIdx)
+			this.constructedRoute.push({ n: this.current.n, m: seq1 })
+			this.constructedRoute.push({ n: parent2, m: moveSeq })
 			parent = parent2
 			// Promote implied, mid-seq node to explicit
 			this.hashMap.delete(parent.hash)
 			this.nodeHashMap.set(parent.hash, parent)
 			for (const hash of seq2.hashes) {
+				if (hash === null) continue
 				const ent = this.hashMap.get(hash)
 				if (!ent) continue
 				ent.n = parent
@@ -311,23 +325,32 @@ export class GraphModel {
 			moveSeq = new GraphMoveSequence(this.hashSettings)
 			this.level = cloneLevel(this.level)
 			moveSeq.add(input, this.level)
+			const constrIdx = this.getConstructionIdx()
 			for (const [node, conns] of this.current.outConns) {
 				for (const conn of conns) {
 					if (moveSeq.moves.every((move, i) => move === conn.moves[i])) {
+						if (this.constructedRoute[constrIdx]?.m !== conn) {
+							this.constructedRoute.splice(constrIdx)
+							this.constructedRoute.push({ n: this.current, m: conn })
+						}
 						if (conn.tickLen === moveSeq.tickLen) {
 							this.current = node
 							this.level = node.level
+							this.cleanConstruction()
 						} else {
 							this.current = { n: this.current, m: conn, o: moveSeq.tickLen }
+							this.constructionAutoComplete(node)
 						}
 						return
 					}
 				}
 			}
+			this.constructedRoute.splice(constrIdx)
 			parent = this.current
 			node = parent.newChild(moveSeq)
 			node.level = this.level
 			this.current = node
+			this.constructedRoute.push({ n: parent, m: moveSeq })
 		} else {
 			node = this.current
 			parent = node.inNodes[0]
@@ -360,6 +383,7 @@ export class GraphModel {
 			this.current = midNode
 
 			for (const hash of seq2.hashes) {
+				if (hash === null) continue
 				const ent = this.hashMap.get(hash)
 				if (!ent) continue
 				ent.n = midNode
@@ -374,34 +398,91 @@ export class GraphModel {
 				node.cascadeWinDist()
 			}
 		}
+		this.cleanConstruction()
+	}
+	cleanConstruction() {
+		const lastNode = this.constructionLastNode()
+		const redundantNodeIdx = this.constructedRoute.findIndex(
+			ptr => ptr.n === lastNode
+		)
+		if (redundantNodeIdx !== -1) {
+			this.constructedRoute.splice(redundantNodeIdx)
+		}
+		if (this.current === lastNode) {
+			this.constructionAutoComplete(lastNode)
+		}
+	}
+	constructionLastNode() {
+		if (this.constructedRoute.length === 0) {
+			return this.current as Node
+		} else {
+			const lastPtr = this.constructedRoute[this.constructedRoute.length - 1]
+			return lastPtr.n.findConnectedNode(lastPtr.m)!
+		}
+	}
+	getConstructionIdx() {
+		let constrIdx = this.constructedRoute.findIndex(
+			conn => conn.n === (this.current as Node)
+		)
+		if (constrIdx === -1) {
+			constrIdx = this.constructedRoute.length
+		}
+		return constrIdx
+	}
+	constructionAutoComplete(node: Node): void {
+		if (node.winDistance !== undefined) {
+			while (node.winTargetSeq) {
+				this.constructedRoute.push({ n: node, m: node.winTargetSeq! })
+				if (!node.winTargetNode) break
+				node = node.winTargetNode
+			}
+		} else {
+			// I dunno, pick a random one?
+			while (node.outConns.size > 0) {
+				const conns = Array.from(node.outConns.entries())
+					.flatMap(v => v[1].map<[Node, GraphMoveSequence]>(seq => [v[0], seq]))
+					.filter(v => !this.constructedRoute.some(conn => conn.n === v[0]))
+				if (conns.length === 0) break
+				const conn = conns[0]
+				this.constructedRoute.push({ n: node, m: conn[1] })
+				node = conn[0]
+			}
+		}
 	}
 	undo(into?: GraphMoveSequence) {
+		let toGoTo: Node | MovePtr
 		if (!(this.current instanceof Node)) {
-			this.current.o = this.current.m.userMoves
+			toGoTo = { ...this.current }
+			toGoTo.o = this.current.m.userMoves
 				.slice(0, this.current.o)
 				.lastIndexOf(true)
 		} else {
-			if (!into && this.current.inNodes.length === 1) {
-				into = this.current.inNodes[0].outConns.get(this.current)![0]
+			let srcNode: Node
+			if (!into) {
+				const constrIdx = this.getConstructionIdx()
+				if (this.constructedRoute.length === 0 || constrIdx === 0) return
+				const lastConn = this.constructedRoute[constrIdx - 1]
+				srcNode = lastConn.n
+				into = lastConn.m
+			} else {
+				srcNode =
+					this.current.inNodes.length === 1
+						? this.current.inNodes[0]
+						: this.current.inNodes
+								.map(val => Array.from(val.outConns.entries()))
+								.flat(1)
+								.find(([, conns]) => conns.includes(into!))![0]
 			}
-			if (!into) throw new Error(`into is required for multi-input nodes!`)
-			const srcNode =
-				this.current.inNodes.length === 1
-					? this.current.inNodes[0]
-					: this.current.inNodes
-							.map(val => Array.from(val.outConns.entries()))
-							.flat(1)
-							.find(([, conns]) => conns.includes(into!))![0]
-			this.current = {
+			toGoTo = {
 				n: srcNode,
 				m: into,
 				o: into.userMoves.lastIndexOf(true),
 			}
 		}
-		if (this.current.o === 0) {
-			this.current = this.current.n
+		if (toGoTo.o === 0) {
+			toGoTo = toGoTo.n
 		}
-		this.goTo(this.current)
+		this.goTo(toGoTo)
 	}
 	redo(into?: GraphMoveSequence) {
 		let lastO: number
@@ -413,10 +494,16 @@ export class GraphModel {
 			)
 		} else {
 			lastO = 0
-			if (!into && this.current.outNodes.length === 1) {
-				into = Array.from(this.current.outConns.values())[0][0]
+			const constrIdx = this.getConstructionIdx()
+			if (!into) {
+				if (this.constructedRoute.length === 0) return
+				if (constrIdx === this.constructedRoute.length) return
+				into = this.constructedRoute[constrIdx].m
 			}
 			if (!into) throw new Error(`into is required for multi-out nodes!`)
+			if (constrIdx === this.constructedRoute.length) {
+				this.constructedRoute.push({ n: this.current, m: into })
+			}
 			this.current = {
 				n: this.current,
 				m: into,
@@ -432,9 +519,45 @@ export class GraphModel {
 		} else {
 			this.current.m.applyToLevel(this.level, [lastO, this.current.o])
 		}
+		this.cleanConstruction()
 	}
+
 	goTo(pos: MovePtr | Node): void {
+		let node = pos instanceof Node ? pos : pos.n
+		const lastNode = this.constructionLastNode()
+		const toAppend: ConnPtr[] = []
+		let pathFound = false
+		while (true) {
+			if (node === lastNode) {
+				pathFound = true
+				break
+			}
+			for (let idx = this.constructedRoute.length - 1; idx >= 0; idx -= 1) {
+				const ptr = this.constructedRoute[idx]
+				if (ptr.n === node) {
+					if (toAppend.length !== 0) {
+						this.constructedRoute.splice(idx)
+					}
+					pathFound = true
+					break
+				}
+			}
+			if (pathFound) {
+				break
+			}
+			if (node.rootTargetNode === undefined) break
+			toAppend.push({ n: node.rootTargetNode!, m: node.rootTargetSeq! })
+			node = node.rootTargetNode!
+		}
+		toAppend.reverse()
+		if (!pathFound) {
+			this.constructedRoute = toAppend
+		} else {
+			this.constructedRoute.push(...toAppend)
+		}
+
 		this.current = pos
+		this.cleanConstruction()
 		if (pos instanceof Node) {
 			this.level = pos.level
 			return
@@ -467,7 +590,7 @@ export class GraphModel {
 					tNode.inNodes.push(node)
 					let moveOffset = conn.userMoves.indexOf(true, 1)
 					while (moveOffset !== -1) {
-						this.hashMap.set(conn.hashes[moveOffset], {
+						this.hashMap.set(conn.hashes[moveOffset - 1]!, {
 							n: node,
 							m: conn,
 							o: moveOffset,
