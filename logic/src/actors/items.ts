@@ -1,6 +1,6 @@
 import { Layer } from "../tile.js"
 import { Actor, matchTags, SlidingState } from "../actor.js"
-import { actorDB, cc1BootNameList, keyNameList } from "../const.js"
+import { actorDB, cc1BootNameList, getTagFlag, keyNameList } from "../const.js"
 import { LevelState } from "../level.js"
 import { LitTNT, RollingBowlingBall } from "./monsters.js"
 import { Explosion } from "./animation.js"
@@ -14,28 +14,37 @@ export const enum ItemDestination {
 }
 
 export abstract class Item extends Actor {
-	tags = ["item"]
+	static tags = ["item"]
+	constructor(
+		level: LevelState,
+		pos: [number, number],
+		customData?: string,
+		wires?: number
+	) {
+		super(level, pos, customData, wires)
+		if ((new.target as any).carrierTags) {
+			this.carrierTags = (new.target as any).carrierTags
+		}
+	}
 	destination = ItemDestination.ITEM
 	/**
 	 * Tags to add to the carrier of the item
 	 */
-	carrierTags?: Record<string, string[]> = {}
+	carrierTags?: Record<string, bigint>
 	carrierSpeedMod?(actor: Actor, mult: number): number
 	hasItemMod(): boolean {
-		if (this.tile[Layer.ITEM_SUFFIX]?.tags?.includes("ignoreItem")) return true
+		if (this.tile[Layer.ITEM_SUFFIX]?.hasTag("ignoreItem")) return true
 		return false
 	}
 	blocks?(other: Actor): boolean {
 		return (
 			!this.hasItemMod() &&
-			!matchTags(other.getCompleteTags("tags"), [
-				"can-pickup-items",
-				"can-stand-on-items",
-				"playable",
-			])
+			!other.hasTag("can-pickup-items") &&
+			!other.hasTag("can-stand-on-items") &&
+			!other.hasTag("playable")
 		)
 	}
-	ignores(): boolean {
+	ignores(_other: Actor): boolean {
 		return this.hasItemMod()
 	}
 	getLayer(): Layer {
@@ -43,13 +52,13 @@ export abstract class Item extends Actor {
 	}
 	pickup(other: Actor): boolean {
 		if (
-			other.getCompleteTags("tags").includes("can-stand-on-items") ||
+			other.hasTag("can-stand-on-items") ||
 			(this.shouldBePickedUp && !this.shouldBePickedUp(other)) ||
 			this.hasItemMod()
 		)
 			return false
 		this.destroy(other, null)
-		if (other.getCompleteTags("tags").includes("playable")) {
+		if (other.hasTag("playable")) {
 			this.level.sfxManager?.playOnce("item get")
 		}
 		switch (this.destination) {
@@ -74,6 +83,11 @@ export abstract class Item extends Actor {
 				break
 		}
 		this.onPickup?.(other)
+		if (this.carrierTags) {
+			for (const prop in this.carrierTags) {
+				other[prop as "tags"] |= this.carrierTags[prop]
+			}
+		}
 		return true
 	}
 	actorCompletelyJoined(other: Actor): void {
@@ -105,7 +119,7 @@ export class EChipPlus extends Item {
 		level.chipsTotal++
 	}
 	shouldBePickedUp(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("real-playable")
+		return other.hasTag("real-playable")
 	}
 	onPickup(): void {
 		this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
@@ -143,10 +157,12 @@ export abstract class Key extends Item {
 
 export class KeyRed extends Key {
 	id = "keyRed"
-	ignoreTags = ["!playable"]
+	ignores(other: Actor) {
+		return !other.hasTag("playable")
+	}
 	blocks = undefined
 	keyUsed(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("can-reuse-key-red"))
+		if (other.hasTag("can-reuse-key-red"))
 			other.inventory.keys[this.id].amount++
 	}
 }
@@ -159,7 +175,7 @@ export class KeyBlue extends Key {
 	id = "keyBlue"
 	blocks = undefined
 	keyUsed(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("can-reuse-key-blue"))
+		if (other.hasTag("can-reuse-key-blue"))
 			other.inventory.keys[this.id].amount++
 	}
 }
@@ -171,7 +187,7 @@ keyNameList.push("keyBlue")
 export class KeyYellow extends Key {
 	id = "keyYellow"
 	keyUsed(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("can-reuse-key-yellow"))
+		if (other.hasTag("can-reuse-key-yellow"))
 			other.inventory.keys[this.id].amount++
 	}
 }
@@ -183,7 +199,7 @@ keyNameList.push("keyYellow")
 export class KeyGreen extends Key {
 	id = "keyGreen"
 	keyUsed(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("can-reuse-key-green"))
+		if (other.hasTag("can-reuse-key-green"))
 			other.inventory.keys[this.id].amount++
 	}
 }
@@ -194,13 +210,15 @@ keyNameList.push("keyGreen")
 
 export class BootIce extends Item {
 	id = "bootIce"
-	carrierTags: Record<string, string[]> = { ignoreTags: ["ice"] }
+	static carrierTags: Record<string, string[]> = { ignoreTags: ["ice"] }
+	static extraTagProperties = ["extraTags"]
+	static extraTags = ["super-weirdly-ignores-ice"]
 	destination = ItemDestination.ITEM
 	onPickup(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("weirdly-ignores-ice")) {
-			this.carrierTags = { tags: ["super-weirdly-ignores-ice"] }
+		if (other.hasTag("weirdly-ignores-ice")) {
+			this.carrierTags = { tags: getTagFlag("super-weirdly-ignores-ice") }
 		} else {
-			this.carrierTags = { ignoreTags: ["ice"] }
+			this.carrierTags = { ignoreTags: getTagFlag("ice") }
 			// Indeed, a hack, but I really don't want to ever calculate the sliding state automatically
 			if (other.slidingState === SlidingState.STRONG)
 				other.slidingState = SlidingState.NONE
@@ -218,7 +236,7 @@ cc1BootNameList.push("bootIce")
 
 export class BootForceFloor extends Item {
 	id = "bootForceFloor"
-	carrierTags = { ignoreTags: ["force-floor"] }
+	static carrierTags = { ignoreTags: ["force-floor"] }
 	destination = ItemDestination.ITEM
 	onPickup(other: Actor): void {
 		// Indeed, a hack, but I really don't want to ever calculate the sliding state automatically
@@ -233,16 +251,13 @@ cc1BootNameList.push("bootForceFloor")
 
 export class BootFire extends Item {
 	id = "bootFire"
-	carrierTags = { ignoreTags: ["fire"] }
+	static carrierTags = { ignoreTags: ["fire"] }
 	destination = ItemDestination.ITEM
 	// Double-ignore thing for the ghost
 	onCarrierCompleteJoin(carrier: Actor): void {
+		if (!carrier.hasTag("double-item-remove")) return
 		for (const actor of carrier.tile.allActors) {
-			if (
-				carrier._internalIgnores(actor, true) &&
-				actor.getCompleteTags("tags").includes("fire") &&
-				actor.getCompleteTags("tags").includes("boot-removable")
-			) {
+			if (actor.hasTag("fire") && actor.hasTag("boot-removable")) {
 				actor.destroy(null, null)
 			}
 		}
@@ -254,7 +269,7 @@ cc1BootNameList.push("bootFire")
 
 export class BootWater extends Item {
 	id = "bootWater"
-	carrierTags = { ignoreTags: ["water"], collisionIgnoreTags: ["water"] }
+	static carrierTags = { ignoreTags: ["water"], collisionIgnoreTags: ["water"] }
 	destination = ItemDestination.ITEM
 }
 
@@ -263,23 +278,20 @@ cc1BootNameList.push("bootWater")
 
 export class BootDirt extends Item {
 	id = "bootDirt"
-	carrierTags = { collisionIgnoreTags: ["filth"] }
+	static carrierTags = { collisionIgnoreTags: ["filth"] }
 	destination = ItemDestination.ITEM
 	onPickup(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("playable")) {
-			this.carrierTags = { collisionIgnoreTags: ["filth"] }
+		if (other.hasTag("playable")) {
+			this.carrierTags = { collisionIgnoreTags: getTagFlag("filth") }
 		} else {
-			this.carrierTags = { collisionIgnoreTags: [] }
+			this.carrierTags = { collisionIgnoreTags: BigInt(0) }
 		}
 	}
 	// Double-ignore thing for the ghost
 	onCarrierCompleteJoin(carrier: Actor): void {
+		if (!carrier.hasTag("double-item-remove")) return
 		for (const actor of carrier.tile.allActors) {
-			if (
-				carrier._internalIgnores(actor, true) &&
-				actor.getCompleteTags("tags").includes("filth") &&
-				actor.getCompleteTags("tags").includes("boot-removable")
-			) {
+			if (actor.hasTag("filth") && actor.hasTag("boot-removable")) {
 				actor.destroy(null, null)
 			}
 		}
@@ -290,7 +302,7 @@ actorDB["bootDirt"] = BootDirt
 
 export class GoronBraslet extends Item {
 	id = "goronBraslet"
-	carrierTags = { pushTags: ["wall"] }
+	static carrierTags = { pushTags: ["wall"] }
 	destination = ItemDestination.ITEM
 }
 
@@ -299,7 +311,7 @@ actorDB["goronBraslet"] = GoronBraslet
 export class Helmet extends Item {
 	id = "helmet"
 	destination = ItemDestination.ITEM
-	carrierTags = { tags: ["ignore-default-monster-kill"] }
+	static carrierTags = { tags: ["ignore-default-monster-kill"] }
 }
 
 actorDB["helmet"] = Helmet
@@ -309,10 +321,10 @@ export class BonusFlag extends Item {
 		return false
 	}
 	id = "bonusFlag"
-	tags = ["bonusFlag"]
+	static tags = ["bonusFlag"]
 	destination = ItemDestination.NONE
 	onPickup(carrier: Actor): void {
-		if (carrier.getCompleteTags("tags").includes("real-playable"))
+		if (carrier.hasTag("real-playable"))
 			if (this.customData.startsWith("*"))
 				this.level.bonusPoints *= parseInt(this.customData.substr(1))
 			else this.level.bonusPoints += parseInt(this.customData)
@@ -325,13 +337,14 @@ export class TNT extends Item {
 	id = "tnt"
 	destination = ItemDestination.ITEM
 	actorLeft(other: Actor): void {
-		if (!other.getCompleteTags("tags").includes("real-playable")) return
+		if (!other.hasTag("real-playable")) return
 		this.destroy(null, null)
 		const lit = new LitTNT(this.level, this.tile.position)
 		lit.inventory.itemMax = other.inventory.itemMax
 		lit.inventory.items = [...other.inventory.items]
 		for (const keyType in other.inventory.keys)
 			lit.inventory.keys[keyType] = { ...other.inventory.keys[keyType] }
+		lit.recomputeTags()
 	}
 }
 
@@ -339,7 +352,7 @@ actorDB["tnt"] = TNT
 
 export class SecretEye extends Item {
 	id = "secretEye"
-	carrierTags = { tags: ["can-see-secrets"] }
+	static carrierTags = { tags: ["can-see-secrets"] }
 	destination = ItemDestination.ITEM
 }
 
@@ -347,7 +360,7 @@ actorDB["secretEye"] = SecretEye
 
 export class RailroadSign extends Item {
 	id = "railroadSign"
-	carrierTags = {
+	static carrierTags = {
 		tags: ["ignores-railroad-redirect"],
 		collisionIgnoreTags: ["railroad"],
 	}
@@ -379,7 +392,7 @@ export class TimeBonus extends Item {
 	}
 	destination = ItemDestination.NONE
 	shouldBePickedUp(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("real-playable")
+		return other.hasTag("real-playable")
 	}
 	onPickup(): void {
 		this.level.timeLeft += 60 * 10
@@ -395,7 +408,7 @@ export class TimePenalty extends Item {
 	}
 	destination = ItemDestination.NONE
 	shouldBePickedUp(other: Actor): boolean {
-		return other.getCompleteTags("tags").includes("real-playable")
+		return other.hasTag("real-playable")
 	}
 	onPickup(): void {
 		this.level.timeLeft -= 60 * 10
@@ -415,7 +428,7 @@ export class TimeToggle extends Item {
 		return false
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (!other.getCompleteTags("tags").includes("playable")) return
+		if (!other.hasTag("playable")) return
 		this.level.timeFrozen = !this.level.timeFrozen
 	}
 }
@@ -453,7 +466,7 @@ actorDB["lightningBolt"] = LightningBolt
 
 export class Hook extends Item {
 	id = "hook"
-	carrierTags = { tags: ["pulling"] }
+	static carrierTags = { tags: ["pulling"] }
 	destination = ItemDestination.ITEM
 }
 
@@ -462,7 +475,7 @@ actorDB["hook"] = Hook
 export class Foil extends Item {
 	id = "foil"
 	onCarrierBump(carrier: Actor, bumpee: Actor): void {
-		if (!bumpee.getCompleteTags("tags").includes("tinnable")) return
+		if (!bumpee.hasTag("tinnable")) return
 		bumpee.replaceWith(SteelWall)
 	}
 }
@@ -471,7 +484,7 @@ actorDB["foil"] = Foil
 
 export class Bribe extends Item {
 	id = "bribe"
-	tags = ["item", "bribe"]
+	static tags = ["item", "bribe"]
 }
 
 actorDB["bribe"] = Bribe

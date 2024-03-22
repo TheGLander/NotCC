@@ -8,7 +8,7 @@ import { onLevelStart } from "../level.js"
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-		tags = ["button"]
+		static tags = ["button"]
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
@@ -32,7 +32,7 @@ export function globalComplexButtonFactory(color: string) {
 		id = `complexButton${color[0].toUpperCase()}${color
 			.substr(1)
 			.toLowerCase()}`
-		tags = ["button"]
+		static tags = ["button"]
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
@@ -84,7 +84,7 @@ export function ROConnectedButtonFactory(
 ) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-		tags = ["button"]
+		static tags = ["button"]
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
 		getLayer(): Layer {
@@ -136,7 +136,7 @@ actorDB["buttonBrown"] = ROConnectedButtonFactory("brown", true)
 export function diamondConnectedButtonFactory(color: string) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-		tags = ["button"]
+		static tags = ["button"]
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
 		getLayer(): Layer {
@@ -190,7 +190,7 @@ actorDB["buttonOrange"] = diamondConnectedButtonFactory("orange")
 
 export class ButtonPurple extends Actor {
 	id = "buttonPurple"
-	tags = ["button"]
+	static tags = ["button"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -213,7 +213,7 @@ actorDB["buttonPurple"] = ButtonPurple
 
 export class ButtonBlack extends Actor {
 	id = "buttonBlack"
-	tags = ["button"]
+	static tags = ["button"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -239,7 +239,7 @@ actorDB["buttonBlack"] = ButtonBlack
 
 export class ToggleSwitch extends Actor {
 	id = "toggleSwitch"
-	tags = ["button"]
+	static tags = ["button"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -263,7 +263,7 @@ actorDB["toggleSwitch"] = ToggleSwitch
 
 export class ButtonGray extends Actor {
 	id = "buttonGray"
-	tags = ["button"]
+	static tags = ["button"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}

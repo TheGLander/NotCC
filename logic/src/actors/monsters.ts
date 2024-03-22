@@ -1,7 +1,7 @@
 import { Actor, matchTags } from "../actor.js"
 import { Layer } from "../tile.js"
 import { Direction, hasOwnProperty, relativeToAbsolute } from "../helpers.js"
-import { actorDB, Decision } from "../const.js"
+import { actorDB, Decision, getTagFlag, hasTagOverlap } from "../const.js"
 import { Fire } from "./terrain.js"
 import { Tile } from "../tile.js"
 import { iterableFind, iterableSome } from "../iterableHelpers.js"
@@ -12,17 +12,16 @@ export abstract class Monster extends Actor {
 	blocks(): true {
 		return true
 	}
-	tags = ["autonomous-monster", "normal-monster", "movable"]
+	static tags = ["autonomous-monster", "normal-monster", "movable"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
 	bumped(other: Actor, _bumpedDirection: Direction): void {
 		// Monsters kill players which bump into
 		if (
-			other.getCompleteTags("tags").includes("real-playable") &&
-			!this.getCompleteTags("tags")
-				.concat(other.getCompleteTags("tags"))
-				.includes("ignore-default-monster-kill")
+			other.hasTag("real-playable") &&
+			!this.hasTag("ignore-default-monster-kill") &&
+			!other.hasTag("ignore-default-monster-kill")
 		)
 			other.destroy(this)
 	}
@@ -34,10 +33,9 @@ export abstract class Monster extends Actor {
 	): void {
 		// Monsters kill players which bump into them if they can move into them
 		if (
-			other.getCompleteTags("tags").includes("real-playable") &&
-			!this.getCompleteTags("tags")
-				.concat(other.getCompleteTags("tags"))
-				.includes("ignore-default-monster-kill")
+			other.hasTag("real-playable") &&
+			!this.hasTag("ignore-default-monster-kill") &&
+			!other.hasTag("ignore-default-monster-kill")
 		)
 			other.destroy(this)
 	}
@@ -58,7 +56,7 @@ export class Ant extends Monster {
 	id = "ant"
 	transmogrifierTarget = "glider"
 	//
-	blockedByTags = ["canopy"]
+	static blockedByTags = ["canopy"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.LEFT, dir.FORWARD, dir.RIGHT, dir.BACKWARD]
@@ -70,7 +68,7 @@ actorDB["ant"] = Ant
 export class Glider extends Monster {
 	id = "glider"
 	transmogrifierTarget = "centipede"
-	ignoreTags = ["water-ish"]
+	static ignoreTags = ["water-ish"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
@@ -82,9 +80,9 @@ actorDB["glider"] = Glider
 export class Fireball extends Monster {
 	id = "fireball"
 	transmogrifierTarget = "ant"
-	collisionIgnoreTags = ["fire"]
-	ignoreTags = ["fire"]
-	tags = ["autonomous-monster", "normal-monster", "movable", "melting"]
+	static collisionIgnoreTags = ["fire"]
+	static ignoreTags = ["fire"]
+	static tags = ["autonomous-monster", "normal-monster", "movable", "melting"]
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.RIGHT, dir.LEFT, dir.BACKWARD]
@@ -130,9 +128,7 @@ export class TeethRed extends Monster {
 		return getPursuitCoords(
 			this,
 			this.level.selectedPlayable,
-			this.level.selectedPlayable
-				.getCompleteTags("tags")
-				.includes("scares-teeth-red")
+			this.level.selectedPlayable.hasTag("scares-teeth-red")
 		)
 	}
 }
@@ -148,9 +144,7 @@ export class TeethBlue extends Monster {
 		return getPursuitCoords(
 			this,
 			this.level.selectedPlayable,
-			this.level.selectedPlayable
-				.getCompleteTags("tags")
-				.includes("scares-teeth-blue")
+			this.level.selectedPlayable.hasTag("scares-teeth-blue")
 		)
 	}
 }
@@ -203,7 +197,7 @@ onLevelAfterTick.push(level => {
 
 export class BlobMonster extends Monster {
 	id = "blob"
-	immuneTags = ["slime"]
+	static immuneTags = ["slime"]
 	moveSpeed = 8
 	transmogrifierTarget(): string {
 		return [
@@ -221,9 +215,7 @@ export class BlobMonster extends Monster {
 	newTileJoined(): void {
 		const spreadedSlime =
 			this.oldTile &&
-			iterableFind(this.oldTile.allActors, (val: Actor) =>
-				val.getCompleteTags("tags").includes("slime")
-			)
+			iterableFind(this.oldTile.allActors, (val: Actor) => val.hasTag("slime"))
 		if (spreadedSlime && !this.tile.hasLayer(spreadedSlime.layer))
 			new actorDB[spreadedSlime.id](
 				this.level,
@@ -238,11 +230,8 @@ export class BlobMonster extends Monster {
 	}
 	blockedBy(other: Actor) {
 		return (
-			other.getCompleteTags("tags").includes("canopy") &&
-			!!(
-				this.tile[Layer.SPECIAL] &&
-				this.tile[Layer.SPECIAL].getCompleteTags("tags").includes("canopy")
-			)
+			other.hasTag("canopy") &&
+			!!(this.tile[Layer.SPECIAL] && this.tile[Layer.SPECIAL].hasTag("canopy"))
 		)
 	}
 }
@@ -263,8 +252,7 @@ actorDB["walker"] = Walker
 
 export class LitTNT extends Monster {
 	lifeLeft = 253
-	tags = ["movable", "cc1block", "tnt"]
-	immuneTags: string[] = []
+	static tags = ["movable", "cc1block", "tnt"]
 	explosionStage: 0 | 1 | 2 | 3 = 0
 	id = "tntLit"
 	nukeTile(tile: Tile): void {
@@ -274,7 +262,7 @@ export class LitTNT extends Monster {
 		// TODO Canopies
 		if (tileHadMovable) protectedLayer = Layer.STATIONARY + 1 // Protect stationary only
 		const protector = iterableFind(tile.allActors, val =>
-			val.getCompleteTags("tags").includes("blocks-tnt")
+			val.hasTag("blocks-tnt")
 		)
 		if (protector) protectedLayer = protector.layer
 
@@ -292,9 +280,9 @@ export class LitTNT extends Monster {
 							this,
 							actor.layer === Layer.STATIONARY || actor.layer === Layer.MOVABLE
 								? "explosion"
-								: null,
-							false,
-							true
+								: null
+							// false
+							// true
 						)) &&
 					actor.layer === Layer.MOVABLE
 				)
@@ -308,8 +296,10 @@ export class LitTNT extends Monster {
 		if (this.lifeLeft > 0) this.lifeLeft--
 		else this.explosionStage++
 		if (!this.explosionStage) return
-		this.tags.push("melting") // For ice blocks
-		this.immuneTags.push("bowling-ball")
+		// For ice blocks
+		this.recomputeTags(false)
+		this.tags |= getTagFlag("melting")
+		this.immuneTags |= getTagFlag("bowling-ball")
 		for (const tile of this.tile.getDiamondSearch(this.explosionStage))
 			if (
 				Math.abs(tile.x - this.tile.x) < 3 &&
@@ -321,9 +311,7 @@ export class LitTNT extends Monster {
 			// it means that the playable sneaked through the ring we are nuking this subtick
 			// by moving closer to the dynamite
 			for (const tile of this.tile.getDiamondSearch(this.explosionStage - 1)) {
-				const playable = tile.findActor(actor =>
-					actor.getCompleteTags("tags").includes("real-playable")
-				)
+				const playable = tile.findActor(actor => actor.hasTag("real-playable"))
 				if (!playable || !playable.oldTile) continue
 				// Also check if the playable was actually on a nuked tile last
 				// subtick, "sneaking" onto a 2-tile from outside the explosion range
@@ -339,16 +327,15 @@ export class LitTNT extends Monster {
 			}
 		}
 		if (this.explosionStage >= 3) this.nukeTile(this.tile)
-		this.tags.pop()
-		this.immuneTags.pop()
+		this.recomputeTags(true)
 	}
 }
 actorDB["tntLit"] = LitTNT
 
 export class TankYellow extends Monster {
 	id = "tankYellow"
-	tags = ["normal-monster", "movable"]
-	pushTags = ["block"]
+	static tags = ["normal-monster", "movable"]
+	static pushTags = ["block"]
 	transmogrifierTarget = "tankBlue"
 	movePending: Decision = this.customData === "rotating" ? -1 : Decision.NONE
 	decideMovement(): [] {
@@ -388,7 +375,7 @@ onLevelAfterTick.push(level => {
 
 export class RollingBowlingBall extends Monster {
 	id = "bowlingBallRolling"
-	tags = [
+	static tags = [
 		"can-pickup-items",
 		"movable",
 		"interacts-with-closed-clone-machine",
@@ -432,9 +419,9 @@ export const roverMimicOrder: string[] = [
 
 export class Rover extends Monster {
 	id = "rover"
-	tags = ["autonomous-monster", "can-pickup-items", "movable"]
-	pushTags = ["block"]
-	blockedByTags = ["canopy"]
+	static tags = ["autonomous-monster", "can-pickup-items", "movable"]
+	static pushTags = ["block"]
+	static blockedByTags = ["canopy"]
 	moveSpeed = 8
 	emulatedMonster: (typeof roverMimicOrder)[number] = roverMimicOrder[0]
 	decisionsUntilNext = 32
@@ -457,7 +444,7 @@ export class Rover extends Monster {
 actorDB["rover"] = Rover
 
 export class MirrorChip extends Monster {
-	tags = [
+	static tags = [
 		"can-pickup-items",
 		"playable",
 		"chip",
@@ -465,7 +452,7 @@ export class MirrorChip extends Monster {
 		"can-reuse-key-green",
 		"plays-block-push-sfx",
 	]
-	pushTags = ["block"]
+	static pushTags = ["block"]
 	id = "mirrorChip"
 	fakes = "chip"
 	transmogrifierTarget = "mirrorMelinda"
@@ -484,7 +471,7 @@ export class MirrorChip extends Monster {
 actorDB["mirrorChip"] = MirrorChip
 
 export class MirrorMelinda extends Monster {
-	tags = [
+	static tags = [
 		"can-pickup-items",
 		"playable",
 		"melinda",
@@ -492,8 +479,8 @@ export class MirrorMelinda extends Monster {
 		"can-reuse-key-yellow",
 		"plays-block-push-sfx",
 	]
-	pushTags = ["block"]
-	ignoreTags = ["ice"]
+	static pushTags = ["block"]
+	static ignoreTags = ["ice"]
 	id = "mirrorMelinda"
 	fakes = "melinda"
 	transmogrifierTarget = "mirrorChip"
@@ -513,15 +500,23 @@ actorDB["mirrorMelinda"] = MirrorMelinda
 
 export class Ghost extends Monster {
 	id = "ghost"
-	tags = [
+	static tags = [
 		"can-pickup-items",
 		"movable",
 		"ghost",
 		"weirdly-ignores-ice",
 		"ignores-exit-block",
+		"double-item-remove",
 	]
-	ghostBlockedByTags = ["blocks-ghost", "water-ish"]
-	nonIgnoredTags = [
+	static extraTagProperties = [
+		"ghostBlockedByTags",
+		"nonIgnoredTags",
+		"ghostCollisionIgnoreTags",
+	]
+	static ghostBlockedByTags = ["blocks-ghost", "water-ish"]
+	// @ts-ignore
+	ghostBlockedByTags: bigint
+	static nonIgnoredTags = [
 		"machinery",
 		"button",
 		"door",
@@ -531,46 +526,37 @@ export class Ghost extends Monster {
 		"ice",
 		"water-ish",
 	]
-	ignoreTags = ["bonusFlag", "bomb"]
-	ghostCollisionIgnoreTags = ["door", "echip-gate", "ice"]
+	// @ts-ignore
+	nonIgnoredTags: bigint
+	static ignoreTags = ["bonusFlag", "bomb"]
+	static ghostCollisionIgnoreTags = ["door", "echip-gate", "ice"]
+	// @ts-ignore
+	ghostCollisionIgnoreTags: bigint
 	decideMovement(): Direction[] {
 		const dir = relativeToAbsolute(this.direction)
 		return [dir.FORWARD, dir.LEFT, dir.RIGHT, dir.BACKWARD]
 	}
 	blockedBy(other: Actor): boolean {
 		if (other.tile.hasLayer(Layer.ITEM_SUFFIX)) return false
-		return matchTags(other.getCompleteTags("tags"), this.ghostBlockedByTags)
+		return hasTagOverlap(other.tags, this.ghostBlockedByTags)
 	}
 	collisionIgnores(other: Actor): boolean {
 		if (other.tile.hasLayer(Layer.ITEM_SUFFIX)) return false
-		const otherTags = other.getCompleteTags("tags")
 		return (
-			otherTags.some(val => this.ghostCollisionIgnoreTags.includes(val)) ||
-			(!otherTags.some(
-				val =>
-					this.ghostBlockedByTags.includes(val) ||
-					this.nonIgnoredTags.includes(val)
+			hasTagOverlap(other.tags, this.ghostCollisionIgnoreTags) ||
+			(!hasTagOverlap(
+				other.tags,
+				this.nonIgnoredTags | this.ghostBlockedByTags
 			) &&
 				other.layer !== Layer.MOVABLE)
 		)
 	}
 	ignores(other: Actor): boolean {
 		return (
-			!other
-				.getCompleteTags("tags")
-				.some(val => this.nonIgnoredTags.includes(val)) &&
+			!hasTagOverlap(other.tags, this.nonIgnoredTags) &&
 			other.layer !== Layer.ITEM &&
 			other.layer !== Layer.MOVABLE
 		)
-	}
-	newTileJoined(): void {
-		if (this.tile.hasLayer(Layer.ITEM_SUFFIX)) {
-			this.blockedByTags = []
-			this.collisionIgnoreTags = []
-		} else {
-			this.blockedByTags = ["blocks-ghost", "water-ish"]
-			this.collisionIgnoreTags = ["door", "echip-gate", "ice"]
-		}
 	}
 }
 

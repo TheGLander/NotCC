@@ -27,12 +27,12 @@ export function getMovementDirections(
 }
 
 export abstract class Playable extends Actor {
-	tags = ["playable", "real-playable"]
+	static tags = ["playable", "real-playable"]
 	// Players actually block everything, they just die if non-players bump into them
 	blocks(): true {
 		return true
 	}
-	pushTags = ["block"]
+	static pushTags = ["block"]
 	hasOverride = false
 	lastDecision = Decision.NONE
 	playerBonked = false
@@ -217,7 +217,7 @@ export abstract class Playable extends Actor {
 }
 
 export class Chip extends Playable {
-	tags = [
+	static tags = [
 		"playable",
 		"real-playable",
 		"chip",
@@ -233,7 +233,7 @@ export class Chip extends Playable {
 actorDB["chip"] = Chip
 
 export class Melinda extends Playable {
-	tags = [
+	static tags = [
 		"playable",
 		"real-playable",
 		"melinda",
@@ -244,7 +244,7 @@ export class Melinda extends Playable {
 	]
 	transmogrifierTarget = "chip"
 	id = "melinda"
-	ignoreTags = ["ice"]
+	static ignoreTags = ["ice"]
 }
 
 actorDB["melinda"] = Melinda

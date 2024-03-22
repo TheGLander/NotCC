@@ -1,6 +1,6 @@
-import { Actor, SlidingState } from "../actor.js"
+import { Actor, SlidingState, tagProperties } from "../actor.js"
 import { Layer } from "../tile.js"
-import { actorDB } from "../const.js"
+import { actorDB, getTagFlag } from "../const.js"
 import { Wall } from "./walls.js"
 import { matchTags } from "../actor.js"
 import { Playable } from "./playables.js"
@@ -33,7 +33,7 @@ actorDB["letterTile"] = LetterTile
 
 export class CustomFloor extends Actor {
 	id = "customFloor"
-	tags = ["blocks-ghost"]
+	static tags = ["blocks-ghost"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -43,7 +43,7 @@ actorDB["customFloor"] = CustomFloor
 
 export class Ice extends Actor {
 	id = "ice"
-	tags = ["ice"]
+	static tags = ["ice"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -51,17 +51,17 @@ export class Ice extends Actor {
 		other.slidingState = SlidingState.STRONG
 	}
 	actorCompletelyJoinedIgnored(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.playOnce("slide step")
 		}
 	}
 	actorLeft(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.playContinuous("ice slide")
 		}
 	}
 	actorCompletelyLeft(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.stopContinuous("ice slide")
 		}
 	}
@@ -69,8 +69,7 @@ export class Ice extends Actor {
 		if (other._internalIgnores(this)) return
 		if (!other.bonked) return
 		other.slidingState = SlidingState.STRONG
-		const tags = other.getCompleteTags("tags")
-		if (tags.includes("super-weirdly-ignores-ice")) return
+		if (other.hasTag("super-weirdly-ignores-ice")) return
 
 		// Turn the other way
 		other.direction += 2
@@ -78,7 +77,7 @@ export class Ice extends Actor {
 		if (other._internalStep(other.direction)) other.cooldown--
 	}
 	speedMod(other: Actor): 1 | 2 {
-		if (other.getCompleteTags("tags").includes("weirdly-ignores-ice")) return 1
+		if (other.hasTag("weirdly-ignores-ice")) return 1
 		return 2
 	}
 }
@@ -86,7 +85,7 @@ actorDB["ice"] = Ice
 
 export class IceCorner extends Actor {
 	id = "iceCorner"
-	tags = ["ice"]
+	static tags = ["ice"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -94,33 +93,32 @@ export class IceCorner extends Actor {
 		other.slidingState = SlidingState.STRONG
 	}
 	actorCompletelyJoinedIgnored(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.playOnce("slide step")
 		}
 	}
 	actorLeft(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.playContinuous("ice slide")
 		}
 	}
 	actorCompletelyLeft(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.stopContinuous("ice slide")
 		}
 	}
 	actorOnTile(other: Actor): void {
 		if (other._internalIgnores(this)) return
-		const tags = other.getCompleteTags("tags")
-		if (tags.includes("super-weirdly-ignores-ice")) return
+		if (other.hasTag("super-weirdly-ignores-ice")) return
 		if (other.bonked) other.direction += 2
-		if (!tags.includes("weirdly-ignores-ice")) {
+		if (!other.hasTag("weirdly-ignores-ice")) {
 			other.direction += (this.direction - other.direction) * 2 - 1 + 8
 		}
 		other.direction %= 4
 		if (other.bonked && other._internalStep(other.direction)) other.cooldown--
 	}
 	speedMod(other: Actor): 1 | 2 {
-		if (other.getCompleteTags("tags").includes("weirdly-ignores-ice")) return 1
+		if (other.hasTag("weirdly-ignores-ice")) return 1
 		return 2
 	}
 	blocks(_other: Actor, otherMoveDirection: Direction): boolean {
@@ -130,8 +128,7 @@ export class IceCorner extends Actor {
 		)
 	}
 	exitBlocks(other: Actor, otherMoveDirection: Direction): boolean {
-		if (other.getCompleteTags("tags").includes("weirdly-ignores-ice"))
-			return false
+		if (other.hasTag("weirdly-ignores-ice")) return false
 		return (
 			otherMoveDirection === this.direction ||
 			otherMoveDirection === (this.direction + 1) % 4
@@ -143,24 +140,23 @@ actorDB["iceCorner"] = IceCorner
 
 export class ForceFloor extends Actor {
 	id = "forceFloor"
-	tags = ["force-floor"]
+	static tags = ["force-floor"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.playContinuous("force floor")
 		}
-		if (other.getCompleteTags("tags").includes("block"))
-			other.slidingState = SlidingState.WEAK
+		if (other.hasTag("block")) other.slidingState = SlidingState.WEAK
 	}
 	actorCompletelyJoinedIgnored(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.playOnce("slide step")
 		}
 	}
 	actorLeft(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.stopContinuous("force floor")
 		}
 	}
@@ -189,24 +185,23 @@ actorDB["forceFloor"] = ForceFloor
 
 export class ForceFloorRandom extends Actor {
 	id = "forceFloorRandom"
-	tags = ["force-floor"]
+	static tags = ["force-floor"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorJoined(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.playContinuous("force floor")
 		}
-		if (other.getCompleteTags("tags").includes("block"))
-			other.slidingState = SlidingState.WEAK
+		if (other.hasTag("block")) other.slidingState = SlidingState.WEAK
 	}
 	actorCompletelyJoinedIgnored(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.playOnce("slide step")
 		}
 	}
 	actorLeft(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (other.hasTag("real-playable")) {
 			this.level.sfxManager?.stopContinuous("force floor")
 		}
 	}
@@ -237,7 +232,7 @@ export class RecessedWall extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["cc1block", "normal-monster"]
+	static blockTags = ["cc1block", "normal-monster"]
 	actorLeft(): void {
 		if (this.tile.hasLayer(Layer.MOVABLE)) return
 		this.destroy(this, null)
@@ -262,12 +257,12 @@ actorDB["void"] = Void
 
 export class Water extends Actor {
 	id = "water"
-	tags = ["water", "water-ish"]
+	static tags = ["water", "water-ish"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoinedIgnored(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("playable")) {
+		if (other.hasTag("playable")) {
 			this.level.sfxManager?.playOnce("water step")
 		}
 	}
@@ -280,11 +275,11 @@ actorDB["water"] = Water
 
 export class Dirt extends Actor {
 	id = "dirt"
-	tags = ["filth", "boot-removable"]
+	static tags = ["filth", "boot-removable"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["cc1block", "normal-monster", "melinda"]
+	static blockTags = ["cc1block", "normal-monster", "melinda"]
 	actorCompletelyJoined(): void {
 		this.level.sfxManager?.playOnce("dirt clear")
 		this.destroy(this, null)
@@ -295,22 +290,22 @@ actorDB["dirt"] = Dirt
 
 export class Gravel extends Actor {
 	id = "gravel"
-	tags = ["filth"]
+	static tags = ["filth"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["normal-monster", "melinda"]
+	static blockTags = ["normal-monster", "melinda"]
 }
 
 actorDB["gravel"] = Gravel
 
 export class Exit extends Actor {
 	id = "exit"
-	tags = ["exit"]
+	static tags = ["exit"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["normal-monster", "cc1block"]
+	static blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (other instanceof Playable) {
 			const oldGameState = this.level.gameState
@@ -333,12 +328,12 @@ actorDB["exit"] = Exit
 
 export class EChipGate extends Actor {
 	id = "echipGate"
-	tags = ["echip-gate"]
-	immuneTags = ["tnt"]
+	static tags = ["echip-gate"]
+	static immuneTags = ["tnt"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["normal-monster", "cc1block"]
+	static blockTags = ["normal-monster", "cc1block"]
 	actorCompletelyJoined(other: Actor): void {
 		if (this.level.chipsLeft === 0) {
 			this.destroy(other, null)
@@ -369,26 +364,25 @@ export class Hint extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["normal-monster", "cc1block"]
+	static blockTags = ["normal-monster", "cc1block"]
 }
 
 actorDB["hint"] = Hint
 
 export class Fire extends Actor {
 	id = "fire"
-	tags = ["fire", "melting", "boot-removable"]
-	blockTags = ["autonomous-monster"]
+	static tags = ["fire", "melting", "boot-removable"]
+	static blockTags = ["autonomous-monster"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoinedIgnored(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("playable")) {
+		if (other.hasTag("playable")) {
 			this.level.sfxManager?.playOnce("fire step")
 		}
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (!other.getCompleteTags("tags").includes("meltable-block"))
-			other.destroy(this)
+		if (!other.hasTag("meltable-block")) other.destroy(this)
 	}
 }
 
@@ -396,20 +390,21 @@ actorDB["fire"] = Fire
 
 export class ThiefTool extends Actor {
 	id = "thiefTool"
-	blockTags = ["normal-monster", "cc1block"]
+	static blockTags = ["normal-monster", "cc1block"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (!other.getCompleteTags("tags").includes("real-playable")) return
+		if (!other.hasTag("real-playable")) return
 		for (const [key, item] of other.inventory.items.entries()) {
-			if (item.getCompleteTags("tags").includes("bribe")) {
+			if (item.hasTag("bribe")) {
 				other.inventory.items.splice(key, 1)
 				return
 			}
 		}
 		this.level.sfxManager?.playOnce("robbed")
 		other.inventory.items = []
+		other.recomputeTags()
 		this.level.bonusPoints = Math.floor(this.level.bonusPoints / 2)
 	}
 }
@@ -418,14 +413,14 @@ actorDB["thiefTool"] = ThiefTool
 
 export class ThiefKey extends Actor {
 	id = "thiefKey"
-	blockTags = ["normal-monster", "cc1block"]
+	static blockTags = ["normal-monster", "cc1block"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		if (!other.getCompleteTags("tags").includes("real-playable")) return
+		if (!other.hasTag("real-playable")) return
 		for (const [key, item] of other.inventory.items.entries()) {
-			if (item.getCompleteTags("tags").includes("bribe")) {
+			if (item.hasTag("bribe")) {
 				other.inventory.items.splice(key, 1)
 				return
 			}
@@ -461,8 +456,7 @@ export class Trap extends Actor {
 			actor.frozen = false
 			return
 		}
-		if (actor.getCompleteTags("tags").includes("overpowers-trap-sliding"))
-			return
+		if (actor.hasTag("overpowers-trap-sliding")) return
 
 		actor.frozen = true
 	}
@@ -521,13 +515,13 @@ actorDB["trap"] = Trap
 export class CloneMachine extends Actor {
 	id = "cloneMachine"
 	isCloning = false
-	tags = ["machinery"]
+	static tags = ["machinery"]
 	cloneArrows =
 		this.customData === "cc1"
 			? []
 			: Array.from(this.customData).map(val => "URDL".indexOf(val))
 	// Always block boomer actors
-	blockTags = ["cc1block", "normal-monster", "real-playable"]
+	static blockTags = ["cc1block", "normal-monster", "real-playable"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -546,9 +540,7 @@ export class CloneMachine extends Actor {
 	}
 	blocks(other: Actor): boolean {
 		return (
-			!other
-				.getCompleteTags("tags")
-				.includes("interacts-with-closed-clone-machine") &&
+			!other.hasTag("interacts-with-closed-clone-machine") &&
 			this.tile.hasLayer(Layer.MOVABLE)
 		)
 	}
@@ -613,7 +605,7 @@ actorDB["cloneMachine"] = CloneMachine
 
 export class Bomb extends Actor {
 	id = "bomb"
-	tags = ["bomb"]
+	static tags = ["bomb"]
 	getLayer(): Layer {
 		return Layer.ITEM // Yes
 	}
@@ -628,11 +620,11 @@ actorDB["bomb"] = Bomb
 
 export class Turtle extends Actor {
 	id = "turtle"
-	tags = ["water-ish"]
+	static tags = ["water-ish"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["melting"]
+	static blockTags = ["melting"]
 	actorLeft(): void {
 		if (this.tile.hasLayer(Layer.MOVABLE)) return
 		this.destroy(null, "splash", true)
@@ -644,7 +636,7 @@ actorDB["turtle"] = Turtle
 
 export class GreenBomb extends Actor {
 	id = "greenBomb"
-	tags = ["bomb"].concat(this.customData === "echip" ? ["item"] : [])
+	static tags = ["bomb"]
 	constructor(
 		level: LevelState,
 		position: [number, number],
@@ -655,6 +647,9 @@ export class GreenBomb extends Actor {
 		level.chipsTotal++
 		level.chipsLeft++
 		level.chipsRequired++
+		if (customData === "echip") {
+			this.tags |= getTagFlag("item")
+		}
 	}
 	getLayer(): Layer {
 		return Layer.ITEM // Yes
@@ -663,7 +658,7 @@ export class GreenBomb extends Actor {
 		if (this.customData === "bomb") {
 			other.destroy(this, null)
 			this.destroy(other)
-		} else if (other.getCompleteTags("tags").includes("real-playable")) {
+		} else if (other.hasTag("real-playable")) {
 			this.destroy(null, null)
 			this.level.chipsLeft = Math.max(0, this.level.chipsLeft - 1)
 			this.level.sfxManager?.playOnce("item get")
@@ -671,17 +666,18 @@ export class GreenBomb extends Actor {
 	}
 	greenToggle(): void {
 		this.customData = this.customData === "bomb" ? "echip" : "bomb"
-		if (this.customData === "echip") this.tags.push("item")
-		else this.tags.splice(this.tags.indexOf("item"), 1)
+		if (this.customData === "echip") {
+			this.tags |= getTagFlag("item")
+		} else {
+			this.tags &= ~getTagFlag("item")
+		}
 	}
 	blocks(other: Actor): boolean {
 		return (
 			this.customData === "echip" &&
-			!matchTags(other.getCompleteTags("tags"), [
-				"can-pickup-items",
-				"can-stand-on-items",
-				"playable",
-			])
+			!other.hasTag("can-pickup-items") &&
+			!other.hasTag("can-stand-on-items") &&
+			!other.hasTag("playable")
 		)
 	}
 }
@@ -690,15 +686,14 @@ actorDB["greenBomb"] = GreenBomb
 
 export class Slime extends Actor {
 	id = "slime"
-	tags = ["slime"]
+	static tags = ["slime"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	actorCompletelyJoined(other: Actor): void {
-		const otherTags = other.getCompleteTags("tags")
 		if (
-			otherTags.includes("dies-in-slime") ||
-			!matchTags(otherTags, ["block", "clears-slime"])
+			other.hasTag("dies-in-slime") ||
+			!(other.hasTag("block") || other.hasTag("clears-slime"))
 		)
 			other.destroy(this, "splash")
 		else this.destroy(null, null)
@@ -709,16 +704,17 @@ actorDB["slime"] = Slime
 
 export class FlameJet extends Actor {
 	id = "flameJet"
-	tags: string[]
-	immuneTags = ["meltable-block"]
+	static tags = ["jet"]
+	static immuneTags = ["meltable-block"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	updateTags(): void {
-		if (this.customData === "on" && !this.tags.includes("fire"))
-			this.tags.push("fire")
-		else if (this.customData === "off" && this.tags.includes("fire"))
-			this.tags.splice(this.tags.indexOf("fire"), 1)
+		if (this.customData === "on") {
+			this.tags |= getTagFlag("fire")
+		} else {
+			this.tags &= ~getTagFlag("fire")
+		}
 	}
 	actorOnTile(other: Actor): void {
 		if (this.customData === "on" && other.layer === Layer.MOVABLE)
@@ -733,7 +729,7 @@ export class FlameJet extends Actor {
 	pulse = this.buttonPressed
 	constructor(level: LevelState, pos: [number, number], customData?: string) {
 		super(level, pos, customData)
-		this.tags = this.customData === "on" ? ["fire", "jet"] : ["jet"]
+		this.updateTags()
 	}
 }
 
@@ -756,7 +752,7 @@ export const updateJetlife = (level: LevelState): void => {
 					const tile = level.field[actor.tile.x + xOff]?.[actor.tile.y + yOff]
 					if (tile && !(xOff === 0 && yOff === 0))
 						for (const actor of tile.allActors)
-							if (actor.getCompleteTags("tags").includes("fire")) neighbors++
+							if (actor.hasTag("fire")) neighbors++
 				}
 			if (neighbors === 3) queuedUpdates.push([actor, "on"])
 			else if (neighbors !== 2) queuedUpdates.push([actor, "off"])
@@ -799,7 +795,7 @@ export const directionStrings = "URDL"
 
 export class Railroad extends Actor {
 	id = "railroad"
-	tags = ["railroad"]
+	static tags = ["railroad"]
 	isSwitch = this.customData.includes("s")
 	allRRRedirects = ["UR", "DR", "DL", "UL", "LR", "UD"]
 	activeTrack: string = this.allRRRedirects[parseInt(this.customData[0] || "0")]
@@ -829,8 +825,7 @@ export class Railroad extends Actor {
 		other: Actor,
 		direction: Direction
 	): Direction | null {
-		const otherTags = other.getCompleteTags("tags")
-		if (otherTags.includes("ignores-railroad-redirect")) return direction
+		if (other.hasTag("ignores-railroad-redirect")) return direction
 
 		const directionString =
 			directionStrings[(this.lastEnteredDirection + 2) % 4]
@@ -839,7 +834,7 @@ export class Railroad extends Actor {
 			.map(val =>
 				directionStrings.indexOf(val[1 - val.indexOf(directionString)])
 			)
-		if (otherTags.includes("reverse-on-railroad"))
+		if (other.hasTag("reverse-on-railroad"))
 			legalRedirects.push((this.lastEnteredDirection + 2) % 4)
 		// Search for a valid (relative) direction in this order: Forward, right, left, backward
 		for (const offset of [0, 1, -1, 2])
@@ -896,7 +891,7 @@ onLevelWireTick.push(level => {
 })
 
 export abstract class LogicGate extends Actor implements BlueTeleportTarget {
-	immuneTags = ["tnt"]
+	static immuneTags = ["tnt"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}

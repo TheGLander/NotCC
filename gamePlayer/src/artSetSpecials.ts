@@ -34,9 +34,7 @@ function bitfieldToDirs(bitfield: number): Direction[] {
 }
 
 function getPlayableState(actor: Playable): string {
-	const inWater = actor.tile.findActor(actor =>
-		actor.getCompleteTags("tags").includes("water")
-	)
+	const inWater = actor.tile.findActor(actor => actor.hasTag("water"))
 	if (inWater) return "water"
 	if (actor.playerBonked) return "bump"
 	return "normal"
@@ -68,8 +66,8 @@ registerSpecialFunction<Tile | [number, number] | Actor>(
 		const pos = Array.isArray(ctx.actor)
 			? ctx.actor
 			: ctx.actor instanceof Tile
-			? ctx.actor.position
-			: ctx.actor.tile.position
+				? ctx.actor.position
+				: ctx.actor.tile.position
 		const wires = Array.isArray(ctx.actor) ? 0 : ctx.actor.wires
 		const wireTunnels = Array.isArray(ctx.actor) ? 0 : ctx.actor.wireTunnels
 		this.tileBlit(ctx, pos, spArt.base)
@@ -211,7 +209,7 @@ registerSpecialFunction<ThinWall>("thin walls", function (ctx, art) {
 })
 
 registerStateFunction<ThinWall>("thinWall", actor =>
-	actor.getCompleteTags("tags").includes("canopy") ? "canopy" : "nothing"
+	actor.hasTag("canopy") ? "canopy" : "nothing"
 )
 
 registerStateFunction<Actor>("blueWall", actor => actor.customData)

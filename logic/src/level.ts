@@ -249,9 +249,7 @@ export class LevelState {
 		return (
 			this.forcedPerspective ||
 			(!!this.selectedPlayable &&
-				this.selectedPlayable
-					.getCompleteTags("tags")
-					.includes("can-see-secrets"))
+				this.selectedPlayable.hasTag("can-see-secrets"))
 		)
 	}
 	*tiles(
