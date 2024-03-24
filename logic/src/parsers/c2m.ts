@@ -58,10 +58,11 @@ export interface LevelData {
 	 * The solution for this level
 	 */
 	associatedSolution?: ISolutionInfo
-	// Random misc custom data
-	customData?: Record<string, string>
+	jetlifeInterval?: number
 	hideWires?: boolean
 	cc1Boots?: boolean
+	author?: string
+	c2gInstructions?: string
 }
 
 export type PartialLevelData = Omit<
@@ -502,8 +503,7 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 				data.name = view.getStringUntilNull()
 				break
 			case "AUTH":
-				// Discard (temp)
-				view.getStringUntilNull()
+				data.author = view.getStringUntilNull()
 				break
 			case "CLUE":
 				data.defaultHint = view.getStringUntilNull()
@@ -524,13 +524,12 @@ export function parseC2M(buff: ArrayBuffer): LevelData {
 							data.hints ??= []
 							data.hints.push(noteSectionData)
 							break
-						case "COM": // TODO C2M Inline code
+						case "COM":
+							data.c2gInstructions += noteSectionData
 							break
-						//throw new Error("[COM] not supported (yet)!")
 						case "JETLIFE":
-							data.customData ??= {}
 							if (!isNaN(parseInt(noteSectionData, 10)))
-								data.customData.jetlife = noteSectionData
+								data.jetlifeInterval = parseInt(noteSectionData, 10)
 							break
 					}
 					note = note.substr(

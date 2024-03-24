@@ -25,6 +25,7 @@ import { Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
 import { LevelControls } from "@/levelData"
+import { trivia } from "@/trivia"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -93,8 +94,14 @@ function Cover(props: {
 	class: string
 	header: VNode
 	buttons: [string, () => void][]
+	buttons: [string, null | (() => void)][]
 	focusedButton?: string
 }) {
+	const focusedRef = useRef<HTMLButtonElement>(null)
+	useEffect(() => {
+		//@ts-ignore Exists only in firefox, looks like declarations don't have it yet
+		focusedRef.current?.focus({ focusVisible: true })
+	}, [focusedRef])
 	return (
 		<div
 			class={twMerge(
@@ -107,13 +114,14 @@ function Cover(props: {
 				<div class="box mb-5 mt-auto flex h-20 w-4/5 flex-row gap-1">
 					{props.buttons.map(([name, callback]) => (
 						<button
+							disabled={!callback}
 							class="flex-1"
-							onClick={callback}
-							ref={ref => {
-								if (props.focusedButton === name || !props.focusedButton) {
-									ref?.focus()
-								}
-							}}
+							onClick={callback ?? undefined}
+							ref={
+								props.focusedButton === name || !props.focusedButton
+									? focusedRef
+									: undefined
+							}
 						>
 							{name}
 						</button>
@@ -134,11 +142,39 @@ function PregameCover(props: {
 			class="from-black/20 to-black/50"
 			header={
 				<>
-					<h2 class="mt-6 text-[2.25em]">{props.level.name ?? "UNNAMED"}</h2>
-					<h3 class="text-[1.25em]">by ???</h3>
+					<h2 class={twJoin("mt-6", "text-5xl [line-height:1]")}>
+						{props.level.name ?? "UNNAMED"}
+					</h2>
+					<span class="mt-1 text-2xl">by {props.level.author ?? "???"}</span>
 				</>
 			}
 			buttons={props.mobile ? [["Start", props.onStart]] : []}
+		/>
+	)
+}
+
+function PauseCover(props: { onUnpause: () => void }) {
+	const [triviaIdx] = useState(() => Math.floor(Math.random() * trivia.length))
+	return (
+		<Cover
+			class="from-theme-900 to-theme-900"
+			header={
+				<div class="flex flex-1 flex-col items-center">
+					<h2 class="mt-6 text-left text-5xl">Paused</h2>
+					<div class="bg-theme-950 relative my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
+						<div class="mb-1 text-lg">Did you know?</div>
+						{trivia[triviaIdx]}
+						{/* For the guaranteed space */}
+						<span class="invisible">
+							{triviaIdx + 1}/{trivia.length}
+						</span>
+						<span class="absolute right-2">
+							{triviaIdx + 1}/{trivia.length}
+						</span>
+					</div>
+				</div>
+			}
+			buttons={[["Unpause", props.onUnpause]]}
 		/>
 	)
 }
@@ -153,7 +189,7 @@ function LoseCover(props: { timeout: boolean; onRestart: () => void }) {
 			)}
 			header={
 				<>
-					<h2 class="mt-6 text-[2.25em]">
+					<h2 class="mt-6 text-5xl">
 						{props.timeout ? "Ran out of time" : "You lost..."}
 					</h2>
 				</>
@@ -173,10 +209,11 @@ function WinCover() {
 				</>
 			}
 			buttons={[
-				["Scores", () => {}],
-				["Next level", () => {}],
-				["Explode Jupiter", () => {}],
+				["Level list", null],
+				["Next level", null],
+				["Explode Jupiter", null],
 			]}
+			focusedButton="Next level"
 		/>
 	)
 }
@@ -215,6 +252,7 @@ export function DumbLevelPlayer(props: {
 	const [timeLeft, setTimeLeft] = useState(0)
 	const [bonusPoints, setBonusPoints] = useState(0)
 	const [inventory, setInventory] = useState<InventoryI | undefined>()
+	const [hint, setHint] = useState<string | null>()
 
 	// Ticking
 	const tickLevel = useCallback(() => {
@@ -223,6 +261,7 @@ export function DumbLevelPlayer(props: {
 		setTimeLeft(level.timeLeft)
 		setBonusPoints(level.bonusPoints)
 		setInventory(level.selectedPlayable?.inventory)
+		setHint(level.getHint()?.trim())
 		renderInventoryRef.current?.()
 		releaseKeys(level.releasedKeys)
 		if (level.gameState === GameState.WON) {
@@ -300,6 +339,8 @@ export function DumbLevelPlayer(props: {
 		)
 	} else if (playerState === "win") {
 		cover = <WinCover />
+	} else if (playerState === "pause") {
+		cover = <PauseCover onUnpause={() => setPlayerState("play")} />
 	} else {
 		cover = null
 	}
@@ -324,11 +365,13 @@ export function DumbLevelPlayer(props: {
 	return (
 		<div
 			class={twJoin(
-				"box m-auto flex gap-2 p-2 text-[length:calc(var(--tile-size)_*_0.3)]",
+				"box m-auto flex gap-2 p-2 max-md:text-sm lg:gap-4 lg:p-4 lg:text-lg",
 				verticalLayout && "flex-col",
 				!verticalLayout && "flex-row"
 			)}
-			style={{ "--tile-size": `${scale * tileset.tileSize}px` }}
+			style={{
+				"--tile-size": `${scale * tileset.tileSize}px`,
+			}}
 		>
 			<div class="relative">
 				<GameRenderer
@@ -344,7 +387,7 @@ export function DumbLevelPlayer(props: {
 				class={
 					verticalLayout
 						? "flex h-[calc(var(--tile-size)_*_2)] w-auto flex-row-reverse justify-end gap-1"
-						: "flex w-[calc(var(--tile-size)_*_4)] flex-col gap-1"
+						: "flex w-[calc(var(--tile-size)_*_4)] flex-col gap-2 lg:gap-4"
 				}
 			>
 				<div
@@ -369,6 +412,11 @@ export function DumbLevelPlayer(props: {
 							inventory={inventory}
 							renderRef={renderInventoryRef}
 						/>
+					</div>
+				)}
+				{!verticalLayout && (
+					<div class="bg-theme-950 flex-1 whitespace-pre-line rounded p-1">
+						{hint}
 					</div>
 				)}
 			</div>

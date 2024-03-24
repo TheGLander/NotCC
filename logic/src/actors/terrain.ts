@@ -734,10 +734,10 @@ export class FlameJet extends Actor {
 actorDB["flameJet"] = FlameJet
 
 export const updateJetlife = (level: LevelState): void => {
-	if (!level.levelData?.customData?.jetlife) return
+	if (!level.levelData?.jetlifeInterval) return
 	if (
 		(level.currentTick * 3 + level.subtick) %
-			parseInt(level.levelData.customData.jetlife) !==
+			level.levelData.jetlifeInterval !==
 		0
 	)
 		return
