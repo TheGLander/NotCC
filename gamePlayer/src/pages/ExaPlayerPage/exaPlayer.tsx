@@ -23,16 +23,23 @@ import {
 import { tilesetAtom } from "@/components/Preloader"
 import { TimeoutTimer, useJotaiFn } from "@/helpers"
 import { keyToInputMap } from "@/inputs"
-import { DEFAULT_HASH_SETTINGS, ExaOpenEvent } from "./OpenExaPrompt"
+import {
+	DEFAULT_HASH_SETTINGS,
+	ExaNewEvent,
+	ExaOpenEvent,
+} from "./OpenExaPrompt"
 import { Inventory } from "@/components/Inventory"
 import { GraphView, MovesList } from "./GraphView"
 import { levelNAtom, pageAtom } from "@/routing"
 import { makeLevelHash } from "./hash"
-import { levelControlsAtom } from "@/levelData"
+import { levelControlsAtom, useSwrLevel } from "@/levelData"
 import { modelAtom } from "."
 import { calcScale } from "@/components/DumbLevelPlayer"
 import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
 import { Dialog } from "@/components/Dialog"
+
+const modelConfigAtom = atom<ExaNewEvent | null>(null)
+type Model = LinearModel | GraphModel
 
 export function openExaCCReal(
 	_get: Getter,
@@ -41,22 +48,28 @@ export function openExaCCReal(
 	levelData: LevelData
 ) {
 	if (openEv.type !== "new") return
+	const model = makeModel(levelData, openEv)
+	// @ts-ignore Temporary
+	globalThis.NotCC.exa = { model, makeLevelHash }
+	set(modelConfigAtom, openEv)
+	set(pageAtom, "exa")
+	set(modelAtom, model)
+}
+
+function makeModel(levelData: LevelData, conf: ExaNewEvent): Model {
 	const level = createLevelFromData(levelData)
 	level.tick()
 	level.tick()
 
-	let model: LinearModel | GraphModel
-	if (openEv.model === "linear") {
+	let model: Model
+	if (conf.model === "linear") {
 		model = new LinearModel(level)
-	} else if (openEv.model === "graph") {
-		model = new GraphModel(level, openEv.hashSettings ?? DEFAULT_HASH_SETTINGS)
+	} else if (conf.model === "graph") {
+		model = new GraphModel(level, conf.hashSettings ?? DEFAULT_HASH_SETTINGS)
 	} else {
 		throw new Error("Unsupported model :(")
 	}
-	// @ts-ignore Temporary
-	globalThis.NotCC.exa = { model, makeLevelHash }
-	set(pageAtom, "exa")
-	set(modelAtom, model)
+	return model
 }
 
 // function useModel() {
@@ -196,7 +209,16 @@ export function formatTicks(timeLeft: number) {
 }
 
 export function RealExaPlayerPage() {
-	const [modelM, _setModel] = useAtom(modelAtom)
+	const [modelM, setModel] = useAtom(modelAtom)
+	const aLevel = useSwrLevel()
+	const modelConfig = useAtomValue(modelConfigAtom)
+	useEffect(() => {
+		if (!aLevel || !modelConfig) return
+		setModel(makeModel(aLevel, modelConfig))
+		const [camera, scale] = computeDefaultCamera(aLevel)
+		setCameraType(camera)
+		setTileScale(scale)
+	}, [aLevel])
 	const model = modelM!
 	const levelN = useAtomValue(levelNAtom)
 	const setControls = useSetAtom(levelControlsAtom)
@@ -281,13 +303,15 @@ export function RealExaPlayerPage() {
 
 	const [cameraType, setCameraType] = useAtom(cameraTypeAtom)
 	const [tileScale, setTileScale] = useAtom(tileScaleAtom)
-	useLayoutEffect(() => {
+
+	function computeDefaultCamera(
+		level: LevelData | LevelState
+	): [CameraType, number] {
 		const camera: CameraType = {
-			width: Math.min(32, model.level.width),
-			height: Math.min(32, model.level.height),
+			width: Math.min(32, level.width),
+			height: Math.min(32, level.height),
 			screens: 1,
 		}
-		setCameraType(camera)
 		let scale = calcScale({
 			tileSize: tileset!.tileSize,
 			cameraType: camera,
@@ -299,8 +323,13 @@ export function RealExaPlayerPage() {
 		else {
 			scale = 0.5
 		}
+		return [camera, scale]
+	}
 
+	useLayoutEffect(() => {
 		// Guess a good default tile scale, and let the user adjust
+		const [camera, scale] = computeDefaultCamera(model.level)
+		setCameraType(camera)
 		setTileScale(scale)
 	}, [])
 

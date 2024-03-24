@@ -3,6 +3,7 @@ import {
 	GameState,
 	Inventory as InventoryI,
 	LevelData,
+	LevelSet,
 	createLevelFromData,
 } from "@notcc/logic"
 import { GameRenderer } from "./GameRenderer"
@@ -16,7 +17,7 @@ import {
 	useRef,
 	useState,
 } from "preact/hooks"
-import { IntervalTimer, applyRef } from "@/helpers"
+import { IntervalTimer, applyRef, useJotaiFn } from "@/helpers"
 import { embedReadyAtom, embedModeAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
@@ -25,6 +26,7 @@ import { Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
 import { LevelControls } from "@/levelData"
+import { goToNextLevel as goToNextLevelGs } from "@/levelData"
 import { trivia } from "@/trivia"
 
 // A TW unit is 0.25rem
@@ -37,8 +39,8 @@ export function twUnit(tw: number): number {
 export interface AutoScaleConfig {
 	tileSize: number
 	cameraType: CameraType
-	twPadding?: [number, number]
 	tilePadding?: [number, number]
+	twPadding?: [number, number]
 	safetyCoefficient?: number
 }
 
@@ -93,7 +95,6 @@ type PlayerState =
 function Cover(props: {
 	class: string
 	header: VNode
-	buttons: [string, () => void][]
 	buttons: [string, null | (() => void)][]
 	focusedButton?: string
 }) {
@@ -134,6 +135,7 @@ function Cover(props: {
 
 function PregameCover(props: {
 	level: LevelData
+	set?: LevelSet
 	mobile?: boolean
 	onStart: () => void
 }) {
@@ -142,7 +144,13 @@ function PregameCover(props: {
 			class="from-black/20 to-black/50"
 			header={
 				<>
-					<h2 class={twJoin("mt-6", "text-5xl [line-height:1]")}>
+					{props.set && (
+						<span class="mb-1 mt-6 text-xl">
+							{props.set?.scriptRunner.state.gameTitle} #
+							{props.set.scriptRunner.state.variables?.level}:
+						</span>
+					)}
+					<h2 class={twJoin(!props.set && "mt-6", "text-5xl [line-height:1]")}>
 						{props.level.name ?? "UNNAMED"}
 					</h2>
 					<span class="mt-1 text-2xl">by {props.level.author ?? "???"}</span>
@@ -199,7 +207,7 @@ function LoseCover(props: { timeout: boolean; onRestart: () => void }) {
 	)
 }
 
-function WinCover() {
+function WinCover(props: { onNextLevel: () => void }) {
 	return (
 		<Cover
 			class="from-yellow-900/30 to-yellow-600/70"
@@ -210,7 +218,7 @@ function WinCover() {
 			}
 			buttons={[
 				["Level list", null],
-				["Next level", null],
+				["Next level", props.onNextLevel],
 				["Explode Jupiter", null],
 			]}
 			focusedButton="Next level"
@@ -220,6 +228,7 @@ function WinCover() {
 
 export function DumbLevelPlayer(props: {
 	level: LevelData
+	levelSet?: LevelSet
 	controlsRef?: Ref<LevelControls | null>
 }) {
 	const tileset = useAtomValue(tilesetAtom)!
@@ -238,6 +247,7 @@ export function DumbLevelPlayer(props: {
 		setLevel(createLevelFromData(props.level))
 		setPlayerState("pregame")
 	}
+	useLayoutEffect(() => resetLevel(), [props.level])
 	useEffect(() => {
 		level.gameInput = inputs
 		setChipsLeft(level.chipsLeft)
@@ -323,11 +333,13 @@ export function DumbLevelPlayer(props: {
 	// GUI stuff
 	const scale = useAutoScale(scaleArgs)
 	const shouldShowMobileControls = useShouldShowMobileControls()
+	const goToNextLevel = useJotaiFn(goToNextLevelGs)
 
 	let cover: VNode | null
 	if (playerState === "pregame") {
 		cover = (
 			<PregameCover
+				set={props.levelSet}
 				level={props.level}
 				mobile={shouldShowMobileControls}
 				onStart={() => setPlayerState("play")}
@@ -338,7 +350,7 @@ export function DumbLevelPlayer(props: {
 			<LoseCover timeout={playerState === "timeout"} onRestart={resetLevel} />
 		)
 	} else if (playerState === "win") {
-		cover = <WinCover />
+		cover = <WinCover onNextLevel={goToNextLevel} />
 	} else if (playerState === "pause") {
 		cover = <PauseCover onUnpause={() => setPlayerState("play")} />
 	} else {

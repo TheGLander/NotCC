@@ -9,9 +9,13 @@ import { pageAtom, pageNameAtom } from "@/routing"
 import { preferenceAtom } from "@/preferences"
 import { Expl } from "@/components/Expl"
 
-export type ExaOpenEvent =
-	| { type: "new"; model: MoveModel; hashSettings?: HashSettings }
-	| { type: "open"; file: RouteFile }
+export type ExaNewEvent = {
+	type: "new"
+	model: MoveModel
+	hashSettings?: HashSettings
+}
+
+export type ExaOpenEvent = ExaNewEvent | { type: "open"; file: RouteFile }
 
 export type MoveModel = "linear" | "tree" | "graph"
 

@@ -23,7 +23,12 @@ import { applyRef } from "@/helpers"
 import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
 import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
-import { levelControlsAtom } from "@/levelData"
+import {
+	goToNextLevel,
+	goToPreviousLevel,
+	levelControlsAtom,
+	levelSetUnwrappedAtom,
+} from "@/levelData"
 import { Expl } from "../Expl"
 import backfeedPruningImg from "./backfeedPruning.png"
 
@@ -243,6 +248,7 @@ export function Sidebar() {
 	const sidebarActions: SidebarAction[] = useRef([]).current
 	const levelControls = useAtomValue(levelControlsAtom)
 	const { get, set } = useStore()
+	const hasSet = !!get(levelSetUnwrappedAtom)
 	useEffect(() => {
 		const listener = (ev: KeyboardEvent) => {
 			if (document.querySelector("dialog[open]")) return
@@ -282,14 +288,24 @@ export function Sidebar() {
 						disabled={!levelControls.pause}
 						onTrigger={() => levelControls.pause!()}
 					/>
-					<hr class="mx-2" />
-					<ChooserButton label="Next level" shortcut="Shift+N" />
-					<ChooserButton label="Previous level" shortcut="Shift+P" />
+					<hr class="mx-2 my-1" />
+					<ChooserButton
+						label="Next level"
+						shortcut="Shift+N"
+						disabled={!hasSet}
+						onTrigger={goToNextLevel}
+					/>
+					<ChooserButton
+						label="Previous level"
+						shortcut="Shift+P"
+						disabled={!hasSet}
+						onTrigger={goToPreviousLevel}
+					/>
 					<ChooserButton label="Level list" shortcut="Shift+S" />
 				</SidebarButton>
 				<SidebarButton icon={floppyIcon}>
 					<ChooserButton label="No solutions yet!!" />
-					<hr class="mx-2" />
+					<hr class="mx-2 my-1" />
 					<ChooserButton label="All attempts" shortcut="Shift+A" />
 				</SidebarButton>
 				<SidebarButton icon={clockIcon}>

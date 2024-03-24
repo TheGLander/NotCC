@@ -16,7 +16,6 @@ import {
 	preventImmediateHashUpdateAtom,
 	searchParamsAtom,
 } from "./routing"
-import { atomEffect } from "jotai-effect"
 import { loadable, unwrap } from "jotai/utils"
 import { Dialog } from "./components/Dialog"
 import { useRef } from "preact/hooks"
@@ -31,7 +30,7 @@ import {
 import { basename, dirname } from "path-browserify"
 import { readFile } from "./fs"
 
-export const levelAtom = atom<Promise<LevelData> | null>(null)
+export const levelAtom = atom<LevelData | Promise<LevelData> | null>(null)
 export const levelUnwrappedAtom = unwrap(levelAtom)
 
 const levelLoadableAtom = loadable(levelAtom)
@@ -45,10 +44,10 @@ export function useSwrLevel(): LevelData | null {
 	return lastLevel.current
 }
 
-export const levelSetAtom = atom<Promise<LevelSet> | null>(null)
+export const levelSetAtom = atom<LevelSet | Promise<LevelSet> | null>(null)
 export const levelSetUnwrappedAtom = unwrap(levelSetAtom)
 
-export const autoLevelfromLevelNAtom = atomEffect((get, set) => {
+export function goToLevelN(get: Getter, set: Setter) {
 	const levelN = get(levelNAtom)
 	const levelSet = get(levelSetUnwrappedAtom)
 	if (levelSet && levelN !== null) {
@@ -57,7 +56,33 @@ export const autoLevelfromLevelNAtom = atomEffect((get, set) => {
 			levelSet.goToLevel(levelN).then(rec => rec.levelData!)
 		)
 	}
-})
+}
+
+export async function goToNextLevel(get: Getter, set: Setter) {
+	const lSet = get(levelSetUnwrappedAtom)
+	if (!lSet) return
+	lSet.lastLevelResult = { type: "skip" }
+	const rec = await lSet.getNextRecord()
+	if (lSet.inPostGame) {
+		// TODO display this somehow, like in classic NotCC or LL
+		await lSet.getPreviousRecord()
+		return
+	}
+	if (!rec) return
+	set(levelAtom, rec?.levelData!)
+	set(levelNAtom, rec?.levelInfo.levelNumber!)
+	set(levelSetUnwrappedAtom, lSet)
+}
+
+export async function goToPreviousLevel(get: Getter, set: Setter) {
+	const lSet = get(levelSetUnwrappedAtom)
+	if (!lSet) return
+	const rec = await lSet.getPreviousRecord()
+	if (!rec) return
+	set(levelAtom, rec?.levelData!)
+	set(levelNAtom, rec?.levelInfo.levelNumber!)
+	set(levelSetUnwrappedAtom, lSet)
+}
 
 async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
 	let { loaderFunction, scriptFile } = setData
