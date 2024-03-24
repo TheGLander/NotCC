@@ -46,5 +46,5 @@ export function parseNCCS(data: ArrayBuffer): ISetInfo {
 			`NCCS too new - parser version ${NCCS_VERSION}, file version ${versionValue}`
 		)
 	const setInfo = SetInfo.decode(new Uint8Array(view.buffer.slice(view.offset)))
-	return setInfo
+	return setInfo.toJSON()
 }
