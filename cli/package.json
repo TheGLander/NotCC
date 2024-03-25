@@ -14,7 +14,7 @@
 	"author": {
 		"name": "G lander"
 	},
-	"license": "MIT",
+	"license": "GPL-3.0-or-later",
 	"dependencies": {
 		"@notcc/logic": "workspace:^",
 		"@types/progress": "^2.0.6",
