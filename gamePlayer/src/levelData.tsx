@@ -220,13 +220,7 @@ export const LoadLevelPrompt: PromptComponent<LevelData | null> = function ({
 	const setPage = useSetAtom(pageAtom)
 	return (
 		<Dialog
-			header={"Level file needed"}
-			section={
-				<>
-					The URL doesn't provide the level data required to load the level.
-					Please provide the level file or go back to the set selector.
-				</>
-			}
+			header="Level file needed"
 			buttons={[
 				[
 					"Back to set selector",
@@ -244,7 +238,10 @@ export const LoadLevelPrompt: PromptComponent<LevelData | null> = function ({
 					},
 				],
 			]}
-		/>
+		>
+			The URL doesn't provide the level data required to load the level. Please
+			provide the level file or go back to the set selector.
+		</Dialog>
 	)
 }
 
@@ -252,13 +249,7 @@ export const LoadSetPrompt: PromptComponent<void> = function ({ onResolve }) {
 	const setPage = useSetAtom(pageAtom)
 	return (
 		<Dialog
-			header={"Level file needed"}
-			section={
-				<>
-					The URL given does not specify a set name and thus cannot be loaded
-					automatically.
-				</>
-			}
+			header="Level file needed"
 			buttons={[
 				[
 					"Back to set selector",
@@ -268,7 +259,10 @@ export const LoadSetPrompt: PromptComponent<void> = function ({ onResolve }) {
 				],
 			]}
 			onResolve={onResolve}
-		/>
+		>
+			The URL given does not specify a set name and thus cannot be loaded
+			automatically.
+		</Dialog>
 	)
 }
 
@@ -310,10 +304,11 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 			({ onResolve }) => (
 				<Dialog
 					header="TODO"
-					section="Sorry, this type of set isn't supported yet!"
 					buttons={[["Back to set selector", () => set(pageAtom, "")]]}
 					onResolve={onResolve}
-				/>
+				>
+					Sorry, this type of set isn't supported yet!
+				</Dialog>
 			),
 			resolveHashLevelPromptIdent
 		)

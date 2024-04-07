@@ -80,17 +80,16 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 	return (
 		<Dialog
 			header="Preferences"
-			section={
-				<div class="grid grid-cols-2">
-					<h3 class="col-span-2 text-xl">Colors</h3>
-					<Pref atom={colorSchemeAtom} Display={ColorSchemePrefDisplay} />
-				</div>
-			}
 			buttons={[
 				["Ok", () => savePrefs()],
 				["Discard", () => {}],
 			]}
 			onResolve={onResolve}
-		/>
+		>
+			<div class="grid grid-cols-2">
+				<h3 class="col-span-2 text-xl">Colors</h3>
+				<Pref atom={colorSchemeAtom} Display={ColorSchemePrefDisplay} />
+			</div>
+		</Dialog>
 	)
 }

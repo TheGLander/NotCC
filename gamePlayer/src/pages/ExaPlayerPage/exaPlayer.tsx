@@ -124,51 +124,48 @@ const CameraUtil: PromptComponent<void> = pProps => {
 		<Dialog
 			header="Camera util"
 			notModal
-			section={
-				<>
-					<div>
-						Camera size:{" "}
-						<input
-							type="number"
-							step="1"
-							class="w-14"
-							value={cameraType.width}
-							onChange={ev =>
-								setCameraType({
-									...cameraType,
-									width: parseInt(ev.currentTarget.value),
-								})
-							}
-						/>
-						{" x "}
-						<input
-							type="number"
-							step="1"
-							class="w-14"
-							value={cameraType.height}
-							onChange={ev =>
-								setCameraType({
-									...cameraType,
-									height: parseInt(ev.currentTarget.value),
-								})
-							}
-						/>
-					</div>
-					<div class="mt-1">
-						Tile scale:{" "}
-						<input
-							type="number"
-							class="w-14"
-							step=".25"
-							value={tileScale}
-							onChange={ev => setTileScale(parseFloat(ev.currentTarget.value))}
-						/>
-					</div>
-				</>
-			}
 			buttons={[["Close", () => {}]]}
 			onResolve={pProps.onResolve}
-		/>
+		>
+			<div>
+				Camera size:{" "}
+				<input
+					type="number"
+					step="1"
+					class="w-14"
+					value={cameraType.width}
+					onChange={ev =>
+						setCameraType({
+							...cameraType,
+							width: parseInt(ev.currentTarget.value),
+						})
+					}
+				/>
+				{" x "}
+				<input
+					type="number"
+					step="1"
+					class="w-14"
+					value={cameraType.height}
+					onChange={ev =>
+						setCameraType({
+							...cameraType,
+							height: parseInt(ev.currentTarget.value),
+						})
+					}
+				/>
+			</div>
+			<div class="mt-1">
+				Tile scale:{" "}
+				<input
+					type="number"
+					class="w-14"
+					step=".25"
+					value={tileScale}
+					onChange={ev => setTileScale(parseFloat(ev.currentTarget.value))}
+				/>
+			</div>
+		</Dialog>
 	)
 }
 

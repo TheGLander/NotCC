@@ -1,5 +1,5 @@
 import { applyRef } from "@/helpers"
-import { Ref } from "preact"
+import { ComponentChildren, Ref } from "preact"
 import { ReactNode, forwardRef, useRef } from "preact/compat"
 import Draggable from "react-draggable"
 import { twJoin } from "tailwind-merge"
@@ -7,7 +7,7 @@ import { twJoin } from "tailwind-merge"
 export const Dialog = forwardRef(function (
 	props: {
 		header: ReactNode
-		section: ReactNode
+		children: ComponentChildren
 		notModal?: boolean
 		buttons: [string, () => void | Promise<void>][]
 		onResolve?: () => void
@@ -44,7 +44,7 @@ export const Dialog = forwardRef(function (
 				<header class="bg-theme-950 dialog-handle cursor-move px-2 py-1">
 					{props.header}
 				</header>
-				<section class="overflow-scroll px-2 py-1">{props.section}</section>
+				<section class="overflow-scroll px-2 py-1">{props.children}</section>
 				<footer class="bg-theme-950 flex flex-row justify-end gap-1 p-1">
 					{props.buttons.map(([label, action]) => (
 						<button

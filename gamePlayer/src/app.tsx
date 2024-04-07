@@ -15,31 +15,29 @@ const ErrorPrompt =
 	props => (
 		<Dialog
 			header="Error"
-			section={
-				<>
-					It appears something went wrong and an error has occured in NotCC!
-					<div
-						class="bg-theme-950 max-h-60 overflow-auto whitespace-pre-wrap p-1"
-						tabIndex={0}
-					>
-						{err.name}: {err.message}
-						<br />
-						{err.stack && `Stack trace: ${err.stack}`}
-					</div>
-					Please report this error by{" "}
-					<a href="https://github.com/TheGLander/NotCC/issues/new">
-						making a GitHub issue
-					</a>{" "}
-					or{" "}
-					<a href="https://discord.gg/a7rTCkycpD">
-						mentioning it in the Chip's Challenge Bit Buster Club Discord Server
-					</a>
-					, thanks!
-				</>
-			}
 			buttons={[["Ok", () => {}]]}
 			onResolve={props.onResolve}
-		/>
+		>
+			{" "}
+			It appears something went wrong and an error has occured in NotCC!
+			<div
+				class="bg-theme-950 max-h-60 overflow-auto whitespace-pre-wrap p-1"
+				tabIndex={0}
+			>
+				{err.name}: {err.message}
+				<br />
+				{err.stack && `Stack trace: ${err.stack}`}
+			</div>
+			Please report this error by{" "}
+			<a href="https://github.com/TheGLander/NotCC/issues/new">
+				making a GitHub issue
+			</a>{" "}
+			or{" "}
+			<a href="https://discord.gg/a7rTCkycpD">
+				mentioning it in the Chip's Challenge Bit Buster Club Discord Server
+			</a>
+			, thanks!
+		</Dialog>
 	)
 
 const UpdatePrompt =
@@ -48,15 +46,15 @@ const UpdatePrompt =
 		<Dialog
 			notModal
 			header="New update!"
-			section={
-				"There has been an update for NotCC! Press Apply to refresh the page and apply the update!"
-			}
 			buttons={[
 				["Apply", () => updateSW()],
 				["Dismiss", () => {}],
 			]}
 			onResolve={props.onResolve}
-		/>
+		>
+			There has been an update for NotCC! Press Apply to refresh the page and
+			apply the update!
+		</Dialog>
 	)
 
 export function App() {

@@ -31,10 +31,11 @@ const ExplPrompt =
 	pProps => (
 		<Dialog
 			header={`Info: ${props.title}`}
-			section={<div>{props.children}</div>}
 			buttons={[["Ok", () => {}]]}
 			onResolve={pProps.onResolve}
-		/>
+		>
+			<div>{props.children}</div>
+		</Dialog>
 	)
 
 export function Expl(props: ExplDialogProps | ExplInlineProps) {

@@ -216,16 +216,16 @@ export const OpenExaPrompt: (props: {
 		return (
 			<Dialog
 				header="ExaCC Studio"
-				section={
-					<div class="flex w-[40vw] flex-row">
-						<NewProject onSubmit={props.onResolve} toggleMode={toggleMode} />
-						{/* <NewProject onSubmit={props.onResolve} /> */}
-						{/* <OpenProject /> */}
-					</div>
-				}
 				buttons={[["Cancel", () => props.onResolve(null)]]}
 				onClose={() => props.onResolve(null)}
-			/>
+			>
+				{" "}
+				<div class="flex w-[40vw] flex-row">
+					<NewProject onSubmit={props.onResolve} toggleMode={toggleMode} />
+					{/* <NewProject onSubmit={props.onResolve} /> */}
+					{/* <OpenProject /> */}
+				</div>
+			</Dialog>
 		)
 	}
 
