@@ -8,7 +8,7 @@ import {
 } from "@notcc/logic"
 import { GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
-import { tilesetAtom } from "./Preloader"
+import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
 	useCallback,
 	useEffect,

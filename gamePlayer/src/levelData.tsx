@@ -20,7 +20,7 @@ import { loadable, unwrap } from "jotai/utils"
 import { Dialog } from "./components/Dialog"
 import { useRef } from "preact/hooks"
 import { PromptComponent, hidePrompt, showPrompt } from "./prompts"
-import { decodeBase64, unzlibAsync } from "./helpers"
+import { decodeBase64, showLoadPrompt, unzlibAsync } from "./helpers"
 import {
 	IMPORTANT_SETS,
 	LevelSetData,
@@ -146,32 +146,6 @@ export function useSetLoaded(): {
 			}
 		},
 	}
-}
-
-// TODO Neutralino prompts
-async function showLoadPrompt(
-	extensions?: string[],
-	multiSelections: boolean = false,
-	dir: boolean = false
-): Promise<File[]> {
-	const fileLoader = document.createElement("input")
-	fileLoader.type = "file"
-	if (extensions !== undefined) {
-		fileLoader.accept = extensions.map(ext => `.${ext}`).join(",")
-	}
-	fileLoader.multiple = multiSelections
-	fileLoader.webkitdirectory = dir
-	return new Promise((res, rej) => {
-		fileLoader.addEventListener("change", () => {
-			if (fileLoader.files === null || fileLoader.files.length === 0) {
-				rej(new Error("No files specified"))
-			} else {
-				res(Array.from(fileLoader.files))
-			}
-			fileLoader.remove()
-		})
-		fileLoader.click()
-	})
 }
 
 export async function showFileLevelPrompt(): Promise<LevelData | null> {

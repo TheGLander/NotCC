@@ -20,7 +20,7 @@ import {
 	createLevelFromData,
 	makeEmptyInputs,
 } from "@notcc/logic"
-import { tilesetAtom } from "@/components/Preloader"
+import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import { TimeoutTimer, useJotaiFn } from "@/helpers"
 import { keyToInputMap } from "@/inputs"
 import {

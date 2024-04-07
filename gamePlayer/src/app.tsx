@@ -86,6 +86,9 @@ export function App() {
 			} else {
 				errorMsg = ev.error
 			}
+			if (errorMsg === undefined) {
+				errorMsg = new Error("Caught weird error type, please check logs")
+			}
 			showPrompt(ErrorPrompt(errorMsg))
 		}
 		window.addEventListener("error", listener)

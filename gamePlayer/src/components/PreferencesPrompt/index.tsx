@@ -1,5 +1,5 @@
 import { PromptComponent } from "@/prompts"
-import { Dialog } from "./Dialog"
+import { Dialog } from "../Dialog"
 import { ThemeColor, colorSchemeAtom, listThemeColors } from "@/themeHelper"
 import { useId, useMemo } from "preact/hooks"
 import {
@@ -12,8 +12,9 @@ import {
 } from "jotai"
 import { FC } from "preact/compat"
 import { DEFAULT_VALUE, getTruePreferenceAtom } from "@/preferences"
+import { TilesetPrefDisplay, tilesetIdAtom } from "./TilesetsPrompt"
 
-interface PrefDisplayProps<T> {
+export interface PrefDisplayProps<T> {
 	set: (val: T) => void
 	value: T
 }
@@ -86,9 +87,10 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 			]}
 			onResolve={onResolve}
 		>
-			<div class="grid grid-cols-2">
-				<h3 class="col-span-2 text-xl">Colors</h3>
+			<div class="grid grid-cols-2 gap-1">
+				<h3 class="col-span-2 text-xl">Visuals</h3>
 				<Pref atom={colorSchemeAtom} Display={ColorSchemePrefDisplay} />
+				<Pref atom={tilesetIdAtom} Display={TilesetPrefDisplay} />
 			</div>
 		</Dialog>
 	)

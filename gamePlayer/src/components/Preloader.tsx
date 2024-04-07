@@ -1,19 +1,23 @@
-import { atom, useSetAtom } from "jotai"
-import { useEffect } from "preact/compat"
-import { Tileset } from "./GameRenderer/renderer"
-import cga16Image from "@/tilesets/cga16.png"
-import { fetchImage } from "@/helpers"
-import { cc2ArtSet } from "./GameRenderer/cc2ArtSet"
-import { initNotCCFs, isFile, readFile } from "@/fs"
+import { useAtomValue, useSetAtom } from "jotai"
+import { useEffect, useState } from "preact/compat"
+import { initNotCCFs, isFile, readDir, readFile } from "@/fs"
 import { allPreferencesAtom, allowWritingPreferencesAtom } from "@/preferences"
-
-export const tilesetAtom = atom<Tileset | null>(null)
+import {
+	tilesetIdAtom,
+	tilesetAtom,
+	getTileset,
+	customTsetsAtom,
+} from "./PreferencesPrompt/TilesetsPrompt"
 
 export function Preloader(props: { preloadComplete?: () => void }) {
+	const tilesetId = useAtomValue(tilesetIdAtom)
 	const setTileset = useSetAtom(tilesetAtom)
+	const setCustomTSetList = useSetAtom(customTsetsAtom)
 	const setAllPrefs = useSetAtom(allPreferencesAtom)
 	const setAllowWritingPrefs = useSetAtom(allowWritingPreferencesAtom)
+	const [loadingStage, setLoadingStage] = useState("javascript")
 	async function prepareAssets() {
+		setLoadingStage("user data")
 		let prefs: any = {}
 		try {
 			await initNotCCFs()
@@ -28,18 +32,28 @@ export function Preloader(props: { preloadComplete?: () => void }) {
 		setAllPrefs(prefs)
 		setAllowWritingPrefs(true)
 
-		// TODO Preload custom tilesets
-		setTileset({
-			image: await fetchImage(cga16Image),
-			tileSize: 8,
-			wireWidth: 2 / 8,
-			art: cc2ArtSet,
-		})
+		setLoadingStage("tileset")
+		setCustomTSetList(
+			(await readDir("/tilesets")).map(v => v.split(".").slice(0, -1).join("."))
+		)
+		setTileset(await getTileset(tilesetId))
+		setLoadingStage("sfx")
 		// TODO Preload SFX
 	}
 	useEffect(() => {
 		if (!globalThis.window) return
 		prepareAssets().then(() => props.preloadComplete?.())
 	}, [])
-	return <div class="box m-auto">Loading very important stuff...</div>
+	return (
+		<div class="box m-auto">
+			<b>Pre</b>paring...
+			<br />
+			Loading {loadingStage}
+			<noscript>
+				<br />
+				It appears you have JavaScript disabled. You need to enable it to play
+				NotCC
+			</noscript>
+		</div>
+	)
 }

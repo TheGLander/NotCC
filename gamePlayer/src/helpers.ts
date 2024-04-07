@@ -65,11 +65,24 @@ export function applyRef<T>(ref: Ref<T> | undefined, val: T | null): void {
 	else if (ref) ref.current = val
 }
 
+export function readImage(buf: ArrayBuffer): Promise<HTMLImageElement> {
+	const blob = new Blob([buf])
+	return makeImagefromBlob(blob)
+}
+
 export async function makeImagefromBlob(
 	imageBlob: Blob
 ): Promise<HTMLImageElement> {
 	const url = URL.createObjectURL(imageBlob)
 	return fetchImage(url).finally(() => URL.revokeObjectURL(url))
+}
+
+export function canvasToBin(img: HTMLCanvasElement) {
+	return new Promise<ArrayBuffer>(res => {
+		img.toBlob(blob => {
+			res(blob!.arrayBuffer())
+		}, "image/png")
+	})
 }
 
 export function fetchImage(link: string): Promise<HTMLImageElement> {
@@ -148,4 +161,30 @@ export function useJotaiFn<A extends unknown[], R>(
 ): (...args: A) => R {
 	const { get, set } = useStore()
 	return (...args) => fn(get, set, ...args)
+}
+
+// TODO Neutralino prompts
+export async function showLoadPrompt(
+	extensions?: string[],
+	multiSelections: boolean = false,
+	dir: boolean = false
+): Promise<File[]> {
+	const fileLoader = document.createElement("input")
+	fileLoader.type = "file"
+	if (extensions !== undefined) {
+		fileLoader.accept = extensions.map(ext => `.${ext}`).join(",")
+	}
+	fileLoader.multiple = multiSelections
+	fileLoader.webkitdirectory = dir
+	return new Promise((res, rej) => {
+		fileLoader.addEventListener("change", () => {
+			if (fileLoader.files === null || fileLoader.files.length === 0) {
+				rej(new Error("No files specified"))
+			} else {
+				res(Array.from(fileLoader.files))
+			}
+			fileLoader.remove()
+		})
+		fileLoader.click()
+	})
 }

@@ -14,6 +14,7 @@ import { EffectFn, ignorantAtomEffectHook } from "./helpers"
 import { preferenceWritingAtom } from "./preferences"
 import { atomEffect } from "jotai-effect"
 import { ExaPlayerPage } from "./pages/ExaPlayerPage"
+import { tilesetSyncAtom } from "./components/PreferencesPrompt/TilesetsPrompt"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -196,6 +197,7 @@ export function Router() {
 	ignorantAtomEffectHook(hashToInternalLocationSyncEffect)()
 	useAtom(routerEffectAtom)
 	useAtom(preferenceWritingAtom)
+	useAtom(tilesetSyncAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />
 
