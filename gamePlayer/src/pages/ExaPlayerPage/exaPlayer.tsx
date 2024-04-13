@@ -4,6 +4,7 @@ import { LinearModel } from "./models/linear"
 import { GraphModel, Node } from "./models/graph"
 import {
 	Ref,
+	useCallback,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
@@ -21,7 +22,7 @@ import {
 	makeEmptyInputs,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
-import { TimeoutTimer, useJotaiFn } from "@/helpers"
+import { IntervalTimer, TimeoutTimer, useJotaiFn } from "@/helpers"
 import { keyToInputMap } from "@/inputs"
 import {
 	DEFAULT_HASH_SETTINGS,
@@ -29,7 +30,11 @@ import {
 	ExaOpenEvent,
 } from "./OpenExaPrompt"
 import { Inventory } from "@/components/Inventory"
-import { GraphView, MovesList } from "./GraphView"
+import {
+	GraphScrollBar as GraphTimelineView,
+	GraphView,
+	MovesList,
+} from "./GraphView"
 import { levelNAtom, pageAtom } from "@/routing"
 import { makeLevelHash } from "./hash"
 import { levelControlsAtom, useSwrLevel } from "@/levelData"
@@ -37,6 +42,8 @@ import { modelAtom } from "."
 import { calcScale } from "@/components/DumbLevelPlayer"
 import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
 import { Dialog } from "@/components/Dialog"
+import { TargetedEvent } from "preact/compat"
+import { ComponentChildren } from "preact"
 
 const modelConfigAtom = atom<ExaNewEvent | null>(null)
 type Model = LinearModel | GraphModel
@@ -205,6 +212,98 @@ export function formatTicks(timeLeft: number) {
 	return `${sign}${int}.${decimal}${subtickStr[subtick]}`
 }
 
+const TIMELINE_PLAYBACK_SPEEDS = [0.05, 0.2, 0.75, 1, 1.25, 2, 5]
+
+export function Timeline(props: {
+	onScrub?: (progress: number) => void
+	children?: ComponentChildren
+}) {
+	const onScrub = useCallback(
+		(ev: TargetedEvent<HTMLDivElement, MouseEvent>) => {
+			if (!(ev.buttons & 1)) return
+			const clientLeft = ev.currentTarget.getBoundingClientRect().left
+			if (ev.clientX < clientLeft) return
+			const posFrac = (ev.clientX - clientLeft) / ev.currentTarget.offsetWidth
+			props.onScrub?.(posFrac)
+		},
+		[props.onScrub]
+	)
+	return (
+		<div
+			class="relative mx-2.5 flex flex-1"
+			onClick={onScrub}
+			onMouseMove={onScrub}
+		>
+			<div class="bg-theme-100 h-1 w-full self-center rounded" />
+			<div class="absolute flex w-full self-center">{props.children}</div>
+		</div>
+	)
+}
+
+function LinearTimelineView(props: {
+	model: LinearModel
+	updateLevel: () => void
+}) {
+	return (
+		<Timeline
+			onScrub={progress => {
+				if (props.model.moveSeq.tickLen === 0) return
+				props.model.goTo(Math.round(progress * props.model.moveSeq.tickLen))
+				props.updateLevel()
+			}}
+		>
+			<div
+				class="bg-theme-300 absolute -top-2.5 h-5 w-3 rounded-full"
+				style={{
+					left: `calc(${
+						(props.model.offset / props.model.moveSeq.tickLen) * 100
+					}% - 0.375rem)`,
+				}}
+			/>
+		</Timeline>
+	)
+}
+function TimelineBox(props: {
+	model: Model
+	playing: boolean
+	onSetPlaying: (val: boolean) => void
+	speedIdx: number
+	onSetSpeed: (speedIdx: number) => void
+	updateLevel: () => void
+}) {
+	return (
+		<div class="flex h-6 flex-row gap-2">
+			<button
+				onClick={() => props.onSetPlaying(!props.playing)}
+				class="w-8 font-mono"
+			>
+				{props.playing ? "⏸" : "︎⏵"}
+			</button>
+			<input
+				class="w-16"
+				type="range"
+				min="0"
+				defaultValue="3"
+				max="6"
+				step="1"
+				onInput={ev => props.onSetSpeed(parseInt(ev.currentTarget.value))}
+			/>
+			{props.model instanceof LinearModel && (
+				<LinearTimelineView
+					model={props.model}
+					updateLevel={props.updateLevel}
+				/>
+			)}
+			{props.model instanceof GraphModel && (
+				<GraphTimelineView
+					model={props.model}
+					updateLevel={props.updateLevel}
+				/>
+			)}
+		</div>
+	)
+}
+
 export function RealExaPlayerPage() {
 	const [modelM, setModel] = useAtom(modelAtom)
 	const aLevel = useSwrLevel()
@@ -274,6 +373,7 @@ export function RealExaPlayerPage() {
 			setControls({})
 		}
 	}, [])
+	// Rendering
 	const renderRef1 = useRef<() => void>()
 	const renderRef2 = useRef<() => void>()
 	function render() {
@@ -312,7 +412,7 @@ export function RealExaPlayerPage() {
 		let scale = calcScale({
 			tileSize: tileset!.tileSize,
 			cameraType: camera,
-			twPadding: [1 + 2 + 2 + 2 + 2 + 16 + 30 + 2 + 1, 1 + 2 + 2 + 1],
+			twPadding: [1 + 2 + 2 + 2 + 2 + 16 + 30 + 2 + 1, 1 + 2 + 2 + 1 + 2 + 6],
 			tilePadding: [4, 0],
 			// safetyCoefficient: 0.95,
 		})
@@ -343,6 +443,11 @@ export function RealExaPlayerPage() {
 			timer = null
 			try {
 				if (model?.level.gameState !== GameState.PLAYING) return
+				if (!model!.isCurrentlyAlignedToMove()) {
+					model!.redo()
+					render()
+					return
+				}
 				model!.addInput(inputRef.current, model!.level)
 				render()
 			} finally {
@@ -375,6 +480,7 @@ export function RealExaPlayerPage() {
 			timer?.cancel()
 		}
 	}, [model])
+	// Time left
 	let rootTimeLeft: number | undefined
 	if (model instanceof GraphModel) {
 		let distFromRoot: number
@@ -390,9 +496,41 @@ export function RealExaPlayerPage() {
 		}
 		rootTimeLeft = Math.max(0, model.initialTimeLeft - distFromRoot)
 	}
+	// Scrollbar, scrub and playback
+	const [playing, setPlaying] = useState(false)
+	const [speedIdx, setSpeedIdx] = useState(3)
+	const timerRef = useRef<IntervalTimer | null>(null)
+	function stepLevel() {
+		if (model.isAtEnd()) {
+			if (model.level.subtick !== 1) {
+				model.level.tick()
+				updateLevel()
+				return
+			}
+			setPlaying(false)
+			return
+		}
+		model.step()
+		updateLevel()
+	}
+	useLayoutEffect(() => {
+		if (!playing) {
+			timerRef.current?.cancel()
+			timerRef.current = null
+			return
+		}
+		timerRef.current = new IntervalTimer(
+			stepLevel,
+			1 / (60 * TIMELINE_PLAYBACK_SPEEDS[speedIdx])
+		)
+	}, [playing])
+	useLayoutEffect(() => {
+		if (!timerRef.current) return
+		timerRef.current.adjust(1 / (60 * TIMELINE_PLAYBACK_SPEEDS[speedIdx]))
+	}, [speedIdx])
 	return (
 		<div class="flex h-full w-full">
-			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr/auto_min-content]">
+			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr_auto/auto_min-content]">
 				<div class="box row-span-2">
 					<GameRenderer
 						renderRef={renderRef1}
@@ -400,6 +538,16 @@ export function RealExaPlayerPage() {
 						tileScale={tileScale}
 						tileset={tileset!}
 						cameraType={cameraType}
+					/>
+				</div>
+				<div class="box row-start-3">
+					<TimelineBox
+						playing={playing}
+						speedIdx={speedIdx}
+						onSetPlaying={v => setPlaying(v)}
+						onSetSpeed={v => setSpeedIdx(v)}
+						model={model as LinearModel}
+						updateLevel={updateLevel}
 					/>
 				</div>
 				<div class="box col-start-2 flex w-auto gap-2">
@@ -427,7 +575,7 @@ export function RealExaPlayerPage() {
 						</div>
 					</div>
 				</div>
-				<div class="box col-start-2 h-full">
+				<div class="box col-start-2 row-span-2 h-full">
 					{model instanceof LinearModel && (
 						<LinearView model={model} inputs={inputs} />
 					)}

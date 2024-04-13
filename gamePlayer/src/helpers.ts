@@ -115,8 +115,16 @@ export class TimeoutTimer {
 
 export class IntervalTimer {
 	id: number
-	constructor(callback: AnyFunction, time: number) {
+	constructor(
+		public callback: AnyFunction,
+		public time: number
+	) {
 		this.id = setInterval(callback, time * 1000)
+	}
+	adjust(newTime: number) {
+		clearInterval(this.id)
+		this.time = newTime
+		this.id = setInterval(this.callback, newTime * 1000)
 	}
 	cancel(): void {
 		clearInterval(this.id)
@@ -135,6 +143,9 @@ export class TimeoutIntervalTimer {
 	nextCall(): void {
 		this.id = setTimeout(this.nextCall, this.time * 1000) as unknown as number
 		this.callback()
+	}
+	adjust(newTime: number) {
+		this.time = newTime
 	}
 	cancel(): void {
 		clearTimeout(this.id)

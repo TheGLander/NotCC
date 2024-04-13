@@ -176,4 +176,23 @@ export class LinearModel {
 	resetLevel() {
 		this.goTo(0)
 	}
+	isAlignedToMove(pos: number): boolean {
+		return this.moveSeq.userMoves[pos] || this.offset === this.moveSeq.tickLen
+	}
+	isCurrentlyAlignedToMove(): boolean {
+		return this.isAlignedToMove(this.offset)
+	}
+	isAtEnd() {
+		return this.offset === this.moveSeq.tickLen
+	}
+	step() {
+		if (this.level.subtick !== 1) {
+			this.level.tick()
+			return
+		}
+		if (this.offset === this.moveSeq.tickLen) return
+		this.level.gameInput = charToKeyInput(this.moveSeq.moves[this.offset])
+		this.offset += 1
+		this.level.tick()
+	}
 }

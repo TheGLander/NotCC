@@ -1,10 +1,16 @@
 import { GameState, KeyInputs, keyInputToChar } from "@notcc/logic"
-import { ConnPtr, GraphModel, GraphMoveSequence, Node } from "./models/graph"
+import {
+	ConnPtr,
+	GraphModel,
+	GraphMoveSequence,
+	MovePtr,
+	Node,
+} from "./models/graph"
 import { graphlib, layout } from "@dagrejs/dagre"
-import { twJoin } from "tailwind-merge"
+import { twJoin, twMerge } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
 import { VNode } from "preact"
-import { formatTicks } from "./exaPlayer"
+import { Timeline, formatTicks } from "./exaPlayer"
 import { useCallback, useState } from "preact/hooks"
 import { HTMLAttributes } from "preact/compat"
 
@@ -341,7 +347,7 @@ export function Infobox(props: GraphViewProps) {
 	)
 }
 
-function ConstructionNode(
+export function ConstructionNode(
 	props: HTMLAttributes<HTMLDivElement> & { node: Node; model: GraphModel }
 ) {
 	const nodeColor = getNodeColor(props.model, props.node)
@@ -356,16 +362,93 @@ function ConstructionNode(
 
 	return (
 		<div
-			class={twJoin(
-				"absolute left-[-0.35rem] top-[-0.1rem] z-10 h-5 w-5 rounded-full",
-				props.model.current === props.node && "border-theme-200 border-2",
-				`from-theme-500 to-${nodeColor}`
+			{...props}
+			class={twMerge(
+				twJoin(
+					"absolute left-[-0.35rem] top-[-0.1rem] z-10 h-5 w-5 rounded-full",
+					props.model.current === props.node && "border-theme-200 border-2",
+					`from-theme-500 to-${nodeColor}`
+				),
+				props.class as string
 			)}
 			style={{
+				...((props.style as {}) ?? {}),
 				backgroundImage: `linear-gradient(to right, ${leftColor} 0%, ${leftColor} 50%, ${rightColor} 50%, ${rightColor} 100%)`,
 			}}
-			{...props}
 		></div>
+	)
+}
+
+export function GraphScrollBar(props: {
+	model: GraphModel
+	updateLevel: () => void
+}) {
+	const tickSum = props.model.constructedRoute.reduce(
+		(acc, val) => acc + val.m.tickLen,
+		0
+	)
+	const nodeEnts: [number, ConnPtr | null, VNode][] = []
+	let seenTicks = 0
+	let curTicks: number | null = null
+	for (const ptr of props.model.constructedRoute) {
+		if (
+			ptr.n === props.model.current ||
+			("m" in props.model.current && props.model.current.m === ptr.m)
+		) {
+			curTicks =
+				seenTicks + ("o" in props.model.current ? props.model.current.o : 0)
+		}
+		nodeEnts.push([
+			seenTicks + ptr.m.tickLen,
+			ptr,
+			<ConstructionNode
+				model={props.model}
+				node={ptr.n}
+				class="-top-2.5"
+				style={{ left: `calc(${(seenTicks / tickSum) * 100}% - 0.625rem)` }}
+			/>,
+		])
+		seenTicks += ptr.m.tickLen
+	}
+	nodeEnts.push([
+		Infinity,
+		null,
+		<ConstructionNode
+			model={props.model}
+			node={props.model.constructionLastNode()}
+			style={{ left: "calc(100% - 0.625rem)" }}
+			class="-top-2.5"
+		/>,
+	])
+	if (curTicks === null) {
+		curTicks = tickSum
+	}
+	const onScrub = (progress: number) => {
+		const posIdx = Math.round(progress * tickSum)
+		const ent = nodeEnts.find(ent => posIdx < ent[0])!
+		let pos: MovePtr | Node
+		const tickPos = ent[0] - (ent[1]?.m.tickLen ?? 0)
+		if (ent[1] === null) {
+			pos = props.model.constructionLastNode()
+		} else if (tickPos === posIdx) {
+			pos = ent[1].n
+		} else {
+			pos = { n: ent[1].n, m: ent[1].m, o: posIdx - tickPos }
+		}
+		props.model.goTo(pos)
+		props.updateLevel()
+	}
+	return (
+		<Timeline onScrub={onScrub}>
+			{nodeEnts.map(nodeEnt => nodeEnt[2])}
+			<div
+				class={twJoin(
+					"bg-theme-300 absolute -top-2.5 h-5 w-3 rounded-full",
+					props.model.current instanceof Node && "hidden"
+				)}
+				style={{ left: `calc(${(curTicks / tickSum) * 100}% - 0.375rem)` }}
+			/>
+		</Timeline>
 	)
 }
 

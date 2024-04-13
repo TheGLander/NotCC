@@ -1,4 +1,4 @@
-import { GameState, KeyInputs, LevelState } from "@notcc/logic"
+import { GameState, KeyInputs, LevelState, charToKeyInput } from "@notcc/logic"
 import { HashSettings, makeLevelHash } from "../hash"
 import {
 	MoveSeqenceInterval,
@@ -421,9 +421,8 @@ export class GraphModel {
 		}
 	}
 	getConstructionIdx() {
-		let constrIdx = this.constructedRoute.findIndex(
-			conn => conn.n === (this.current as Node)
-		)
+		const node = this.current instanceof Node ? this.current : this.current.n
+		let constrIdx = this.constructedRoute.findIndex(conn => conn.n === node)
 		if (constrIdx === -1) {
 			constrIdx = this.constructedRoute.length
 		}
@@ -622,5 +621,40 @@ export class GraphModel {
 			}
 		}
 		return backConns
+	}
+	isAlignedToMove(pos: MovePtr | Node): boolean {
+		if (pos instanceof Node) return true
+		return pos.m.userMoves[pos.o]
+	}
+	isCurrentlyAlignedToMove(): boolean {
+		return this.isAlignedToMove(this.current)
+	}
+	isAtEnd() {
+		return this.constructionLastNode() === this.current
+	}
+	step() {
+		if (this.level.subtick !== 1) {
+			this.level.tick()
+			return
+		}
+		if (this.current instanceof Node) {
+			const ptr = this.constructedRoute.find(v => v.n === this.current)
+			if (!ptr) {
+				// We're at construction's end
+				if (this.current !== this.constructionLastNode())
+					throw new Error("Expected to be at construction's end")
+				return
+			}
+			this.current = { n: ptr.n, m: ptr.m, o: 0 }
+			this.level = cloneLevel(this.level)
+		}
+		this.level.gameInput = charToKeyInput(this.current.m.moves[this.current.o])
+		this.level.tick()
+		this.current.o += 1
+		if (this.current.o === this.current.m.tickLen) {
+			const constrIdx = this.getConstructionIdx()
+			this.current =
+				this.constructedRoute[constrIdx + 1]?.n ?? this.constructionLastNode()
+		}
 	}
 }
