@@ -15,7 +15,7 @@ import {
 import { forwardRef } from "preact/compat"
 import { twJoin } from "tailwind-merge"
 import { useMediaQuery } from "react-responsive"
-import { Getter, Setter, useAtomValue, useStore } from "jotai"
+import { Getter, Setter, atom, useAtomValue, useStore } from "jotai"
 import { pageAtom } from "@/routing"
 import { showPrompt } from "@/prompts"
 import { AboutPrompt } from "../AboutDialog"
@@ -26,11 +26,32 @@ import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
 import {
 	goToNextLevel,
 	goToPreviousLevel,
-	levelControlsAtom,
-	levelSetUnwrappedAtom,
+	levelSetAtom,
+	levelUnwrappedAtom,
 } from "@/levelData"
 import { Expl } from "../Expl"
 import backfeedPruningImg from "./backfeedPruning.png"
+import {
+	InputProvider,
+	SolutionInfoInputProvider,
+	calculateLevelPoints,
+	protoTimeToMs,
+} from "@notcc/logic"
+import { ISolutionInfo } from "@notcc/logic/dist/parsers/nccs.pb"
+
+export interface LevelControls {
+	restart?(): void
+	pause?(): void
+	playInputs?(ip: SidebarReplayable): void
+	exa?: {
+		undo?(): void
+		redo?(): void
+		purgeBackfeed?(): void
+		cameraControls?(): void
+	}
+}
+
+export const levelControlsAtom = atom<LevelControls>({})
 
 interface SidebarAction {
 	label: string
@@ -244,11 +265,124 @@ function SidebarButton(props: {
 	)
 }
 
+export interface SidebarReplayable {
+	name: string
+	metric: string
+	ip: InputProvider
+}
+
+function SolutionsTooltipList(props: { controls: LevelControls }) {
+	const lSet = useAtomValue(levelSetAtom)
+	const level = useAtomValue(levelUnwrappedAtom)
+	if (!level || !props.controls.playInputs)
+		return <div class="mx-2 my-1">N/A</div>
+	const sols: SidebarReplayable[] = []
+	if (level.associatedSolution) {
+		const solLength = Math.ceil(
+			level.associatedSolution.steps![0].reduce(
+				(acc, val, i) => (i % 2 === 1 ? acc + val : acc),
+				0
+			) / 60
+		)
+		sols.push({
+			name: "Built-in",
+			metric: `${Math.floor(solLength / 60)}:${(solLength % 60)
+				.toString()
+				.padStart(2, "0")}`,
+			ip: new SolutionInfoInputProvider(level.associatedSolution),
+		})
+	}
+	const attempts = lSet?.seenLevels[lSet.currentLevel].levelInfo.attempts
+	if (attempts) {
+		let bestTime: ISolutionInfo | null = null
+		let bestScore: ISolutionInfo | null = null
+		let bestScoreVal = -Infinity
+		let last: ISolutionInfo | null = null
+		for (const attempt of attempts) {
+			const sol = attempt.solution
+			if (!sol) continue
+			last = sol
+			if (
+				sol.outcome?.timeLeft != undefined &&
+				(!bestTime ||
+					protoTimeToMs(sol.outcome.timeLeft) >
+						protoTimeToMs(bestTime.outcome!.timeLeft!))
+			) {
+				bestTime = sol
+			}
+			if (
+				sol.outcome?.bonusScore != undefined &&
+				sol.outcome?.timeLeft != undefined
+			) {
+				const score = calculateLevelPoints(
+					lSet.currentLevel,
+					Math.ceil(protoTimeToMs(sol.outcome.timeLeft) / 1000),
+					sol.outcome.bonusScore
+				)
+				if (!bestScore || score > bestScoreVal) {
+					bestScore = sol
+					bestScoreVal = score
+				}
+			}
+		}
+		function makeMetrics(sol: ISolutionInfo) {
+			const score = calculateLevelPoints(
+				lSet!.currentLevel,
+				Math.ceil(protoTimeToMs(sol.outcome!.timeLeft!) / 1000),
+				sol.outcome!.bonusScore!
+			)
+			return `${Math.ceil(
+				protoTimeToMs(sol.outcome!.timeLeft!) / 1000
+			)}s / ${score}pts`
+		}
+		if (bestTime || bestScore) {
+			if (bestTime === bestScore) {
+				sols.push({
+					name: "Best",
+					metric: makeMetrics(bestTime!),
+					ip: new SolutionInfoInputProvider(bestTime!),
+				})
+			} else {
+				sols.push({
+					name: "Best time",
+					metric: makeMetrics(bestTime!),
+					ip: new SolutionInfoInputProvider(bestTime!),
+				})
+				sols.push({
+					name: "Best score",
+					metric: makeMetrics(bestScore!),
+					ip: new SolutionInfoInputProvider(bestScore!),
+				})
+			}
+		}
+		if (last && last !== bestTime && last !== bestScore) {
+			sols.push({
+				name: "Last",
+				metric: makeMetrics(last),
+				ip: new SolutionInfoInputProvider(last),
+			})
+		}
+	}
+	if (sols.length === 0) return <div class="mx-2 my-1">None</div>
+	return (
+		<>
+			{sols.map(sol => (
+				<ChooserButton
+					label={`${sol.name} ${sol.metric}`}
+					onTrigger={() => {
+						props.controls.playInputs?.(sol)
+					}}
+				/>
+			))}
+		</>
+	)
+}
+
 export function Sidebar() {
 	const sidebarActions: SidebarAction[] = useRef([]).current
 	const levelControls = useAtomValue(levelControlsAtom)
 	const { get, set } = useStore()
-	const hasSet = !!get(levelSetUnwrappedAtom)
+	const hasSet = !!get(levelSetAtom)
 	useEffect(() => {
 		const listener = (ev: KeyboardEvent) => {
 			if (document.querySelector("dialog[open]")) return
@@ -304,9 +438,12 @@ export function Sidebar() {
 					<ChooserButton label="Level list" shortcut="Shift+S" />
 				</SidebarButton>
 				<SidebarButton icon={floppyIcon}>
-					<ChooserButton label="No solutions yet!!" />
-					<hr class="mx-2 my-1" />
+					<div class="mx-2">Solutions:</div>
+					<SolutionsTooltipList controls={levelControls} />
 					<ChooserButton label="All attempts" shortcut="Shift+A" />
+					<hr class="mx-2 my-1" />
+					<div class="mx-2">Routes:</div>
+					<ChooserButton label="All routes" />
 				</SidebarButton>
 				<SidebarButton icon={clockIcon}>
 					<ChooserButton

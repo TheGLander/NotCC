@@ -5,6 +5,7 @@ import {
 	findScriptName,
 	parseC2M,
 	parseNCCS,
+	writeNCCS,
 } from "@notcc/logic"
 import {
 	CUSTOM_LEVEL_SET_IDENT,
@@ -28,7 +29,8 @@ import {
 	makeSetDataFromFiles,
 } from "./setLoading"
 import { basename, dirname } from "path-browserify"
-import { readFile } from "./fs"
+import { readFile, writeFile } from "./fs"
+import { atomEffect } from "jotai-effect"
 
 export const levelAtom = atom<LevelData | Promise<LevelData> | null>(null)
 export const levelUnwrappedAtom = unwrap(levelAtom)
@@ -44,44 +46,51 @@ export function useSwrLevel(): LevelData | null {
 	return lastLevel.current
 }
 
-export const levelSetAtom = atom<LevelSet | Promise<LevelSet> | null>(null)
-export const levelSetUnwrappedAtom = unwrap(levelSetAtom)
+const levelSetAtomWrapped = atom<LevelSet | Promise<LevelSet> | null>(null)
+export const levelSetAtom = unwrap(levelSetAtomWrapped)
 
-export function goToLevelN(get: Getter, set: Setter) {
+export async function borrowLevelSetGs(
+	get: Getter,
+	set: Setter,
+	func: (set: LevelSet) => void | Promise<void>
+) {
+	const lset = get(levelSetAtom)!
+	await func(lset)
+	set(levelSetAtom, lset)
+}
+
+export async function goToLevelN(get: Getter, set: Setter) {
 	const levelN = get(levelNAtom)
-	const levelSet = get(levelSetUnwrappedAtom)
-	if (levelSet && levelN !== null) {
-		set(
-			levelAtom,
-			levelSet.goToLevel(levelN).then(rec => rec.levelData!)
-		)
-	}
+	if (levelN === null) return
+	await borrowLevelSetGs(get, set, async lSet => {
+		const rec = await lSet.goToLevel(levelN)
+		await lSet.verifyLevelDataAvailability(levelN)
+		set(levelAtom, rec.levelData!)
+	})
 }
 
 export async function goToNextLevel(get: Getter, set: Setter) {
-	const lSet = get(levelSetUnwrappedAtom)
-	if (!lSet) return
-	lSet.lastLevelResult = { type: "skip" }
-	const rec = await lSet.getNextRecord()
-	if (lSet.inPostGame) {
-		// TODO display this somehow, like in classic NotCC or LL
-		await lSet.getPreviousRecord()
-		return
-	}
-	if (!rec) return
-	set(levelAtom, rec?.levelData!)
-	set(levelNAtom, rec?.levelInfo.levelNumber!)
-	set(levelSetUnwrappedAtom, lSet)
+	await borrowLevelSetGs(get, set, async lSet => {
+		lSet.lastLevelResult = { type: "skip" }
+		const rec = await lSet.getNextRecord()
+		if (lSet.inPostGame) {
+			// TODO display this somehow, like in classic NotCC or LL
+			await lSet.getPreviousRecord()
+			return
+		}
+		if (!rec) return
+		set(levelAtom, rec?.levelData!)
+		set(levelNAtom, rec?.levelInfo.levelNumber!)
+	})
 }
 
 export async function goToPreviousLevel(get: Getter, set: Setter) {
-	const lSet = get(levelSetUnwrappedAtom)
-	if (!lSet) return
-	const rec = await lSet.getPreviousRecord()
-	if (!rec) return
-	set(levelAtom, rec?.levelData!)
-	set(levelNAtom, rec?.levelInfo.levelNumber!)
-	set(levelSetUnwrappedAtom, lSet)
+	await borrowLevelSetGs(get, set, async lSet => {
+		const rec = await lSet.getPreviousRecord()
+		if (!rec) return
+		set(levelAtom, rec?.levelData!)
+		set(levelNAtom, rec?.levelInfo.levelNumber!)
+	})
 }
 
 async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
@@ -108,11 +117,20 @@ async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
 	}
 }
 
+export const levelSetAutosaveAtom = atomEffect((get, _set) => {
+	const lSet = get(levelSetAtom)
+	if (!lSet) return
+	void writeFile(
+		`./solutions/default/${lSet.scriptRunner.state.scriptTitle!}.nccs`,
+		writeNCCS(lSet.toSetInfo())
+	)
+})
+
 export function useSetLoaded(): {
 	setSet(set: Promise<LevelSetData>, ident?: string): void
 	setLevel(level: Promise<LevelData>): void
 } {
-	const setLevelSet = useSetAtom(levelSetAtom)
+	const setLevelSet = useSetAtom(levelSetAtomWrapped)
 	const setLevelSetIdent = useSetAtom(levelSetIdentAtom)
 	const setLevel = useSetAtom(levelAtom)
 	const setLevelN = useSetAtom(levelNAtom)
@@ -288,16 +306,3 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 		)
 	}
 }
-
-export interface LevelControls {
-	restart?(): void
-	pause?(): void
-	exa?: {
-		undo?(): void
-		redo?(): void
-		purgeBackfeed?(): void
-		cameraControls?(): void
-	}
-}
-
-export const levelControlsAtom = atom<LevelControls>({})

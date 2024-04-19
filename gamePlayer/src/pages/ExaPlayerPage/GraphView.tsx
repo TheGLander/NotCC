@@ -10,9 +10,10 @@ import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin, twMerge } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
 import { VNode } from "preact"
-import { Timeline, formatTicks } from "./exaPlayer"
+import { formatTicks } from "./exaPlayer"
 import { useCallback, useState } from "preact/hooks"
 import { HTMLAttributes } from "preact/compat"
+import { Timeline, TimelineHead } from "@/components/Timeline"
 
 interface GraphViewProps {
 	model: GraphModel
@@ -441,12 +442,9 @@ export function GraphScrollBar(props: {
 	return (
 		<Timeline onScrub={onScrub}>
 			{nodeEnts.map(nodeEnt => nodeEnt[2])}
-			<div
-				class={twJoin(
-					"bg-theme-300 absolute -top-2.5 h-5 w-3 rounded-full",
-					props.model.current instanceof Node && "hidden"
-				)}
-				style={{ left: `calc(${(curTicks / tickSum) * 100}% - 0.375rem)` }}
+			<TimelineHead
+				class={props.model.current instanceof Node ? "hidden" : ""}
+				progress={curTicks / tickSum}
 			/>
 		</Timeline>
 	)
@@ -552,7 +550,7 @@ function ConstructionView(props: GraphViewProps) {
 export function GraphView(props: GraphViewProps) {
 	const [view, setView] = useState<"construction" | "graph">("construction")
 	return (
-		<div class="flex h-full flex-col gap-2">
+		<div class="absolute flex h-full w-full flex-col gap-3">
 			<div>
 				<select
 					class="ml-auto block w-auto"

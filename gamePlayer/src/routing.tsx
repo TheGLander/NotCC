@@ -6,8 +6,8 @@ import { Preloader } from "./components/Preloader"
 import { LevelPlayerPage } from "./pages/LevelPlayerPage"
 import {
 	levelAtom,
-	levelControlsAtom,
 	levelSetAtom,
+	levelSetAutosaveAtom,
 	resolveHashLevel,
 } from "./levelData"
 import { EffectFn, ignorantAtomEffectHook } from "./helpers"
@@ -15,6 +15,7 @@ import { preferenceWritingAtom } from "./preferences"
 import { atomEffect } from "jotai-effect"
 import { ExaPlayerPage } from "./pages/ExaPlayerPage"
 import { tilesetSyncAtom } from "./components/PreferencesPrompt/TilesetsPrompt"
+import { levelControlsAtom } from "./components/Sidebar"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -197,6 +198,7 @@ export function Router() {
 	ignorantAtomEffectHook(hashToInternalLocationSyncEffect)()
 	useAtom(routerEffectAtom)
 	useAtom(preferenceWritingAtom)
+	useAtom(levelSetAutosaveAtom)
 	useAtom(tilesetSyncAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />

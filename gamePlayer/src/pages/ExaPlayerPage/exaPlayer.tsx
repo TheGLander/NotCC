@@ -4,7 +4,6 @@ import { LinearModel } from "./models/linear"
 import { GraphModel, Node } from "./models/graph"
 import {
 	Ref,
-	useCallback,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
@@ -14,15 +13,17 @@ import {
 import {
 	CameraType,
 	GameState,
+	InputProvider,
 	KeyInputs,
 	LevelData,
 	LevelState,
 	calculateLevelPoints,
 	createLevelFromData,
 	makeEmptyInputs,
+	protobuf,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
-import { IntervalTimer, TimeoutTimer, useJotaiFn } from "@/helpers"
+import { IntervalTimer, TimeoutTimer, sleep, useJotaiFn } from "@/helpers"
 import { keyToInputMap } from "@/inputs"
 import {
 	DEFAULT_HASH_SETTINGS,
@@ -37,13 +38,18 @@ import {
 } from "./GraphView"
 import { levelNAtom, pageAtom } from "@/routing"
 import { makeLevelHash } from "./hash"
-import { levelControlsAtom, useSwrLevel } from "@/levelData"
+import { useSwrLevel } from "@/levelData"
 import { modelAtom } from "."
 import { calcScale } from "@/components/DumbLevelPlayer"
 import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
 import { Dialog } from "@/components/Dialog"
-import { TargetedEvent } from "preact/compat"
-import { ComponentChildren } from "preact"
+import { levelControlsAtom } from "@/components/Sidebar"
+import {
+	TIMELINE_PLAYBACK_SPEEDS,
+	Timeline,
+	TimelineBox,
+	TimelineHead,
+} from "@/components/Timeline"
 
 const modelConfigAtom = atom<ExaNewEvent | null>(null)
 type Model = LinearModel | GraphModel
@@ -63,8 +69,13 @@ export function openExaCCReal(
 	set(modelAtom, model)
 }
 
-function makeModel(levelData: LevelData, conf: ExaNewEvent): Model {
+function makeModel(
+	levelData: LevelData,
+	conf: ExaNewEvent,
+	init?: InputProvider
+): Model {
 	const level = createLevelFromData(levelData)
+	init?.setupLevel(level)
 	level.tick()
 	level.tick()
 
@@ -114,7 +125,7 @@ function Inv(props: {
 
 function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 	return (
-		<div class="bg-theme-950 h-full w-full rounded">
+		<div class="bg-theme-950 absolute h-full w-full overflow-y-auto rounded">
 			<MovesList
 				moves={props.model.moveSeq.displayMoves}
 				offset={props.model.offset}
@@ -185,7 +196,7 @@ export function formatTimeLeft(timeLeft: number) {
 		timeLeft = -timeLeft
 		sign = "-"
 	}
-	const subtickStr = ["", "⅓", "⅔"]
+	const subtickStr = [" ", "⅓", "⅔"]
 	const subtick = timeLeft % 3
 	const int = Math.ceil(timeLeft / 60)
 	let decimal = (Math.floor((timeLeft / 3) % 20) * 5)
@@ -194,7 +205,9 @@ export function formatTimeLeft(timeLeft: number) {
 	if (decimal === "00" && subtick === 0) {
 		decimal = "100"
 	}
-	return `${sign}${int}.${decimal}${subtickStr[subtick]}`
+	return `${sign}${int}.${decimal}${
+		decimal === "100" ? "" : subtickStr[subtick]
+	}`
 }
 
 export function formatTicks(timeLeft: number) {
@@ -212,34 +225,6 @@ export function formatTicks(timeLeft: number) {
 	return `${sign}${int}.${decimal}${subtickStr[subtick]}`
 }
 
-const TIMELINE_PLAYBACK_SPEEDS = [0.05, 0.2, 0.75, 1, 1.25, 2, 5]
-
-export function Timeline(props: {
-	onScrub?: (progress: number) => void
-	children?: ComponentChildren
-}) {
-	const onScrub = useCallback(
-		(ev: TargetedEvent<HTMLDivElement, MouseEvent>) => {
-			if (!(ev.buttons & 1)) return
-			const clientLeft = ev.currentTarget.getBoundingClientRect().left
-			if (ev.clientX < clientLeft) return
-			const posFrac = (ev.clientX - clientLeft) / ev.currentTarget.offsetWidth
-			props.onScrub?.(posFrac)
-		},
-		[props.onScrub]
-	)
-	return (
-		<div
-			class="relative mx-2.5 flex flex-1"
-			onClick={onScrub}
-			onMouseMove={onScrub}
-		>
-			<div class="bg-theme-100 h-1 w-full self-center rounded" />
-			<div class="absolute flex w-full self-center">{props.children}</div>
-		</div>
-	)
-}
-
 function LinearTimelineView(props: {
 	model: LinearModel
 	updateLevel: () => void
@@ -252,58 +237,12 @@ function LinearTimelineView(props: {
 				props.updateLevel()
 			}}
 		>
-			<div
-				class="bg-theme-300 absolute -top-2.5 h-5 w-3 rounded-full"
-				style={{
-					left: `calc(${
-						(props.model.offset / props.model.moveSeq.tickLen) * 100
-					}% - 0.375rem)`,
-				}}
+			<TimelineHead
+				progress={props.model.offset / props.model.moveSeq.tickLen}
 			/>
 		</Timeline>
 	)
 }
-function TimelineBox(props: {
-	model: Model
-	playing: boolean
-	onSetPlaying: (val: boolean) => void
-	speedIdx: number
-	onSetSpeed: (speedIdx: number) => void
-	updateLevel: () => void
-}) {
-	return (
-		<div class="flex h-6 flex-row gap-2">
-			<button
-				onClick={() => props.onSetPlaying(!props.playing)}
-				class="w-8 font-mono"
-			>
-				{props.playing ? "⏸" : "︎⏵"}
-			</button>
-			<input
-				class="w-16"
-				type="range"
-				min="0"
-				defaultValue="3"
-				max="6"
-				step="1"
-				onInput={ev => props.onSetSpeed(parseInt(ev.currentTarget.value))}
-			/>
-			{props.model instanceof LinearModel && (
-				<LinearTimelineView
-					model={props.model}
-					updateLevel={props.updateLevel}
-				/>
-			)}
-			{props.model instanceof GraphModel && (
-				<GraphTimelineView
-					model={props.model}
-					updateLevel={props.updateLevel}
-				/>
-			)}
-		</div>
-	)
-}
-
 export function RealExaPlayerPage() {
 	const [modelM, setModel] = useAtom(modelAtom)
 	const aLevel = useSwrLevel()
@@ -333,6 +272,19 @@ export function RealExaPlayerPage() {
 			restart: () => {
 				model.resetLevel()
 				updateLevel()
+			},
+			playInputs: async ip => {
+				const model = makeModel(aLevel!, modelConfig!, ip.ip)
+				setModel(model)
+				const UPDATE_PERIOD = 200
+				while (!ip.ip.outOfInput(model.level)) {
+					if (model.level.gameState !== GameState.PLAYING) return
+					model.addInput(ip.ip.getInput(model.level), model.level)
+					if (model.level.currentTick % UPDATE_PERIOD === 0) {
+						updateLevel()
+						await sleep(0)
+					}
+				}
 			},
 			exa: {
 				undo: () => {
@@ -546,9 +498,14 @@ export function RealExaPlayerPage() {
 						speedIdx={speedIdx}
 						onSetPlaying={v => setPlaying(v)}
 						onSetSpeed={v => setSpeedIdx(v)}
-						model={model as LinearModel}
-						updateLevel={updateLevel}
-					/>
+					>
+						{model instanceof LinearModel && (
+							<LinearTimelineView model={model} updateLevel={updateLevel} />
+						)}
+						{model instanceof GraphModel && (
+							<GraphTimelineView model={model} updateLevel={updateLevel} />
+						)}
+					</TimelineBox>
 				</div>
 				<div class="box col-start-2 flex w-auto gap-2">
 					<div class="row-span-full mr-16 self-center justify-self-center">
@@ -560,7 +517,9 @@ export function RealExaPlayerPage() {
 					</div>
 					<div class="grid items-center justify-items-end gap-2 gap-x-2 whitespace-nowrap text-end [grid-template-columns:repeat(2,auto);]">
 						<div>Time left:</div>
-						<div>{formatTimeLeft(rootTimeLeft ?? model.level.timeLeft)}s</div>
+						<div class="font-mono">
+							{formatTimeLeft(rootTimeLeft ?? model.level.timeLeft)}s
+						</div>
 						<div>Chips left:</div>
 						<div>{model.level.chipsLeft}</div>
 						<div>Bonus points:</div>
@@ -576,16 +535,18 @@ export function RealExaPlayerPage() {
 					</div>
 				</div>
 				<div class="box col-start-2 row-span-2 h-full">
-					{model instanceof LinearModel && (
-						<LinearView model={model} inputs={inputs} />
-					)}
-					{model instanceof GraphModel && (
-						<GraphView
-							model={model}
-							inputs={inputs}
-							updateLevel={updateLevel}
-						/>
-					)}
+					<div class="relative h-full w-full">
+						{model instanceof LinearModel && (
+							<LinearView model={model} inputs={inputs} />
+						)}
+						{model instanceof GraphModel && (
+							<GraphView
+								model={model}
+								inputs={inputs}
+								updateLevel={updateLevel}
+							/>
+						)}
+					</div>
 				</div>
 				{/* </div> */}
 			</div>

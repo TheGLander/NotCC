@@ -1,14 +1,11 @@
 import { DumbLevelPlayer } from "@/components/DumbLevelPlayer"
-import {
-	levelControlsAtom,
-	levelSetUnwrappedAtom,
-	useSwrLevel,
-} from "../levelData"
+import { levelSetAtom, useSwrLevel } from "../levelData"
 import { useAtomValue, useSetAtom } from "jotai"
+import { levelControlsAtom } from "@/components/Sidebar"
 
 export function LevelPlayerPage() {
 	const level = useSwrLevel()
-	const set = useAtomValue(levelSetUnwrappedAtom)
+	const set = useAtomValue(levelSetAtom)
 	const setControls = useSetAtom(levelControlsAtom)
 	if (level === null) {
 		return <div class="box m-auto">Fetching level data...</div>

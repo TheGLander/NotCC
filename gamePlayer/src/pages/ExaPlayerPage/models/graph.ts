@@ -275,7 +275,7 @@ export class GraphModel {
 		public hashSettings: HashSettings
 	) {
 		this.initialTimeLeft = level.timeLeft
-		level.timeLeft = 0
+		level.timeLeft = Infinity
 		this.rootNode = this.current = new Node(level, hashSettings)
 		this.nodeHashMap.set(this.rootNode.hash, this.rootNode)
 	}
@@ -561,9 +561,10 @@ export class GraphModel {
 			this.level = pos.level
 			return
 		}
-		const closestSnapshot: Snapshot = pos.m.snapshots.find(
-			snap => snap.tick < pos.o
-		) ?? { level: pos.n.level, tick: 0 }
+		const closestSnapshot: Snapshot = pos.m.findSnapshot(pos.o) ?? {
+			level: pos.n.level,
+			tick: 0,
+		}
 		this.level = cloneLevel(closestSnapshot.level)
 		pos.m.applyToLevel(this.level, [closestSnapshot.tick, pos.o])
 	}

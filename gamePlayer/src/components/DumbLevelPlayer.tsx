@@ -1,4 +1,5 @@
 import {
+	AttemptTracker,
 	CameraType,
 	GameState,
 	Inventory as InventoryI,
@@ -17,7 +18,7 @@ import {
 	useRef,
 	useState,
 } from "preact/hooks"
-import { IntervalTimer, applyRef, useJotaiFn } from "@/helpers"
+import { IntervalTimer, applyRef, sleep, useJotaiFn } from "@/helpers"
 import { embedReadyAtom, embedModeAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
@@ -25,9 +26,16 @@ import { twJoin, twMerge } from "tailwind-merge"
 import { Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
-import { LevelControls } from "@/levelData"
+import { borrowLevelSetGs } from "@/levelData"
 import { goToNextLevel as goToNextLevelGs } from "@/levelData"
 import { trivia } from "@/trivia"
+import { LevelControls, SidebarReplayable } from "./Sidebar"
+import {
+	TIMELINE_PLAYBACK_SPEEDS,
+	Timeline,
+	TimelineBox,
+	TimelineHead,
+} from "./Timeline"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -244,10 +252,14 @@ export function DumbLevelPlayer(props: {
 
 	const [level, setLevel] = useState(() => createLevelFromData(props.level))
 	function resetLevel() {
-		setLevel(createLevelFromData(props.level))
+		setAttempt(null)
+		setPlayingSolution(null)
+		const level = createLevelFromData(props.level)
+		setLevel(level)
 		setPlayerState("pregame")
+		return level
 	}
-	useLayoutEffect(() => resetLevel(), [props.level])
+	useLayoutEffect(() => void resetLevel(), [props.level])
 	useEffect(() => {
 		level.gameInput = inputs
 		setChipsLeft(level.chipsLeft)
@@ -263,33 +275,58 @@ export function DumbLevelPlayer(props: {
 	const [bonusPoints, setBonusPoints] = useState(0)
 	const [inventory, setInventory] = useState<InventoryI | undefined>()
 	const [hint, setHint] = useState<string | null>()
+	// Attempt tracking
+	const [attempt, setAttempt] = useState<null | AttemptTracker>(null)
+	function beginLevelAttempt() {
+		setPlayerState("play")
+		// setAttempt(
+		// 	new AttemptTracker(
+		// 		level.blobPrngValue,
+		// 		level.randomForceFloorDirection,
+		// 		props.levelSet?.scriptRunner.state
+		// 	)
+		// )
+	}
+	const borrowLevelSet = useJotaiFn(borrowLevelSetGs)
+	const submitLevelAttempt = useCallback(() => {
+		if (embedMode || !attempt) return
+		const att = attempt.endAttempt(level)
+		borrowLevelSet(lSet => {
+			const lInfo = lSet.seenLevels[lSet.currentLevel].levelInfo
+			lInfo.attempts ??= []
+			lInfo.attempts.push(att)
+			setAttempt(null)
+		})
+	}, [attempt, borrowLevelSet])
 
 	// Ticking
 	const tickLevel = useCallback(() => {
-		level.tick()
-		setChipsLeft(level.chipsLeft)
-		setTimeLeft(level.timeLeft)
-		setBonusPoints(level.bonusPoints)
-		setInventory(level.selectedPlayable?.inventory)
-		setHint(level.getHint()?.trim())
-		renderInventoryRef.current?.()
-		releaseKeys(level.releasedKeys)
-		if (level.gameState === GameState.WON) {
-			setPlayerState("win")
-		} else if (level.gameState === GameState.DEATH) {
-			setPlayerState("dead")
-		} else if (level.gameState === GameState.TIMEOUT) {
-			setPlayerState("timeout")
+		if (level.gameState === GameState.PLAYING) {
+			attempt?.recordAttemptStep(inputs)
 		}
-	}, [level, releaseKeys])
-
-	const autoTick =
-		playerState === "play" || playerState === "dead" || playerState === "win"
-	useLayoutEffect(() => {
-		if (!autoTick) return
-		const timer = new IntervalTimer(() => tickLevel(), 1 / 60)
-		return () => timer.cancel()
-	}, [autoTick, tickLevel])
+		level.tick()
+		renderInventoryRef.current?.()
+		if (level.gameState === GameState.PLAYING) {
+			if (replay) {
+				setSolutionLevelProgress(replay.ip.inputProgress(level))
+			}
+			setChipsLeft(level.chipsLeft)
+			setTimeLeft(level.timeLeft)
+			setBonusPoints(level.bonusPoints)
+			setInventory(level.selectedPlayable?.inventory)
+			setHint(level.getHint()?.trim())
+			releaseKeys(level.releasedKeys)
+		} else if (playerState === "play") {
+			submitLevelAttempt()
+			if (level.gameState === GameState.WON) {
+				setPlayerState("win")
+			} else if (level.gameState === GameState.DEATH) {
+				setPlayerState("dead")
+			} else if (level.gameState === GameState.TIMEOUT) {
+				setPlayerState("timeout")
+			}
+		}
+	}, [level, releaseKeys, submitLevelAttempt, playerState, attempt])
 
 	// Report embed ready
 	const embedMode = useAtomValue(embedModeAtom)
@@ -309,12 +346,74 @@ export function DumbLevelPlayer(props: {
 				!ev.altKey &&
 				(ev.code in keyToInputMap || ev.code === "Space")
 			) {
-				setPlayerState("play")
+				beginLevelAttempt()
 			}
 		}
 		document.addEventListener("keydown", listener)
 		return () => document.removeEventListener("keydown", listener)
 	}, [playerState])
+	// Replay
+	const [replay, setPlayingSolution] = useState<SidebarReplayable | null>(null)
+	const [solutionIsPlaying, setSolutionIsPlaying] = useState(true)
+	const [solutionSpeedIdx, setSolutionSpeedIdx] = useState(3)
+	const [solutionLevelProgress, setSolutionLevelProgress] = useState(0)
+	const [solutionJumpProgress, setSolutionJumpProgress] = useState<
+		number | null
+	>(null)
+	const solutionJumpTo = useCallback(
+		async (progress: number) => {
+			if (!replay) return
+			let lvl = level
+			setSolutionLevelProgress(progress)
+			if (progress < replay.ip.inputProgress(lvl)) {
+				lvl = createLevelFromData(props.level)
+				lvl.inputProvider = replay.ip
+				lvl.tick()
+				lvl.tick()
+				setLevel(lvl)
+			}
+			const WAIT_PERIOD = 20 * 40
+			while (replay.ip.inputProgress(lvl) < progress) {
+				lvl.tick()
+				lvl.tick()
+				lvl.tick()
+				if (lvl.currentTick % WAIT_PERIOD === 0) {
+					setSolutionJumpProgress(replay.ip.inputProgress(lvl))
+					await sleep(0)
+				}
+			}
+			setSolutionJumpProgress(null)
+		},
+		[level, replay]
+	)
+	const autoTick =
+		playerState === "play" || playerState === "dead" || playerState === "win"
+	const tickTimer = useRef<IntervalTimer | null>(null)
+	const tickLevelRef = useRef(tickLevel)
+	const rescheduleTimer = useCallback(() => {
+		if (!autoTick || (replay && !solutionIsPlaying)) {
+			tickTimer.current?.cancel()
+			tickTimer.current = null
+			return
+		}
+		tickLevelRef.current = tickLevel
+		let timePeriod = 1 / 60
+		if (replay) {
+			timePeriod /= TIMELINE_PLAYBACK_SPEEDS[solutionSpeedIdx]
+		}
+		if (tickTimer.current) {
+			tickTimer.current.adjust(timePeriod)
+		} else {
+			tickTimer.current = new IntervalTimer(
+				() => tickLevelRef.current(),
+				timePeriod
+			)
+		}
+	}, [autoTick, replay, solutionIsPlaying, solutionSpeedIdx, tickLevel])
+
+	useLayoutEffect(() => {
+		rescheduleTimer()
+	}, [rescheduleTimer])
 
 	const verticalLayout = !useMediaQuery({
 		query: "(min-aspect-ratio: 1/1)",
@@ -324,10 +423,10 @@ export function DumbLevelPlayer(props: {
 		() => ({
 			cameraType: level.cameraType,
 			tileSize: tileset.tileSize,
-			twPadding: verticalLayout ? [4, 6] : [6, 4],
+			twPadding: verticalLayout ? [4, replay ? 14 : 6] : [6, replay ? 12 : 4],
 			tilePadding: verticalLayout ? [0, 2] : [4, 0],
 		}),
-		[level, tileset, verticalLayout]
+		[level, tileset, verticalLayout, replay]
 	)
 
 	// GUI stuff
@@ -342,7 +441,7 @@ export function DumbLevelPlayer(props: {
 				set={props.levelSet}
 				level={props.level}
 				mobile={shouldShowMobileControls}
-				onStart={() => setPlayerState("play")}
+				onStart={beginLevelAttempt}
 			/>
 		)
 	} else if (playerState === "dead" || playerState === "timeout") {
@@ -358,17 +457,25 @@ export function DumbLevelPlayer(props: {
 	}
 
 	useEffect(() => {
-		applyRef(props.controlsRef, {
+		const controls: LevelControls = {
 			restart() {
 				resetLevel()
 			},
+			playInputs(replayable) {
+				const lvl = resetLevel()
+				setPlayingSolution(replayable)
+				lvl.inputProvider = replayable.ip
+				setPlayerState("play")
+			},
+
 			pause:
 				playerState === "pause"
 					? () => setPlayerState("play")
 					: playerState === "play"
 					  ? () => setPlayerState("pause")
 					  : undefined,
-		})
+		}
+		applyRef(props.controlsRef, controls)
 		return () => {
 			applyRef(props.controlsRef, null)
 		}
@@ -385,15 +492,35 @@ export function DumbLevelPlayer(props: {
 				"--tile-size": `${scale * tileset.tileSize}px`,
 			}}
 		>
-			<div class="relative">
-				<GameRenderer
-					tileset={tileset}
-					level={level}
-					cameraType={level.cameraType}
-					autoDraw={autoTick}
-					tileScale={scale}
-				/>
-				<div class={twJoin("absolute top-0 h-full w-full")}>{cover}</div>
+			<div class="flex flex-col gap-2">
+				<div class="relative">
+					<GameRenderer
+						tileset={tileset}
+						level={level}
+						cameraType={level.cameraType}
+						autoDraw={autoTick}
+						tileScale={scale}
+					/>
+					<div class={twJoin("absolute top-0 h-full w-full")}>{cover}</div>
+				</div>
+				{replay && (
+					<TimelineBox
+						playing={solutionIsPlaying}
+						speedIdx={solutionSpeedIdx}
+						onSetSpeed={setSolutionSpeedIdx}
+						onSetPlaying={setSolutionIsPlaying}
+					>
+						<Timeline onScrub={solutionJumpTo}>
+							{solutionJumpProgress !== null && (
+								<TimelineHead
+									progress={solutionJumpProgress}
+									class="bg-theme-600"
+								/>
+							)}
+							<TimelineHead progress={solutionLevelProgress} />
+						</Timeline>
+					</TimelineBox>
+				)}
 			</div>
 			<div
 				class={

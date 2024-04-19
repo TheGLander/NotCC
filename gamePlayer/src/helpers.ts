@@ -199,3 +199,9 @@ export async function showLoadPrompt(
 		fileLoader.click()
 	})
 }
+
+export function sleep(s: number): Promise<void> {
+	return new Promise(res => {
+		setTimeout(() => res(), s * 1000)
+	})
+}

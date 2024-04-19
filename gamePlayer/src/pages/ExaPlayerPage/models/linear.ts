@@ -121,6 +121,13 @@ export class MoveSequence {
 			this.snapshots.push({ ...oSnapshot, tick: oSnapshot.tick + otherOffset })
 		}
 	}
+	findSnapshot(tick: number): Snapshot {
+		let idx = this.snapshots.length - 1
+		while (idx > 0 && this.snapshots[idx].tick > tick) {
+			idx -= 1
+		}
+		return this.snapshots[idx]
+	}
 }
 
 export class LinearModel {
@@ -166,12 +173,12 @@ export class LinearModel {
 		this.moveSeq.applyToLevel(this.level, [lastOffset, this.offset])
 	}
 	goTo(pos: number): void {
+		if (this.moveSeq.tickLen === 0) return
 		this.offset = pos
-		const closestSnapshot: Snapshot = this.moveSeq.snapshots.find(
-			snap => snap.tick <= pos
-		)!
-		this.level = cloneLevel(closestSnapshot.level)
-		this.moveSeq.applyToLevel(this.level, [closestSnapshot.tick, pos])
+		const snapshot = this.moveSeq.findSnapshot(pos)
+
+		this.level = cloneLevel(snapshot.level)
+		this.moveSeq.applyToLevel(this.level, [snapshot.tick, pos])
 	}
 	resetLevel() {
 		this.goTo(0)
