@@ -1,5 +1,6 @@
 import { Direction } from "./helpers.js"
 import { LevelState } from "./level.js"
+import { LevelSet } from "./levelset.js"
 import { ISolutionInfo } from "./parsers/nccs.pb.js"
 
 export interface KeyInputs {
@@ -48,6 +49,7 @@ export interface InputProvider {
 	getInput(level: LevelState): KeyInputs
 	outOfInput(level: LevelState): boolean
 	setupLevel(level: LevelState): void
+	inputProgress(level: LevelState): number
 }
 
 export function makeSimpleInputs(comp: Uint8Array): Uint8Array {
@@ -95,6 +97,11 @@ export class SolutionInfoInputProvider implements InputProvider {
 			level.blobPrngValue = blobMod
 		}
 	}
+	inputProgress(level: LevelState): number {
+		return level.currentTick >= this.inputs.length
+			? 1
+			: (level.currentTick + level.subtick / 3) / this.inputs.length
+	}
 }
 
 export interface RouteFor {
@@ -121,8 +128,8 @@ export interface Route {
 }
 
 const keyInputToCharMap: Record<InputType, string> = {
-	up: "u",
 	right: "r",
+	up: "u",
 	down: "d",
 	left: "l",
 	switchPlayable: "s",
@@ -231,5 +238,10 @@ export class RouteFileInputProvider implements InputProvider {
 		if (this.route.Blobmod !== undefined) {
 			level.blobPrngValue = this.route.Blobmod
 		}
+	}
+	inputProgress(level: LevelState): number {
+		return level.currentTick >= this.moves.length
+			? 1
+			: (level.currentTick + level.subtick / 3) / this.moves.length
 	}
 }

@@ -20,7 +20,6 @@ import {
 	calculateLevelPoints,
 	createLevelFromData,
 	makeEmptyInputs,
-	protobuf,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import { IntervalTimer, TimeoutTimer, sleep, useJotaiFn } from "@/helpers"
@@ -278,13 +277,14 @@ export function RealExaPlayerPage() {
 				setModel(model)
 				const UPDATE_PERIOD = 200
 				while (!ip.ip.outOfInput(model.level)) {
-					if (model.level.gameState !== GameState.PLAYING) return
+					if (model.level.gameState !== GameState.PLAYING) break
 					model.addInput(ip.ip.getInput(model.level), model.level)
 					if (model.level.currentTick % UPDATE_PERIOD === 0) {
 						updateLevel()
 						await sleep(0)
 					}
 				}
+				updateLevel()
 			},
 			exa: {
 				undo: () => {
