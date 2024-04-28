@@ -1,4 +1,4 @@
-import { PrimitiveAtom, WritableAtom, atom } from "jotai"
+import { Getter, PrimitiveAtom, WritableAtom, atom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { writeFile } from "@/fs"
 
@@ -55,10 +55,15 @@ function writePrefs(prefs: any) {
 	)
 }
 
-export const allowWritingPreferencesAtom = atom(false)
+export const preloadFinishedAtom = atom(false)
+export const syncAllowed_thisisstupid = { val: false }
 
+export function isPreloading(get: Getter) {
+	return !get(preloadFinishedAtom) || !syncAllowed_thisisstupid.val
+}
 export const preferenceWritingAtom = atomEffect((get, _set) => {
-	if (!get(allowWritingPreferencesAtom)) return
+	void get(allPreferencesAtom)
+	if (isPreloading(get)) return
 	const prefs = get(allPreferencesAtom)
 	writePrefs(prefs)
 })

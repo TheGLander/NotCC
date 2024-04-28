@@ -16,6 +16,7 @@ import { atomEffect } from "jotai-effect"
 import { ExaPlayerPage } from "./pages/ExaPlayerPage"
 import { tilesetSyncAtom } from "./components/PreferencesPrompt/TilesetsPrompt"
 import { levelControlsAtom } from "./components/Sidebar"
+import { sfxSyncAtom } from "./components/PreferencesPrompt/SfxPrompt"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -200,6 +201,7 @@ export function Router() {
 	useAtom(preferenceWritingAtom)
 	useAtom(levelSetAutosaveAtom)
 	useAtom(tilesetSyncAtom)
+	useAtom(sfxSyncAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />
 

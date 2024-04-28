@@ -61,7 +61,12 @@ export class Ice extends Actor {
 		}
 	}
 	actorCompletelyLeft(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (
+			other.getCompleteTags("tags").includes("real-playable") &&
+			!other.tile.findActor(Layer.STATIONARY, actor =>
+				actor.getCompleteTags("tags").includes("ice")
+			)
+		) {
 			this.level.sfxManager?.stopContinuous("ice slide")
 		}
 	}
@@ -104,7 +109,12 @@ export class IceCorner extends Actor {
 		}
 	}
 	actorCompletelyLeft(other: Actor): void {
-		if (other.getCompleteTags("tags").includes("real-playable")) {
+		if (
+			other.getCompleteTags("tags").includes("real-playable") &&
+			!other.tile.findActor(Layer.STATIONARY, actor =>
+				actor.getCompleteTags("tags").includes("ice")
+			)
+		) {
 			this.level.sfxManager?.stopContinuous("ice slide")
 		}
 	}

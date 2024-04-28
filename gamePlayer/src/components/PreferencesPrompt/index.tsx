@@ -13,6 +13,7 @@ import {
 import { FC } from "preact/compat"
 import { DEFAULT_VALUE, getTruePreferenceAtom } from "@/preferences"
 import { TilesetPrefDisplay, tilesetIdAtom } from "./TilesetsPrompt"
+import { SfxPrefDisplay, sfxIdAtom } from "./SfxPrompt"
 
 export interface PrefDisplayProps<T> {
 	set: (val: T) => void
@@ -91,6 +92,8 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 				<h3 class="col-span-2 text-xl">Visuals</h3>
 				<Pref atom={colorSchemeAtom} Display={ColorSchemePrefDisplay} />
 				<Pref atom={tilesetIdAtom} Display={TilesetPrefDisplay} />
+				<h3 class="col-span-2 text-xl">Audio</h3>
+				<Pref atom={sfxIdAtom} Display={SfxPrefDisplay} />
 			</div>
 		</Dialog>
 	)

@@ -78,6 +78,12 @@ export function makeFileListFileLoader(
 export function makeHttpFileLoader(url: string): LevelSetLoaderFunction {
 	return async (path: string, binary: boolean) => {
 		const fileData = await fetch(`${url}${path}`)
+		if (!fileData.ok)
+			throw new Error(
+				`Could not load ${path}: ${fileData.status} ${
+					fileData.statusText
+				}, ${await fileData.text()}`
+			)
 		if (binary) return await fileData.arrayBuffer()
 		return await fileData.text()
 	}

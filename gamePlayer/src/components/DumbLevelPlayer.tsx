@@ -36,6 +36,7 @@ import {
 	TimelineBox,
 	TimelineHead,
 } from "./Timeline"
+import { sfxAtom } from "./PreferencesPrompt/SfxPrompt"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -240,6 +241,13 @@ export function DumbLevelPlayer(props: {
 	controlsRef?: Ref<LevelControls | null>
 }) {
 	const tileset = useAtomValue(tilesetAtom)!
+	const sfx = useAtomValue(sfxAtom)
+	useEffect(() => {
+		return () => sfx?.stopAllSfx()
+	}, [])
+	useEffect(() => {
+		level.sfxManager = sfx
+	}, [sfx])
 	// if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
 
 	const [playerState, setPlayerState] = useState("pregame" as PlayerState)
@@ -251,14 +259,16 @@ export function DumbLevelPlayer(props: {
 	}, [inputHandler])
 
 	const [level, setLevel] = useState(() => createLevelFromData(props.level))
-	function resetLevel() {
+	const resetLevel = useCallback(() => {
+		sfx?.stopAllSfx()
 		setAttempt(null)
 		setPlayingSolution(null)
 		const level = createLevelFromData(props.level)
 		setLevel(level)
+		level.sfxManager = sfx
 		setPlayerState("pregame")
 		return level
-	}
+	}, [sfx, props.level])
 	useLayoutEffect(() => void resetLevel(), [props.level])
 	useEffect(() => {
 		level.gameInput = inputs
@@ -414,6 +424,12 @@ export function DumbLevelPlayer(props: {
 	useLayoutEffect(() => {
 		rescheduleTimer()
 	}, [rescheduleTimer])
+	useEffect(() => {
+		return () => {
+			tickTimer.current?.cancel()
+			tickTimer.current = null
+		}
+	}, [])
 
 	const verticalLayout = !useMediaQuery({
 		query: "(min-aspect-ratio: 1/1)",
@@ -532,6 +548,7 @@ export function DumbLevelPlayer(props: {
 				<div
 					class={twJoin(
 						"grid w-auto items-center justify-items-end gap-x-2 [grid-template-columns:repeat(2,auto);]",
+						"h-[calc(var(--tile-size)_*_2)]",
 						verticalLayout && "flex-1",
 						!verticalLayout && "ml-1 "
 					)}

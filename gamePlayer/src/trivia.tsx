@@ -93,4 +93,11 @@ export const trivia = [
 		<a href="https://discord.gg/Xd4dUY9">Bit Busters Club Discord Server</a> and
 		tell us your suggestion in #dev-projects.
 	</>,
+	<>
+		Multiple NotCC features, like ExaCC's timeline and custom sound effects were
+		suggested by community members. So, if you have any ideas on how to improve
+		NotCC, submit them to{" "}
+		<a href="https://github.com/TheGLander/NotCC/issues/new">GitHub</a> or the{" "}
+		<a href="https://discord.gg/Xd4dUY9">Bit Busters Club Discord Server</a>!
+	</>,
 ]

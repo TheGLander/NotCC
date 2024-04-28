@@ -480,6 +480,12 @@ export function RealExaPlayerPage() {
 		if (!timerRef.current) return
 		timerRef.current.adjust(1 / (60 * TIMELINE_PLAYBACK_SPEEDS[speedIdx]))
 	}, [speedIdx])
+	useEffect(() => {
+		return () => {
+			timerRef.current?.cancel()
+			timerRef.current = null
+		}
+	}, [])
 	return (
 		<div class="flex h-full w-full">
 			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr_auto/auto_min-content]">

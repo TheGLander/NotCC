@@ -5,7 +5,6 @@ import { Tileset, removeBackground } from "../GameRenderer/renderer"
 import { GameRenderer } from "../GameRenderer"
 import tilesetLevelPath from "./tilesetPreview.c2m"
 import { CameraType, createLevelFromData, parseC2M } from "@notcc/logic"
-import { Suspense } from "preact/compat"
 import { cc2ArtSet } from "../GameRenderer/cc2ArtSet"
 import cga16Image from "@/tilesets/cga16.png"
 import tworldImage from "@/tilesets/tworld.png"
@@ -19,17 +18,19 @@ import {
 	useJotaiFn,
 } from "@/helpers"
 import { atom, useAtom, useAtomValue } from "jotai"
-import { preferenceAtom } from "@/preferences"
+import { isPreloading, preferenceAtom } from "@/preferences"
 import { readFile, remove, writeFile } from "@/fs"
 import { suspend } from "suspend-react"
 import { PrefDisplayProps } from "."
-import { twJoin } from "tailwind-merge"
 import { atomEffect } from "jotai-effect"
+import { Gallery, GalleryItem } from "./Gallery"
 
 const PRIMARY_TILE_SIZE = 32
 export const tilesetAtom = atom<Tileset | null>(null)
 export const tilesetIdAtom = preferenceAtom("tileset", "cga16")
 export const tilesetSyncAtom = atomEffect((get, set) => {
+	void get(tilesetIdAtom)
+	if (isPreloading(get)) return
 	getTileset(get(tilesetIdAtom)).then(val => set(tilesetAtom, val))
 })
 
@@ -66,28 +67,19 @@ export async function getTileset(id: string): Promise<Tileset> {
 	}
 }
 
-function TilesetEntry(props: {
-	selected: boolean
-	onClick?: () => void
-	id: string
-	desc?: string
-	onRemove?: () => void
-}) {
+function TilesetPreview(props: { id: string }) {
 	const levelData = useAtomValue(tilesetLevelAtom)
 	const level = useMemo(() => {
 		const lvl = createLevelFromData(levelData)
 		lvl.forcedPerspective = true
 		return lvl
 	}, [levelData])
-	const tileset = suspend(() => getTileset(props.id), [props.id])
+	const tileset = suspend(
+		() => getTileset(props.id),
+		["tset preview" + props.id]
+	)
 	return (
-		<div
-			class={twJoin(
-				"box hover:bg-theme-950  flex w-60 cursor-pointer flex-col",
-				props.selected && "bg-theme-950"
-			)}
-			onClick={props.onClick}
-		>
+		<>
 			<GameRenderer
 				class="self-center"
 				level={level}
@@ -98,24 +90,20 @@ function TilesetEntry(props: {
 			<span class="text-lg">
 				{props.id.startsWith("custom") ? "custom" : props.id}
 			</span>
-			{props.desc && <span class="text-sm">{props.desc}</span>}
-			{props.onRemove && (
-				<button
-					class="ml-auto mt-auto text-sm"
-					onClick={
-						props.onRemove &&
-						(ev => {
-							ev.stopPropagation()
-							props.onRemove!()
-						})
-					}
-				>
-					Remove
-				</button>
-			)}
-		</div>
+		</>
 	)
 }
+
+const DEFAULT_TSETS: GalleryItem[] = [
+	{
+		id: "cga16",
+		desc: "This is how this game might have looked like if it were released in the 1980s. Not to be confused with the 4-color CC1 tileset also named CGA.",
+	},
+	{
+		id: "tworld",
+		desc: "The Tile World tileset, with CC2 additions! Incomplete.",
+	},
+]
 
 export const customTsetsAtom = atom<string[]>([])
 
@@ -160,31 +148,14 @@ export const TilesetsPrompt =
 				]}
 				onClose={() => pProps.onResolve(currentTset)}
 			>
-				<Suspense fallback="Loading tilesets...">
-					<div class="mb-2 flex flex-wrap justify-center gap-2">
-						<TilesetEntry
-							selected={chosenTset === "cga16"}
-							onClick={() => setChosenTset("cga16")}
-							id="cga16"
-							desc="This is how this game might have looked like if it were released in the 1980s.
-		Not to be confused with the 4-color CC1 tileset also named CGA."
-						/>
-						<TilesetEntry
-							selected={chosenTset === "tworld"}
-							onClick={() => setChosenTset("tworld")}
-							id="tworld"
-							desc="The Tile World tileset, with CC2 additions! Incomplete."
-						/>
-						{customTsets.map(id => (
-							<TilesetEntry
-								selected={chosenTset === id}
-								onClick={() => setChosenTset(id)}
-								id={id}
-								onRemove={() => removeTset(id)}
-							/>
-						))}
-					</div>
-				</Suspense>
+				<Gallery
+					chosenItem={chosenTset}
+					defaultItems={DEFAULT_TSETS}
+					customItems={customTsets.map(id => ({ id }))}
+					Preview={TilesetPreview}
+					onRemoveItem={removeTset}
+					onChooseItem={id => setChosenTset(id)}
+				/>
 				<span class="mt-2">
 					<button onClick={addTset}>Add tileset</button> More tilesets can be
 					found on{" "}

@@ -1,20 +1,26 @@
-import { useAtomValue, useSetAtom } from "jotai"
+import { useStore } from "jotai"
 import { useEffect, useState } from "preact/compat"
 import { initNotCCFs, isFile, readDir, readFile } from "@/fs"
-import { allPreferencesAtom, allowWritingPreferencesAtom } from "@/preferences"
+import {
+	allPreferencesAtom,
+	preloadFinishedAtom,
+	syncAllowed_thisisstupid,
+} from "@/preferences"
 import {
 	tilesetIdAtom,
 	tilesetAtom,
 	getTileset,
 	customTsetsAtom,
 } from "./PreferencesPrompt/TilesetsPrompt"
+import {
+	customSfxAtom,
+	getSfxSet,
+	sfxAtom,
+	sfxIdAtom,
+} from "./PreferencesPrompt/SfxPrompt"
 
 export function Preloader(props: { preloadComplete?: () => void }) {
-	const tilesetId = useAtomValue(tilesetIdAtom)
-	const setTileset = useSetAtom(tilesetAtom)
-	const setCustomTSetList = useSetAtom(customTsetsAtom)
-	const setAllPrefs = useSetAtom(allPreferencesAtom)
-	const setAllowWritingPrefs = useSetAtom(allowWritingPreferencesAtom)
+	const { get, set } = useStore()
 	const [loadingStage, setLoadingStage] = useState("javascript")
 	async function prepareAssets() {
 		setLoadingStage("user data")
@@ -29,16 +35,22 @@ export function Preloader(props: { preloadComplete?: () => void }) {
 		} catch (err) {
 			console.error(`Couldn't load preferences: ${err}`)
 		}
-		setAllPrefs(prefs)
-		setAllowWritingPrefs(true)
+		set(allPreferencesAtom, prefs)
 
 		setLoadingStage("tileset")
-		setCustomTSetList(
+		set(
+			customTsetsAtom,
 			(await readDir("/tilesets")).map(v => v.split(".").slice(0, -1).join("."))
 		)
-		setTileset(await getTileset(tilesetId))
+		set(tilesetAtom, await getTileset(get(tilesetIdAtom)))
 		setLoadingStage("sfx")
-		// TODO Preload SFX
+		set(
+			customSfxAtom,
+			(await readDir("/sfx")).map(v => v.split(".").slice(0, -1).join("."))
+		)
+		set(sfxAtom, await getSfxSet(get(sfxIdAtom)))
+		set(preloadFinishedAtom, true)
+		setImmediate(() => (syncAllowed_thisisstupid.val = true))
 	}
 	useEffect(() => {
 		if (!globalThis.window) return
