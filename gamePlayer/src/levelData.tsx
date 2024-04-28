@@ -122,7 +122,7 @@ export const levelSetAutosaveAtom = atomEffect((get, _set) => {
 	if (!lSet) return
 	void writeFile(
 		`./solutions/default/${lSet.scriptRunner.state.scriptTitle!}.nccs`,
-		writeNCCS(lSet.toSetInfo())
+		writeNCCS(lSet.toSetInfo()).buffer
 	)
 })
 
