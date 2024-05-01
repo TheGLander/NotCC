@@ -59,7 +59,7 @@ export function TimelineBox(props: {
 		<div class="flex h-6 flex-row gap-2">
 			<button
 				onClick={() => props.onSetPlaying(!props.playing)}
-				class="w-8 font-mono"
+				class="w-8 p-0 text-center font-mono"
 			>
 				{props.playing ? "⏸" : "︎⏵"}
 			</button>

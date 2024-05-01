@@ -2,6 +2,7 @@ import {
 	AttemptTracker,
 	CameraType,
 	GameState,
+	InputProvider,
 	Inventory as InventoryI,
 	LevelData,
 	LevelSet,
@@ -18,7 +19,13 @@ import {
 	useRef,
 	useState,
 } from "preact/hooks"
-import { IntervalTimer, applyRef, sleep, useJotaiFn } from "@/helpers"
+import {
+	IntervalTimer,
+	TimeoutIntervalTimer,
+	applyRef,
+	sleep,
+	useJotaiFn,
+} from "@/helpers"
 import { embedReadyAtom, embedModeAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
@@ -235,6 +242,10 @@ function WinCover(props: { onNextLevel: () => void }) {
 	)
 }
 
+type SimpleSidebarReplayable = Omit<SidebarReplayable, "ip"> & {
+	ip: InputProvider
+}
+
 export function DumbLevelPlayer(props: {
 	level: LevelData
 	levelSet?: LevelSet
@@ -262,7 +273,7 @@ export function DumbLevelPlayer(props: {
 	const resetLevel = useCallback(() => {
 		sfx?.stopAllSfx()
 		setAttempt(null)
-		setPlayingSolution(null)
+		setReplay(null)
 		const level = createLevelFromData(props.level)
 		setLevel(level)
 		level.sfxManager = sfx
@@ -363,7 +374,7 @@ export function DumbLevelPlayer(props: {
 		return () => document.removeEventListener("keydown", listener)
 	}, [playerState])
 	// Replay
-	const [replay, setPlayingSolution] = useState<SidebarReplayable | null>(null)
+	const [replay, setReplay] = useState<SimpleSidebarReplayable | null>(null)
 	const [solutionIsPlaying, setSolutionIsPlaying] = useState(true)
 	const [solutionSpeedIdx, setSolutionSpeedIdx] = useState(3)
 	const [solutionLevelProgress, setSolutionLevelProgress] = useState(0)
@@ -378,6 +389,7 @@ export function DumbLevelPlayer(props: {
 			if (progress < replay.ip.inputProgress(lvl)) {
 				lvl = createLevelFromData(props.level)
 				lvl.inputProvider = replay.ip
+				lvl.sfxManager = sfx
 				lvl.tick()
 				lvl.tick()
 				setLevel(lvl)
@@ -414,7 +426,7 @@ export function DumbLevelPlayer(props: {
 		if (tickTimer.current) {
 			tickTimer.current.adjust(timePeriod)
 		} else {
-			tickTimer.current = new IntervalTimer(
+			tickTimer.current = new TimeoutIntervalTimer(
 				() => tickLevelRef.current(),
 				timePeriod
 			)
@@ -477,10 +489,13 @@ export function DumbLevelPlayer(props: {
 			restart() {
 				resetLevel()
 			},
-			playInputs(replayable) {
+			async playInputs(repl) {
+				if (typeof repl.ip === "function") {
+					repl.ip = await repl.ip()
+				}
 				const lvl = resetLevel()
-				setPlayingSolution(replayable)
-				lvl.inputProvider = replayable.ip
+				setReplay(repl as SimpleSidebarReplayable)
+				lvl.inputProvider = repl.ip
 				setPlayerState("play")
 			},
 

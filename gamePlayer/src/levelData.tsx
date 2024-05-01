@@ -1,4 +1,4 @@
-import { Getter, Setter, atom, useAtomValue, useSetAtom } from "jotai"
+import { Getter, Setter, atom, useAtomValue, useSetAtom, useStore } from "jotai"
 import {
 	LevelData,
 	LevelSet,
@@ -31,6 +31,7 @@ import {
 import { basename, dirname } from "path-browserify"
 import { readFile, writeFile } from "./fs"
 import { atomEffect } from "jotai-effect"
+import { getRRRoutes, setRRRoutesAtomWrapped } from "./railroad"
 
 export const levelAtom = atom<LevelData | Promise<LevelData> | null>(null)
 export const levelUnwrappedAtom = unwrap(levelAtom)
@@ -130,37 +131,40 @@ export function useSetLoaded(): {
 	setSet(set: Promise<LevelSetData>, ident?: string): void
 	setLevel(level: Promise<LevelData>): void
 } {
-	const setLevelSet = useSetAtom(levelSetAtomWrapped)
-	const setLevelSetIdent = useSetAtom(levelSetIdentAtom)
-	const setLevel = useSetAtom(levelAtom)
-	const setLevelN = useSetAtom(levelNAtom)
-	const setPageName = useSetAtom(pageAtom)
+	const { set } = useStore()
 	const page = useAtomValue(pageAtom)
 	return {
 		setSet(setData, ident) {
-			const set = setData.then(data => loadSetSave(data))
-			setLevelSet(set)
-			setLevel(
-				set.then(set => set.getCurrentRecord()).then(rec => rec.levelData!)
+			const lset = setData.then(data => loadSetSave(data))
+			set(levelSetAtom, lset)
+			set(
+				levelAtom,
+				lset.then(set => set.getCurrentRecord()).then(rec => rec.levelData!)
 			)
-			set.then(set => {
-				setLevelN(set.currentLevel)
+			lset.then(lset => {
+				set(levelNAtom, lset.currentLevel)
 				const importantIdent = IMPORTANT_SETS.find(
-					iset => iset.setName === set.scriptRunner.state.scriptTitle!
+					iset => iset.setName === lset.scriptRunner.state.scriptTitle!
 				)?.setIdent
-				setLevelSetIdent(ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
+				if (importantIdent) {
+					set(setRRRoutesAtomWrapped, getRRRoutes(importantIdent, true))
+				} else {
+					set(setRRRoutesAtomWrapped, null)
+				}
+				set(levelSetIdentAtom, ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
 			})
 			if (!page?.isLevelPlayer) {
-				setPageName("play")
+				set(pageAtom, "play")
 			}
 		},
 		setLevel(level) {
-			setLevelSet(null)
-			setLevelSetIdent(CUSTOM_LEVEL_SET_IDENT)
-			setLevel(level)
-			setLevelN(1)
+			set(levelSetAtom, null)
+			set(levelSetIdentAtom, CUSTOM_LEVEL_SET_IDENT)
+			set(levelAtom, level)
+			set(levelNAtom, 1)
+			set(setRRRoutesAtomWrapped, null)
 			if (!page?.isLevelPlayer) {
-				setPageName("play")
+				set(pageAtom, "play")
 			}
 		},
 	}

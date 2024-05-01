@@ -205,3 +205,38 @@ export function sleep(s: number): Promise<void> {
 		setTimeout(() => res(), s * 1000)
 	})
 }
+
+export function formatTimeLeft(timeLeft: number, padding = false) {
+	let sign = ""
+	if (timeLeft < 0) {
+		timeLeft = -timeLeft
+		sign = "-"
+	}
+	const subtickStr = [padding ? " " : "", "⅓", "⅔"]
+	const subtick = timeLeft % 3
+	const int = Math.ceil(timeLeft / 60)
+	let decimal = (Math.floor((timeLeft / 3) % 20) * 5)
+		.toString()
+		.padStart(2, "0")
+	if (decimal === "00" && subtick === 0) {
+		decimal = "100"
+	}
+	return `${sign}${int}.${decimal}${
+		decimal === "100" ? "" : subtickStr[subtick]
+	}`
+}
+
+export function formatTicks(timeLeft: number) {
+	let sign = ""
+	if (timeLeft < 0) {
+		timeLeft = -timeLeft
+		sign = "-"
+	}
+	const subtickStr = ["", "⅓", "⅔"]
+	const subtick = timeLeft % 3
+	const int = Math.floor(timeLeft / 60)
+	let decimal = (Math.floor((timeLeft / 3) % 20) * 5)
+		.toString()
+		.padStart(2, "0")
+	return `${sign}${int}.${decimal}${subtickStr[subtick]}`
+}

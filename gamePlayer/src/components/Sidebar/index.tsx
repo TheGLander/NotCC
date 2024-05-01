@@ -16,10 +16,10 @@ import { forwardRef } from "preact/compat"
 import { twJoin } from "tailwind-merge"
 import { useMediaQuery } from "react-responsive"
 import { Getter, Setter, atom, useAtomValue, useStore } from "jotai"
-import { pageAtom } from "@/routing"
+import { levelSetIdentAtom, pageAtom } from "@/routing"
 import { showPrompt } from "@/prompts"
 import { AboutPrompt } from "../AboutDialog"
-import { applyRef } from "@/helpers"
+import { applyRef, formatTimeLeft } from "@/helpers"
 import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
 import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
@@ -33,11 +33,13 @@ import { Expl } from "../Expl"
 import backfeedPruningImg from "./backfeedPruning.png"
 import {
 	InputProvider,
+	RouteFileInputProvider,
 	SolutionInfoInputProvider,
 	calculateLevelPoints,
 	protoTimeToMs,
 } from "@notcc/logic"
 import { ISolutionInfo } from "@notcc/logic/dist/parsers/nccs.pb"
+import { RRLevel, RRRoute, getRRLevel, setRRRoutesAtom } from "@/railroad"
 
 export interface LevelControls {
 	restart?(): void
@@ -268,7 +270,7 @@ function SidebarButton(props: {
 export interface SidebarReplayable {
 	name: string
 	metric: string
-	ip: InputProvider
+	ip: InputProvider | (() => Promise<InputProvider>)
 }
 
 function SolutionsTooltipList(props: { controls: LevelControls }) {
@@ -378,6 +380,72 @@ function SolutionsTooltipList(props: { controls: LevelControls }) {
 	)
 }
 
+function getRRRoutes(
+	routes: RRLevel[],
+	levelN: number,
+	packId: string
+): SidebarReplayable[] {
+	const rrLevel = routes.find(lvl => lvl.levelN === levelN)
+	if (!rrLevel || !rrLevel.mainlineTimeRoute || !rrLevel.mainlineScoreRoute)
+		return []
+	function makeMetrics(route: RRRoute) {
+		return `${formatTimeLeft(route.timeLeft * 60)}s / ${route.points}pts`
+	}
+	function fetchIp(route: RRRoute) {
+		return async () => {
+			const level = await getRRLevel(packId, levelN)
+			return new RouteFileInputProvider(
+				level.routes.find(route2 => route2.id === route.id)!.moves!
+			)
+		}
+	}
+	const tRoute = rrLevel.routes.find(
+		route => route.id === rrLevel.mainlineTimeRoute
+	)!
+	const sRoute = rrLevel.routes.find(
+		route => route.id === rrLevel.mainlineScoreRoute
+	)!
+	if (tRoute === sRoute) {
+		return [
+			{
+				name: "Railroad",
+				metric: makeMetrics(tRoute),
+				ip: fetchIp(tRoute),
+			},
+		]
+	}
+	return [
+		{ name: "Railroad time", metric: makeMetrics(tRoute), ip: fetchIp(tRoute) },
+		{
+			name: "Railroad score",
+			metric: makeMetrics(sRoute),
+			ip: fetchIp(sRoute),
+		},
+	]
+}
+
+function RoutesTooltipList(props: { controls: LevelControls }) {
+	const levelSet = useAtomValue(levelSetAtom)
+	const rrRoutes = useAtomValue(setRRRoutesAtom)
+	const setIdent = useAtomValue(levelSetIdentAtom)
+	const routes: SidebarReplayable[] = []
+	if (levelSet && rrRoutes) {
+		routes.push(...getRRRoutes(rrRoutes, levelSet.currentLevel, setIdent!))
+	}
+	return (
+		<>
+			{routes.map(route => (
+				<ChooserButton
+					label={`${route.name} ${route.metric}`}
+					onTrigger={() => {
+						props.controls.playInputs?.(route)
+					}}
+				/>
+			))}
+		</>
+	)
+}
+
 export function Sidebar() {
 	const sidebarActions: SidebarAction[] = useRef([]).current
 	const levelControls = useAtomValue(levelControlsAtom)
@@ -443,6 +511,7 @@ export function Sidebar() {
 					<ChooserButton label="All attempts" shortcut="Shift+A" />
 					<hr class="mx-2 my-1" />
 					<div class="mx-2">Routes:</div>
+					<RoutesTooltipList controls={levelControls} />
 					<ChooserButton label="All routes" />
 				</SidebarButton>
 				<SidebarButton icon={clockIcon}>

@@ -22,7 +22,13 @@ import {
 	makeEmptyInputs,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
-import { IntervalTimer, TimeoutTimer, sleep, useJotaiFn } from "@/helpers"
+import {
+	IntervalTimer,
+	TimeoutTimer,
+	formatTimeLeft,
+	sleep,
+	useJotaiFn,
+} from "@/helpers"
 import { keyToInputMap } from "@/inputs"
 import {
 	DEFAULT_HASH_SETTINGS,
@@ -189,41 +195,6 @@ const CameraUtil: PromptComponent<void> = pProps => {
 const cameraTypeAtom = atom<CameraType>({ screens: 1, width: 10, height: 10 })
 const tileScaleAtom = atom<number>(1)
 
-export function formatTimeLeft(timeLeft: number) {
-	let sign = ""
-	if (timeLeft < 0) {
-		timeLeft = -timeLeft
-		sign = "-"
-	}
-	const subtickStr = [" ", "⅓", "⅔"]
-	const subtick = timeLeft % 3
-	const int = Math.ceil(timeLeft / 60)
-	let decimal = (Math.floor((timeLeft / 3) % 20) * 5)
-		.toString()
-		.padStart(2, "0")
-	if (decimal === "00" && subtick === 0) {
-		decimal = "100"
-	}
-	return `${sign}${int}.${decimal}${
-		decimal === "100" ? "" : subtickStr[subtick]
-	}`
-}
-
-export function formatTicks(timeLeft: number) {
-	let sign = ""
-	if (timeLeft < 0) {
-		timeLeft = -timeLeft
-		sign = "-"
-	}
-	const subtickStr = ["", "⅓", "⅔"]
-	const subtick = timeLeft % 3
-	const int = Math.floor(timeLeft / 60)
-	let decimal = (Math.floor((timeLeft / 3) % 20) * 5)
-		.toString()
-		.padStart(2, "0")
-	return `${sign}${int}.${decimal}${subtickStr[subtick]}`
-}
-
 function LinearTimelineView(props: {
 	model: LinearModel
 	updateLevel: () => void
@@ -272,13 +243,14 @@ export function RealExaPlayerPage() {
 				model.resetLevel()
 				updateLevel()
 			},
-			playInputs: async ip => {
-				const model = makeModel(aLevel!, modelConfig!, ip.ip)
+			playInputs: async repl => {
+				const ip = typeof repl.ip === "function" ? await repl.ip() : repl.ip
+				const model = makeModel(aLevel!, modelConfig!, ip)
 				setModel(model)
 				const UPDATE_PERIOD = 200
-				while (!ip.ip.outOfInput(model.level)) {
+				while (!ip.outOfInput(model.level)) {
 					if (model.level.gameState !== GameState.PLAYING) break
-					model.addInput(ip.ip.getInput(model.level), model.level)
+					model.addInput(ip.getInput(model.level), model.level)
 					if (model.level.currentTick % UPDATE_PERIOD === 0) {
 						updateLevel()
 						await sleep(0)
@@ -524,7 +496,7 @@ export function RealExaPlayerPage() {
 					<div class="grid items-center justify-items-end gap-2 gap-x-2 whitespace-nowrap text-end [grid-template-columns:repeat(2,auto);]">
 						<div>Time left:</div>
 						<div class="font-mono">
-							{formatTimeLeft(rootTimeLeft ?? model.level.timeLeft)}s
+							{formatTimeLeft(rootTimeLeft ?? model.level.timeLeft, true)}s
 						</div>
 						<div>Chips left:</div>
 						<div>{model.level.chipsLeft}</div>

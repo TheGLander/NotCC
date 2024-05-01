@@ -17,6 +17,7 @@ import { ExaPlayerPage } from "./pages/ExaPlayerPage"
 import { tilesetSyncAtom } from "./components/PreferencesPrompt/TilesetsPrompt"
 import { levelControlsAtom } from "./components/Sidebar"
 import { sfxSyncAtom } from "./components/PreferencesPrompt/SfxPrompt"
+import { setRRRoutesAtomWrapped } from "./railroad"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -167,6 +168,7 @@ const discardUselessLevelDataEffect: EffectFn = (get, set) => {
 		set(levelNAtom, null)
 		set(levelAtom, null)
 		set(levelSetAtom, null)
+		set(setRRRoutesAtomWrapped, null)
 		set(levelControlsAtom, {})
 		const searchParams = get(searchParamsAtom)
 		delete searchParams.level
