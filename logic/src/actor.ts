@@ -582,8 +582,7 @@ export abstract class Actor implements Wirable {
 	}
 	destroy(
 		killer?: Actor | null,
-		animType: string | null = "explosion",
-		extendedAnim = false
+		animType: string | null = "explosion"
 	): boolean {
 		if (killer && !this._internalShouldDie(killer)) return false
 		if (this.level.actors.includes(this))
@@ -615,8 +614,7 @@ export abstract class Actor implements Wirable {
 		if (animType && actorDB[`${animType}Anim`] && !this.tile[Layer.MOVABLE]) {
 			const anim = new actorDB[`${animType}Anim`](
 				this.level,
-				this.tile.position,
-				extendedAnim ? "extended" : ""
+				this.tile.position
 			)
 			if (decidingPos !== -1) {
 				this.level.decidingActors.splice(

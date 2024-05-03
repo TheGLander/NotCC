@@ -625,7 +625,7 @@ export class Turtle extends Actor {
 	static blockTags = ["melting"]
 	actorLeft(): void {
 		if (this.tile.hasLayer(Layer.MOVABLE)) return
-		this.destroy(null, "splash", true)
+		this.destroy(null, "splash")
 		new Water(this.level, this.tile.position)
 	}
 }
