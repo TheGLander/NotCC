@@ -181,6 +181,7 @@ export abstract class Playable extends Actor {
 				this === this.level.selectedPlayable &&
 				!(
 					this.tile[Layer.STATIONARY] &&
+					!this._internalIgnores(this.tile[Layer.STATIONARY]) &&
 					this.tile[Layer.STATIONARY].hasTag("force-floor")
 				)
 			) {
