@@ -155,24 +155,23 @@ export function diamondConnectedButtonFactory(color: string) {
 				for (const actor of this.explicitlyConnectedTile.allActors)
 					if (actor.caresButtonColors.includes(color))
 						this.connectedActor = actor
-			} else
+			} else {
+				const maxDimension = Math.max(this.level.width, this.level.height)
 				mainLoop: for (
-					let currentLevel = 1, tilesChecked = 0;
-					// eslint-disable-next-line no-constant-condition
-					true;
-					currentLevel++
+					let currentLevel = 1;
+					currentLevel <= maxDimension + 1;
+					currentLevel += 1
 				) {
 					for (const tile of this.tile.getDiamondSearch(currentLevel)) {
-						tilesChecked++
-						if (this.level.width * this.level.height - tilesChecked <= 2)
-							break mainLoop
-						for (const actor of tile.allActors)
+						for (const actor of tile.allActors) {
 							if (actor.caresButtonColors.includes(color)) {
 								this.connectedActor = actor
 								break mainLoop
 							}
+						}
 					}
 				}
+			}
 		}
 		actorCompletelyJoined(): void {
 			this.level.sfxManager?.playOnce("button press")
