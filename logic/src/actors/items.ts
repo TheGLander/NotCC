@@ -341,7 +341,21 @@ export class TNT extends Item {
 		this.destroy(null, null)
 		const lit = new LitTNT(this.level, this.tile.position)
 		lit.inventory.itemMax = other.inventory.itemMax
-		lit.inventory.items = [...other.inventory.items]
+		lit.inventory.items = other.inventory.items.map(item => {
+			const rootTile = this.level.field[0][0]
+			const rootActor = rootTile[item.layer]
+			delete rootTile[item.layer]
+			const nItem = new actorDB[item.id](
+				this.level,
+				[0, 0],
+				item.customData
+			) as Item
+			nItem.pickup(lit)
+			if (rootActor !== undefined) {
+				rootTile[item.layer] = rootActor
+			}
+			return nItem
+		})
 		for (const keyType in other.inventory.keys)
 			lit.inventory.keys[keyType] = { ...other.inventory.keys[keyType] }
 		lit.recomputeTags()

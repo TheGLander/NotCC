@@ -106,9 +106,9 @@ export class ThinWall extends Actor {
 	shouldDie(): boolean {
 		if (this.hasTag("canopy")) {
 			// Remove all traces of the canopy
-			this.tags &= ~getTagFlag("thinWall")
+			this.tags &= ~(getTagFlag("canopy") | getTagFlag("blocks-tnt"))
 			this.customData = this.customData.split("C").join("")
-			return false
+			return this.customData === ""
 		}
 		return true
 	}

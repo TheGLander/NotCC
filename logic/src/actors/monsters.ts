@@ -264,7 +264,8 @@ export class LitTNT extends Monster {
 		const protector = iterableFind(tile.allActors, val =>
 			val.hasTag("blocks-tnt")
 		)
-		if (protector) protectedLayer = protector.layer
+		if (protector && !(tileHadMovable && tile[this.layer]!.id === this.id))
+			protectedLayer = protector.layer
 
 		for (const actor of Array.from(tile.allActorsReverse))
 			if (actor.layer >= protectedLayer) {
@@ -274,19 +275,17 @@ export class LitTNT extends Monster {
 						? 2 + Math.sign(tile.x - this.tile.x)
 						: 1 + Math.sign(tile.y - this.tile.y)
 				)
-				if (
-					(!actor.exists ||
-						actor.destroy(
-							this,
-							actor.layer === Layer.STATIONARY || actor.layer === Layer.MOVABLE
-								? "explosion"
-								: null
-							// false
-							// true
-						)) &&
-					actor.layer === Layer.MOVABLE
+				if (!actor.exists) continue
+
+				let destroyed = actor.destroy(
+					actor === protector && protectedLayer !== actor.layer ? null : this,
+					actor.layer === Layer.STATIONARY || actor.layer === Layer.MOVABLE
+						? "explosion"
+						: null
 				)
+				if (destroyed && actor.layer === Layer.MOVABLE) {
 					movableDied = true
+				}
 			}
 		// Create a memorial fire if a movable got blown up (if we can)
 		if (tileHadMovable && movableDied && !tile.hasLayer(Layer.STATIONARY))
