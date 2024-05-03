@@ -166,7 +166,6 @@ export class ForceFloor extends Actor {
 		if (!other._internalIgnores(this)) {
 			other.slidingState = SlidingState.WEAK
 			other.direction = this.direction
-			if (other instanceof Playable) other.playerBonked = true
 			if (other.bonked) {
 				if (other._internalStep(other.direction)) other.cooldown--
 			}
@@ -212,7 +211,6 @@ export class ForceFloorRandom extends Actor {
 			other.slidingState = SlidingState.WEAK
 			other.direction = this.level.randomForceFloorDirection++
 			this.level.randomForceFloorDirection %= 4
-			if (other instanceof Playable) other.playerBonked = true
 			if (other.bonked) {
 				if (other._internalStep(other.direction)) other.cooldown--
 			}

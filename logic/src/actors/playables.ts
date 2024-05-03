@@ -176,7 +176,14 @@ export abstract class Playable extends Actor {
 				}
 			}
 			this.hasOverride = bonked && this.slidingState === SlidingState.WEAK
-			if (bonked && this === this.level.selectedPlayable) {
+			if (
+				bonked &&
+				this === this.level.selectedPlayable &&
+				!(
+					this.tile[Layer.STATIONARY] &&
+					this.tile[Layer.STATIONARY].hasTag("force-floor")
+				)
+			) {
 				if (!wasBonked) {
 					this.level.sfxManager?.playOnce("bump")
 				}
@@ -206,13 +213,6 @@ export abstract class Playable extends Actor {
 		}
 		this.level.gameState = GameState.PLAYING
 		return newActor
-	}
-	_internalStep(direction: Direction): boolean {
-		const success = super._internalStep(direction)
-		if (!success && this === this.level.selectedPlayable) {
-			this.playerBonked = true
-		}
-		return success
 	}
 }
 

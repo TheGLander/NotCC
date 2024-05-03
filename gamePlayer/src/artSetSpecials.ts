@@ -36,7 +36,7 @@ function bitfieldToDirs(bitfield: number): Direction[] {
 function getPlayableState(actor: Playable): string {
 	const inWater = actor.tile.findActor(actor => actor.hasTag("water"))
 	if (inWater) return "water"
-	if (actor.playerBonked) return "bump"
+	if (actor.playerBonked || actor.isPushing) return "bump"
 	return "normal"
 }
 
