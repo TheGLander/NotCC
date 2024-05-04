@@ -20,6 +20,7 @@ import {
 	useState,
 } from "preact/hooks"
 import {
+	CompensatingIntervalTimer,
 	IntervalTimer,
 	TimeoutIntervalTimer,
 	applyRef,
@@ -426,7 +427,7 @@ export function DumbLevelPlayer(props: {
 		if (tickTimer.current) {
 			tickTimer.current.adjust(timePeriod)
 		} else {
-			tickTimer.current = new TimeoutIntervalTimer(
+			tickTimer.current = new CompensatingIntervalTimer(
 				() => tickLevelRef.current(),
 				timePeriod
 			)

@@ -1,5 +1,11 @@
 import { LevelState } from "./level.js"
-import { Decision, actorDB } from "./const.js"
+import {
+	Decision,
+	actorDB,
+	hasTag,
+	makeTagFlagField,
+	hasTagOverlap,
+} from "./const.js"
 import { Direction, hasOwnProperty } from "./helpers.js"
 import { Layer, Tile } from "./tile.js"
 import { Item, Key } from "./actors/items.js"
@@ -46,6 +52,16 @@ export interface Inventory {
 	itemMax: number
 }
 
+export const tagProperties = [
+	"pushTags",
+	"tags",
+	"blockTags",
+	"blockedByTags",
+	"collisionIgnoreTags",
+	"ignoreTags",
+	"immuneTags",
+] as const
+
 export abstract class Actor implements Wirable {
 	moveDecision = Decision.NONE
 	currentMoveSpeed: number | null = null
@@ -66,57 +82,62 @@ export abstract class Actor implements Wirable {
 	/**
 	 * Tags which the actor can push, provided the pushed actor can be pushed
 	 */
-	pushTags?: string[]
+	pushTags = BigInt(0)
 	/**
 	 * General-use tags to use, for example, for collisions
 	 */
-	tags?: string[]
+	tags = BigInt(0)
+	hasTag(tag: string) {
+		return hasTag(this, tag)
+	}
 	/**
 	 * Tags which this actor blocks
 	 */
-	blockTags?: string[]
+	blockTags = BigInt(0)
 	/**
 	 * Tags which this actor is blocked by
 	 */
-	blockedByTags?: string[]
+	blockedByTags = BigInt(0)
 
 	/**
 	 * Tags which this actor refuses to be blocked by
 	 */
-	collisionIgnoreTags?: string[]
+	collisionIgnoreTags = BigInt(0)
 	/**
 	 * Tags which this actor will not conduct any interactions with.
 	 */
-	ignoreTags?: string[]
+	ignoreTags = BigInt(0)
 	/**
 	 * Tags which this actor should not be destroyed by
 	 */
-	immuneTags?: string[]
+	immuneTags = BigInt(0)
 
-	nonIgnoredSlideBonkTags?: string[]
-	getCompleteTags<T extends keyof this>(id: T, noItems?: boolean): string[] {
-		let tags: string[]
-		if (this[id]) tags = Array.from(this[id] as unknown as string[])
-		else tags = []
-		if (noItems) return tags
+	calcTag(prop: string, items: boolean) {
+		let initTags =
+			(Object.getPrototypeOf(this).constructor[prop] as bigint) ?? BigInt(0)
+		if (items) {
+			initTags |= this.calcItemTags(prop)
+		}
+		return initTags
+	}
+	calcItemTags(prop: string) {
+		let tags = BigInt(0)
 		for (const item of this.inventory.items) {
-			//@ts-expect-error T is typeof string, it can index Record<string, string[]>
-			const itemTags = item.carrierTags?.[id]
-			if (itemTags) tags.push(...itemTags)
+			const carrierTags = item.carrierTags?.[prop]
+			tags |= carrierTags ?? BigInt(0)
 		}
 		return tags
 	}
+	recomputeTags(items = true) {
+		for (const prop of tagProperties) {
+			this[prop] = this.calcTag(prop, items)
+		}
+	}
 	ignores?(other: Actor): boolean
-	_internalIgnores(other: Actor, noItems?: boolean): boolean {
+	_internalIgnores(other: Actor): boolean {
 		return (
-			(matchTags(
-				this.getCompleteTags("tags", noItems),
-				other.getCompleteTags("ignoreTags", noItems)
-			) ||
-				matchTags(
-					other.getCompleteTags("tags", noItems),
-					this.getCompleteTags("ignoreTags", noItems)
-				) ||
+			(hasTagOverlap(this.tags, other.ignoreTags) ||
+				hasTagOverlap(other.tags, this.ignoreTags) ||
 				this.ignores?.(other) ||
 				other.ignores?.(this)) ??
 			false
@@ -140,7 +161,7 @@ export abstract class Actor implements Wirable {
 		if (this.despawned) {
 			console.warn("Dropping items while despawned in undefined behaviour.")
 		}
-		if (this.tile.hasLayer(itemToDrop.layer)) return false
+		if (this.tile[itemToDrop.layer]) return false
 		if (itemToDrop.canBeDropped && !itemToDrop.canBeDropped(this)) return false
 		this.inventory.items.splice(id, 1)
 		itemToDrop.oldTile = null
@@ -149,6 +170,11 @@ export abstract class Actor implements Wirable {
 		itemToDrop._internalUpdateTileStates()
 		if (!noSideEffect) itemToDrop.onDrop?.(this)
 		itemToDrop.exists = true
+		if (itemToDrop.carrierTags) {
+			for (const prop in itemToDrop.carrierTags) {
+				this[prop as "tags"] = this.calcTag(prop, true)
+			}
+		}
 		return true
 	}
 	dropItem(): boolean {
@@ -161,6 +187,11 @@ export abstract class Actor implements Wirable {
 		public direction: Direction = Direction.UP
 	) {
 		this.layer = this.getLayer()
+		for (const tagProp of tagProperties.concat(
+			(new.target as any).extraTagProperties ?? []
+		)) {
+			this[tagProp] = (new.target as any)[tagProp] ?? BigInt(0)
+		}
 		level.actors.unshift(this)
 		this.tile = level.field[position[0]][position[1]]
 		this.tile.addActors(this)
@@ -304,22 +335,17 @@ export abstract class Actor implements Wirable {
 
 	shouldDie?(killer: Actor): boolean
 
-	_internalShouldDie(killer: Actor, noItems = false): boolean {
+	_internalShouldDie(killer: Actor): boolean {
 		return !(
-			this._internalIgnores(killer, noItems) ||
-			matchTags(
-				killer.getCompleteTags("tags"),
-				this.getCompleteTags("immuneTags")
-			) ||
+			this._internalIgnores(killer) ||
+			hasTagOverlap(killer.tags, this.immuneTags) ||
 			(this.shouldDie && !this.shouldDie(killer))
 		)
 	}
 	_internalCollisionIgnores(other: Actor, direction: Direction): boolean {
 		return !!(
-			matchTags(
-				this.getCompleteTags("tags"),
-				other.getCompleteTags("collisionIgnoreTags")
-			) || other.collisionIgnores?.(this, direction)
+			hasTagOverlap(this.tags, other.collisionIgnoreTags) ||
+			other.collisionIgnores?.(this, direction)
 		)
 	}
 	_internalBlocks(other: Actor, moveDirection: Direction): boolean {
@@ -331,14 +357,8 @@ export abstract class Actor implements Wirable {
 				(!this._internalCollisionIgnores(other, moveDirection) &&
 					(this.blocks?.(other, moveDirection) ||
 						other.blockedBy?.(this, moveDirection) ||
-						matchTags(
-							other.getCompleteTags("tags"),
-							this.getCompleteTags("blockTags")
-						) ||
-						matchTags(
-							this.getCompleteTags("tags"),
-							other.getCompleteTags("blockedByTags")
-						))))
+						hasTagOverlap(other.tags, this.blockTags) ||
+						hasTagOverlap(this.tags, other.blockedByTags))))
 		)
 	}
 	enterTile(noOnTile = false): void {
@@ -455,29 +475,26 @@ export abstract class Actor implements Wirable {
 			Layer.STATIONARY,
 			Layer.MOVABLE,
 			Layer.ITEM,
-		])
-			for (let blockActor of newTile[layer]) {
-				for (const item of this.inventory.items) {
-					item.onCarrierBump?.(this, blockActor, direction)
-					if (blockActor.newActor) blockActor = blockActor.newActor
-				}
-				blockActor.bumped?.(this, direction)
-				this.bumpedActor?.(blockActor, direction, false)
-				if (blockActor._internalBlocks(this, direction))
-					if (this._internalCanPush(blockActor, direction))
-						toPush.push(blockActor)
-					else {
-						this.level.resolvedCollisionCheckDirection = direction
-						return false
-					}
-				if (
-					layer === Layer.MOVABLE &&
-					iterableIndexOf(newTile[layer], blockActor) ===
-						newTile.layerLength(layer) - 1
-				)
-					// This is dumb
-					break loop
+		]) {
+			let blockActor = newTile[layer]
+			if (!blockActor) continue
+			for (const item of this.inventory.items) {
+				item.onCarrierBump?.(this, blockActor, direction)
+				if (blockActor.newActor) blockActor = blockActor.newActor
 			}
+			blockActor.bumped?.(this, direction)
+			this.bumpedActor?.(blockActor, direction, false)
+			if (blockActor._internalBlocks(this, direction))
+				if (this._internalCanPush(blockActor, direction))
+					toPush.push(blockActor)
+				else {
+					this.level.resolvedCollisionCheckDirection = direction
+					return false
+				}
+			if (layer === Layer.MOVABLE)
+				// This is dumb
+				break loop
+		}
 
 		for (const pushable of toPush) {
 			this.level.resolvedCollisionCheckDirection = direction
@@ -494,32 +511,33 @@ export abstract class Actor implements Wirable {
 			}
 			if (pushable._internalStep(direction)) {
 				pushable.cooldown--
-				if (this.getCompleteTags("tags").includes("plays-block-push-sfx"))
+				if (this.hasTag("plays-block-push-sfx"))
 					this.level.sfxManager?.playOnce("block push")
 			}
 		}
 		this.level.resolvedCollisionCheckDirection = direction
-		if (pull && this.getCompleteTags("tags").includes("pulling")) {
+		if (toPush.length !== 0) this.isPushing = true
+		if (pull && this.hasTag("pulling")) {
 			const backTile = this.tile.getNeighbor((direction + 2) % 4)
 			if (!backTile) return true
-			for (const pulledActor of backTile[Layer.MOVABLE]) {
+			const pulledActor = backTile[Layer.MOVABLE]
+			if (pulledActor) {
 				if (pulledActor.cooldown && pulledActor.moveSpeed) return false
 
 				if (
 					(pulledActor.pendingDecisionLockedIn && pulledActor.isPulled) ||
-					!pulledActor.getCompleteTags("tags").includes("block") ||
+					!pulledActor.hasTag("block") ||
 					(pulledActor.canBePushed && !pulledActor.canBePushed(this, direction))
 				) {
 					pulledActor.isPulled = true
-					continue
+					return true
 				}
 				pulledActor.isPulled = true
 				pulledActor.direction = direction
-				if (pulledActor.frozen) continue
+				if (pulledActor.frozen) return true
 				pulledActor.pendingDecision = pulledActor.moveDecision = direction + 1
 			}
 		}
-		if (toPush.length !== 0) this.isPushing = true
 		return true
 	}
 	/**
@@ -564,12 +582,9 @@ export abstract class Actor implements Wirable {
 	}
 	destroy(
 		killer?: Actor | null,
-		animType: string | null = "explosion",
-		extendedAnim = false,
-		shouldDieNoItems = false
+		animType: string | null = "explosion"
 	): boolean {
-		if (killer && !this._internalShouldDie(killer, shouldDieNoItems))
-			return false
+		if (killer && !this._internalShouldDie(killer)) return false
 		if (this.level.actors.includes(this))
 			this.level.actors.splice(this.level.actors.indexOf(this), 1)
 		const decidingPos = this.level.decidingActors.indexOf(this)
@@ -596,15 +611,10 @@ export abstract class Actor implements Wirable {
 		}
 		this.tile.removeActors(this)
 		this.exists = false
-		if (
-			animType &&
-			actorDB[`${animType}Anim`] &&
-			!this.tile.hasLayer(Layer.MOVABLE)
-		) {
+		if (animType && actorDB[`${animType}Anim`] && !this.tile[Layer.MOVABLE]) {
 			const anim = new actorDB[`${animType}Anim`](
 				this.level,
-				this.tile.position,
-				extendedAnim ? "extended" : ""
+				this.tile.position
 			)
 			if (decidingPos !== -1) {
 				this.level.decidingActors.splice(
@@ -650,10 +660,7 @@ export abstract class Actor implements Wirable {
 	_internalCanPush(other: Actor, direction: Direction): boolean {
 		//if (other.pendingDecision) return false
 		if (
-			!matchTags(
-				other.getCompleteTags("tags"),
-				this.getCompleteTags("pushTags")
-			) ||
+			!hasTagOverlap(other.tags, this.pushTags) ||
 			!(other.canBePushed?.(this, direction) ?? true)
 		)
 			return false
@@ -673,10 +680,7 @@ export abstract class Actor implements Wirable {
 	_internalExitBlocks(other: Actor, exitDirection: Direction): boolean {
 		return (
 			(!other.collisionIgnores?.(this, exitDirection) &&
-				!matchTags(
-					this.getCompleteTags("tags"),
-					other.getCompleteTags("collisionIgnoreTags")
-				) &&
+				!hasTagOverlap(this.tags, other.collisionIgnoreTags) &&
 				this.exitBlocks?.(other, exitDirection)) ??
 			false
 		)
@@ -723,6 +727,7 @@ export abstract class Actor implements Wirable {
 			this.level.decidingActors.splice(decidingPos, 0, newActor)
 		}
 		this.newActor = newActor
+		newActor.recomputeTags()
 		return newActor
 	}
 	/**

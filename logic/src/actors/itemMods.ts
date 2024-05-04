@@ -6,19 +6,19 @@ import { actorDB } from "../const.js"
 
 export class NoSign extends Actor {
 	id = "noSign"
-	tags = ["ignoreItem", "no-sign"]
+	static tags = ["ignoreItem", "no-sign"]
 	getLayer(): Layer {
 		return Layer.ITEM_SUFFIX
 	}
 	blocks(other: Actor): boolean {
-		for (const item of this.tile[Layer.ITEM]) {
-			if (item instanceof Key) {
-				if (other.inventory.keys[item.id]?.amount > 0) return true
-			} else if (
-				other.inventory.items.some(otherItem => otherItem.id === item.id)
-			)
-				return true
-		}
+		const item = this.tile[Layer.ITEM]
+		if (item instanceof Key) {
+			if (other.inventory.keys[item.id]?.amount > 0) return true
+		} else if (
+			other.inventory.items.some(otherItem => otherItem.id === item?.id)
+		)
+			return true
+
 		return false
 	}
 }

@@ -22,9 +22,10 @@ function findNextTeleport<T extends Actor>(
 	for (const tile of teleport.level.tiles(rro, teleport.tile.position)) {
 		if (!rolledOver && Math.abs(tile.y - lastY) > 1) rolledOver = true
 		lastY = tile.y
-		const newTeleport = iterableFind(
-			tile[teleport.layer],
-			val => val instanceof thisConstructor
+		const newTeleport = (
+			tile[teleport.layer] instanceof thisConstructor
+				? tile[teleport.layer]
+				: null
 		) as T | null
 		if (
 			newTeleport &&
@@ -52,7 +53,7 @@ function findNextBlueTeleport<T extends Actor>(
 }
 
 export abstract class Teleport extends Actor {
-	tags = ["machinery", "teleport"]
+	static tags = ["machinery", "teleport"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -122,9 +123,7 @@ export function doBlueTeleport(
 			if (
 				!thisNetwork &&
 				tpNetworks.length > 0 &&
-				!newTeleport
-					.getCompleteTags("tags")
-					.includes("janky-blue-teleport-overflow-target")
+				!newTeleport.hasTag("janky-blue-teleport-overflow-target")
 			)
 				return null
 			if (newTeleport.isBusy(other)) return null
@@ -143,9 +142,7 @@ export class BlueTeleport extends Teleport implements BlueTeleportTarget {
 	takeTeleport(other: Actor): void {
 		other.oldTile = other.tile
 		other.tile = this.tile
-		other._internalUpdateTileStates(
-			!iterableIncludes(other.oldTile[other.layer], other)
-		)
+		other._internalUpdateTileStates(other.oldTile[other.layer] !== other)
 		other.slidingState = SlidingState.STRONG
 	}
 	giveUpTeleport(other: Actor): void {
@@ -158,7 +155,7 @@ export class BlueTeleport extends Teleport implements BlueTeleportTarget {
 		)
 	}
 	id = "teleportBlue"
-	tags = ["machinery", "teleport", "janky-blue-teleport-overflow-target"]
+	static tags = ["machinery", "teleport", "janky-blue-teleport-overflow-target"]
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.STRONG
 	}
@@ -307,14 +304,13 @@ actorDB["teleportGreen"] = GreenTeleport
 
 export class YellowTeleport extends Teleport implements Item {
 	pickup = Item.prototype.pickup
-	carrierTags?: Record<string, string[]> | undefined
 	hasItemMod(): boolean {
 		return Item.prototype.hasItemMod.apply(this)
 	}
 	actorJoined(other: Actor): void {
 		other.slidingState = SlidingState.WEAK
 	}
-	tags = ["machinery", "teleport"]
+	static tags = ["machinery", "teleport"]
 	id = "teleportYellow"
 	destination = ItemDestination.ITEM
 	blocks(): false {

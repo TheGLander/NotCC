@@ -223,8 +223,8 @@ export class Renderer {
 				direction === Direction.RIGHT
 					? [1 - width, 0]
 					: direction === Direction.DOWN
-					  ? [0, 1 - width]
-					  : [0, 0]
+						? [0, 1 - width]
+						: [0, 0]
 			this.tileBlit(
 				ctx,
 				[pos[0] + offset[0], pos[1] + offset[1]],
@@ -394,10 +394,8 @@ export class Renderer {
 					if (layer === Layer.STATIONARY && !tile.hasLayer(Layer.STATIONARY)) {
 						// If there's nothing on the terrain level, draw floor
 						this.drawFloor(session, tile)
-					} else {
-						for (const actor of tile[layer]) {
-							this.drawActor(session, actor)
-						}
+					} else if (tile.hasLayer(layer)) {
+						this.drawActor(session, tile[layer]!)
 					}
 				}
 			}

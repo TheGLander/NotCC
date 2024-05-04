@@ -8,7 +8,7 @@ export abstract class Animation extends Actor {
 	animationCooldown = 16
 	animationLength = 16
 	moveSpeed = 0
-	blockTags = ["real-playable"]
+	static blockTags = ["real-playable"]
 	abstract getSfx(): string
 	getLayer(): Layer {
 		return Layer.MOVABLE

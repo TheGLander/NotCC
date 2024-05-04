@@ -152,6 +152,37 @@ export class TimeoutIntervalTimer {
 	}
 }
 
+export class CompensatingIntervalTimer {
+	id: number
+	timeToProcess: number = 0
+	lastCallTime: number = performance.now()
+	constructor(
+		public callback: AnyFunction,
+		public time: number
+	) {
+		this.nextCall = this.nextCall.bind(this)
+		this.id = setInterval(this.nextCall, time * 1000) as unknown as number
+	}
+	nextCall(): void {
+		const time = performance.now()
+		const dt = time - this.lastCallTime
+		this.lastCallTime = time
+		this.timeToProcess += dt / 1000
+		while (this.timeToProcess > 0) {
+			this.callback()
+			this.timeToProcess -= this.time
+		}
+	}
+	adjust(newTime: number) {
+		clearInterval(this.id)
+		this.time = newTime
+		this.id = setInterval(this.nextCall, newTime * 1000) as unknown as number
+	}
+	cancel(): void {
+		clearInterval(this.id)
+	}
+}
+
 export class AnimationTimer {
 	id: number
 	constructor(public callback: AnyFunction) {

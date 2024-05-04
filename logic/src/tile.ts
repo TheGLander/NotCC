@@ -13,33 +13,19 @@ export enum Layer {
 }
 
 export class Tile implements Wirable {
-	optimizedState: Partial<Record<Layer, Actor | Actor[]>> = {}
 	protected *getAllLayers(): IterableIterator<Actor> {
-		for (let i = 0; i <= Layer.SPECIAL; i++) yield* this.getLayer(i)
+		if (this[Layer.STATIONARY]) yield this[Layer.STATIONARY]
+		if (this[Layer.ITEM]) yield this[Layer.ITEM]
+		if (this[Layer.ITEM_SUFFIX]) yield this[Layer.ITEM_SUFFIX]
+		if (this[Layer.MOVABLE]) yield this[Layer.MOVABLE]
+		if (this[Layer.SPECIAL]) yield this[Layer.SPECIAL]
 	}
 	protected *getAllLayersReverse(): IterableIterator<Actor> {
-		for (let i = Layer.SPECIAL; i >= 0; i--) yield* this.getLayer(i)
-	}
-	protected *getLayer(layer: Layer): IterableIterator<Actor> {
-		if (!this.optimizedState[layer]) return
-		if (this.optimizedState[layer] instanceof Actor)
-			yield this.optimizedState[layer] as Actor
-		else yield* this.optimizedState[layer] as Actor[]
-	}
-	get [Layer.ITEM](): IterableIterator<Actor> {
-		return this.getLayer(Layer.ITEM)
-	}
-	get [Layer.ITEM_SUFFIX](): IterableIterator<Actor> {
-		return this.getLayer(Layer.ITEM_SUFFIX)
-	}
-	get [Layer.MOVABLE](): IterableIterator<Actor> {
-		return this.getLayer(Layer.MOVABLE)
-	}
-	get [Layer.SPECIAL](): IterableIterator<Actor> {
-		return this.getLayer(Layer.SPECIAL)
-	}
-	get [Layer.STATIONARY](): IterableIterator<Actor> {
-		return this.getLayer(Layer.STATIONARY)
+		if (this[Layer.SPECIAL]) yield this[Layer.SPECIAL]
+		if (this[Layer.MOVABLE]) yield this[Layer.MOVABLE]
+		if (this[Layer.ITEM_SUFFIX]) yield this[Layer.ITEM_SUFFIX]
+		if (this[Layer.ITEM]) yield this[Layer.ITEM]
+		if (this[Layer.STATIONARY]) yield this[Layer.STATIONARY]
 	}
 	get allActors(): IterableIterator<Actor> {
 		return this.getAllLayers()
@@ -47,6 +33,11 @@ export class Tile implements Wirable {
 	get allActorsReverse(): IterableIterator<Actor> {
 		return this.getAllLayersReverse()
 	}
+	[Layer.STATIONARY]?: Actor;
+	[Layer.ITEM]?: Actor;
+	[Layer.ITEM_SUFFIX]?: Actor;
+	[Layer.MOVABLE]?: Actor;
+	[Layer.SPECIAL]?: Actor
 	x: number
 	y: number
 	constructor(
@@ -57,37 +48,14 @@ export class Tile implements Wirable {
 		;[this.x, this.y] = position
 		this.addActors(actors)
 	}
-	findActor(
-		layer: Layer,
-		func: (val: Actor, i: number) => boolean
-	): Actor | null
-	findActor(func: (val: Actor, i: number) => boolean): Actor | null
-	findActor(
-		funcOrLayer: Layer | ((val: Actor, i: number) => boolean),
-		funcIfLayer?: (val: Actor, i: number) => boolean
-	): Actor | null {
-		// Handle the per-layer situation first
-		if (!(funcOrLayer instanceof Function) && funcIfLayer) {
-			const theLayer = this.optimizedState[funcOrLayer]
-			if (!theLayer) return null
-			if (!(theLayer instanceof Array))
-				return funcIfLayer(theLayer, 0) ? theLayer : null
-			return theLayer.find(funcIfLayer) ?? null
-		}
-		if (!(funcOrLayer instanceof Function)) return null
+	findActor(func: (val: Actor, i: number) => boolean): Actor | null {
 		let i = 0
-		for (const actor of this.getAllLayers())
-			if (funcOrLayer(actor, i++)) return actor
+		// Handle the per-layer situation first
+		for (const actor of this.getAllLayers()) if (func(actor, i++)) return actor
 		return null
 	}
-	layerLength(layer: Layer): number {
-		const theLayer = this.optimizedState[layer]
-		if (!theLayer) return 0
-		if (theLayer instanceof Actor) return 1
-		return theLayer.length
-	}
 	hasLayer(layer: Layer): boolean {
-		return !!this.optimizedState[layer]
+		return layer in this
 	}
 	/**
 	 * Adds new actors to the tile, sorting everything automatically
@@ -95,22 +63,12 @@ export class Tile implements Wirable {
 	addActors(actors: Actor | Actor[]): void {
 		actors = actors instanceof Array ? actors : [actors]
 		for (const actor of actors) {
-			const theLayer = this.optimizedState[actor.layer]
-			if (!theLayer) this.optimizedState[actor.layer] = actor
-			else if (this.level.extendedMode) {
-				if (theLayer instanceof Actor)
-					this.optimizedState[actor.layer] = [theLayer, actor]
-				else theLayer.push(actor)
-			} else {
-				if (theLayer instanceof Actor) {
-					theLayer.despawned = true
-					this.level.despawnedActors.push(theLayer)
-				} else
-					theLayer.forEach(val => {
-						val.despawned = true
-						this.level.despawnedActors.push(val)
-					})
-				this.optimizedState[actor.layer] = actor
+			const layer = actor.layer
+			if (!this[layer]) this[layer] = actor
+			else {
+				this[layer]!.despawned = true
+				this.level.despawnedActors.push(this[layer]!)
+				this[layer] = actor
 				this.level.addGlitch({
 					glitchKind: GlitchInfo.KnownGlitches.DESPAWN,
 					location: { x: this.x, y: this.y },
@@ -123,37 +81,19 @@ export class Tile implements Wirable {
 		actors = actors instanceof Array ? actors : [actors]
 
 		for (const actor of actors) {
-			const theLayer = this.optimizedState[actor.layer]
+			const theLayer = this[actor.layer]
 			// Ignore attempts to remove a non-existant actor
 			if (!theLayer) continue
-			if (this.level.extendedMode) {
-				if (theLayer instanceof Actor) {
-					if (theLayer === actor) delete this.optimizedState[actor.layer]
-				} else {
-					const index = theLayer.indexOf(actor)
-					if (index === -1) continue
-					theLayer.splice(index, 1)
-				}
-			} else {
-				if (theLayer !== actor) {
-					this.level.addGlitch({
-						glitchKind: GlitchInfo.KnownGlitches.DESPAWN,
-						location: { x: this.x, y: this.y },
-						specifier: 2,
-					})
-					if (theLayer instanceof Actor) {
-						theLayer.despawned = true
-						this.level.despawnedActors.push(theLayer)
-					} else
-						theLayer.forEach(val => {
-							if (val !== actor) {
-								val.despawned = true
-								this.level.despawnedActors.push(val)
-							}
-						})
-				}
-				delete this.optimizedState[actor.layer]
+			if (theLayer !== actor) {
+				this.level.addGlitch({
+					glitchKind: GlitchInfo.KnownGlitches.DESPAWN,
+					location: { x: this.x, y: this.y },
+					specifier: 2,
+				})
+				theLayer.despawned = true
+				this.level.despawnedActors.push(theLayer)
 			}
+			delete this[actor.layer]
 		}
 	}
 	getNeighbor(direction: Direction, wrap = true): Tile | null {

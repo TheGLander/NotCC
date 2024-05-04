@@ -1,13 +1,13 @@
 import { Actor, matchTags } from "../actor.js"
 import { Layer } from "../tile.js"
-import { actorDB } from "../const.js"
+import { actorDB, getTagFlag } from "../const.js"
 import { Direction, hasOwnProperty } from "../helpers.js"
 import { Playable } from "./playables.js"
 import { WireOverlapMode } from "../wires.js"
-import { onLevelAfterTick } from "../level.js"
+import { LevelState, onLevelAfterTick } from "../level.js"
 export class Wall extends Actor {
 	id = "wall"
-	tags = ["wall", "tinnable"]
+	static tags = ["wall", "tinnable"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -20,8 +20,8 @@ actorDB["wall"] = Wall
 
 export class SteelWall extends Actor {
 	id = "steelWall"
-	tags = ["blocks-ghost"]
-	immuneTags = ["tnt"]
+	static tags = ["blocks-ghost"]
+	static immuneTags = ["tnt"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -35,7 +35,7 @@ actorDB["steelWall"] = SteelWall
 
 export class CustomWall extends Actor {
 	id = "customWall"
-	tags = ["blocks-ghost"]
+	static tags = ["blocks-ghost"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -51,8 +51,8 @@ function doorFactory(color: string) {
 		color[0].toUpperCase() + color.substr(1).toLowerCase()
 	return class extends Actor {
 		id = `door${sentenceCaseName}`
-		tags = ["door"]
-		blockTags = ["normal-monster", "cc1block"]
+		static tags = ["door"]
+		static blockTags = ["normal-monster", "cc1block"]
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
@@ -61,7 +61,7 @@ function doorFactory(color: string) {
 		}
 		actorCompletelyJoined(other: Actor): void {
 			if (!other.inventory.keys[`key${sentenceCaseName}`]?.amount) return
-			if (other.getCompleteTags("tags").includes("playable")) {
+			if (other.hasTag("playable")) {
 				this.level.sfxManager?.playOnce("door unlock")
 			}
 			other.inventory.keys[`key${sentenceCaseName}`].amount--
@@ -83,20 +83,32 @@ const shortDirNames = "URDL"
 
 export class ThinWall extends Actor {
 	id = "thinWall"
-	tags = ["thinWall"].concat(
-		this.customData.includes("C") ? ["canopy", "blocks-tnt"] : []
-	)
+	static tags = ["thinWall"]
+	static extraTagProperties = ["extraTags"]
+	static extraTags = ["blocks-tnt", "canopy"]
 	allowedDirections = Array.from(this.customData)
 		.map(val =>
 			shortDirNames.includes(val) ? 2 ** shortDirNames.indexOf(val) : 0
 		)
 		.reduce((acc, val) => acc + val, 0)
+	constructor(
+		level: LevelState,
+		pos: [number, number],
+		customData?: string,
+		wires?: number
+	) {
+		super(level, pos, customData, wires)
+		if (this.customData.includes("C")) {
+			this.tags |= getTagFlag("canopy")
+			this.tags |= getTagFlag("blocks-tnt")
+		}
+	}
 	shouldDie(): boolean {
-		if (this.tags.includes("canopy")) {
+		if (this.hasTag("canopy")) {
 			// Remove all traces of the canopy
-			this.tags = ["thinWall"]
+			this.tags &= ~(getTagFlag("canopy") | getTagFlag("blocks-tnt"))
 			this.customData = this.customData.split("C").join("")
-			return false
+			return this.customData === ""
 		}
 		return true
 	}
@@ -107,8 +119,7 @@ export class ThinWall extends Actor {
 		return !!((2 ** ((otherMoveDirection + 2) % 4)) & this.allowedDirections)
 	}
 	exitBlocks(actor: Actor, otherMoveDirection: Direction): boolean {
-		if (actor.getCompleteTags("tags").includes("ignores-exit-block"))
-			return false
+		if (actor.hasTag("ignores-exit-block")) return false
 		return !!((2 ** otherMoveDirection) & this.allowedDirections)
 	}
 }
@@ -127,7 +138,8 @@ export class InvisibleWall extends Actor {
 	bumped(other: Actor, direction: Direction): void {
 		if (
 			this._internalCollisionIgnores(other, direction) ||
-			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+			other.hasTag("cc1block") ||
+			other.hasTag("normal-monster")
 		)
 			return
 		this.animationLeft = 36
@@ -150,10 +162,11 @@ export class AppearingWall extends Actor {
 	bumped(other: Actor, direction: Direction): void {
 		if (
 			this._internalCollisionIgnores(other, direction) ||
-			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+			other.hasTag("cc1block") ||
+			other.hasTag("normal-monster")
 		)
 			return
-		if (other.getCompleteTags("tags").includes("playable")) {
+		if (other.hasTag("playable")) {
 			this.level.sfxManager?.playOnce("bump")
 		}
 		this.destroy(null, null)
@@ -165,24 +178,26 @@ actorDB["appearingWall"] = AppearingWall
 
 export class BlueWall extends Actor {
 	id = "blueWall"
-	tags = ["wall"]
+	static tags = ["wall"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(other: Actor): boolean {
 		return (
 			this.customData === "real" ||
-			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+			other.hasTag("cc1block") ||
+			other.hasTag("normal-monster")
 		)
 	}
 	bumped(other: Actor, direction: Direction): void {
 		if (
 			this._internalCollisionIgnores(other, direction) ||
-			matchTags(other.getCompleteTags("tags"), ["cc1block", "normal-monster"])
+			other.hasTag("cc1block") ||
+			other.hasTag("normal-monster")
 		)
 			return
 		this.destroy(null, null)
-		if (other.getCompleteTags("tags").includes("playable")) {
+		if (other.hasTag("playable")) {
 			this.level.sfxManager?.playOnce("bump")
 		}
 		if (this.customData === "real") {
@@ -245,7 +260,7 @@ actorDB["holdWall"] = HoldWall
 
 /* export class SwivelRotatingPart extends Actor {
 	id = "swivelRotatingPart"
-	immuneTags = ["tnt"]
+	static immuneTags = ["tnt"]
 	getLayer(): Layer {
 		return Layer.SPECIAL
 	}
@@ -290,10 +305,7 @@ export class Swivel extends Actor {
 		if (actor.direction === this.direction) this.direction++
 		else if (actor.direction === (this.direction + 1) % 4) this.direction += 3
 		this.direction %= 4
-		if (
-			actor.getCompleteTags("tags").includes("playable") &&
-			oldDir !== this.direction
-		) {
+		if (actor.hasTag("playable") && oldDir !== this.direction) {
 			this.level.sfxManager?.playOnce("door unlock")
 		}
 	}
@@ -307,15 +319,12 @@ actorDB["swivel"] = Swivel
 
 export class GreenWall extends Actor {
 	id = "greenWall"
-	tags = ["wall"]
+	static tags = ["wall"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
 	blocks(other: Actor): boolean {
-		return (
-			this.customData === "real" ||
-			matchTags(other.getCompleteTags("tags"), ["block"])
-		)
+		return this.customData === "real" || other.hasTag("block")
 	}
 }
 
@@ -326,7 +335,7 @@ export class NoChipSign extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["chip"]
+	static blockTags = ["chip"]
 }
 
 actorDB["noChipSign"] = NoChipSign
@@ -336,7 +345,7 @@ export class NoMelindaSign extends Actor {
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
-	blockTags = ["melinda"]
+	static blockTags = ["melinda"]
 }
 
 actorDB["noMelindaSign"] = NoMelindaSign

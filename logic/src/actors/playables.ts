@@ -27,12 +27,12 @@ export function getMovementDirections(
 }
 
 export abstract class Playable extends Actor {
-	tags = ["playable", "real-playable"]
+	static tags = ["playable", "real-playable"]
 	// Players actually block everything, they just die if non-players bump into them
 	blocks(): true {
 		return true
 	}
-	pushTags = ["block"]
+	static pushTags = ["block"]
 	hasOverride = false
 	lastDecision = Decision.NONE
 	playerBonked = false
@@ -176,7 +176,15 @@ export abstract class Playable extends Actor {
 				}
 			}
 			this.hasOverride = bonked && this.slidingState === SlidingState.WEAK
-			if (bonked && this === this.level.selectedPlayable) {
+			if (
+				bonked &&
+				this === this.level.selectedPlayable &&
+				!(
+					this.tile[Layer.STATIONARY] &&
+					!this._internalIgnores(this.tile[Layer.STATIONARY]) &&
+					this.tile[Layer.STATIONARY].hasTag("force-floor")
+				)
+			) {
 				if (!wasBonked) {
 					this.level.sfxManager?.playOnce("bump")
 				}
@@ -207,17 +215,10 @@ export abstract class Playable extends Actor {
 		this.level.gameState = GameState.PLAYING
 		return newActor
 	}
-	_internalStep(direction: Direction): boolean {
-		const success = super._internalStep(direction)
-		if (!success && this === this.level.selectedPlayable) {
-			this.playerBonked = true
-		}
-		return success
-	}
 }
 
 export class Chip extends Playable {
-	tags = [
+	static tags = [
 		"playable",
 		"real-playable",
 		"chip",
@@ -233,7 +234,7 @@ export class Chip extends Playable {
 actorDB["chip"] = Chip
 
 export class Melinda extends Playable {
-	tags = [
+	static tags = [
 		"playable",
 		"real-playable",
 		"melinda",
@@ -244,7 +245,7 @@ export class Melinda extends Playable {
 	]
 	transmogrifierTarget = "chip"
 	id = "melinda"
-	ignoreTags = ["ice"]
+	static ignoreTags = ["ice"]
 }
 
 actorDB["melinda"] = Melinda

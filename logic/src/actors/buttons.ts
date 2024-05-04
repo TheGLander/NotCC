@@ -8,7 +8,7 @@ import { onLevelStart } from "../level.js"
 export function globalButtonFactory(color: string) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-		tags = ["button"]
+		static tags = ["button"]
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
@@ -32,7 +32,7 @@ export function globalComplexButtonFactory(color: string) {
 		id = `complexButton${color[0].toUpperCase()}${color
 			.substr(1)
 			.toLowerCase()}`
-		tags = ["button"]
+		static tags = ["button"]
 		getLayer(): Layer {
 			return Layer.STATIONARY
 		}
@@ -84,7 +84,7 @@ export function ROConnectedButtonFactory(
 ) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-		tags = ["button"]
+		static tags = ["button"]
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
 		getLayer(): Layer {
@@ -136,7 +136,7 @@ actorDB["buttonBrown"] = ROConnectedButtonFactory("brown", true)
 export function diamondConnectedButtonFactory(color: string) {
 	return class extends Actor {
 		id = `button${color[0].toUpperCase()}${color.substr(1).toLowerCase()}`
-		tags = ["button"]
+		static tags = ["button"]
 		connectedActor: Actor | null = null
 		explicitlyConnectedTile: Tile | null = null
 		getLayer(): Layer {
@@ -155,24 +155,23 @@ export function diamondConnectedButtonFactory(color: string) {
 				for (const actor of this.explicitlyConnectedTile.allActors)
 					if (actor.caresButtonColors.includes(color))
 						this.connectedActor = actor
-			} else
+			} else {
+				const maxDimension = Math.max(this.level.width, this.level.height)
 				mainLoop: for (
-					let currentLevel = 1, tilesChecked = 0;
-					// eslint-disable-next-line no-constant-condition
-					true;
-					currentLevel++
+					let currentLevel = 1;
+					currentLevel <= maxDimension + 1;
+					currentLevel += 1
 				) {
 					for (const tile of this.tile.getDiamondSearch(currentLevel)) {
-						tilesChecked++
-						if (this.level.width * this.level.height - tilesChecked <= 2)
-							break mainLoop
-						for (const actor of tile.allActors)
+						for (const actor of tile.allActors) {
 							if (actor.caresButtonColors.includes(color)) {
 								this.connectedActor = actor
 								break mainLoop
 							}
+						}
 					}
 				}
+			}
 		}
 		actorCompletelyJoined(): void {
 			this.level.sfxManager?.playOnce("button press")
@@ -190,7 +189,7 @@ actorDB["buttonOrange"] = diamondConnectedButtonFactory("orange")
 
 export class ButtonPurple extends Actor {
 	id = "buttonPurple"
-	tags = ["button"]
+	static tags = ["button"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -213,7 +212,7 @@ actorDB["buttonPurple"] = ButtonPurple
 
 export class ButtonBlack extends Actor {
 	id = "buttonBlack"
-	tags = ["button"]
+	static tags = ["button"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -223,12 +222,12 @@ export class ButtonBlack extends Actor {
 		this.level.sfxManager?.playOnce("button press")
 	}
 	processOutput() {
-		for (const movable of this.tile[Layer.MOVABLE]) {
-			if (movable.cooldown <= 0) {
-				this.poweringWires = 0
-				return
-			}
+		const movable = this.tile[Layer.MOVABLE]
+		if (movable && movable.cooldown <= 0) {
+			this.poweringWires = 0
+			return
 		}
+
 		this.poweringWires = 0b1111
 	}
 	providesPower = true
@@ -239,7 +238,7 @@ actorDB["buttonBlack"] = ButtonBlack
 
 export class ToggleSwitch extends Actor {
 	id = "toggleSwitch"
-	tags = ["button"]
+	static tags = ["button"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}
@@ -263,7 +262,7 @@ actorDB["toggleSwitch"] = ToggleSwitch
 
 export class ButtonGray extends Actor {
 	id = "buttonGray"
-	tags = ["button"]
+	static tags = ["button"]
 	getLayer(): Layer {
 		return Layer.STATIONARY
 	}

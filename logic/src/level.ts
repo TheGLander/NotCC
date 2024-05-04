@@ -35,6 +35,7 @@ onLevelDecisionTick.push(level => {
 	if (level.subtick !== 2) return
 	if (
 		level.selectedPlayable.cooldown > 0 ||
+		level.selectedPlayable.slidingState ||
 		level.selectedPlayable.playerBonked ||
 		level.selectedPlayable.isPushing
 	) {
@@ -80,10 +81,6 @@ export class LevelState {
 	playablesToSwap = false
 	levelStarted = false
 	createdN = 0
-	/**
-	 * If a level is considered to be in extended mode, despawns don't happen and multiple actors of the same layer can be on the same tile, yay!
-	 */
-	extendedMode = false
 	gameInput: KeyInputs = {
 		up: false,
 		down: false,
@@ -253,9 +250,7 @@ export class LevelState {
 		return (
 			this.forcedPerspective ||
 			(!!this.selectedPlayable &&
-				this.selectedPlayable
-					.getCompleteTags("tags")
-					.includes("can-see-secrets"))
+				this.selectedPlayable.hasTag("can-see-secrets"))
 		)
 	}
 	*tiles(

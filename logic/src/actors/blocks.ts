@@ -7,9 +7,9 @@ import { Direction } from "../helpers.js"
 export class DirtBlock extends Actor {
 	id = "dirtBlock"
 	transmogrifierTarget = "iceBlock"
-	tags = ["block", "cc1block", "movable", "reverse-on-railroad"]
-	ignoreTags = ["fire"]
-	immuneTags = ["water"]
+	static tags = ["block", "cc1block", "movable", "reverse-on-railroad"]
+	static ignoreTags = ["fire"]
+	static immuneTags = ["water"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -18,18 +18,17 @@ export class DirtBlock extends Actor {
 	}
 	bumpedActor(other: Actor): void {
 		if (
-			other.getCompleteTags("tags").includes("real-playable") &&
-			!this.getCompleteTags("tags")
-				.concat(other.getCompleteTags("tags"))
-				.includes("ignore-default-monster-kill")
+			other.hasTag("real-playable") &&
+			!this.hasTag("ignore-default-monster-kill") &&
+			!other.hasTag("ignore-default-monster-kill")
 		)
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile.findActor(Layer.STATIONARY, val =>
-			val.getCompleteTags("tags").includes("water")
-		)
-		if (water && !water._internalIgnores(this)) {
+		const water = this.tile[Layer.STATIONARY]
+		if (!water?.hasTag("water")) return
+
+		if (!water._internalIgnores(this)) {
 			this.destroy(this, "splash")
 			water.destroy(null, null)
 			new Dirt(this.level, this.tile.position)
@@ -42,8 +41,8 @@ actorDB["dirtBlock"] = DirtBlock
 export class IceBlock extends Actor {
 	id = "iceBlock"
 	transmogrifierTarget = "dirtBlock"
-	pushTags = ["cc2block"]
-	tags = [
+	static pushTags = ["cc2block"]
+	static tags = [
 		"block",
 		"cc2block",
 		"movable",
@@ -51,7 +50,7 @@ export class IceBlock extends Actor {
 		"meltable-block",
 		"reverse-on-railroad",
 	]
-	immuneTags = ["water"]
+	static immuneTags = ["water"]
 	getLayer(): Layer {
 		return Layer.MOVABLE
 	}
@@ -60,36 +59,30 @@ export class IceBlock extends Actor {
 	}
 	bumpedActor(other: Actor): void {
 		if (
-			other.getCompleteTags("tags").includes("real-playable") &&
-			!this.getCompleteTags("tags")
-				.concat(other.getCompleteTags("tags"))
-				.includes("ignore-default-monster-kill")
+			other.hasTag("real-playable") &&
+			!this.hasTag("ignore-default-monster-kill") &&
+			!other.hasTag("ignore-default-monster-kill")
 		)
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile.findActor(Layer.STATIONARY, val =>
-			val.getCompleteTags("tags").includes("water")
-		)
-		const melting = this.tile.findActor(Layer.STATIONARY, val =>
-			val.getCompleteTags("tags").includes("melting")
-		)
-		if (water && !water._internalIgnores(this)) {
+		const terrain = this.tile[Layer.STATIONARY]
+		if (terrain?.hasTag("water") && !terrain._internalIgnores(this)) {
 			this.destroy(this, "splash")
-			water.destroy(null, null)
+			terrain.destroy(null, null)
 			new Ice(this.level, this.tile.position)
 		}
-		if (melting && !melting._internalIgnores(this)) {
+		if (terrain?.hasTag("melting") && !terrain._internalIgnores(this)) {
 			this.destroy(this, "splash")
-			melting.destroy(null, null)
+			terrain.destroy(null, null)
 			new Water(this.level, this.tile.position)
 		}
 	}
 	bumped(other: Actor): void {
 		if (
-			other.getCompleteTags("tags").includes("melting") &&
+			other.hasTag("melting") &&
 			(!this.tile.hasLayer(Layer.STATIONARY) ||
-				this.tile[Layer.STATIONARY].next().value.id === "water")
+				this.tile[Layer.STATIONARY]!.id === "water")
 		) {
 			this.destroy(this, "splash")
 			if (!this.tile.hasLayer(Layer.STATIONARY))
@@ -98,9 +91,7 @@ export class IceBlock extends Actor {
 	}
 	canBePushed(other: Actor): boolean {
 		// Fun fact: Ice blocks & dir blocks just can't be pushed when they are sliding and a block is pushing them
-		return !(
-			this.slidingState && other.getCompleteTags("tags").includes("block")
-		)
+		return !(this.slidingState && other.hasTag("block"))
 	}
 }
 
@@ -115,8 +106,8 @@ export class DirectionalBlock extends Actor {
 	blocks(): boolean {
 		return true
 	}
-	pushTags = ["block"]
-	tags = [
+	static pushTags = ["block"]
+	static tags = [
 		"block",
 		"cc2block",
 		"movable",
@@ -124,21 +115,18 @@ export class DirectionalBlock extends Actor {
 		"reverse-on-railroad",
 		"dies-in-slime",
 	]
-	immuneTags = ["water"]
+	static immuneTags = ["water"]
 	bumpedActor(other: Actor): void {
 		if (
-			other.getCompleteTags("tags").includes("real-playable") &&
-			!this.getCompleteTags("tags")
-				.concat(other.getCompleteTags("tags"))
-				.includes("ignore-default-monster-kill")
+			other.hasTag("real-playable") &&
+			!this.hasTag("ignore-default-monster-kill") &&
+			!other.hasTag("ignore-default-monster-kill")
 		)
 			other.destroy(this)
 	}
 	newTileCompletelyJoined(): void {
-		const water = this.tile.findActor(Layer.STATIONARY, val =>
-			val.getCompleteTags("tags").includes("water")
-		)
-		if (water && !water._internalIgnores(this)) {
+		const water = this.tile[Layer.STATIONARY]
+		if (water?.hasTag("water") && !water._internalIgnores(this)) {
 			water.destroy(null, null)
 			this.destroy(this, "splash")
 		}
@@ -146,9 +134,7 @@ export class DirectionalBlock extends Actor {
 	canBePushed(other: Actor, direction: Direction): boolean {
 		if (!this.legalDirections.includes(direction)) return false
 		// Fun fact: Ice blocks & dir blocks just can't be pushed when they are sliding and a block is pushing them
-		return !(
-			this.slidingState && other.getCompleteTags("tags").includes("block")
-		)
+		return !(this.slidingState && other.hasTag("block"))
 	}
 	rebuildCustomData(): void {
 		this.customData = ""
