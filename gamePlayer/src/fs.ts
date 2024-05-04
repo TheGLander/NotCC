@@ -117,6 +117,7 @@ export async function makeFsZip(): Promise<Uint8Array> {
 export async function initNotCCFs(): Promise<void> {
 	await makeDir(".")
 	await makeDir("solutions")
+	await makeDir("solutions/default")
 	await makeDir("tilesets")
 	await makeDir("sfx")
 }
