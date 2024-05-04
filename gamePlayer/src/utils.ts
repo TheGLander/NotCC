@@ -24,7 +24,10 @@ export class IntervalTimer {
 
 export class TimeoutIntervalTimer {
 	id: number
-	constructor(public callback: AnyFunction, public time: number) {
+	constructor(
+		public callback: AnyFunction,
+		public time: number
+	) {
 		this.nextCall = this.nextCall.bind(this)
 		this.id = setTimeout(this.nextCall, time * 1000)
 	}
@@ -34,6 +37,32 @@ export class TimeoutIntervalTimer {
 	}
 	cancel(): void {
 		clearTimeout(this.id)
+	}
+}
+
+export class CompensatingIntervalTimer {
+	id: number
+	timeToProcess: number = 0
+	lastCallTime: number = performance.now()
+	constructor(
+		public callback: AnyFunction,
+		public time: number
+	) {
+		this.nextCall = this.nextCall.bind(this)
+		this.id = setInterval(this.nextCall, time * 1000)
+	}
+	nextCall(): void {
+		const time = performance.now()
+		const dt = time - this.lastCallTime
+		this.lastCallTime = time
+		this.timeToProcess += dt / 1000
+		while (this.timeToProcess > 0) {
+			this.callback()
+			this.timeToProcess -= this.time
+		}
+	}
+	cancel(): void {
+		clearInterval(this.id)
 	}
 }
 

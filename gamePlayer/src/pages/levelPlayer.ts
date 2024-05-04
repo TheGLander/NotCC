@@ -14,6 +14,7 @@ import {
 	setAttributeExistence,
 	AutoRepeatKeyListener,
 	AutoRepeatKeyState,
+	CompensatingIntervalTimer,
 } from "../utils"
 import { setSelectorPage } from "./setSelector"
 import { AudioSfxManager } from "../sfx"
@@ -345,7 +346,10 @@ export const levelPlayerPage = {
 		this.loadLevel(pager)
 		this.updateSettings(pager)
 		this.updateTextOutputs()
-		this.logicTimer = new IntervalTimer(this.updateLogic.bind(this), 1 / 60)
+		this.logicTimer = new CompensatingIntervalTimer(
+			this.updateLogic.bind(this),
+			1 / 60
+		)
 		this.renderTimer = new AnimationTimer(this.updateRender.bind(this))
 		this.keyListener = new AutoRepeatKeyListener(this.inputListener.bind(this))
 	},
