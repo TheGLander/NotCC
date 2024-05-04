@@ -205,9 +205,7 @@ export const levelPlayerPage = {
 		let exitN = 0
 		let exitFound = false
 		for (const tile of level.tiles(false)) {
-			const hasExit = !!tile.findActor(actor =>
-				actor.getCompleteTags("tags").includes("exit")
-			)
+			const hasExit = !!tile.findActor(actor => actor.hasTag("exit"))
 			if (!hasExit) continue
 			exitN += 1
 			if (playable.tile === tile) {
@@ -228,7 +226,7 @@ export const levelPlayerPage = {
 				red: keys.redKey?.amount ?? 0,
 				yellow: keys.yellowKey?.amount ?? 0,
 			},
-			lastExitGender: playable.tags.includes("melinda") ? "female" : "male",
+			lastExitGender: playable.hasTag("melinda") ? "female" : "male",
 			timeLeft: level.timeLeft,
 			lastExitN: exitN,
 			inventoryTools: playable.inventory.items.map(
