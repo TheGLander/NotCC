@@ -22,7 +22,6 @@ import {
 import {
 	CompensatingIntervalTimer,
 	IntervalTimer,
-	TimeoutIntervalTimer,
 	applyRef,
 	sleep,
 	useJotaiFn,

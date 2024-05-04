@@ -64,12 +64,12 @@ function hashActor(crc: CRC32, actor: Actor, settings: HashSettings) {
 		crc.feed8(actor.cooldown)
 		if (
 			actor.slidingState ||
-			(!(settings.ignoreBlockOrder && actor.tags?.includes("block")) &&
+			(!(settings.ignoreBlockOrder && actor.hasTag("block")) &&
 				!(actor instanceof Playable && settings.ignorePlayerDir))
 		) {
 			crc.feed8(actor.direction)
 		}
-		if (!(settings.ignoreBlockOrder && actor.tags?.includes("block"))) {
+		if (!(settings.ignoreBlockOrder && actor.hasTag("block"))) {
 			crc.feed8(actor.createdN)
 		}
 		crc.feed8(actor.pendingDecision)
@@ -100,8 +100,8 @@ function hashActor(crc: CRC32, actor: Actor, settings: HashSettings) {
 function hashTile(crc: CRC32, tile: Tile, settings: HashSettings) {
 	crc.feed8(tile.poweredWires)
 	for (let layer = Layer.STATIONARY; layer <= Layer.SPECIAL; layer += 1) {
-		for (const actor of tile[layer]) {
-			hashActor(crc, actor, settings)
+		if (tile.hasLayer(layer)) {
+			hashActor(crc, tile[layer]!, settings)
 		}
 	}
 }

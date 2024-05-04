@@ -10,10 +10,10 @@ import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin, twMerge } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
 import { VNode } from "preact"
-import { formatTicks } from "./exaPlayer"
 import { useCallback, useState } from "preact/hooks"
 import { HTMLAttributes } from "preact/compat"
 import { Timeline, TimelineHead } from "@/components/Timeline"
+import { formatTicks } from "@/helpers"
 
 interface GraphViewProps {
 	model: GraphModel
