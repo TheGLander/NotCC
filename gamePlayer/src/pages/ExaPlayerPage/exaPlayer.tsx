@@ -55,6 +55,8 @@ import {
 	TimelineBox,
 	TimelineHead,
 } from "@/components/Timeline"
+import { Toast, addToastGs, adjustToastGs, removeToastGs } from "@/toast"
+import { Tileset } from "@/components/GameRenderer/renderer"
 
 const modelConfigAtom = atom<ExaNewEvent | null>(null)
 type Model = LinearModel | GraphModel
@@ -143,9 +145,11 @@ function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 const CameraUtil: PromptComponent<void> = pProps => {
 	const [cameraType, setCameraType] = useAtom(cameraTypeAtom)
 	const [tileScale, setTileScale] = useAtom(tileScaleAtom)
+	const aLevel = useSwrLevel()
+	const tileset = useAtomValue(tilesetAtom)
 	return (
 		<Dialog
-			header="Camera util"
+			header="Camera control"
 			notModal
 			buttons={[["Close", () => {}]]}
 			onResolve={pProps.onResolve}
@@ -188,8 +192,40 @@ const CameraUtil: PromptComponent<void> = pProps => {
 					onChange={ev => setTileScale(parseFloat(ev.currentTarget.value))}
 				/>
 			</div>
+			<button
+				onClick={() => {
+					const [camera, scale] = computeDefaultCamera(aLevel!, tileset!)
+					setCameraType(camera)
+					setTileScale(scale)
+				}}
+			>
+				Auto
+			</button>
 		</Dialog>
 	)
+}
+
+function computeDefaultCamera(
+	level: LevelData | LevelState,
+	tileset: Tileset
+): [CameraType, number] {
+	const camera: CameraType = {
+		width: Math.min(32, level.width),
+		height: Math.min(32, level.height),
+		screens: 1,
+	}
+	let scale = calcScale({
+		tileSize: tileset!.tileSize,
+		cameraType: camera,
+		twPadding: [1 + 2 + 2 + 2 + 2 + 16 + 30 + 2 + 1, 1 + 2 + 2 + 1 + 2 + 6],
+		tilePadding: [4, 0],
+		// safetyCoefficient: 0.95,
+	})
+	if (scale > 1) scale = Math.floor(scale)
+	else {
+		scale = 0.5
+	}
+	return [camera, scale]
 }
 
 const cameraTypeAtom = atom<CameraType>({ screens: 1, width: 10, height: 10 })
@@ -220,9 +256,6 @@ export function RealExaPlayerPage() {
 	useEffect(() => {
 		if (!aLevel || !modelConfig) return
 		setModel(makeModel(aLevel, modelConfig))
-		const [camera, scale] = computeDefaultCamera(aLevel)
-		setCameraType(camera)
-		setTileScale(scale)
 	}, [aLevel])
 	const model = modelM!
 	const levelN = useAtomValue(levelNAtom)
@@ -237,6 +270,9 @@ export function RealExaPlayerPage() {
 		updateLevel()
 	}
 	const showPrompt = useJotaiFn(showPromptGs)
+	const addToast = useJotaiFn(addToastGs)
+	const removeToast = useJotaiFn(removeToastGs)
+	const adjustToast = useJotaiFn(adjustToastGs)
 	useEffect(() => {
 		setControls({
 			restart: () => {
@@ -248,41 +284,30 @@ export function RealExaPlayerPage() {
 				const model = makeModel(aLevel!, modelConfig!, ip)
 				setModel(model)
 				const UPDATE_PERIOD = 200
+				const toast: Toast = { title: "Importing route (0%)" }
+				addToast(toast)
 				while (!ip.outOfInput(model.level)) {
 					if (model.level.gameState !== GameState.PLAYING) break
 					model.addInput(ip.getInput(model.level), model.level)
 					if (model.level.currentTick % UPDATE_PERIOD === 0) {
 						updateLevel()
+						toast.title = `Importing route (${Math.floor(
+							ip.inputProgress(model.level) * 100
+						)}%)`
+						adjustToast()
 						await sleep(0)
 					}
 				}
+				removeToast(toast)
 				updateLevel()
 			},
 			exa: {
 				undo: () => {
-					try {
-						model.undo()
-					} catch (err: any) {
-						// Dumbest hack of all time
-						if (
-							!(err as Error).message.startsWith("into is required for multi-")
-						) {
-							throw err
-						}
-					}
+					model.undo()
 					updateLevel()
 				},
 				redo: () => {
-					try {
-						model.redo()
-					} catch (err: any) {
-						// Dumbest hack of all time
-						if (
-							!(err as Error).message.startsWith("into is required for multi-")
-						) {
-							throw err
-						}
-					}
+					model.redo()
 					updateLevel()
 				},
 				purgeBackfeed: model instanceof GraphModel ? purgeBackfeed : undefined,
@@ -325,34 +350,12 @@ export function RealExaPlayerPage() {
 	const [cameraType, setCameraType] = useAtom(cameraTypeAtom)
 	const [tileScale, setTileScale] = useAtom(tileScaleAtom)
 
-	function computeDefaultCamera(
-		level: LevelData | LevelState
-	): [CameraType, number] {
-		const camera: CameraType = {
-			width: Math.min(32, level.width),
-			height: Math.min(32, level.height),
-			screens: 1,
-		}
-		let scale = calcScale({
-			tileSize: tileset!.tileSize,
-			cameraType: camera,
-			twPadding: [1 + 2 + 2 + 2 + 2 + 16 + 30 + 2 + 1, 1 + 2 + 2 + 1 + 2 + 6],
-			tilePadding: [4, 0],
-			// safetyCoefficient: 0.95,
-		})
-		if (scale > 1) scale = Math.floor(scale)
-		else {
-			scale = 0.5
-		}
-		return [camera, scale]
-	}
-
 	useLayoutEffect(() => {
 		// Guess a good default tile scale, and let the user adjust
-		const [camera, scale] = computeDefaultCamera(model.level)
+		const [camera, scale] = computeDefaultCamera(model.level, tileset!)
 		setCameraType(camera)
 		setTileScale(scale)
-	}, [])
+	}, [aLevel, tileset])
 
 	// Inputs
 	const [inputs, setInputs] = useState(makeEmptyInputs)

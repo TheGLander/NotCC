@@ -9,6 +9,7 @@ import { twJoin } from "tailwind-merge"
 import { useJotaiFn } from "./helpers"
 import { Dialog } from "./components/Dialog"
 import { registerSW } from "virtual:pwa-register"
+import { ToastDisplay } from "./toast"
 
 const ErrorPrompt =
 	(err: Error): PromptComponent<void> =>
@@ -102,16 +103,19 @@ export function App() {
 		<div
 			style={makeThemeCssVars(colorScheme)}
 			class={twJoin(
-				"h-full w-full font-sans text-neutral-100",
+				"relative h-full w-full font-sans text-neutral-100",
 				!embedMode &&
 					"from-theme-500 to-theme-800 flex flex-col-reverse bg-gradient-to-br"
 			)}
 		>
 			<Prompts />
 			{!embedMode && <Sidebar />}
-			<div class={twJoin(!embedMode && "mx-1 mt-1 flex-1 overflow-y-auto")}>
+			<div
+				class={twJoin(!embedMode && "isolate mx-1 mt-1 flex-1 overflow-y-auto")}
+			>
 				<Router />
 			</div>
+			<ToastDisplay />
 		</div>
 	)
 }

@@ -24,8 +24,8 @@ import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
 import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
 import {
-	goToNextLevel,
-	goToPreviousLevel,
+	goToNextLevelGs,
+	goToPreviousLevelGs,
 	levelSetAtom,
 	levelUnwrappedAtom,
 } from "@/levelData"
@@ -40,6 +40,7 @@ import {
 } from "@notcc/logic"
 import { ISolutionInfo } from "@notcc/logic/dist/parsers/nccs.pb"
 import { RRLevel, RRRoute, getRRLevel, setRRRoutesAtom } from "@/railroad"
+import { Toast, addToastGs, removeToastGs } from "@/toast"
 
 export interface LevelControls {
 	restart?(): void
@@ -383,7 +384,9 @@ function SolutionsTooltipList(props: { controls: LevelControls }) {
 function getRRRoutes(
 	routes: RRLevel[],
 	levelN: number,
-	packId: string
+	packId: string,
+	get?: Getter,
+	set?: Setter
 ): SidebarReplayable[] {
 	const rrLevel = routes.find(lvl => lvl.levelN === levelN)
 	if (!rrLevel || !rrLevel.mainlineTimeRoute || !rrLevel.mainlineScoreRoute)
@@ -393,7 +396,14 @@ function getRRRoutes(
 	}
 	function fetchIp(route: RRRoute) {
 		return async () => {
+			const toast: Toast = { title: "Fetching Railroad route..." }
+			if (get && set) {
+				addToastGs(get, set, toast)
+			}
 			const level = await getRRLevel(packId, levelN)
+			if (get && set) {
+				removeToastGs(get, set, toast)
+			}
 			return new RouteFileInputProvider(
 				level.routes.find(route2 => route2.id === route.id)!.moves!
 			)
@@ -428,9 +438,12 @@ function RoutesTooltipList(props: { controls: LevelControls }) {
 	const levelSet = useAtomValue(levelSetAtom)
 	const rrRoutes = useAtomValue(setRRRoutesAtom)
 	const setIdent = useAtomValue(levelSetIdentAtom)
+	const { get, set } = useStore()
 	const routes: SidebarReplayable[] = []
 	if (levelSet && rrRoutes) {
-		routes.push(...getRRRoutes(rrRoutes, levelSet.currentLevel, setIdent!))
+		routes.push(
+			...getRRRoutes(rrRoutes, levelSet.currentLevel, setIdent!, get, set)
+		)
 	}
 	return (
 		<>
@@ -466,6 +479,7 @@ export function Sidebar() {
 			document.removeEventListener("keydown", listener)
 		}
 	}, [levelControls])
+	const hasLevel = !!useAtomValue(levelUnwrappedAtom)
 	return (
 		<SidebarActionContext.Provider value={sidebarActions}>
 			<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">
@@ -495,13 +509,13 @@ export function Sidebar() {
 						label="Next level"
 						shortcut="Shift+N"
 						disabled={!hasSet}
-						onTrigger={goToNextLevel}
+						onTrigger={goToNextLevelGs}
 					/>
 					<ChooserButton
 						label="Previous level"
 						shortcut="Shift+P"
 						disabled={!hasSet}
-						onTrigger={goToPreviousLevel}
+						onTrigger={goToPreviousLevelGs}
 					/>
 					<ChooserButton label="Level list" shortcut="Shift+S" />
 				</SidebarButton>
@@ -518,6 +532,7 @@ export function Sidebar() {
 					<ChooserButton
 						label="Toggle ExaCC"
 						shortcut="Shift+X"
+						disabled={!hasLevel}
 						onTrigger={toggleExaCC}
 						expl={
 							<>
@@ -528,6 +543,7 @@ export function Sidebar() {
 					<ChooserButton
 						label="New ExaCC route"
 						shortcut="Ctrl+Shift+X"
+						disabled={!hasLevel}
 						onTrigger={openExaCC}
 					/>
 					<ChooserButton

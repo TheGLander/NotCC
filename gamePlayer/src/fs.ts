@@ -118,6 +118,7 @@ export async function initNotCCFs(): Promise<void> {
 	await makeDir(".")
 	await makeDir("solutions")
 	await makeDir("solutions/default")
+	await makeDir("routes")
 	await makeDir("tilesets")
 	await makeDir("sfx")
 }

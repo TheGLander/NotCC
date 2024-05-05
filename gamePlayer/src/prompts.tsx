@@ -78,11 +78,11 @@ export function hidePrompt(
 export function Prompts() {
 	const prompts = useAtomValue(promptsAtom)
 	return (
-		<>
+		<div class="isolate z-10">
 			{prompts
 				.concat()
 				.reverse()
 				.map(prompt => prompt.el)}
-		</>
+		</div>
 	)
 }

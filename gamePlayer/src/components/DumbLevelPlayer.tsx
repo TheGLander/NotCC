@@ -26,7 +26,7 @@ import {
 	sleep,
 	useJotaiFn,
 } from "@/helpers"
-import { embedReadyAtom, embedModeAtom } from "@/routing"
+import { embedReadyAtom, embedModeAtom, pageAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
@@ -34,7 +34,7 @@ import { Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
 import { borrowLevelSetGs } from "@/levelData"
-import { goToNextLevel as goToNextLevelGs } from "@/levelData"
+import { goToNextLevelGs } from "@/levelData"
 import { trivia } from "@/trivia"
 import { LevelControls, SidebarReplayable } from "./Sidebar"
 import {
@@ -108,10 +108,12 @@ type PlayerState =
 	| "win"
 	| "gz"
 
+type CoverButton = [string, null | (() => void)]
+
 function Cover(props: {
 	class: string
 	header: VNode
-	buttons: [string, null | (() => void)][]
+	buttons: CoverButton[]
 	focusedButton?: string
 }) {
 	const focusedRef = useRef<HTMLButtonElement>(null)
@@ -223,7 +225,23 @@ function LoseCover(props: { timeout: boolean; onRestart: () => void }) {
 	)
 }
 
-function WinCover(props: { onNextLevel: () => void }) {
+function WinCover(props: {
+	onNextLevel: () => void
+	onRestart: () => void
+	onSetSelector: () => void
+	singleLevel: boolean
+}) {
+	const buttons: CoverButton[] = props.singleLevel
+		? [
+				["Restart", props.onRestart],
+				["Back to set selector", props.onSetSelector],
+				["Explode Jupiter", null],
+		  ]
+		: [
+				["Level list", null],
+				["Next level", props.onNextLevel],
+				["Explode Jupiter", null],
+		  ]
 	return (
 		<Cover
 			class="from-yellow-900/30 to-yellow-600/70"
@@ -232,11 +250,7 @@ function WinCover(props: { onNextLevel: () => void }) {
 					<h2 class="mt-6 text-4xl">You won!</h2>
 				</>
 			}
-			buttons={[
-				["Level list", null],
-				["Next level", props.onNextLevel],
-				["Explode Jupiter", null],
-			]}
+			buttons={buttons}
 			focusedButton="Next level"
 		/>
 	)
@@ -461,6 +475,7 @@ export function DumbLevelPlayer(props: {
 	const scale = useAutoScale(scaleArgs)
 	const shouldShowMobileControls = useShouldShowMobileControls()
 	const goToNextLevel = useJotaiFn(goToNextLevelGs)
+	const setPage = useSetAtom(pageAtom)
 
 	let cover: VNode | null
 	if (playerState === "pregame") {
@@ -477,7 +492,14 @@ export function DumbLevelPlayer(props: {
 			<LoseCover timeout={playerState === "timeout"} onRestart={resetLevel} />
 		)
 	} else if (playerState === "win") {
-		cover = <WinCover onNextLevel={goToNextLevel} />
+		cover = (
+			<WinCover
+				onNextLevel={goToNextLevel}
+				onSetSelector={() => setPage("")}
+				onRestart={resetLevel}
+				singleLevel={!props.levelSet}
+			/>
+		)
 	} else if (playerState === "pause") {
 		cover = <PauseCover onUnpause={() => setPlayerState("play")} />
 	} else {

@@ -55,12 +55,13 @@ export async function borrowLevelSetGs(
 	set: Setter,
 	func: (set: LevelSet) => void | Promise<void>
 ) {
-	const lset = get(levelSetAtom)!
+	const lset = get(levelSetAtom)
+	if (!lset) return
 	await func(lset)
 	set(levelSetAtom, lset)
 }
 
-export async function goToLevelN(get: Getter, set: Setter) {
+export async function goToLevelNGs(get: Getter, set: Setter) {
 	const levelN = get(levelNAtom)
 	if (levelN === null) return
 	await borrowLevelSetGs(get, set, async lSet => {
@@ -70,7 +71,7 @@ export async function goToLevelN(get: Getter, set: Setter) {
 	})
 }
 
-export async function goToNextLevel(get: Getter, set: Setter) {
+export async function goToNextLevelGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
 		lSet.lastLevelResult = { type: "skip" }
 		const rec = await lSet.getNextRecord()
@@ -85,7 +86,7 @@ export async function goToNextLevel(get: Getter, set: Setter) {
 	})
 }
 
-export async function goToPreviousLevel(get: Getter, set: Setter) {
+export async function goToPreviousLevelGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.getPreviousRecord()
 		if (!rec) return
@@ -204,9 +205,9 @@ export function useOpenDir(): () => Promise<{
 }> {
 	const { setSet } = useSetLoaded()
 	return async () => {
-		const setData = showSetDirectoryPrompt()
-		setSet(setData)
-		return { setData: await setData }
+		const setData = await showSetDirectoryPrompt()
+		setSet(Promise.resolve(setData))
+		return { setData }
 	}
 }
 

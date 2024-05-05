@@ -20,7 +20,7 @@ export const Dialog = forwardRef(function (
 		<Draggable handle=".dialog-handle">
 			<dialog
 				class={twJoin(
-					"box fixed bottom-0 top-0 flex max-h-[75vh] max-w-[75vw] flex-col p-0 backdrop:bg-black/50 max-sm:max-w-[95vw]",
+					"box fixed bottom-0 top-0 z-10 flex max-h-[75vh] max-w-[75vw] flex-col p-0 backdrop:bg-black/50 max-sm:max-w-[95vw]",
 					!props.notModal && "min-w-[33vw]"
 				)}
 				ref={refVal => {
