@@ -50,7 +50,7 @@ export function Preloader(props: { preloadComplete?: () => void }) {
 		)
 		set(sfxAtom, await getSfxSet(get(sfxIdAtom)))
 		set(preloadFinishedAtom, true)
-		setImmediate(() => (syncAllowed_thisisstupid.val = true))
+		setTimeout(() => (syncAllowed_thisisstupid.val = true), 0)
 	}
 	useEffect(() => {
 		if (!globalThis.window) return
