@@ -18,6 +18,7 @@ import {
 	sfxAtom,
 	sfxIdAtom,
 } from "./PreferencesPrompt/SfxPrompt"
+import { Throbber } from "./Throbber"
 
 export function Preloader(props: { preloadComplete?: () => void }) {
 	const { get, set } = useStore()
@@ -57,15 +58,21 @@ export function Preloader(props: { preloadComplete?: () => void }) {
 		prepareAssets().then(() => props.preloadComplete?.())
 	}, [])
 	return (
-		<div class="box m-auto">
-			<b>Pre</b>paring...
-			<br />
-			Loading {loadingStage}
-			<noscript>
+		<div class="flex h-full">
+			<div class="box m-auto w-36 text-center">
+				<b>Pre</b>paring...
 				<br />
-				It appears you have JavaScript disabled. You need to enable it to play
-				NotCC
-			</noscript>
+				Loading {loadingStage}
+				<br />
+				<div class="m-auto w-min">
+					<Throbber />
+				</div>
+				<noscript>
+					<br />
+					It appears you have JavaScript disabled. You need to enable it to play
+					NotCC
+				</noscript>
+			</div>
 		</div>
 	)
 }
