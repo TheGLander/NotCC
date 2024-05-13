@@ -6,7 +6,12 @@ import {
 	keyInputToChar,
 	makeEmptyInputs,
 } from "@notcc/logic"
-import clone from "clone"
+import cloneLib from "clone"
+
+function clone<T>(src: T): T {
+	if (typeof structuredClone === "function") return structuredClone(src)
+	return cloneLib(src, true)
+}
 
 export function tickLevel(level: LevelState) {
 	level.tick()
@@ -34,7 +39,7 @@ export function cloneLevel(level: LevelState): LevelState {
 	delete level.levelData
 	const inputProvider = level.inputProvider
 	delete level.inputProvider
-	const newLevel = clone(level, true)
+	const newLevel = clone(level)
 	newLevel.levelData = levelData
 	newLevel.inputProvider = inputProvider
 	level.levelData = levelData
