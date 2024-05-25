@@ -166,23 +166,23 @@ export const TilesetsPrompt =
 			</Dialog>
 		)
 	}
-export function TilesetPrefDisplay({ set, value }: PrefDisplayProps<string>) {
+export function TilesetPrefDisplay({
+	set,
+	value,
+	inputId,
+}: PrefDisplayProps<string>) {
 	const showPrompt = useJotaiFn(showPromptGs)
-	const inputId = useId()
 	return (
-		<>
-			<label for={inputId}>Tileset:</label>
-			<span id={inputId}>
-				{value.startsWith("custom") ? "custom" : value}{" "}
-				<button
-					onClick={async () => {
-						const tset = showPrompt(TilesetsPrompt(value))
-						set(await tset)
-					}}
-				>
-					Change
-				</button>
-			</span>
-		</>
+		<span id={inputId}>
+			{value.startsWith("custom") ? "custom" : value}{" "}
+			<button
+				onClick={async () => {
+					const tset = showPrompt(TilesetsPrompt(value))
+					set(await tset)
+				}}
+			>
+				Change
+			</button>
+		</span>
 	)
 }

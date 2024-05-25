@@ -4,6 +4,7 @@ import { LinearModel } from "./models/linear"
 import { GraphModel, Node } from "./models/graph"
 import {
 	Ref,
+	useCallback,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
@@ -20,6 +21,8 @@ import {
 	calculateLevelPoints,
 	createLevelFromData,
 	makeEmptyInputs,
+	protoTimeToMs,
+	protobuf,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
@@ -44,7 +47,7 @@ import {
 import { levelNAtom, pageAtom } from "@/routing"
 import { makeLevelHash } from "./hash"
 import { useSwrLevel } from "@/levelData"
-import { modelAtom } from "."
+import { exaComplainAboutNonlegalGlitches, modelAtom } from "."
 import { calcScale } from "@/components/DumbLevelPlayer"
 import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
 import { Dialog } from "@/components/Dialog"
@@ -57,6 +60,7 @@ import {
 } from "@/components/Timeline"
 import { Toast, addToastGs, adjustToastGs, removeToastGs } from "@/toast"
 import { Tileset } from "@/components/GameRenderer/renderer"
+import { NonlegalMessage, isGlitchNonlegal } from "@/components/NonLegalMessage"
 
 const modelConfigAtom = atom<ExaNewEvent | null>(null)
 type Model = LinearModel | GraphModel
@@ -249,6 +253,28 @@ function LinearTimelineView(props: {
 		</Timeline>
 	)
 }
+
+const NonlegalPrompt =
+	(props: {
+		glitch: protobuf.IGlitchInfo
+		undo: () => void
+	}): PromptComponent<void> =>
+	pProps => {
+		return (
+			<Dialog
+				header="Nonlegal glitch"
+				notModal
+				onResolve={pProps.onResolve}
+				buttons={[
+					["Continue", () => {}],
+					["Undo", props.undo],
+				]}
+			>
+				<NonlegalMessage glitch={props.glitch} />
+			</Dialog>
+		)
+	}
+
 export function RealExaPlayerPage() {
 	const [modelM, setModel] = useAtom(modelAtom)
 	const aLevel = useSwrLevel()
@@ -269,6 +295,28 @@ export function RealExaPlayerPage() {
 		model.buildReferences()
 		updateLevel()
 	}
+	const complainAboutNonlegal = useAtomValue(exaComplainAboutNonlegalGlitches)
+	const checkForNonlegalGlitches = useCallback(
+		(lastCheck: number) => {
+			if (!complainAboutNonlegal) return
+
+			const nonlegalGlitches = model.level.glitches.filter(
+				gl => isGlitchNonlegal(gl) && protoTimeToMs(gl.happensAt!) > lastCheck
+			)
+			if (nonlegalGlitches.length > 0) {
+				showPrompt(
+					NonlegalPrompt({
+						glitch: nonlegalGlitches[0],
+						undo: () => {
+							model.undo()
+							updateLevel()
+						},
+					})
+				)
+			}
+		},
+		[model, complainAboutNonlegal]
+	)
 	const showPrompt = useJotaiFn(showPromptGs)
 	const addToast = useJotaiFn(addToastGs)
 	const removeToast = useJotaiFn(removeToastGs)
@@ -307,7 +355,10 @@ export function RealExaPlayerPage() {
 					updateLevel()
 				},
 				redo: () => {
+					const curTime =
+						(1000 * (model.level.currentTick * 3 + model.level.subtick)) / 60
 					model.redo()
+					checkForNonlegalGlitches(curTime)
 					updateLevel()
 				},
 				purgeBackfeed: model instanceof GraphModel ? purgeBackfeed : undefined,
@@ -316,7 +367,7 @@ export function RealExaPlayerPage() {
 				},
 			},
 		})
-	}, [model])
+	}, [model, checkForNonlegalGlitches])
 	useEffect(() => {
 		return () => {
 			setControls({})
@@ -375,7 +426,10 @@ export function RealExaPlayerPage() {
 					render()
 					return
 				}
+				const curTime =
+					(1000 * (model.level.currentTick * 3 + model.level.subtick)) / 60
 				model!.addInput(inputRef.current, model!.level)
+				checkForNonlegalGlitches(curTime)
 				render()
 			} finally {
 				setInput(makeEmptyInputs())
@@ -406,7 +460,7 @@ export function RealExaPlayerPage() {
 			document.removeEventListener("keydown", listener)
 			timer?.cancel()
 		}
-	}, [model])
+	}, [model, checkForNonlegalGlitches])
 	// Time left
 	let rootTimeLeft: number | undefined
 	if (model instanceof GraphModel) {

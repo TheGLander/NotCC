@@ -1,4 +1,4 @@
-import { InputType, KeyInputs } from "@notcc/logic"
+import { InputType, KeyInputs, makeEmptyInputs } from "@notcc/logic"
 import { TimeoutTimer } from "./helpers"
 import { useCallback, useEffect, useMemo, useRef } from "preact/hooks"
 
@@ -60,24 +60,8 @@ export function useKeyInputs(): {
 	releaseKeys: (keys: KeyInputs) => void
 	handler: RepeatKeyHandler
 } {
-	const { current: repeatInputs } = useRef<KeyInputs>({
-		up: false,
-		right: false,
-		down: false,
-		left: false,
-		drop: false,
-		rotateInv: false,
-		switchPlayable: false,
-	})
-	const { current: gameInputs } = useRef<KeyInputs>({
-		up: false,
-		right: false,
-		down: false,
-		left: false,
-		drop: false,
-		rotateInv: false,
-		switchPlayable: false,
-	})
+	const { current: repeatInputs } = useRef<KeyInputs>(makeEmptyInputs())
+	const { current: gameInputs } = useRef<KeyInputs>(makeEmptyInputs())
 	const keyListener = useCallback((ev: RepeatKeyEvent) => {
 		repeatInputs[ev.code] = ev.state === "repeated"
 		gameInputs[ev.code] = ev.state !== "released"

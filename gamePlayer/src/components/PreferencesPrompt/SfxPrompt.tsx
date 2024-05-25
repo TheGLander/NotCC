@@ -130,23 +130,23 @@ export const SfxPrompt =
 		)
 	}
 
-export function SfxPrefDisplay({ set, value }: PrefDisplayProps<string>) {
+export function SfxPrefDisplay({
+	set,
+	value,
+	inputId,
+}: PrefDisplayProps<string>) {
 	const showPrompt = useJotaiFn(showPromptGs)
-	const inputId = useId()
 	return (
-		<>
-			<label for={inputId}>Sound effects:</label>
-			<span id={inputId}>
-				{value.startsWith("custom") ? "custom" : value}{" "}
-				<button
-					onClick={async () => {
-						const sfx = showPrompt(SfxPrompt(value))
-						set(await sfx)
-					}}
-				>
-					Change
-				</button>
-			</span>
-		</>
+		<span id={inputId}>
+			{value.startsWith("custom") ? "custom" : value}{" "}
+			<button
+				onClick={async () => {
+					const sfx = showPrompt(SfxPrompt(value))
+					set(await sfx)
+				}}
+			>
+				Change
+			</button>
+		</span>
 	)
 }

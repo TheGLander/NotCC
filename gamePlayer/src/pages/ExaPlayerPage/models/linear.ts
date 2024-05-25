@@ -9,7 +9,11 @@ import {
 import cloneLib from "clone"
 
 function clone<T>(src: T): T {
-	if (typeof structuredClone === "function") return structuredClone(src)
+	// if (typeof structuredClone === "function") {
+	// 	const obj = structuredClone(src)
+	// 	Object.setPrototypeOf(obj, Object.getPrototypeOf(src))
+	// 	return obj
+	// }
 	return cloneLib(src, true)
 }
 

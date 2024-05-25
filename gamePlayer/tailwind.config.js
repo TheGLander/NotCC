@@ -5,6 +5,8 @@ export default {
 		extend: {
 			backgroundImage: {
 				"radial-gradient": "radial-gradient(var(--tw-gradient-stops))",
+				"repeating-conic-gradient":
+					"repeating-conic-gradient(var(--tw-gradient-stops))",
 			},
 			colors: {
 				theme: Object.fromEntries(

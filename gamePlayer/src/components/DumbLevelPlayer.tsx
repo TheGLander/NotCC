@@ -44,6 +44,8 @@ import {
 	TimelineHead,
 } from "./Timeline"
 import { sfxAtom } from "./PreferencesPrompt/SfxPrompt"
+import { protobuf } from "@notcc/logic"
+import { NonlegalMessage, isGlitchNonlegal } from "./NonLegalMessage"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -107,6 +109,7 @@ type PlayerState =
 	| "timeout"
 	| "win"
 	| "gz"
+	| "nonlegal"
 
 type CoverButton = [string, null | (() => void)]
 
@@ -225,6 +228,28 @@ function LoseCover(props: { timeout: boolean; onRestart: () => void }) {
 	)
 }
 
+function NonlegalCover(props: {
+	glitch: protobuf.IGlitchInfo
+	onRestart: () => void
+}) {
+	return (
+		<Cover
+			class="bg-repeating-conic-gradient from-black/50 via-black/75 via-5% to-black/50 to-10%"
+			header={
+				<>
+					<div class="flex flex-1 flex-col items-center">
+						<h2 class="mx-2 mt-8  text-5xl">Stop! You've violated the law!</h2>
+						<div class="box my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
+							<NonlegalMessage glitch={props.glitch} />
+						</div>
+					</div>
+				</>
+			}
+			buttons={[["Restart", props.onRestart]]}
+		/>
+	)
+}
+
 function WinCover(props: {
 	onNextLevel: () => void
 	onRestart: () => void
@@ -236,12 +261,12 @@ function WinCover(props: {
 				["Restart", props.onRestart],
 				["Back to set selector", props.onSetSelector],
 				["Explode Jupiter", null],
-		  ]
+			]
 		: [
 				["Level list", null],
 				["Next level", props.onNextLevel],
 				["Explode Jupiter", null],
-		  ]
+			]
 	return (
 		<Cover
 			class="from-yellow-900/30 to-yellow-600/70"
@@ -264,6 +289,8 @@ export function DumbLevelPlayer(props: {
 	level: LevelData
 	levelSet?: LevelSet
 	controlsRef?: Ref<LevelControls | null>
+	preventSimultaneousMovement?: boolean
+	endOnNonlegalGlitch?: boolean
 }) {
 	const tileset = useAtomValue(tilesetAtom)!
 	const sfx = useAtomValue(sfxAtom)
@@ -476,6 +503,9 @@ export function DumbLevelPlayer(props: {
 	const shouldShowMobileControls = useShouldShowMobileControls()
 	const goToNextLevel = useJotaiFn(goToNextLevelGs)
 	const setPage = useSetAtom(pageAtom)
+	const [caughtGlitch, setCaughtGlitch] = useState<protobuf.IGlitchInfo | null>(
+		null
+	)
 
 	let cover: VNode | null
 	if (playerState === "pregame") {
@@ -502,6 +532,8 @@ export function DumbLevelPlayer(props: {
 		)
 	} else if (playerState === "pause") {
 		cover = <PauseCover onUnpause={() => setPlayerState("play")} />
+	} else if (playerState === "nonlegal") {
+		cover = <NonlegalCover glitch={caughtGlitch!} onRestart={resetLevel} />
 	} else {
 		cover = null
 	}
@@ -525,14 +557,27 @@ export function DumbLevelPlayer(props: {
 				playerState === "pause"
 					? () => setPlayerState("play")
 					: playerState === "play"
-					  ? () => setPlayerState("pause")
-					  : undefined,
+						? () => setPlayerState("pause")
+						: undefined,
 		}
 		applyRef(props.controlsRef, controls)
 		return () => {
 			applyRef(props.controlsRef, null)
 		}
 	}, [props.controlsRef, playerState])
+
+	useLayoutEffect(() => {
+		if (props.endOnNonlegalGlitch) {
+			level.onGlitch = glitch => {
+				if (isGlitchNonlegal(glitch)) {
+					setCaughtGlitch(glitch)
+					setPlayerState("nonlegal")
+				}
+			}
+		} else {
+			level.onGlitch = null
+		}
+	}, [props.endOnNonlegalGlitch, level])
 
 	return (
 		<div
