@@ -1,6 +1,6 @@
 import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
 import { Dialog } from "../Dialog"
-import { useCallback, useId, useMemo, useState } from "preact/hooks"
+import { useCallback, useMemo, useState } from "preact/hooks"
 import { Tileset, removeBackground } from "../GameRenderer/renderer"
 import { GameRenderer } from "../GameRenderer"
 import tilesetLevelPath from "./tilesetPreview.c2m"
