@@ -1,6 +1,6 @@
 import { Actor, SlidingState, tagProperties } from "../actor.js"
 import { Layer } from "../tile.js"
-import { actorDB, getTagFlag } from "../const.js"
+import { actorDB, getTagFlag, hasTag } from "../const.js"
 import { Wall } from "./walls.js"
 import { matchTags } from "../actor.js"
 import { Playable } from "./playables.js"
@@ -61,7 +61,10 @@ export class Ice extends Actor {
 		}
 	}
 	actorCompletelyLeft(other: Actor): void {
-		if (other.hasTag("real-playable")) {
+		if (
+			other.hasTag("real-playable") &&
+			!other.tile[Layer.STATIONARY]?.hasTag("ice")
+		) {
 			this.level.sfxManager?.stopContinuous("ice slide")
 		}
 	}
@@ -103,7 +106,10 @@ export class IceCorner extends Actor {
 		}
 	}
 	actorCompletelyLeft(other: Actor): void {
-		if (other.hasTag("real-playable")) {
+		if (
+			other.hasTag("real-playable") &&
+			!other.tile[Layer.STATIONARY]?.hasTag("ice")
+		) {
 			this.level.sfxManager?.stopContinuous("ice slide")
 		}
 	}
@@ -734,10 +740,10 @@ export class FlameJet extends Actor {
 actorDB["flameJet"] = FlameJet
 
 export const updateJetlife = (level: LevelState): void => {
-	if (!level.levelData?.customData?.jetlife) return
+	if (!level.levelData?.jetlifeInterval) return
 	if (
 		(level.currentTick * 3 + level.subtick) %
-			parseInt(level.levelData.customData.jetlife) !==
+			level.levelData.jetlifeInterval !==
 		0
 	)
 		return

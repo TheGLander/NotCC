@@ -1,52 +1,64 @@
-import { SfxManager } from "@notcc/logic"
-const standardSfx = [
-	"recessed wall",
-	"explosion",
-	"splash",
-	"teleport",
-	"robbed",
-	"dirt clear",
-	"button press",
-	"block push",
-	"force floor",
-	"bump",
-	"water step",
-	"slide step",
-	"ice slide",
-	"fire step",
-	"item get",
-	"socket unlock",
-	"door unlock",
-	// TODO Win, loss SFX
-]
+import { LevelSetLoaderFunction, SfxManager } from "@notcc/logic"
+export const SFX_FILENAME_MAP = {
+	"recessed wall": "newwall",
+	explosion: "burn",
+	splash: "splash",
+	teleport: "teleport",
+	robbed: "thief",
+	"dirt clear": "dirt",
+	"button press": "button",
+	"block push": "push",
+	"force floor": "force",
+	bump: "wall",
+	"water step": "water",
+	"slide step": "ice",
+	"ice slide": "slide",
+	"fire step": "fire",
+	"item get": "get",
+	"socket unlock": "socket",
+	"door unlock": "door",
+	"chip win": "teleport-male",
+	"melinda win": "teleport-female",
+	"chip death": "BummerM",
+	"melinda death": "BummerF",
+}
+
+async function tryGetSfxFile(
+	loader: LevelSetLoaderFunction,
+	sfxName: string
+): Promise<ArrayBuffer | null> {
+	for (const ext of ["ogg", "wav", "WAV"]) {
+		try {
+			return (await loader(`${sfxName}.${ext}`, true)) as ArrayBuffer
+		} catch {
+			continue
+		}
+	}
+	return null
+}
 
 export class AudioSfxManager implements SfxManager {
 	ctx = new AudioContext()
 	audioBuffers: Record<string, AudioBuffer> = {}
 	playingNodes: Record<string, AudioBufferSourceNode> = {}
-	async fetchDefaultSounds(url: string): Promise<void> {
+	async loadSfx(loader: LevelSetLoaderFunction): Promise<void> {
+		this.stopAllSfx()
+		this.audioBuffers = {}
 		let anySfxLoaded = false
-		for (const sfxName of standardSfx) {
-			try {
-				const res = await fetch(`${url}/${sfxName}.wav`)
-				if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`)
-				const buffer = await res.arrayBuffer()
-				const audioBuffer = await this.ctx.decodeAudioData(buffer)
-				this.audioBuffers[sfxName] = audioBuffer
-				anySfxLoaded = true
-			} catch (err) {
-				console.error(`Couldn't load standard sound effect ${sfxName}: ${err}`)
-			}
+		for (const [internalName, fileName] of Object.entries(SFX_FILENAME_MAP)) {
+			const buffer = await tryGetSfxFile(loader, fileName)
+			if (!buffer) continue
+			const audioBuffer = await this.ctx.decodeAudioData(buffer)
+			this.audioBuffers[internalName] = audioBuffer
+			anySfxLoaded = true
 		}
-		if (!anySfxLoaded)
-			throw new Error("Couldn't load any standard sfx from url.")
+		if (!anySfxLoaded) {
+			throw new Error("Couldn't load any sfx")
+		}
 	}
 	getSfxNode(sfx: string): AudioBufferSourceNode | null {
 		const audioBuffer = this.audioBuffers[sfx]
 		if (audioBuffer === undefined) {
-			if (!standardSfx.includes(sfx)) {
-				console.warn(`Unknown sfx: ${sfx}`)
-			}
 			return null
 		}
 		const node = new AudioBufferSourceNode(this.ctx)
@@ -72,6 +84,20 @@ export class AudioSfxManager implements SfxManager {
 			}
 		})
 		node.start()
+	}
+	playOnceAsync(sfx: string): Promise<void> {
+		this.stopSfx(sfx)
+		const node = this.getSfxNode(sfx)
+		if (node === null) return Promise.reject()
+		return new Promise(res => {
+			node.addEventListener("ended", () => {
+				if (this.playingNodes[sfx] === node) {
+					res()
+					delete this.playingNodes[sfx]
+				}
+			})
+			node.start()
+		})
 	}
 	playContinuous(sfx: string): void {
 		if (this.playingNodes[sfx] !== undefined) return

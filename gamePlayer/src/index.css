@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	body {
+		width: 100vw;
+		height: 100vh;
+	}
+	body,
+	dialog {
+		@apply text-neutral-100;
+	}
+	#app {
+		display: contents;
+	}
+}
+
+@layer components {
+	a {
+		@apply underline;
+	}
+	.box {
+		@apply bg-theme-900 border-theme-800 rounded-md border-2 p-2 shadow-lg;
+	}
+	button,
+	button[type="submit"] {
+		@apply cursor-auto appearance-none border-2 border-b-[--low-color] border-l-[--high-color] border-r-[--low-color] border-t-[--high-color] bg-gradient-to-b from-[--high-color] to-[--low-color] px-2;
+		--high-color: theme(colors.theme.600);
+		--low-color: theme(colors.theme.700);
+	}
+	button:enabled:hover,
+	button[type="submit"]:enabled:hover {
+		--high-color: theme(colors.theme.500);
+		--low-color: theme(colors.theme.600);
+	}
+	button:enabled:active,
+	button[type="submit"]:enabled:active {
+		--high-color: theme(colors.theme.700);
+		--low-color: theme(colors.theme.800);
+	}
+	button:disabled,
+	button[type="submit"]:disabled {
+		@apply text-neutral-500;
+		--high-color: theme(colors.theme.800);
+		--low-color: theme(colors.theme.900);
+	}
+	select,
+	input[type="number"] {
+		@apply bg-theme-950;
+	}
+	@media (max-aspect-ratio: 1/1) {
+		/* Mobile */
+		#sidebar {
+			@apply h-20 w-full flex-row;
+		}
+		#sidebar > div {
+			@apply flex-1;
+		}
+		#sidebar > div > img {
+			@apply h-4/5;
+		}
+	}
+	@media (min-aspect-ratio: 1/1) {
+		/* Desktop */
+		#app > div {
+			@apply flex-row;
+		}
+		#sidebar {
+			@apply h-full w-20 flex-col gap-4 py-2 max-md:overflow-y-auto;
+		}
+		#sidebar > div {
+			@apply [&:nth-last-child(2)]:mt-auto;
+		}
+	}
+}

@@ -22,7 +22,7 @@
 		"url": "git+https://github.com/TheGLander/NotCC.git"
 	},
 	"author": "G lander",
-	"license": "MIT",
+	"license": "GPL-3.0-or-later",
 	"bugs": {
 		"url": "https://github.com/TheGLander/NotCC/issues"
 	},

@@ -1,8 +1,10 @@
 import { Route } from "@notcc/logic"
+import { atom } from "jotai"
+import { unwrap } from "jotai/utils"
 
 export interface RRRoute {
 	id: string
-	moves: Route
+	moves?: Route
 	absoluteTime: number
 	timeLeft: number
 	points: number
@@ -18,21 +20,32 @@ export interface RRLevel {
 	levelN: number
 	boldTime: number
 	boldScore: number
-	mainlineTimeRoute: string
-	mainlineScoreRoute: string
+	mainlineTimeRoute?: string
+	mainlineScoreRoute?: string
 }
 
-export async function getRRRoutes(pack: string): Promise<RRLevel[]> {
-	const res = await fetch(`https://glander.club/railroad/packs/${pack}`)
+export async function getRRRoutes(
+	pack: string,
+	noMoves = false
+): Promise<RRLevel[]> {
+	const res = await fetch(
+		`https://glander.club/railroad/packs/${pack}${noMoves ? "?noMoves" : ""}`
+	)
 	return await res.json()
 }
 
-export function identifyRRPack(setName: string): string | null {
-	return (
-		{
-			"Chips Challenge": "cc1",
-			"Chips Challenge 2": "cc2",
-			"Chips Challenge 2 Level Pack 1": "cc2lp1",
-		}[setName] ?? null
+export async function getRRLevel(
+	pack: string,
+	levelN: number,
+	noMoves = false
+): Promise<RRLevel> {
+	const res = await fetch(
+		`https://glander.club/railroad/packs/${pack}/${levelN}/${
+			noMoves ? "?noMoves" : ""
+		}`
 	)
+	return await res.json()
 }
+
+export const setRRRoutesAtomWrapped = atom<Promise<RRLevel[]> | null>(null)
+export const setRRRoutesAtom = unwrap(setRRRoutesAtomWrapped)

@@ -106,9 +106,3 @@ dist
 original.bmp
 
 *.pb.*
-
-desktopPlayer/bin
-desktopPlayer/.tmp
-desktopPlayer/artifacts
-desktopPlayer/NotCC.app/Contents/MacOS
-desktopPlayer/NotCC.zip
