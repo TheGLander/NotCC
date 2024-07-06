@@ -27,18 +27,19 @@ import {
 	goToNextLevelGs,
 	goToPreviousLevelGs,
 	levelSetAtom,
-	levelUnwrappedAtom,
+	useSwrLevel,
 } from "@/levelData"
 import { Expl } from "../Expl"
 import backfeedPruningImg from "./backfeedPruning.png"
 import {
 	InputProvider,
+	ReplayInputProvider,
 	RouteFileInputProvider,
 	SolutionInfoInputProvider,
 	calculateLevelPoints,
 	protoTimeToMs,
 } from "@notcc/logic"
-import { ISolutionInfo } from "@notcc/logic/dist/parsers/nccs.pb"
+import { protobuf } from "@notcc/logic"
 import { RRLevel, RRRoute, getRRLevel, setRRRoutesAtom } from "@/railroad"
 import { Toast, addToastGs, removeToastGs } from "@/toast"
 
@@ -224,7 +225,7 @@ function SidebarButton(props: {
 		? false
 		: !useMediaQuery({
 				query: "(min-width: 768px) and (min-aspect-ratio: 1/1)",
-		  })
+			})
 	const SidebarChooser = useDrawer ? SidebarDrawer : SidebarTooltip
 
 	return (
@@ -274,97 +275,101 @@ export interface SidebarReplayable {
 	ip: InputProvider | (() => Promise<InputProvider>)
 }
 
+function getAttemptSolutions(
+	attempts: protobuf.IAttemptInfo[],
+	currentLevel: number
+) {
+	const sols = []
+	let bestTime: protobuf.ISolutionInfo | null = null
+	let bestScore: protobuf.ISolutionInfo | null = null
+	let bestScoreVal = -Infinity
+	let last: protobuf.ISolutionInfo | null = null
+	for (const attempt of attempts) {
+		const sol = attempt.solution
+		if (!sol) continue
+		last = sol
+		if (
+			sol.outcome?.timeLeft != undefined &&
+			(!bestTime ||
+				protoTimeToMs(sol.outcome.timeLeft) >
+					protoTimeToMs(bestTime.outcome!.timeLeft!))
+		) {
+			bestTime = sol
+		}
+		if (
+			sol.outcome?.bonusScore != undefined &&
+			sol.outcome?.timeLeft != undefined
+		) {
+			const score = calculateLevelPoints(
+				currentLevel,
+				Math.ceil(protoTimeToMs(sol.outcome.timeLeft) / 1000),
+				sol.outcome.bonusScore
+			)
+			if (!bestScore || score > bestScoreVal) {
+				bestScore = sol
+				bestScoreVal = score
+			}
+		}
+	}
+	function makeMetrics(sol: protobuf.ISolutionInfo) {
+		const score = calculateLevelPoints(
+			currentLevel,
+			Math.ceil(protoTimeToMs(sol.outcome!.timeLeft!) / 1000),
+			sol.outcome!.bonusScore!
+		)
+		return `${Math.ceil(
+			protoTimeToMs(sol.outcome!.timeLeft!) / 1000
+		)}s / ${score}pts`
+	}
+	if (bestTime || bestScore) {
+		if (bestTime === bestScore) {
+			sols.push({
+				name: "Best",
+				metric: makeMetrics(bestTime!),
+				ip: new SolutionInfoInputProvider(bestTime!),
+			})
+		} else {
+			sols.push({
+				name: "Best time",
+				metric: makeMetrics(bestTime!),
+				ip: new SolutionInfoInputProvider(bestTime!),
+			})
+			sols.push({
+				name: "Best score",
+				metric: makeMetrics(bestScore!),
+				ip: new SolutionInfoInputProvider(bestScore!),
+			})
+		}
+	}
+	if (last && last !== bestTime && last !== bestScore) {
+		sols.push({
+			name: "Last",
+			metric: makeMetrics(last),
+			ip: new SolutionInfoInputProvider(last),
+		})
+	}
+	return sols
+}
+
 function SolutionsTooltipList(props: { controls: LevelControls }) {
 	const lSet = useAtomValue(levelSetAtom)
-	const level = useAtomValue(levelUnwrappedAtom)
+	const level = useSwrLevel()
 	if (!level || !props.controls.playInputs)
 		return <div class="mx-2 my-1">N/A</div>
 	const sols: SidebarReplayable[] = []
-	if (level.associatedSolution) {
-		const solLength = Math.ceil(
-			level.associatedSolution.steps![0].reduce(
-				(acc, val, i) => (i % 2 === 1 ? acc + val : acc),
-				0
-			) / 60
-		)
+	if (level.replay) {
+		const replayLength = Math.round(level.replay.replayLength / 20)
 		sols.push({
 			name: "Built-in",
-			metric: `${Math.floor(solLength / 60)}:${(solLength % 60)
+			metric: `${Math.floor(replayLength / 60)}:${(replayLength % 60)
 				.toString()
 				.padStart(2, "0")}`,
-			ip: new SolutionInfoInputProvider(level.associatedSolution),
+			ip: new ReplayInputProvider(level.replay),
 		})
 	}
 	const attempts = lSet?.seenLevels[lSet.currentLevel].levelInfo.attempts
 	if (attempts) {
-		let bestTime: ISolutionInfo | null = null
-		let bestScore: ISolutionInfo | null = null
-		let bestScoreVal = -Infinity
-		let last: ISolutionInfo | null = null
-		for (const attempt of attempts) {
-			const sol = attempt.solution
-			if (!sol) continue
-			last = sol
-			if (
-				sol.outcome?.timeLeft != undefined &&
-				(!bestTime ||
-					protoTimeToMs(sol.outcome.timeLeft) >
-						protoTimeToMs(bestTime.outcome!.timeLeft!))
-			) {
-				bestTime = sol
-			}
-			if (
-				sol.outcome?.bonusScore != undefined &&
-				sol.outcome?.timeLeft != undefined
-			) {
-				const score = calculateLevelPoints(
-					lSet.currentLevel,
-					Math.ceil(protoTimeToMs(sol.outcome.timeLeft) / 1000),
-					sol.outcome.bonusScore
-				)
-				if (!bestScore || score > bestScoreVal) {
-					bestScore = sol
-					bestScoreVal = score
-				}
-			}
-		}
-		function makeMetrics(sol: ISolutionInfo) {
-			const score = calculateLevelPoints(
-				lSet!.currentLevel,
-				Math.ceil(protoTimeToMs(sol.outcome!.timeLeft!) / 1000),
-				sol.outcome!.bonusScore!
-			)
-			return `${Math.ceil(
-				protoTimeToMs(sol.outcome!.timeLeft!) / 1000
-			)}s / ${score}pts`
-		}
-		if (bestTime || bestScore) {
-			if (bestTime === bestScore) {
-				sols.push({
-					name: "Best",
-					metric: makeMetrics(bestTime!),
-					ip: new SolutionInfoInputProvider(bestTime!),
-				})
-			} else {
-				sols.push({
-					name: "Best time",
-					metric: makeMetrics(bestTime!),
-					ip: new SolutionInfoInputProvider(bestTime!),
-				})
-				sols.push({
-					name: "Best score",
-					metric: makeMetrics(bestScore!),
-					ip: new SolutionInfoInputProvider(bestScore!),
-				})
-			}
-		}
-		if (last && last !== bestTime && last !== bestScore) {
-			sols.push({
-				name: "Last",
-				metric: makeMetrics(last),
-				ip: new SolutionInfoInputProvider(last),
-			})
-		}
+		sols.push(...getAttemptSolutions(attempts, lSet.currentLevel))
 	}
 	if (sols.length === 0) return <div class="mx-2 my-1">None</div>
 	return (
@@ -479,7 +484,7 @@ export function Sidebar() {
 			document.removeEventListener("keydown", listener)
 		}
 	}, [levelControls])
-	const hasLevel = !!useAtomValue(levelUnwrappedAtom)
+	const hasLevel = !!useSwrLevel()
 	return (
 		<SidebarActionContext.Provider value={sidebarActions}>
 			<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">

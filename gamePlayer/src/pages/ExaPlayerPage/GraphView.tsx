@@ -1,4 +1,4 @@
-import { GameState, KeyInputs, keyInputToChar } from "@notcc/logic"
+import { GameState, KeyInputs, generateSecondaryChars } from "@notcc/logic"
 import {
 	ConnPtr,
 	GraphModel,
@@ -240,10 +240,10 @@ function getNodeColor(model: GraphModel, node: Node) {
 	return node === model.rootNode
 		? "zinc-500"
 		: node.loose
-		  ? "theme-400"
-		  : node.level.gameState === GameState.WON
-		    ? "cyan-400"
-		    : "theme-600"
+			? "theme-400"
+			: node.level.gameState === GameState.WON
+				? "cyan-400"
+				: "theme-600"
 }
 
 const MOVE_CURSOR_CLASS =
@@ -255,7 +255,7 @@ export function MovesList(props: {
 	moves: string[]
 }) {
 	const { moves, offset, composeOverlay } = props
-	const composeText = keyInputToChar(composeOverlay, false, true)
+	const composeText = generateSecondaryChars(composeOverlay)
 	let futureMoves: VNode
 	if (offset === moves.length) {
 		futureMoves = <span class={MOVE_CURSOR_CLASS}>{composeText} </span>
@@ -288,7 +288,7 @@ export function MovesList(props: {
 
 export function Infobox(props: GraphViewProps) {
 	const model = props.model
-	const composeText = keyInputToChar(props.inputs, false, true)
+	const composeText = generateSecondaryChars(props.inputs)
 	if ("m" in model.current || model.current.loose) {
 		let seq: GraphMoveSequence
 		let offset: number
@@ -316,8 +316,8 @@ export function Infobox(props: GraphViewProps) {
 			{model.current === model.rootNode
 				? "Root node"
 				: model.current.level.gameState === GameState.WON
-				  ? "Winning node"
-				  : "Node"}
+					? "Winning node"
+					: "Node"}
 			<br />
 			Dists: root {formatTicks(model.current.rootDistance)}s /{" "}
 			{model.current.winDistance === undefined
@@ -518,10 +518,10 @@ function ConstructionView(props: GraphViewProps) {
 					idx < constrIdx
 						? ptr.m.tickLen
 						: idx === constrIdx
-						  ? !(props.model.current instanceof Node)
+							? !(props.model.current instanceof Node)
 								? props.model.current.o
 								: 0
-						  : 0
+							: 0
 				}
 			/>
 		)

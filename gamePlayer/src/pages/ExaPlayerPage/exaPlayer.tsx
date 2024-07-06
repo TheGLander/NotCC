@@ -1,9 +1,8 @@
-import { GameRenderer } from "@/components/GameRenderer"
+import { CameraType, GameRenderer } from "@/components/GameRenderer"
 import { Getter, Setter, atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { LinearModel } from "./models/linear"
 import { GraphModel, Node } from "./models/graph"
 import {
-	Ref,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
@@ -12,17 +11,13 @@ import {
 	useState,
 } from "preact/hooks"
 import {
-	CameraType,
 	GameState,
 	InputProvider,
 	KeyInputs,
-	LevelData,
-	LevelState,
 	calculateLevelPoints,
-	createLevelFromData,
-	makeEmptyInputs,
-	protoTimeToMs,
 	protobuf,
+	Level,
+	KEY_INPUTS,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
@@ -32,7 +27,7 @@ import {
 	sleep,
 	useJotaiFn,
 } from "@/helpers"
-import { keyToInputMap } from "@/inputs"
+import { DEFAULT_KEY_MAP } from "@/inputs"
 import {
 	DEFAULT_HASH_SETTINGS,
 	ExaNewEvent,
@@ -45,8 +40,7 @@ import {
 	MovesList,
 } from "./GraphView"
 import { levelNAtom, pageAtom } from "@/routing"
-import { makeLevelHash } from "./hash"
-import { useSwrLevel } from "@/levelData"
+import { LevelData, useSwrLevel } from "@/levelData"
 import { exaComplainAboutNonlegalGlitches, modelAtom } from "."
 import { calcScale } from "@/components/DumbLevelPlayer"
 import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
@@ -60,7 +54,7 @@ import {
 } from "@/components/Timeline"
 import { Toast, addToastGs, adjustToastGs, removeToastGs } from "@/toast"
 import { Tileset } from "@/components/GameRenderer/renderer"
-import { NonlegalMessage, isGlitchNonlegal } from "@/components/NonLegalMessage"
+import { NonlegalMessage } from "@/components/NonLegalMessage"
 
 const modelConfigAtom = atom<ExaNewEvent | null>(null)
 type Model = LinearModel | GraphModel
@@ -74,7 +68,7 @@ export function openExaCCReal(
 	if (openEv.type !== "new") return
 	const model = makeModel(levelData, openEv)
 	// @ts-ignore Temporary
-	globalThis.NotCC.exa = { model, makeLevelHash }
+	globalThis.NotCC.exa = { model }
 	set(modelConfigAtom, openEv)
 	set(pageAtom, "exa")
 	set(modelAtom, model)
@@ -85,7 +79,7 @@ function makeModel(
 	conf: ExaNewEvent,
 	init?: InputProvider
 ): Model {
-	const level = createLevelFromData(levelData)
+	const level = levelData.initLevel()
 	init?.setupLevel(level)
 	level.tick()
 	level.tick()
@@ -109,31 +103,6 @@ function makeModel(
 // 	}
 // }
 
-function Inv(props: {
-	level: { current: LevelState }
-	renderRef: Ref<(() => void) | undefined>
-	tileScale: number
-}) {
-	const tileset = useAtomValue(tilesetAtom)
-	const invRef = useMemo(
-		() => ({
-			get current() {
-				return props.level.current.selectedPlayable!.inventory
-			},
-			set current(_val) {},
-		}),
-		[props.level]
-	)
-	return (
-		<Inventory
-			inventory={invRef}
-			renderRef={props.renderRef}
-			tileset={tileset!}
-			tileScale={props.tileScale}
-		/>
-	)
-}
-
 function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 	return (
 		<div class="bg-theme-950 absolute h-full w-full overflow-y-auto rounded">
@@ -149,8 +118,14 @@ function LinearView(props: { model: LinearModel; inputs: KeyInputs }) {
 const CameraUtil: PromptComponent<void> = pProps => {
 	const [cameraType, setCameraType] = useAtom(cameraTypeAtom)
 	const [tileScale, setTileScale] = useAtom(tileScaleAtom)
-	const aLevel = useSwrLevel()
+	const model = useAtomValue(modelAtom)
 	const tileset = useAtomValue(tilesetAtom)
+	useLayoutEffect(() => {
+		if (!model) {
+			pProps.onResolve()
+		}
+	}, [model])
+	if (!model) return <></>
 	return (
 		<Dialog
 			header="Camera control"
@@ -198,7 +173,7 @@ const CameraUtil: PromptComponent<void> = pProps => {
 			</div>
 			<button
 				onClick={() => {
-					const [camera, scale] = computeDefaultCamera(aLevel!, tileset!)
+					const [camera, scale] = computeDefaultCamera(model.level!, tileset!)
 					setCameraType(camera)
 					setTileScale(scale)
 				}}
@@ -210,13 +185,12 @@ const CameraUtil: PromptComponent<void> = pProps => {
 }
 
 function computeDefaultCamera(
-	level: LevelData | LevelState,
+	level: Level,
 	tileset: Tileset
 ): [CameraType, number] {
 	const camera: CameraType = {
 		width: Math.min(32, level.width),
 		height: Math.min(32, level.height),
-		screens: 1,
 	}
 	let scale = calcScale({
 		tileSize: tileset!.tileSize,
@@ -232,7 +206,7 @@ function computeDefaultCamera(
 	return [camera, scale]
 }
 
-const cameraTypeAtom = atom<CameraType>({ screens: 1, width: 10, height: 10 })
+const cameraTypeAtom = atom<CameraType>({ width: 10, height: 10 })
 const tileScaleAtom = atom<number>(1)
 
 function LinearTimelineView(props: {
@@ -254,6 +228,7 @@ function LinearTimelineView(props: {
 	)
 }
 
+// @ts-ignore Temporary!
 const NonlegalPrompt =
 	(props: {
 		glitch: protobuf.IGlitchInfo
@@ -284,6 +259,7 @@ export function RealExaPlayerPage() {
 		setModel(makeModel(aLevel, modelConfig))
 	}, [aLevel])
 	const model = modelM!
+	const playerSeat = model.level.playerSeats[0]
 	const levelN = useAtomValue(levelNAtom)
 	const setControls = useSetAtom(levelControlsAtom)
 	// Sidebar and router comms, level state
@@ -297,23 +273,23 @@ export function RealExaPlayerPage() {
 	}
 	const complainAboutNonlegal = useAtomValue(exaComplainAboutNonlegalGlitches)
 	const checkForNonlegalGlitches = useCallback(
-		(lastCheck: number) => {
+		(_lastCheck: number) => {
 			if (!complainAboutNonlegal) return
-
-			const nonlegalGlitches = model.level.glitches.filter(
-				gl => isGlitchNonlegal(gl) && protoTimeToMs(gl.happensAt!) > lastCheck
-			)
-			if (nonlegalGlitches.length > 0) {
-				showPrompt(
-					NonlegalPrompt({
-						glitch: nonlegalGlitches[0],
-						undo: () => {
-							model.undo()
-							updateLevel()
-						},
-					})
-				)
-			}
+			// TODO: Readd glitch support
+			// const nonlegalGlitches = model.level.glitches.filter(
+			// 	gl => isGlitchNonlegal(gl) && protoTimeToMs(gl.happensAt!) > lastCheck
+			// )
+			// if (nonlegalGlitches.length > 0) {
+			// 	showPrompt(
+			// 		NonlegalPrompt({
+			// 			glitch: nonlegalGlitches[0],
+			// 			undo: () => {
+			// 				model.undo()
+			// 				updateLevel()
+			// 			},
+			// 		})
+			// 	)
+			// }
 		},
 		[model, complainAboutNonlegal]
 	)
@@ -336,7 +312,7 @@ export function RealExaPlayerPage() {
 				addToast(toast)
 				while (!ip.outOfInput(model.level)) {
 					if (model.level.gameState !== GameState.PLAYING) break
-					model.addInput(ip.getInput(model.level), model.level)
+					model.addInput(ip.getInput(model.level, 0))
 					if (model.level.currentTick % UPDATE_PERIOD === 0) {
 						updateLevel()
 						toast.title = `Importing route (${Math.floor(
@@ -355,8 +331,7 @@ export function RealExaPlayerPage() {
 					updateLevel()
 				},
 				redo: () => {
-					const curTime =
-						(1000 * (model.level.currentTick * 3 + model.level.subtick)) / 60
+					const curTime = model.level.msecsPassed()
 					model.redo()
 					checkForNonlegalGlitches(curTime)
 					updateLevel()
@@ -409,7 +384,7 @@ export function RealExaPlayerPage() {
 	}, [aLevel, tileset])
 
 	// Inputs
-	const [inputs, setInputs] = useState(makeEmptyInputs)
+	const [inputs, setInputs] = useState<KeyInputs>(0)
 
 	const inputRef = useRef(inputs)
 	useLayoutEffect(() => {
@@ -418,6 +393,7 @@ export function RealExaPlayerPage() {
 			setInputs(inputsNeue)
 		}
 		function finalizeInput() {
+			timer?.cancel()
 			timer = null
 			try {
 				if (model?.level.gameState !== GameState.PLAYING) return
@@ -426,33 +402,31 @@ export function RealExaPlayerPage() {
 					render()
 					return
 				}
-				const curTime =
-					(1000 * (model.level.currentTick * 3 + model.level.subtick)) / 60
-				model!.addInput(inputRef.current, model!.level)
+				const curTime = model.level.msecsPassed()
+				model!.addInput(inputRef.current)
 				checkForNonlegalGlitches(curTime)
 				render()
 			} finally {
-				setInput(makeEmptyInputs())
+				setInput(0)
 			}
 		}
 		let timer: TimeoutTimer | null = null
 		const listener = (ev: KeyboardEvent) => {
-			const input = keyToInputMap[ev.code]
+			const inputs = inputRef.current
+			const input: number | undefined = DEFAULT_KEY_MAP[ev.code as "ArrowUp"]
 			const isWait = ev.code === "Space"
 			if (isWait) {
 				finalizeInput()
 			} else if (
-				input === "up" ||
-				input === "right" ||
-				input === "down" ||
-				input === "left"
+				input &
+				(KEY_INPUTS.up | KEY_INPUTS.right | KEY_INPUTS.down | KEY_INPUTS.left)
 			) {
-				setInput({ ...inputRef.current, [input]: true })
+				setInput(inputs | input)
 				if (timer === null) {
 					timer = new TimeoutTimer(finalizeInput, 0.05)
 				}
 			} else if (input !== undefined) {
-				setInput({ ...inputRef.current, [input]: !inputRef.current[input] })
+				setInput((inputs & ~input) | (input & inputs ? 0 : input))
 			}
 		}
 		document.addEventListener("keydown", listener)
@@ -483,7 +457,7 @@ export function RealExaPlayerPage() {
 	const timerRef = useRef<IntervalTimer | null>(null)
 	function stepLevel() {
 		if (model.isAtEnd()) {
-			if (model.level.subtick !== 1) {
+			if (model.level.currentSubtick !== 1) {
 				model.level.tick()
 				updateLevel()
 				return
@@ -520,6 +494,7 @@ export function RealExaPlayerPage() {
 			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr_auto/auto_min-content]">
 				<div class="box row-span-2">
 					<GameRenderer
+						playerSeat={playerSeat}
 						renderRef={renderRef1}
 						level={levelRef}
 						tileScale={tileScale}
@@ -544,8 +519,9 @@ export function RealExaPlayerPage() {
 				</div>
 				<div class="box col-start-2 flex w-auto gap-2">
 					<div class="row-span-full mr-16 self-center justify-self-center">
-						<Inv
-							level={levelRef}
+						<Inventory
+							tileset={tileset!}
+							inventory={playerSeat}
 							renderRef={renderRef2}
 							tileScale={tileScale}
 						/>

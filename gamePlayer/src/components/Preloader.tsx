@@ -19,11 +19,15 @@ import {
 	sfxIdAtom,
 } from "./PreferencesPrompt/SfxPrompt"
 import { Throbber } from "./Throbber"
+import { initWasm } from "@notcc/logic"
+import { updateVariablesFromHashGs } from "@/routing"
 
 export function Preloader(props: { preloadComplete?: () => void }) {
 	const { get, set } = useStore()
 	const [loadingStage, setLoadingStage] = useState("javascript")
 	async function prepareAssets() {
+		setLoadingStage("game logic")
+		await initWasm()
 		setLoadingStage("user data")
 		let prefs: any = {}
 		try {
@@ -52,6 +56,7 @@ export function Preloader(props: { preloadComplete?: () => void }) {
 		set(sfxAtom, await getSfxSet(get(sfxIdAtom)))
 		set(preloadFinishedAtom, true)
 		setTimeout(() => (syncAllowed_thisisstupid.val = true), 0)
+		updateVariablesFromHashGs(get, set)
 	}
 	useEffect(() => {
 		if (!globalThis.window) return
@@ -64,7 +69,7 @@ export function Preloader(props: { preloadComplete?: () => void }) {
 				<br />
 				Loading {loadingStage}
 				<br />
-				<div class="m-auto w-min">
+				<div class="m-auto w-[32px]">
 					<Throbber />
 				</div>
 				<noscript>

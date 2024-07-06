@@ -18,6 +18,10 @@ export const trivia = [
 		</a>
 		, and the 16-color CC2 tileset made by G lander specifically for NotCC.
 	</>,
+	<>
+		NotCC's game logic, called libnotcc, is written in C and is separate from
+		this GUI. If you want, you can make your own interface based on libnotcc!
+	</>,
 	// CC2 mechanics
 	<>
 		CC2 has its own weird programming language called{" "}

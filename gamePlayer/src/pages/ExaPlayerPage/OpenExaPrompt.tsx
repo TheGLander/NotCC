@@ -1,10 +1,9 @@
 import { Dialog } from "@/components/Dialog"
 import { PromptComponent, showPrompt } from "@/prompts"
-import { Route as RouteFile } from "@notcc/logic"
+import { HashSettings, Route as RouteFile } from "@notcc/logic"
 import { Getter, Setter } from "jotai"
 import { useState } from "preact/hooks"
 import { levelAtom } from "@/levelData"
-import type { HashSettings } from "./hash"
 import { pageAtom, pageNameAtom } from "@/routing"
 import { preferenceAtom } from "@/preferences"
 import { Expl } from "@/components/Expl"
@@ -26,20 +25,22 @@ function HashSettingsInput(props: {
 }) {
 	function Input(props2: {
 		name: string
-		id: keyof HashSettings
+		id: HashSettings
 		desc: string
+		disabled?: boolean
 	}) {
 		return (
 			<div>
 				<label>
 					<input
 						type="checkbox"
-						checked={!!props.settings[props2.id]}
-						onChange={ev => {
-							props.onChange?.({
-								...props.settings,
-								[props2.id]: ev.currentTarget.checked,
-							})
+						disabled={props2.disabled}
+						checked={!!(props.settings & props2.id)}
+						onChange={() => {
+							props.onChange?.(
+								(props.settings & ~props2.id) |
+									(props.settings & props2.id ? 0 : props2.id)
+							)
 						}}
 					/>{" "}
 					{props2.name}
@@ -54,18 +55,26 @@ function HashSettingsInput(props: {
 				Check tick parity for:{" "}
 				<select
 					value={
-						!props.settings.ignoreFloorMimicParity
+						!(props.settings & HashSettings.IGNORE_MIMIC_PARITY)
 							? "mimic"
-							: !props.settings.ignoreTeethParity
-							  ? "teeth"
-							  : "none"
+							: !(props.settings & HashSettings.IGNORE_TEETH_PARITY)
+								? "teeth"
+								: "none"
 					}
 					onChange={ev => {
-						props.onChange?.({
-							...props.settings,
-							ignoreFloorMimicParity: ev.currentTarget.value !== "mimic",
-							ignoreTeethParity: ev.currentTarget.value !== "teeth",
-						})
+						props.onChange?.(
+							(props.settings &
+								~(
+									HashSettings.IGNORE_TEETH_PARITY |
+									HashSettings.IGNORE_MIMIC_PARITY
+								)) |
+								(ev.currentTarget.value !== "mimic"
+									? HashSettings.IGNORE_MIMIC_PARITY
+									: 0) |
+								(ev.currentTarget.value !== "teeth"
+									? HashSettings.IGNORE_TEETH_PARITY
+									: 0)
+						)
 					}}
 				>
 					<option value="none">none</option>
@@ -80,21 +89,22 @@ function HashSettingsInput(props: {
 			</Expl>
 			<br />
 			<Input
-				id="ignoreBlockOrder"
+				id={HashSettings.IGNORE_BLOCK_ORDER}
 				name="Ignore block order"
 				desc="If set, blocks will be ignored in the monster order, and considered
 					separately. When set, two blocks can swap places and the level state
 					will be the same."
 			/>
 			<Input
-				id="ignorePlayerDir"
+				id={HashSettings.IGNORE_PLAYER_DIRECTION}
 				name="Ignore player direction"
 				desc="If set, the player's facing direction (while not sliding) will not
 				matter when comparing level state. This should be unset for levels with
 				block slapping."
 			/>
 			<Input
-				id="ignorePlayerBump"
+				id={0 as HashSettings}
+				disabled
 				name="Ignore player bonk state"
 				desc="If set, player bonk state from last tick info will not matter when comparing level
 				state. This only affects levels with mirror players, and should
@@ -104,12 +114,10 @@ function HashSettingsInput(props: {
 	)
 }
 
-export const DEFAULT_HASH_SETTINGS: HashSettings = {
-	ignoreFloorMimicParity: true,
-	ignoreTeethParity: true,
-	ignoreBlockOrder: true,
-	ignorePlayerBump: true,
-}
+export const DEFAULT_HASH_SETTINGS: HashSettings =
+	HashSettings.IGNORE_TEETH_PARITY |
+	HashSettings.IGNORE_MIMIC_PARITY |
+	HashSettings.IGNORE_BLOCK_ORDER
 
 function NewProject(props: {
 	onSubmit: (ev: ExaOpenEvent & { byDefault: boolean }) => void

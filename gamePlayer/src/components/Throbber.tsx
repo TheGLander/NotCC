@@ -82,7 +82,10 @@ function TileThrobber(props: {
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
 	const ctx = useMemo(() => canvas?.getContext("2d"), [canvas])
 
-	const direction = useMemo(() => Math.floor(Math.random() * 4), [props.art])
+	const direction = useMemo(
+		() => 1 + Math.floor(Math.random() * 4),
+		[props.art]
+	)
 	const [state, setState] = useState<string | null>(null)
 
 	const timePassedRef = useRef(0)

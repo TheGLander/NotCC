@@ -1,11 +1,12 @@
-import { GameState, KeyInputs, LevelState, charToKeyInput } from "@notcc/logic"
-import { HashSettings, makeLevelHash } from "../hash"
 import {
-	MoveSeqenceInterval,
-	MoveSequence,
-	Snapshot,
-	cloneLevel,
-} from "./linear"
+	GameState,
+	KeyInputs,
+	Level,
+	PlayerSeat,
+	charToKeyInput,
+	HashSettings,
+} from "@notcc/logic"
+import { MoveSeqenceInterval, MoveSequence, Snapshot } from "./linear"
 
 export class GraphMoveSequence extends MoveSequence {
 	hashes: (number | null)[] = []
@@ -13,14 +14,14 @@ export class GraphMoveSequence extends MoveSequence {
 	constructor(public hashSettings: HashSettings) {
 		super()
 	}
-	add(input: KeyInputs, level: LevelState): void {
+	add(input: KeyInputs, level: Level, seat: PlayerSeat): void {
 		const lastTickLen = this.tickLen
-		super.add(input, level)
+		super.add(input, level, seat)
 		const nullsN = this.tickLen - lastTickLen - 1
 		for (let i = 0; i < nullsN; i += 1) {
 			this.hashes.push(null)
 		}
-		this.hashes.push(makeLevelHash(level, this.hashSettings))
+		this.hashes.push(level.hash(this.hashSettings))
 	}
 	get lastHash() {
 		return this.hashes[this.tickLen - 1]!
@@ -36,7 +37,10 @@ export class GraphMoveSequence extends MoveSequence {
 }
 
 export class Node {
-	level: LevelState
+	level: Level
+	get playerSeat() {
+		return this.level.playerSeats[0]
+	}
 	hash: number
 	hashSettings: HashSettings
 	winDistance?: number
@@ -46,15 +50,15 @@ export class Node {
 	rootTargetNode?: Node
 	rootTargetSeq?: GraphMoveSequence
 	constructor(node: Node)
-	constructor(level: LevelState, hashSettings: HashSettings)
-	constructor(level: LevelState | Node, hashSettings?: HashSettings) {
+	constructor(level: Level, hashSettings: HashSettings)
+	constructor(level: Level | Node, hashSettings?: HashSettings) {
 		if (level instanceof Node) {
 			this.hash = level.hash
 			this.level = level.level
 			this.hashSettings = level.hashSettings
 		} else {
 			this.hashSettings = hashSettings!
-			this.hash = makeLevelHash(level, hashSettings!)
+			this.hash = level.hash(hashSettings!)
 			this.level = level
 		}
 	}
@@ -82,7 +86,7 @@ export class Node {
 
 	getWinSubtickOffset() {
 		if (this.level.gameState !== GameState.WON) return 0
-		return this.level.subtick - 1
+		return this.level.currentSubtick - 1
 	}
 	newChild(inputs: GraphMoveSequence): Node {
 		const child = new Node(this)
@@ -214,8 +218,8 @@ export class Node {
 			midNode.inNodes.push(this)
 		} else {
 			midNode = this.newChild(seq)
-			midNode.level = cloneLevel(this.level)
-			seq.applyToLevel(midNode.level)
+			midNode.level = this.level.clone()
+			seq.applyToLevel(midNode.level, midNode.playerSeat)
 		}
 		midNode.outConns.set(endNode, [seq2])
 		endNode.inNodes.push(midNode)
@@ -270,12 +274,15 @@ export class GraphModel {
 	constructedRoute: ConnPtr[] = []
 	nodeHashMap: Map<number, Node> = new Map()
 	hashMap: Map<number, MovePtr> = new Map()
+	get playerSeat() {
+		return this.level.playerSeats[0]
+	}
 	constructor(
-		public level: LevelState,
+		public level: Level,
 		public hashSettings: HashSettings
 	) {
 		this.initialTimeLeft = level.timeLeft
-		level.timeLeft = Infinity
+		level.timeLeft = 0
 		this.rootNode = this.current = new Node(level, hashSettings)
 		this.nodeHashMap.set(this.rootNode.hash, this.rootNode)
 	}
@@ -283,7 +290,7 @@ export class GraphModel {
 		let node: Node, moveSeq: GraphMoveSequence, parent: Node
 		if (!(this.current instanceof Node)) {
 			moveSeq = new GraphMoveSequence(this.hashSettings)
-			moveSeq.add(input, this.level)
+			moveSeq.add(input, this.level, this.playerSeat)
 			const curMoveSeq = this.current.m.moves.slice(this.current.o)
 			if (moveSeq.moves.every((move, i) => curMoveSeq[i] === move)) {
 				if (this.current.o + moveSeq.tickLen === this.current.m.tickLen) {
@@ -323,8 +330,8 @@ export class GraphModel {
 			this.current = node
 		} else if (!this.current.loose || this.current === this.rootNode) {
 			moveSeq = new GraphMoveSequence(this.hashSettings)
-			this.level = cloneLevel(this.level)
-			moveSeq.add(input, this.level)
+			this.level = this.level.clone()
+			moveSeq.add(input, this.level, this.playerSeat)
 			const constrIdx = this.getConstructionIdx()
 			for (const [node, conns] of this.current.outConns) {
 				for (const conn of conns) {
@@ -361,7 +368,7 @@ export class GraphModel {
 				m: moveSeq,
 				o: moveSeq.tickLen,
 			})
-			moveSeq.add(input, this.level)
+			moveSeq.add(input, this.level, this.playerSeat)
 			node.hash = moveSeq.lastHash
 			node.rootDistance = parent.rootDistance + moveSeq.tickLen * 3
 		}
@@ -509,14 +516,17 @@ export class GraphModel {
 				o: into.userMoves.indexOf(true, 1),
 			}
 			if (this.current.o !== -1) {
-				this.level = cloneLevel(this.level)
+				this.level = this.level.clone()
 			}
 		}
 		if (this.current.o === -1) {
 			this.current = this.current.n.findConnectedNode(this.current.m)!
 			this.level = this.current.level
 		} else {
-			this.current.m.applyToLevel(this.level, [lastO, this.current.o])
+			this.current.m.applyToLevel(this.level, this.playerSeat, [
+				lastO,
+				this.current.o,
+			])
 		}
 		this.cleanConstruction()
 	}
@@ -565,8 +575,11 @@ export class GraphModel {
 			level: pos.n.level,
 			tick: 0,
 		}
-		this.level = cloneLevel(closestSnapshot.level)
-		pos.m.applyToLevel(this.level, [closestSnapshot.tick, pos.o])
+		this.level = closestSnapshot.level.clone()
+		pos.m.applyToLevel(this.level, this.playerSeat, [
+			closestSnapshot.tick,
+			pos.o,
+		])
 	}
 	resetLevel() {
 		this.goTo(this.rootNode)
@@ -634,7 +647,7 @@ export class GraphModel {
 		return this.constructionLastNode() === this.current
 	}
 	step() {
-		if (this.level.subtick !== 1) {
+		if (this.level.currentSubtick !== 1) {
 			this.level.tick()
 			return
 		}
@@ -647,9 +660,11 @@ export class GraphModel {
 				return
 			}
 			this.current = { n: ptr.n, m: ptr.m, o: 0 }
-			this.level = cloneLevel(this.level)
+			this.level = this.level.clone()
 		}
-		this.level.gameInput = charToKeyInput(this.current.m.moves[this.current.o])
+		this.playerSeat.inputs = charToKeyInput(
+			this.current.m.moves[this.current.o]
+		)
 		this.level.tick()
 		this.current.o += 1
 		if (this.current.o === this.current.m.tickLen) {

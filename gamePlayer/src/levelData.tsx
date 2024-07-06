@@ -1,6 +1,6 @@
 import { Getter, Setter, atom, useAtomValue, useSetAtom, useStore } from "jotai"
 import {
-	LevelData,
+	Level,
 	LevelSet,
 	findScriptName,
 	parseC2M,
@@ -32,9 +32,20 @@ import { basename, dirname } from "path-browserify"
 import { readFile, writeFile } from "./fs"
 import { atomEffect } from "jotai-effect"
 import { getRRRoutes, setRRRoutesAtomWrapped } from "./railroad"
+import { preloadFinishedAtom } from "./preferences"
+
+export class LevelData {
+	constructor(private level: Level) {}
+	initLevel() {
+		return this.level.clone()
+	}
+	// XXX: Kind of a hack, maybe remove this somehow??
+	get replay() {
+		return this.level.builtinReplay
+	}
+}
 
 export const levelAtom = atom<LevelData | Promise<LevelData> | null>(null)
-export const levelUnwrappedAtom = unwrap(levelAtom)
 
 const levelLoadableAtom = loadable(levelAtom)
 export function useSwrLevel(): LevelData | null {
@@ -67,7 +78,7 @@ export async function goToLevelNGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.goToLevel(levelN)
 		await lSet.verifyLevelDataAvailability(levelN)
-		set(levelAtom, rec.levelData!)
+		set(levelAtom, new LevelData(rec.levelData!))
 	})
 }
 
@@ -81,8 +92,9 @@ export async function goToNextLevelGs(get: Getter, set: Setter) {
 			return
 		}
 		if (!rec) return
-		set(levelAtom, rec?.levelData!)
-		set(levelNAtom, rec?.levelInfo.levelNumber!)
+		await lSet.verifyLevelDataAvailability(rec.levelInfo.levelNumber!)
+		set(levelAtom, new LevelData(rec.levelData!))
+		set(levelNAtom, rec.levelInfo.levelNumber!)
 	})
 }
 
@@ -90,7 +102,7 @@ export async function goToPreviousLevelGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.getPreviousRecord()
 		if (!rec) return
-		set(levelAtom, rec?.levelData!)
+		set(levelAtom, new LevelData(rec.levelData!))
 		set(levelNAtom, rec?.levelInfo.levelNumber!)
 	})
 }
@@ -140,7 +152,9 @@ export function useSetLoaded(): {
 			set(levelSetAtom, lset)
 			set(
 				levelAtom,
-				lset.then(set => set.getCurrentRecord()).then(rec => rec.levelData!)
+				lset
+					.then(set => set.getCurrentRecord())
+					.then(rec => new LevelData(rec.levelData!))
 			)
 			lset.then(lset => {
 				set(levelNAtom, lset.currentLevel)
@@ -173,7 +187,7 @@ export function useSetLoaded(): {
 
 export async function showFileLevelPrompt(): Promise<LevelData | null> {
 	const file: File | undefined = (await showLoadPrompt(["c2m"]))[0]
-	return file?.arrayBuffer().then(buf => parseC2M(buf))
+	return file?.arrayBuffer().then(buf => new LevelData(parseC2M(buf)))
 }
 
 export function useOpenFile(): () => Promise<{
@@ -189,7 +203,9 @@ export function useOpenFile(): () => Promise<{
 		])
 		const file = files[0]
 		if (!file) return null
-		const levelPromise = file.arrayBuffer().then(buf => parseC2M(buf))
+		const levelPromise = file
+			.arrayBuffer()
+			.then(buf => new LevelData(parseC2M(buf)))
 		setLevel(levelPromise)
 		return { level: await levelPromise, buffer: await file.arrayBuffer() }
 	}
@@ -265,7 +281,8 @@ export const LoadSetPrompt: PromptComponent<void> = function ({ onResolve }) {
 
 const resolveHashLevelPromptIdent = Symbol()
 
-export async function resolveHashLevel(get: Getter, set: Setter) {
+export async function resolveHashLevelGs(get: Getter, set: Setter) {
+	if (!get(preloadFinishedAtom)) return
 	const levelSetIdent = get(levelSetIdentAtom)
 	const levelN = get(levelNAtom)
 	const searchParams = get(searchParamsAtom)
@@ -278,7 +295,7 @@ export async function resolveHashLevel(get: Getter, set: Setter) {
 		if (get(pageNameAtom) === "") {
 			set(pageAtom, "play")
 		}
-		set(levelAtom, Promise.resolve(parseC2M(buf.buffer)))
+		set(levelAtom, Promise.resolve(new LevelData(parseC2M(buf.buffer))))
 		set(levelSetIdentAtom, CUSTOM_LEVEL_SET_IDENT)
 		if (levelN === null) {
 			set(levelNAtom, 1)

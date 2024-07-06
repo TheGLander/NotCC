@@ -1,4 +1,4 @@
-import { LevelSetLoaderFunction, SfxManager } from "@notcc/logic"
+import { LevelSetLoaderFunction } from "@notcc/logic"
 export const SFX_FILENAME_MAP = {
 	"recessed wall": "newwall",
 	explosion: "burn",
@@ -37,7 +37,7 @@ async function tryGetSfxFile(
 	return null
 }
 
-export class AudioSfxManager implements SfxManager {
+export class AudioSfxManager {
 	ctx = new AudioContext()
 	audioBuffers: Record<string, AudioBuffer> = {}
 	playingNodes: Record<string, AudioBufferSourceNode> = {}

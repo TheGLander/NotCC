@@ -2,9 +2,9 @@ import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
 import { Dialog } from "../Dialog"
 import { useCallback, useMemo, useState } from "preact/hooks"
 import { Tileset, removeBackground } from "../GameRenderer/renderer"
-import { GameRenderer } from "../GameRenderer"
+import { CameraType, GameRenderer } from "../GameRenderer"
 import tilesetLevelPath from "./tilesetPreview.c2m"
-import { CameraType, createLevelFromData, parseC2M } from "@notcc/logic"
+import { parseC2M } from "@notcc/logic"
 import { cc2ArtSet } from "../GameRenderer/cc2ArtSet"
 import cga16Image from "@/tilesets/cga16.png"
 import tworldImage from "@/tilesets/tworld.png"
@@ -37,7 +37,7 @@ export const tilesetSyncAtom = atomEffect((get, set) => {
 const tilesetLevelAtom = atom(async () =>
 	parseC2M(await (await fetch(tilesetLevelPath)).arrayBuffer())
 )
-const tilesetLevelCameraType: CameraType = { width: 5, height: 5, screens: 1 }
+const tilesetLevelCameraType: CameraType = { width: 5, height: 5 }
 
 export async function getTileset(id: string): Promise<Tileset> {
 	if (id === "cga16")
@@ -70,8 +70,7 @@ export async function getTileset(id: string): Promise<Tileset> {
 function TilesetPreview(props: { id: string }) {
 	const levelData = useAtomValue(tilesetLevelAtom)
 	const level = useMemo(() => {
-		const lvl = createLevelFromData(levelData)
-		lvl.forcedPerspective = true
+		const lvl = levelData.clone()
 		return lvl
 	}, [levelData])
 	const tileset = suspend(
@@ -83,9 +82,11 @@ function TilesetPreview(props: { id: string }) {
 			<GameRenderer
 				class="self-center"
 				level={level}
+				playerSeat={level.playerSeats[0]}
 				tileset={tileset}
 				cameraType={tilesetLevelCameraType}
 				tileScale={PRIMARY_TILE_SIZE / tileset.tileSize}
+				// TODO: forcePerspective
 			/>
 			<span class="text-lg">
 				{props.id.startsWith("custom") ? "custom" : props.id}

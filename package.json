@@ -2,7 +2,6 @@
 	"name": "notcc-global-things",
 	"private": true,
 	"devDependencies": {
-		"@notcc/cli": "workspace:^",
 		"@typescript-eslint/eslint-plugin": "^4.33.0",
 		"@typescript-eslint/parser": "^4.33.0",
 		"eslint": "^7.32.0",
@@ -12,8 +11,12 @@
 		"zx": "^7.2.3"
 	},
 	"scripts": {
-		"build:web": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/player build",
-		"build:cli": "pnpm i && pnpm --filter @notcc/logic run build && pnpm --filter @notcc/cli build && pnpm i",
-		"test": "zx ./testing.mjs"
+		"build:web": "pnpm build:logic && pnpm --filter @notcc/player build",
+		"build:cli": "cd libnotcc;./build-native.sh production",
+		"build:libnotcc": "cd libnotcc;./build-wasm.sh production",
+		"build:libnotcc-bind": "pnpm i && pnpm build:libnotcc && pnpm --filter @notcc/logic build",
+		"build:logic": "pnpm build:libnotcc-bind",
+		"test": "zx ./testing.mjs",
+		"cli": "./libnotcc/native-build/notcc-cli"
 	}
 }

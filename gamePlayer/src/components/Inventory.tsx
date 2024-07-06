@@ -1,15 +1,11 @@
-import {
-	Inventory as InventoryI,
-	cc1BootNameList,
-	keyNameList,
-} from "@notcc/logic"
+import { Inventory as InventoryI, PlayerSeat, TileType } from "@notcc/logic"
 import { Frame, Tileset } from "./GameRenderer/renderer"
 import { Ref } from "preact"
 import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
 import { applyRef } from "@/helpers"
 
 export function Inventory(props: {
-	inventory: InventoryI | { current: InventoryI }
+	inventory: InventoryI | PlayerSeat
 	cc1Boots?: boolean
 	tileScale: number
 	tileset: Tileset
@@ -20,11 +16,11 @@ export function Inventory(props: {
 	const tileSize = props.tileset.tileSize * props.tileScale
 	const sTileSize = props.tileset.tileSize
 	const render = useCallback(() => {
-		if (!ctx) return
+		if (!ctx || !canvas) return
 
 		function drawFloor(x: number, y: number) {
 			// TODO Don't tie this to the default ArtSet
-			const floorFrame = (props.tileset.art.floor! as { base: Frame }).base
+			const floorFrame = props.tileset.art.artMap.floor as Frame
 			ctx!.drawImage(
 				props.tileset.image,
 				floorFrame[0] * sTileSize,
@@ -59,40 +55,34 @@ export function Inventory(props: {
 			)
 		}
 		const inv =
-			"current" in props.inventory ? props.inventory.current! : props.inventory
+			props.inventory instanceof PlayerSeat
+				? props.inventory.actor?.inventory
+				: props.inventory
+		if (!inv) return
 
-		canvas!.width = inv.itemMax * sTileSize
-		canvas!.style.width = `${inv.itemMax * tileSize}px`
-		canvas!.height = 2 * sTileSize
-		canvas!.style.height = `${2 * tileSize}px`
+		canvas.width = 4 * sTileSize
+		canvas.style.width = `${4 * tileSize}px`
+		canvas.height = 2 * sTileSize
+		canvas.style.height = `${2 * tileSize}px`
 
-		if (props.cc1Boots) {
-			for (const [idx, itemId] of Object.entries(cc1BootNameList)) {
-				const hasBoot = inv.items.some(item => item.id === itemId)
-				drawFloor(parseInt(idx), 0)
-				if (!hasBoot) continue
-				drawItem(itemId, parseInt(idx), 0)
-			}
-		} else {
-			for (let idx = 0; idx < inv.itemMax; idx += 1) {
-				const item = inv.items[idx]
-				drawFloor(idx, 0)
-				if (item) {
-					drawItem(item.id, idx, 0)
-				}
+		function drawItemTile(idx: number, item: TileType | null) {
+			drawFloor(idx, 0)
+			if (item) {
+				drawItem(item.name, idx, 0)
 			}
 		}
-		for (const [idxStr, keyId] of Object.entries(keyNameList)) {
-			const idx = parseInt(idxStr)
-			const keyN = inv.keys[keyId]?.amount
-
+		drawItemTile(0, inv.item1)
+		drawItemTile(1, inv.item2)
+		drawItemTile(2, inv.item3)
+		drawItemTile(3, inv.item4)
+		function drawKey(idx: number, keyId: string, keyN: number) {
 			drawFloor(idx, 1)
-			if (!keyN || keyN < 1) continue
+			if (!keyN || keyN < 1) return
 
 			drawItem(keyId, idx, 1)
 			if (keyN > 1) {
 				const digitFrame = props.tileset.art.letters[keyN > 9 ? "+" : keyN]
-				ctx.drawImage(
+				ctx!.drawImage(
 					props.tileset.image,
 					digitFrame[0] * sTileSize,
 					digitFrame[1] * sTileSize,
@@ -105,6 +95,10 @@ export function Inventory(props: {
 				)
 			}
 		}
+		drawKey(0, "keyRed", inv.keysRed)
+		drawKey(1, "keyBlue", inv.keysBlue)
+		drawKey(2, "keyYellow", inv.keysYellow)
+		drawKey(3, "keyGreen", inv.keysGreen)
 	}, [props.tileset, props.cc1Boots, props.tileScale, ctx, props.inventory])
 	useEffect(() => {
 		render()

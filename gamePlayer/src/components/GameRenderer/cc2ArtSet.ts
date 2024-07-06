@@ -1,13 +1,6 @@
 import { ArtSet, frange } from "./renderer"
 
 export const cc2ArtSet: ArtSet = {
-	floor: {
-		type: "special",
-		specialType: "freeform wires",
-		base: [0, 2],
-		overlap: [8, 26],
-		overlapCross: [10, 26],
-	},
 	currentPlayerMarker: [6, 6],
 	wireBase: [0, 2],
 	wire: [
@@ -91,6 +84,14 @@ export const cc2ArtSet: ArtSet = {
 		LEFT: [15.5, 31],
 	},
 	artMap: {
+		/*{
+		type: "special",
+		specialType: "freeform wires",
+		base: [0, 2],
+		overlap: [8, 26],
+		overlapCross: [10, 26],
+	}*/
+		floor: [0, 2],
 		chip: {
 			type: "state",
 

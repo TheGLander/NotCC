@@ -48,7 +48,7 @@ for (const setName of setsToTest) {
 	}
 	const syncPath = path.join(syncDirectory, `${setName}.sync`)
 	const syncExists = await fs.exists(syncPath)
-	const verifyProcess = $`pnpm notcc verify ${setPath} --ci --sync ${
+	const verifyProcess = $`pnpm cli ${setPath} -s ${
 		syncExists ? syncPath : defaultSyncPath
 	}`
 	await verifyProcess.nothrow()

@@ -1,14 +1,13 @@
 import {
 	AttemptTracker,
-	CameraType,
-	GameState,
+	// CameraType,
+	// GameState,
 	InputProvider,
-	Inventory as InventoryI,
-	LevelData,
 	LevelSet,
-	createLevelFromData,
+	Level,
+	GameState,
 } from "@notcc/logic"
-import { GameRenderer } from "./GameRenderer"
+import { CameraType, GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
@@ -28,12 +27,12 @@ import {
 } from "@/helpers"
 import { embedReadyAtom, embedModeAtom, pageAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
-import { keyToInputMap, keyboardEventSource, useKeyInputs } from "@/inputs"
+import { useGameInputs } from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
 import { Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
-import { borrowLevelSetGs } from "@/levelData"
+import { LevelData, borrowLevelSetGs } from "@/levelData"
 import { goToNextLevelGs } from "@/levelData"
 import { trivia } from "@/trivia"
 import { LevelControls, SidebarReplayable } from "./Sidebar"
@@ -45,7 +44,7 @@ import {
 } from "./Timeline"
 import { sfxAtom } from "./PreferencesPrompt/SfxPrompt"
 import { protobuf } from "@notcc/logic"
-import { NonlegalMessage, isGlitchNonlegal } from "./NonLegalMessage"
+import { NonlegalMessage } from "./NonLegalMessage"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -155,7 +154,7 @@ function Cover(props: {
 }
 
 function PregameCover(props: {
-	level: LevelData
+	level: Level
 	set?: LevelSet
 	mobile?: boolean
 	onStart: () => void
@@ -172,9 +171,11 @@ function PregameCover(props: {
 						</span>
 					)}
 					<h2 class={twJoin(!props.set && "mt-6", "text-5xl [line-height:1]")}>
-						{props.level.name ?? "UNNAMED"}
+						{props.level.metadata.title ?? "UNNAMED"}
 					</h2>
-					<span class="mt-1 text-2xl">by {props.level.author ?? "???"}</span>
+					<span class="mt-1 text-2xl">
+						by {props.level.metadata.author ?? "???"}
+					</span>
 				</>
 			}
 			buttons={props.mobile ? [["Start", props.onStart]] : []}
@@ -298,45 +299,46 @@ export function DumbLevelPlayer(props: {
 		return () => sfx?.stopAllSfx()
 	}, [])
 	useEffect(() => {
-		level.sfxManager = sfx
+		//TODO: level.sfxManager = sfx
 	}, [sfx])
 	// if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
 
 	const [playerState, setPlayerState] = useState("pregame" as PlayerState)
 
 	// Inputs & LevelState
-	const { inputs, releaseKeys, handler: inputHandler } = useKeyInputs()
-	useEffect(() => {
-		inputHandler.addEventSource(keyboardEventSource)
-	}, [inputHandler])
 
-	const [level, setLevel] = useState(() => createLevelFromData(props.level))
+	const [level, setLevel] = useState(() => props.level.initLevel())
+	const inputMan = useGameInputs(level)
+	const playerSeat = useMemo(() => level.playerSeats[0], [level])
+
 	const resetLevel = useCallback(() => {
 		sfx?.stopAllSfx()
 		setAttempt(null)
 		setReplay(null)
-		const level = createLevelFromData(props.level)
+		const level = props.level.initLevel()
 		setLevel(level)
-		level.sfxManager = sfx
+		// level.sfxManager = sfx
 		setPlayerState("pregame")
 		return level
 	}, [sfx, props.level])
 	useLayoutEffect(() => void resetLevel(), [props.level])
-	useEffect(() => {
-		level.gameInput = inputs
-		setChipsLeft(level.chipsLeft)
-		setTimeLeft(level.timeLeft)
-		setBonusPoints(level.bonusPoints)
-		setInventory(level.selectedPlayable?.inventory)
-	}, [level])
 
 	const renderInventoryRef = useRef<() => void>(null)
 
-	const [chipsLeft, setChipsLeft] = useState(0)
-	const [timeLeft, setTimeLeft] = useState(0)
-	const [bonusPoints, setBonusPoints] = useState(0)
-	const [inventory, setInventory] = useState<InventoryI | undefined>()
-	const [hint, setHint] = useState<string | null>()
+	const timeLeftRef = useRef<HTMLDivElement>(null)
+	const chipsLeftRef = useRef<HTMLDivElement>(null)
+	const bonusPointsRef = useRef<HTMLDivElement>(null)
+	const hintRef = useRef<HTMLDivElement>(null)
+	const updateLevelMetrics = useCallback(() => {
+		timeLeftRef.current!.innerText = `${Math.ceil(level.timeLeft / 60)}s`
+		chipsLeftRef.current!.innerText = level.chipsLeft.toString()
+		bonusPointsRef.current!.innerText = `${level.bonusPoints}pts`
+		hintRef.current!.innerText = level.getHint() ?? ""
+	}, [level])
+	useLayoutEffect(() => {
+		updateLevelMetrics()
+	}, [updateLevelMetrics])
+
 	// Attempt tracking
 	const [attempt, setAttempt] = useState<null | AttemptTracker>(null)
 	function beginLevelAttempt() {
@@ -363,21 +365,22 @@ export function DumbLevelPlayer(props: {
 
 	// Ticking
 	const tickLevel = useCallback(() => {
+		if (replay) {
+			level.setProviderInputs(replay.ip)
+		} else {
+			inputMan.setLevelInputs()
+		}
 		if (level.gameState === GameState.PLAYING) {
-			attempt?.recordAttemptStep(inputs)
+			attempt?.recordAttemptStep(level)
 		}
 		level.tick()
-		renderInventoryRef.current?.()
+		inputMan.setReleasedInputs()
 		if (level.gameState === GameState.PLAYING) {
+			renderInventoryRef.current?.()
 			if (replay) {
 				setSolutionLevelProgress(replay.ip.inputProgress(level))
 			}
-			setChipsLeft(level.chipsLeft)
-			setTimeLeft(level.timeLeft)
-			setBonusPoints(level.bonusPoints)
-			setInventory(level.selectedPlayable?.inventory)
-			setHint(level.getHint()?.trim())
-			releaseKeys(level.releasedKeys)
+			updateLevelMetrics()
 		} else if (playerState === "play") {
 			submitLevelAttempt()
 			if (level.gameState === GameState.WON) {
@@ -388,7 +391,7 @@ export function DumbLevelPlayer(props: {
 				setPlayerState("timeout")
 			}
 		}
-	}, [level, releaseKeys, submitLevelAttempt, playerState, attempt])
+	}, [level, inputMan, submitLevelAttempt, playerState, attempt])
 
 	// Report embed ready
 	const embedMode = useAtomValue(embedModeAtom)
@@ -402,18 +405,17 @@ export function DumbLevelPlayer(props: {
 	useEffect(() => {
 		if (playerState !== "pregame") return
 		const listener = (ev: KeyboardEvent) => {
-			if (
-				!ev.shiftKey &&
-				!ev.ctrlKey &&
-				!ev.altKey &&
-				(ev.code in keyToInputMap || ev.code === "Space")
-			) {
+			if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && ev.code === "Space") {
 				beginLevelAttempt()
 			}
 		}
 		document.addEventListener("keydown", listener)
-		return () => document.removeEventListener("keydown", listener)
-	}, [playerState])
+		inputMan.anyInputRef.current = beginLevelAttempt
+		return () => {
+			document.removeEventListener("keydown", listener)
+			inputMan.anyInputRef.current = undefined
+		}
+	}, [playerState, inputMan])
 	// Replay
 	const [replay, setReplay] = useState<SimpleSidebarReplayable | null>(null)
 	const [solutionIsPlaying, setSolutionIsPlaying] = useState(true)
@@ -428,9 +430,7 @@ export function DumbLevelPlayer(props: {
 			let lvl = level
 			setSolutionLevelProgress(progress)
 			if (progress < replay.ip.inputProgress(lvl)) {
-				lvl = createLevelFromData(props.level)
-				lvl.inputProvider = replay.ip
-				lvl.sfxManager = sfx
+				lvl = props.level.initLevel()
 				lvl.tick()
 				lvl.tick()
 				setLevel(lvl)
@@ -439,6 +439,7 @@ export function DumbLevelPlayer(props: {
 			while (replay.ip.inputProgress(lvl) < progress) {
 				lvl.tick()
 				lvl.tick()
+				lvl.setProviderInputs(replay.ip)
 				lvl.tick()
 				if (lvl.currentTick % WAIT_PERIOD === 0) {
 					setSolutionJumpProgress(replay.ip.inputProgress(lvl))
@@ -488,14 +489,22 @@ export function DumbLevelPlayer(props: {
 		query: "(min-aspect-ratio: 1/1)",
 	})
 
+	const cameraType = useMemo(
+		() => ({
+			width: level.metadata.cameraWidth,
+			height: level.metadata.cameraHeight,
+		}),
+		[level]
+	)
+
 	const scaleArgs = useMemo<AutoScaleConfig>(
 		() => ({
-			cameraType: level.cameraType,
+			cameraType,
 			tileSize: tileset.tileSize,
 			twPadding: verticalLayout ? [4, replay ? 14 : 6] : [6, replay ? 12 : 4],
 			tilePadding: verticalLayout ? [0, 2] : [4, 0],
 		}),
-		[level, tileset, verticalLayout, replay]
+		[cameraType, tileset, verticalLayout, replay]
 	)
 
 	// GUI stuff
@@ -503,16 +512,16 @@ export function DumbLevelPlayer(props: {
 	const shouldShowMobileControls = useShouldShowMobileControls()
 	const goToNextLevel = useJotaiFn(goToNextLevelGs)
 	const setPage = useSetAtom(pageAtom)
-	const [caughtGlitch, setCaughtGlitch] = useState<protobuf.IGlitchInfo | null>(
-		null
-	)
+	// TODO: Glitch info
+	const [caughtGlitch, _setCaughtGlitch] =
+		useState<protobuf.IGlitchInfo | null>(null)
 
 	let cover: VNode | null
 	if (playerState === "pregame") {
 		cover = (
 			<PregameCover
 				set={props.levelSet}
-				level={props.level}
+				level={level}
 				mobile={shouldShowMobileControls}
 				onStart={beginLevelAttempt}
 			/>
@@ -547,9 +556,8 @@ export function DumbLevelPlayer(props: {
 				if (typeof repl.ip === "function") {
 					repl.ip = await repl.ip()
 				}
-				const lvl = resetLevel()
+				resetLevel()
 				setReplay(repl as SimpleSidebarReplayable)
-				lvl.inputProvider = repl.ip
 				setPlayerState("play")
 			},
 
@@ -567,16 +575,16 @@ export function DumbLevelPlayer(props: {
 	}, [props.controlsRef, playerState])
 
 	useLayoutEffect(() => {
-		if (props.endOnNonlegalGlitch) {
-			level.onGlitch = glitch => {
-				if (isGlitchNonlegal(glitch)) {
-					setCaughtGlitch(glitch)
-					setPlayerState("nonlegal")
-				}
-			}
-		} else {
-			level.onGlitch = null
-		}
+		// if (props.endOnNonlegalGlitch) {
+		// 	level.onGlitch = glitch => {
+		// 		if (isGlitchNonlegal(glitch)) {
+		// 			setCaughtGlitch(glitch)
+		// 			setPlayerState("nonlegal")
+		// 		}
+		// 	}
+		// } else {
+		// 	level.onGlitch = null
+		// }
 	}, [props.endOnNonlegalGlitch, level])
 
 	return (
@@ -595,9 +603,10 @@ export function DumbLevelPlayer(props: {
 					<GameRenderer
 						tileset={tileset}
 						level={level}
-						cameraType={level.cameraType}
+						cameraType={cameraType}
 						autoDraw={autoTick}
 						tileScale={scale}
+						playerSeat={playerSeat}
 					/>
 					<div class={twJoin("absolute top-0 h-full w-full")}>{cover}</div>
 				</div>
@@ -636,30 +645,31 @@ export function DumbLevelPlayer(props: {
 					)}
 				>
 					<div>Chips left:</div>
-					<div class="text-[1.5em]">{chipsLeft}</div>
+					<div class="text-[1.5em]" ref={chipsLeftRef} />
 					<div>Time left:</div>
-					<div class="text-[1.5em]">{Math.ceil(timeLeft / 60)}s</div>
+					<div class="text-[1.5em]" ref={timeLeftRef} />
 					<div>Bonus points:</div>
-					<div class="text-[1.5em]">{bonusPoints}</div>
+					<div class="text-[1.5em]" ref={bonusPointsRef} />
 				</div>
-				{inventory && (
+				{playerSeat && (
 					<div class="self-center">
 						<Inventory
 							tileset={tileset}
 							tileScale={scale}
-							inventory={inventory}
+							inventory={playerSeat}
 							renderRef={renderInventoryRef}
 						/>
 					</div>
 				)}
 				{!verticalLayout && (
-					<div class="bg-theme-950 flex-1 whitespace-pre-line rounded p-1">
-						{hint}
-					</div>
+					<div
+						class="bg-theme-950 flex-1 whitespace-pre-line rounded p-1"
+						ref={hintRef}
+					></div>
 				)}
 			</div>
 			<div class={twJoin("absolute", !shouldShowMobileControls && "hidden")}>
-				<MobileControls handler={inputHandler} />
+				<MobileControls handler={inputMan.handler} />
 			</div>
 		</div>
 	)

@@ -1,6 +1,6 @@
 import dpadImage from "@/dpad.svg"
 import { RepeatKeyHandler } from "@/inputs"
-import { InputType, KeyInputs, makeEmptyInputs } from "@notcc/logic"
+import { KEY_INPUTS, KeyInputs } from "@notcc/logic"
 import { memo } from "preact/compat"
 import { useEffect, useRef } from "preact/hooks"
 import { useMediaQuery } from "react-responsive"
@@ -12,11 +12,17 @@ export function useShouldShowMobileControls(): boolean {
 	return false
 }
 
+const MOBILE_CONTROLS_PLAYER_N = 0
+
 export const MobileControls = memo(function MobileControls(props: {
 	handler: RepeatKeyHandler
 }) {
 	const onOffRef = useRef<
-		[(key: InputType) => void, (key: InputType) => void] | null
+		| [
+				(key: KeyInputs, player: number) => void,
+				(key: KeyInputs, player: number) => void,
+		  ]
+		| null
 	>(null)
 
 	useEffect(() => {
@@ -26,19 +32,19 @@ export const MobileControls = memo(function MobileControls(props: {
 		})
 	}, [props.handler])
 
-	const inputsRef = useRef(makeEmptyInputs())
-	function updateDpadDeltas(inputs: Partial<KeyInputs>) {
+	const inputsRef = useRef<KeyInputs>(0)
+	function updateDpadDeltas(inputs: KeyInputs) {
 		const oldInputs = inputsRef.current
 		const [on, off] = onOffRef!.current!
-		for (const [key, val] of Object.entries(inputs)) {
-			if (val && !oldInputs[key as InputType]) {
-				on(key as InputType)
+		for (let input = KEY_INPUTS.up; input <= KEY_INPUTS.left; input <<= 1) {
+			if (input & inputs && !(input & oldInputs)) {
+				on(input, MOBILE_CONTROLS_PLAYER_N)
 			}
-			if (!val && oldInputs[key as InputType]) {
-				off(key as InputType)
+			if (!(input & inputs) && input & oldInputs) {
+				off(input, MOBILE_CONTROLS_PLAYER_N)
 			}
-			oldInputs[key as InputType] = val
 		}
+		inputsRef.current = inputs
 	}
 
 	const dpadRef = useRef<HTMLImageElement | null>(null)
@@ -61,20 +67,16 @@ export const MobileControls = memo(function MobileControls(props: {
 		}
 		x /= dpadRef.current.width
 		y /= dpadRef.current.height
-		updateDpadDeltas({
-			left: x < 1 / 3,
-			right: x > 2 / 3,
-			up: y < 1 / 3,
-			down: y > 2 / 3,
-		})
+		updateDpadDeltas(
+			0 |
+				(x < 1 / 3 ? KEY_INPUTS.left : 0) |
+				(x > 2 / 3 ? KEY_INPUTS.right : 0) |
+				(y < 1 / 3 ? KEY_INPUTS.up : 0) |
+				(y > 2 / 3 ? KEY_INPUTS.down : 0)
+		)
 	}
 	function handleDpadRelease() {
-		updateDpadDeltas({
-			left: false,
-			right: false,
-			up: false,
-			down: false,
-		})
+		updateDpadDeltas(0)
 	}
 
 	return (

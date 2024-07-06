@@ -1,4 +1,4 @@
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
+import { Getter, Setter, atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { useEffect, useState } from "preact/hooks"
 import { SetSelectorPage } from "./pages/SetSelectorPage"
 import { FunctionComponent } from "preact"
@@ -8,7 +8,7 @@ import {
 	levelAtom,
 	levelSetAtom,
 	levelSetAutosaveAtom,
-	resolveHashLevel,
+	resolveHashLevelGs,
 } from "./levelData"
 import { EffectFn, ignorantAtomEffectHook } from "./helpers"
 import { preferenceWritingAtom } from "./preferences"
@@ -62,9 +62,9 @@ function makeHashFromLoc(hashLoc: HashLocation): string {
 		Object.keys(hashLoc.searchParams).length === 0
 			? ""
 			: // Bad TS types
-			  `?${new URLSearchParams(
+				`?${new URLSearchParams(
 					hashLoc.searchParams as Record<string, string>
-			  )}`
+				)}`
 	}`
 }
 
@@ -111,30 +111,33 @@ export const pageAtom = atom<Page | null, [pageName: string], void>(
 )
 export const preventImmediateHashUpdateAtom = atom(false)
 
+export function updateVariablesFromHashGs(get: Getter, set: Setter) {
+	const hashLoc = parseHashLocation()
+
+	const pageName = hashLoc.pagePath[0]
+	set(
+		nullablePageNameAtom,
+		pageName === "" || pageName === undefined ? null : pageName
+	)
+
+	const page = pages[pageName]
+	set(searchParamsAtom, hashLoc.searchParams)
+	if (page?.requiresLevel) {
+		set(levelSetIdentAtom, hashLoc.pagePath[1])
+		set(levelNAtom, parseInt(hashLoc.pagePath[2]))
+	} else {
+		set(levelSetIdentAtom, null)
+		set(levelNAtom, null)
+	}
+
+	set(preventImmediateHashUpdateAtom, true)
+	resolveHashLevelGs(get, set)
+}
+
 const hashToInternalLocationSyncEffect: EffectFn = (get, set) => {
 	const listener = () => {
-		const hashLoc = parseHashLocation()
-
-		const pageName = hashLoc.pagePath[0]
-		set(
-			nullablePageNameAtom,
-			pageName === "" || pageName === undefined ? null : pageName
-		)
-
-		const page = pages[pageName]
-		set(searchParamsAtom, hashLoc.searchParams)
-		if (page?.requiresLevel) {
-			set(levelSetIdentAtom, hashLoc.pagePath[1])
-			set(levelNAtom, parseInt(hashLoc.pagePath[2]))
-		} else {
-			set(levelSetIdentAtom, null)
-			set(levelNAtom, null)
-		}
-
-		set(preventImmediateHashUpdateAtom, true)
-		resolveHashLevel(get, set)
+		updateVariablesFromHashGs(get, set)
 	}
-	listener()
 	window.addEventListener("hashchange", listener)
 	return () => window.removeEventListener("hashchange", listener)
 }

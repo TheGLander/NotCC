@@ -1,23 +1,18 @@
 import {
 	GameState,
 	KeyInputs,
-	LevelState,
+	Level,
+	PlayerSeat,
 	charToKeyInput,
 	keyInputToChar,
-	makeEmptyInputs,
 } from "@notcc/logic"
 import cloneLib from "clone"
 
 function clone<T>(src: T): T {
-	// if (typeof structuredClone === "function") {
-	// 	const obj = structuredClone(src)
-	// 	Object.setPrototypeOf(obj, Object.getPrototypeOf(src))
-	// 	return obj
-	// }
 	return cloneLib(src, true)
 }
 
-export function tickLevel(level: LevelState) {
+export function tickLevel(level: Level) {
 	level.tick()
 	if (level.gameState === GameState.WON) return
 	level.tick()
@@ -28,28 +23,11 @@ export function tickLevel(level: LevelState) {
 
 export const SNAPSHOT_PERIOD = 50
 export interface Snapshot {
-	level: LevelState
+	level: Level
 	tick: number
 }
 
 export type MoveSeqenceInterval = [startIn: number, endEx: number]
-
-// TODO move this to @notcc/logic maybe?
-export function cloneLevel(level: LevelState): LevelState {
-	// Don't clone the static level data
-	// TODO Maybe don't always have a copy of the whole level map in the level state?
-	// What's it doing there, anyways?
-	const levelData = level.levelData
-	delete level.levelData
-	const inputProvider = level.inputProvider
-	delete level.inputProvider
-	const newLevel = clone(level)
-	newLevel.levelData = levelData
-	newLevel.inputProvider = inputProvider
-	level.levelData = levelData
-	level.inputProvider = inputProvider
-	return newLevel
-}
 
 export class MoveSequence {
 	moves: string[] = []
@@ -62,38 +40,40 @@ export class MoveSequence {
 		return this.moves.length
 	}
 	applyToLevel(
-		level: LevelState,
+		level: Level,
+		seat: PlayerSeat,
 		interval: MoveSeqenceInterval = [0, this.moves.length]
 	) {
 		for (const move of this.moves.slice(interval[0], interval[1])) {
-			level.gameInput = charToKeyInput(move)
+			seat.inputs = charToKeyInput(move)
 			tickLevel(level)
 			if (level.gameState !== GameState.PLAYING) return
 		}
 	}
-	_add_tickLevel(input: KeyInputs, level: LevelState) {
+	_add_tickLevel(input: KeyInputs, level: Level, seat: PlayerSeat) {
 		if ((this.tickLen + this.snapshotOffset) % SNAPSHOT_PERIOD === 0) {
-			this.snapshots.push({ tick: this.tickLen, level: cloneLevel(level) })
+			this.snapshots.push({ tick: this.tickLen, level: level.clone() })
 		}
-		level.gameInput = input
+		seat.inputs = input
 		tickLevel(level)
 	}
-	add(input: KeyInputs, level: LevelState) {
+	add(input: KeyInputs, level: Level, seat: PlayerSeat) {
 		const ogInput = input
 		const inputsToPush: string[] = []
 		let char = keyInputToChar(input, false)
 		let firstTick = true
 		do {
-			this._add_tickLevel(input, level)
+			this._add_tickLevel(input, level, seat)
 			inputsToPush.push(char)
 			this.moves.push(char)
 			this.userMoves.push(firstTick)
-			input = makeEmptyInputs()
+			input = 0
 			char = "-"
 			firstTick = false
 		} while (
-			level.selectedPlayable!.cooldown > 0 &&
-			level.gameState === GameState.PLAYING
+			level.gameState === GameState.PLAYING &&
+			seat.actor &&
+			seat.actor.moveProgress != 0
 		)
 		if (inputsToPush.length === 4 && !inputsToPush[0].endsWith("-")) {
 			this.displayMoves.push(keyInputToChar(ogInput, true), "", "", "")
@@ -117,7 +97,7 @@ export class MoveSequence {
 		this.snapshots = thisSnapshots
 		cloned.snapshots = thisSnapshots.map(snap => ({
 			...snap,
-			level: cloneLevel(snap.level),
+			level: snap.level.clone(),
 		}))
 		return cloned
 	}
@@ -142,12 +122,15 @@ export class MoveSequence {
 export class LinearModel {
 	moveSeq = new MoveSequence()
 	offset = 0
-	constructor(public level: LevelState) {}
-	addInput(inputs: KeyInputs, level: LevelState): void {
+	get playerSeat() {
+		return this.level.playerSeats[0]
+	}
+	constructor(public level: Level) {}
+	addInput(inputs: KeyInputs): void {
 		if (this.offset !== this.moveSeq.tickLen) {
 			const newSeq = new MoveSequence()
 			newSeq.snapshotOffset = this.offset
-			newSeq.add(inputs, level)
+			newSeq.add(inputs, this.level, this.playerSeat)
 			if (
 				newSeq.moves.every(
 					(m, idx) => m === this.moveSeq.moves[idx + this.offset]
@@ -160,7 +143,7 @@ export class LinearModel {
 				this.offset = this.moveSeq.tickLen
 			}
 		} else {
-			this.moveSeq.add(inputs, level)
+			this.moveSeq.add(inputs, this.level, this.playerSeat)
 			this.offset = this.moveSeq.tickLen
 		}
 	}
@@ -179,15 +162,18 @@ export class LinearModel {
 		} else {
 			this.offset += newOffset + 1
 		}
-		this.moveSeq.applyToLevel(this.level, [lastOffset, this.offset])
+		this.moveSeq.applyToLevel(this.level, this.playerSeat, [
+			lastOffset,
+			this.offset,
+		])
 	}
 	goTo(pos: number): void {
 		if (this.moveSeq.tickLen === 0) return
 		this.offset = pos
 		const snapshot = this.moveSeq.findSnapshot(pos)
 
-		this.level = cloneLevel(snapshot.level)
-		this.moveSeq.applyToLevel(this.level, [snapshot.tick, pos])
+		this.level = snapshot.level.clone()
+		this.moveSeq.applyToLevel(this.level, this.playerSeat, [snapshot.tick, pos])
 	}
 	resetLevel() {
 		this.goTo(0)
@@ -202,12 +188,12 @@ export class LinearModel {
 		return this.offset === this.moveSeq.tickLen
 	}
 	step() {
-		if (this.level.subtick !== 1) {
+		if (this.level.currentSubtick !== 1) {
 			this.level.tick()
 			return
 		}
 		if (this.offset === this.moveSeq.tickLen) return
-		this.level.gameInput = charToKeyInput(this.moveSeq.moves[this.offset])
+		this.playerSeat.inputs = charToKeyInput(this.moveSeq.moves[this.offset])
 		this.offset += 1
 		this.level.tick()
 	}

@@ -1,18 +1,24 @@
 import { useCallback, useLayoutEffect, useMemo, useState } from "preact/hooks"
 import { Renderer, Tileset } from "./renderer"
-import { CameraType, LevelState } from "@notcc/logic"
+import { Level, PlayerSeat } from "@notcc/logic"
 import { Ref as RefG } from "preact"
 import { AnimationTimer, applyRef } from "@/helpers"
 import { twJoin } from "tailwind-merge"
 
+export interface CameraType {
+	width: number
+	height: number
+}
+
 export interface GameRendererProps {
 	tileset: Tileset
-	level: LevelState | { current: LevelState }
+	level: Level | { current: Level }
 	tileScale?: number
 	class?: string
 	autoDraw?: boolean
 	renderRef?: RefG<(() => void) | null | undefined>
 	cameraType: CameraType
+	playerSeat: PlayerSeat
 }
 
 export function GameRenderer(props: GameRendererProps) {
@@ -26,19 +32,21 @@ export function GameRenderer(props: GameRendererProps) {
 	useLayoutEffect(() => {
 		renderer.level =
 			"current" in props.level ? props.level.current : props.level
-		renderer.cameraSize = props.cameraType ?? renderer.level!.cameraType
+		renderer.cameraSize = props.cameraType
+		renderer.playerSeat = props.playerSeat
 		renderer.tileset = props.tileset
 		if (canvas) {
 			renderer.updateTileSize(canvas)
 			renderer.frame(ctx!)
 		}
-	}, [props.tileset, props.cameraType, props.level, canvas])
+	}, [props.tileset, props.cameraType, props.level, props.playerSeat, canvas])
 
 	useLayoutEffect(() => {
 		if (!props.autoDraw || !ctx) return
 		let lastTick = -1
 		const timer = new AnimationTimer(() => {
-			const curTick = renderer.level!.currentTick * 3 + renderer.level!.subtick
+			const curTick =
+				renderer.level!.currentTick * 3 + renderer.level!.currentSubtick
 			if (lastTick === curTick) return
 			renderer.frame(ctx!)
 			lastTick = curTick

@@ -22,7 +22,7 @@ export function Timeline(props: {
 	return (
 		<div
 			class="relative mx-2.5 flex flex-1"
-			onClick={onScrub}
+			onMouseDown={onScrub}
 			onMouseMove={onScrub}
 		>
 			<div class="bg-theme-100 h-1 w-full self-center rounded" />
