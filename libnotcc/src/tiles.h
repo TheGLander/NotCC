@@ -53,6 +53,8 @@ extern const TileType KEY_BLUE_tile;
 extern const TileType KEY_YELLOW_tile;
 extern const TileType KEY_GREEN_tile;
 extern const TileType BLUE_TANK_actor;
+extern const TileType ANT_actor;
 extern const TileType ECHIP_tile;
 extern const TileType ECHIP_GATE_tile;
 extern const TileType HINT_tile;
+extern const TileType DIRT_tile;

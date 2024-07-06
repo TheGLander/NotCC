@@ -655,9 +655,9 @@ void Player_do_decision(Actor* self, Level* level) {
   if (Level_is_movement_subtick(level))
     self->bonked = false;
   PlayerSeat* seat = Level_find_player_seat(level, self);
- if (seat != NULL) {
-  seat->released_inputs = 0;
- }
+  if (seat != NULL) {
+    seat->released_inputs = 0;
+  }
 #define Player_set_input(bit) \
   seat->released_inputs = seat->released_inputs | bit;
 

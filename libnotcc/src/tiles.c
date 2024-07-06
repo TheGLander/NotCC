@@ -2,8 +2,7 @@
 #include "logic.h"
 #pragma clang diagnostic ignored "-Winitializer-overrides"
 
-const TileType LIGHTNING_tile = {TILE_TYPE, .name = "lightning",
-                                 .layer = LAYER_ITEM};
+// Terrain
 
 const TileType FLOOR_tile = {
     TILE_TYPE,
@@ -11,6 +10,114 @@ const TileType FLOOR_tile = {
     .layer = LAYER_TERRAIN,
     .wire_type = WIRES_CROSS,
 };
+
+const TileType WALL_tile = {TILE_TYPE, .name = "wall", .layer = LAYER_TERRAIN,
+                            .impedes_mask = ACTOR_FLAGS_NOT_GHOST};
+
+const TileType STEEL_WALL_tile = {
+    TILE_TYPE,
+    .name = "steelWall",
+    .layer = LAYER_TERRAIN,
+    .impedes_mask = ~0,
+};
+
+const TileType ICE_tile = {TILE_TYPE, .name = "ice", .layer = LAYER_TERRAIN};
+const TileType ICE_CORNER_tile = {TILE_TYPE, .name = "iceCorner",
+                                  .layer = LAYER_TERRAIN};
+const TileType WATER_tile = {TILE_TYPE, .name = "water",
+                             .layer = LAYER_TERRAIN};
+const TileType FIRE_tile = {TILE_TYPE, .name = "fire", .layer = LAYER_TERRAIN};
+const TileType FORCE_FLOOR_tile = {TILE_TYPE, .name = "forceFloor",
+                                   .layer = LAYER_TERRAIN};
+const TileType TOGGLE_WALL_tile = {TILE_TYPE, .name = "toggleWall",
+                                   .layer = LAYER_TERRAIN};
+const TileType TELEPORT_RED_tile = {TILE_TYPE, .name = "teleportRed",
+                                    .layer = LAYER_TERRAIN};
+const TileType TELEPORT_BLUE_tile = {TILE_TYPE, .name = "teleportBlue",
+                                     .layer = LAYER_TERRAIN};
+const TileType TELEPORT_GREEN_tile = {TILE_TYPE, .name = "teleportGreen",
+                                      .layer = LAYER_TERRAIN};
+const TileType TELEPORT_YELLOW_tile = {TILE_TYPE, .name = "teleportYellow",
+                                       .layer = LAYER_TERRAIN};
+const TileType SLIME_tile = {TILE_TYPE, .name = "slime",
+                             .layer = LAYER_TERRAIN};
+const TileType GRAVEL_tile = {};
+const TileType BUTTON_GREEN_tile = {};
+const TileType BUTTON_BLUE_tile = {};
+
+static void EXIT_actor_completely_joined(BasicTile* self,
+                                         Level* level,
+                                         Actor* other) {
+  if (!(other->type->flags & ACTOR_FLAGS_REAL_PLAYER))
+    return;
+  level->players_left -= 1;
+  PlayerSeat* seat = Level_find_player_seat(level, other);
+  seat->actor = Level_find_next_player(level, other);
+  Actor_erase(other, level);
+}
+const TileType EXIT_tile = {
+    TILE_TYPE, .name = "exit", .layer = LAYER_TERRAIN,
+    .actor_completely_joined = EXIT_actor_completely_joined};
+
+#define MAKE_DOOR(var_name, capital, simple, reuse_flag)                       \
+  static bool var_name##_impedes(BasicTile* self, Level* level, Actor* other,  \
+                                 Direction direction) {                        \
+    if (other->type->flags & ACTOR_FLAGS_GHOST)                                \
+      return false;                                                            \
+    return other->inventory.keys_##simple == 0;                                \
+  };                                                                           \
+  static void var_name##_actor_completely_joined(BasicTile* self,              \
+                                                 Level* level, Actor* other) { \
+    BasicTile_destroy(self);                                                   \
+    if (!(other->type->flags & reuse_flag) &&                                  \
+        other->inventory.keys_##simple > 0) {                                  \
+      other->inventory.keys_##simple -= 1;                                     \
+    }                                                                          \
+  };                                                                           \
+  const TileType var_name##_tile = {                                           \
+      TILE_TYPE, .name = "door" #capital, .layer = LAYER_TERRAIN,              \
+      .impedes = var_name##_impedes,                                           \
+      .actor_completely_joined = var_name##_actor_completely_joined};
+
+MAKE_DOOR(DOOR_RED, Red, red, 0);
+MAKE_DOOR(DOOR_BLUE, Blue, blue, 0);
+MAKE_DOOR(DOOR_YELLOW, Yellow, yellow, ACTOR_FLAGS_MELINDA);
+MAKE_DOOR(DOOR_GREEN, Green, green, ACTOR_FLAGS_CHIP);
+
+static bool ECHIP_GATE_impedes(BasicTile* self,
+                               Level* level,
+                               Actor* other,
+                               Direction direction) {
+  if (other->type->flags & ACTOR_FLAGS_GHOST)
+    return false;
+  return level->chips_left > 0;
+}
+
+static void ECHIP_GATE_actor_completely_joined(BasicTile* self,
+                                               Level* level,
+                                               Actor* other) {
+  if (level->chips_left > 0)
+    return;
+  BasicTile_destroy(self);
+}
+
+const TileType ECHIP_GATE_tile = {
+    TILE_TYPE,
+    .name = "echipGate",
+    .layer = LAYER_TERRAIN,
+    .impedes = ECHIP_GATE_impedes,
+    .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER,
+    .actor_completely_joined = ECHIP_GATE_actor_completely_joined,
+    .flags = ACTOR_FLAGS_TNT_IMMUNE};
+
+const TileType HINT_tile = {TILE_TYPE, .name = "hint", .layer = LAYER_TERRAIN};
+
+// Actors
+
+const ActorType CHIP_actor = {ACTOR_TYPE, .name = "chip",
+                              .flags = ACTOR_FLAGS_REAL_PLAYER |
+                                       ACTOR_FLAGS_CHIP |
+                                       ACTOR_FLAGS_PICKS_UP_ITEMS};
 
 static void CENTIPEDE_decide(Actor* self, Level* level, Direction* directions) {
   directions[0] = right(self->direction);
@@ -40,87 +147,15 @@ const ActorType GLIDER_actor = {
     .decide_movement = GLIDER_decide,
 };
 
-const TileType WALL_tile = {TILE_TYPE, .name = "wall", .layer = LAYER_TERRAIN,
-                            .impedes_mask = ACTOR_FLAGS_NOT_GHOST};
-
-const TileType STEEL_WALL_tile = {
-    TILE_TYPE,
-    .name = "steelWall",
-    .layer = LAYER_TERRAIN,
-    .impedes_mask = ~0,
-};
-
-const ActorType CHIP_actor = {ACTOR_TYPE, .name = "chip",
-                              .flags = ACTOR_FLAGS_REAL_PLAYER |
-                                       ACTOR_FLAGS_CHIP |
-                                       ACTOR_FLAGS_PICKS_UP_ITEMS};
-static void EXIT_actor_completely_joined(BasicTile* self,
-                                         Level* level,
-                                         Actor* other) {
-  if (!(other->type->flags & ACTOR_FLAGS_REAL_PLAYER))
-    return;
-  level->players_left -= 1;
-  PlayerSeat* seat = Level_find_player_seat(level, other);
-  seat->actor = Level_find_next_player(level, other);
-  Actor_erase(other, level);
-}
-const TileType EXIT_tile = {
-    TILE_TYPE, .name = "exit", .layer = LAYER_TERRAIN,
-    .actor_completely_joined = EXIT_actor_completely_joined};
-
-const TileType ICE_tile = {TILE_TYPE, .name = "ice", .layer = LAYER_TERRAIN};
-const TileType ICE_CORNER_tile = {TILE_TYPE, .name = "iceCorner",
-                                  .layer = LAYER_TERRAIN};
-const TileType THIN_WALL_tile = {TILE_TYPE, .name = "thinWall",
-                                 .layer = LAYER_SPECIAL};
-const TileType WATER_tile = {TILE_TYPE, .name = "water",
-                             .layer = LAYER_TERRAIN};
-const TileType FIRE_tile = {TILE_TYPE, .name = "fire", .layer = LAYER_TERRAIN};
-const TileType FORCE_FLOOR_tile = {TILE_TYPE, .name = "forceFloor",
-                                   .layer = LAYER_TERRAIN};
-const TileType TOGGLE_WALL_tile = {TILE_TYPE, .name = "toggleWall",
-                                   .layer = LAYER_TERRAIN};
-const TileType TELEPORT_RED_tile = {TILE_TYPE, .name = "teleportRed",
-                                    .layer = LAYER_TERRAIN};
-const TileType TELEPORT_BLUE_tile = {TILE_TYPE, .name = "teleportBlue",
-                                     .layer = LAYER_TERRAIN};
-const TileType TELEPORT_GREEN_tile = {TILE_TYPE, .name = "teleportGreen",
-                                      .layer = LAYER_TERRAIN};
-const TileType TELEPORT_YELLOW_tile = {TILE_TYPE, .name = "teleportYellow",
-                                       .layer = LAYER_TERRAIN};
-const TileType SLIME_tile = {TILE_TYPE, .name = "slime",
-                             .layer = LAYER_TERRAIN};
 const ActorType DIRT_BLOCK_actor = {};
 const ActorType WALKER_actor = {};
 const ActorType ICE_BLOCK_actor = {};
-const TileType GRAVEL_tile = {};
-const TileType BUTTON_GREEN_tile = {};
-const TileType BUTTON_BLUE_tile = {};
 
-#define MAKE_DOOR(var_name, capital, simple, reuse_flag)                       \
-  static bool var_name##_impedes(BasicTile* self, Level* level, Actor* other,  \
-                                 Direction direction) {                        \
-    if (other->type->flags & ACTOR_FLAGS_GHOST)                                \
-      return false;                                                            \
-    return other->inventory.keys_##simple == 0;                                \
-  };                                                                           \
-  static void var_name##_actor_completely_joined(BasicTile* self,              \
-                                                 Level* level, Actor* other) { \
-    BasicTile_destroy(self);                                                   \
-    if (!(other->type->flags & reuse_flag) &&                                  \
-        other->inventory.keys_##simple > 0) {                                  \
-      other->inventory.keys_##simple -= 1;                                     \
-    }                                                                          \
-  };                                                                           \
-  const TileType var_name##_tile = {                                           \
-      TILE_TYPE, .name = "door" #capital, .layer = LAYER_TERRAIN,              \
-      .impedes = var_name##_impedes,                                           \
-      .actor_completely_joined = var_name##_actor_completely_joined};
+const TileType BLUE_TANK_actor = {};
 
-MAKE_DOOR(DOOR_RED, Red, red, 0);
-MAKE_DOOR(DOOR_BLUE, Blue, blue, 0);
-MAKE_DOOR(DOOR_YELLOW, Yellow, yellow, ACTOR_FLAGS_MELINDA);
-MAKE_DOOR(DOOR_GREEN, Green, green, ACTOR_FLAGS_CHIP);
+// Items
+const TileType LIGHTNING_tile = {TILE_TYPE, .name = "lightning",
+                                 .layer = LAYER_ITEM};
 
 #define MAKE_KEY(var_name, capital, simple, impedes, collect_condition)        \
   static void var_name##_actor_completely_joined(BasicTile* self,              \
@@ -146,8 +181,6 @@ MAKE_KEY(KEY_BLUE, Blue, blue, 0, true);
 MAKE_KEY(KEY_YELLOW, Yellow, yellow, ACTOR_FLAGS_BASIC_MONSTER, true);
 MAKE_KEY(KEY_GREEN, Green, green, ACTOR_FLAGS_BASIC_MONSTER, true);
 
-const TileType BLUE_TANK_actor = {};
-
 static void ECHIP_actor_completely_joined(BasicTile* self,
                                           Level* level,
                                           Actor* actor) {
@@ -164,30 +197,6 @@ const TileType ECHIP_tile = {
     .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER,
     .actor_completely_joined = ECHIP_actor_completely_joined};
 
-static bool ECHIP_GATE_impedes(BasicTile* self,
-                               Level* level,
-                               Actor* other,
-                               Direction direction) {
-  if (other->type->flags & ACTOR_FLAGS_GHOST)
-    return false;
-  return level->chips_left > 0;
-}
-
-static void ECHIP_GATE_actor_completely_joined(BasicTile* self,
-                                               Level* level,
-                                               Actor* other) {
-  if (level->chips_left > 0)
-    return;
-  BasicTile_destroy(self);
-}
-
-const TileType ECHIP_GATE_tile = {
-    TILE_TYPE,
-    .name = "echipGate",
-    .layer = LAYER_TERRAIN,
-    .impedes = ECHIP_GATE_impedes,
-    .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER,
-    .actor_completely_joined = ECHIP_actor_completely_joined,
-    .flags = ACTOR_FLAGS_TNT_IMMUNE};
-
-const TileType HINT_tile = {TILE_TYPE, .name = "hint", .layer = LAYER_TERRAIN};
+// Misc
+const TileType THIN_WALL_tile = {TILE_TYPE, .name = "thinWall",
+                                 .layer = LAYER_SPECIAL};

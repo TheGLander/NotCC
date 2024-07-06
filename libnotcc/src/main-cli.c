@@ -234,13 +234,13 @@ Result_SyncfilePtr get_syncfile(const char* path) {
     if (!res_buf.success) {
       res_throw(res_buf.error);
     };
-  char* str_buf = malloc(res_buf.value.length + 1);
-  memcpy(str_buf, res_buf.value.data, res_buf.value.length);
-  str_buf[res_buf.value.length] = 0;
+    char* str_buf = malloc(res_buf.value.length + 1);
+    memcpy(str_buf, res_buf.value.data, res_buf.value.length);
+    str_buf[res_buf.value.length] = 0;
     free(res_buf.value.data);
 
     res = Syncfile_parse(str_buf);
-  free(str_buf);
+    free(str_buf);
     return res;
   } else {
     // A basic default syncfile
