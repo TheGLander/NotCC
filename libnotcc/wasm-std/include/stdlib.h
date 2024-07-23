@@ -7,3 +7,4 @@ extern void* calloc(size_t num, size_t size);
 extern void* realloc(void* ptr, size_t size);
 extern void free(void* ptr);
 extern long atol(const char* str);
+[[noreturn]] extern void abort();

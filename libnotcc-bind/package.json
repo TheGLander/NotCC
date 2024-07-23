@@ -8,9 +8,11 @@
 	"type": "module",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build-src": "tsc",
+		"build:src": "tsc",
+		"build:proto": "pbjs -t static-module --force-number -w es6 src/nonbind/nccs.proto -o src/nonbind/nccs.pb.js && pbts -o src/nonbind/nccs.pb.d.ts src/nonbind/nccs.pb.js && pnpm make-proto-hacks",
+		"make-proto-hacks": "sed -i '/import Long = require(\"long\");/d' ./src/nonbind/nccs.pb.d.ts && sed -i 's:import\\ \\*\\ as\\ \\$protobuf\\ from\\ \\\"protobufjs/minimal\\\"\\;:import\\ \\$protobuf\\ from\\ \\\"protobufjs/minimal.js\\\"\\;:' ./src/nonbind/nccs.pb.js",
 		"dev": "tsc --watch --declaration",
-		"build": "pnpm build-src && cp ../libnotcc/build/libnotcc.so ./dist/libnotcc.wasm && cp ../libnotcc/build/libnotcc.so.map ./dist/libnotcc.wasm.map",
+		"build": "pnpm build:proto && pnpm build:src && cp ./src/nonbind/nccs.pb.js ./src/nonbind/nccs.pb.d.ts ./dist/nonbind && cp ../libnotcc/build/libnotcc.so ./dist/libnotcc.wasm && cp ../libnotcc/build/libnotcc.so.map ./dist/libnotcc.wasm.map",
 		"prepublish": "pnpm build"
 	},
 	"repository": {

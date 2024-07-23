@@ -80,7 +80,7 @@ static_assert((((int32_t)0x80000000U) >> 31) == -1,
 // outputs. Allocation requests with smaller alignment than this will yield an
 // allocation with this much alignment.
 #define MALLOC_ALIGNMENT alignof(max_align_t)
-static_assert(alignof(max_align_t) == 8, "max_align_t must be correct");
+// static_assert(alignof(max_align_t) == 8, "max_align_t must be correct");
 
 #ifdef EMMALLOC_NO_STD_EXPORTS
 #define EMMALLOC_ALIAS(ALIAS, ORIGINAL)

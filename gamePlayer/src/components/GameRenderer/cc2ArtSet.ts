@@ -215,7 +215,7 @@ export const cc2ArtSet: ArtSet = {
 		},
 		ice: [10, 1],
 		iceCorner: {
-			type: "directic",
+			type: "state",
 			UP: [13, 1],
 			RIGHT: [11, 1],
 			DOWN: [12, 1],
@@ -666,7 +666,7 @@ export const cc2ArtSet: ArtSet = {
 			type: "overlay",
 			bottom: [13, 11],
 			top: {
-				type: "directic",
+				type: "state",
 				UP: [11, 11],
 				RIGHT: [12, 11],
 				DOWN: [9, 11],
@@ -902,7 +902,7 @@ export const cc2ArtSet: ArtSet = {
 		notGate: {
 			type: "wires",
 			top: {
-				type: "directic",
+				type: "state",
 				UP: [0, 25],
 				RIGHT: [1, 25],
 				DOWN: [2, 25],

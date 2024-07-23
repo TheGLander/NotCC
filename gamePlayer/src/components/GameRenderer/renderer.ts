@@ -8,7 +8,7 @@ import {
 import { Actor, Level } from "@notcc/logic"
 // import { Layer } from "@notcc/logic"
 import { specialFuncs, stateFuncs } from "./artSetSpecials"
-import type { CameraType } from "."
+import type { CameraType } from "./index"
 
 export type HTMLImage = HTMLImageElement | HTMLCanvasElement
 
@@ -222,9 +222,14 @@ export class Renderer {
 		pos: Position,
 		art: Record<DirectionString, Frame>,
 		width: number,
-		drawnDirections: Direction[]
+		drawnDirections: bigint
 	): void {
-		for (const direction of drawnDirections) {
+		for (
+			let direction = Direction.UP;
+			direction <= Direction.LEFT;
+			direction += 1
+		) {
+			if (!(drawnDirections & (1n << BigInt(direction - 1)))) continue
 			const offset =
 				direction === Direction.RIGHT
 					? [1 - width, 0]
@@ -295,7 +300,7 @@ export class Renderer {
 			return
 		}
 
-		const state = stateFunc(actor)
+		const state = stateFunc(actor, this.level!)
 		const newArt = art[state] as Art
 		if (newArt === undefined) {
 			console.warn(`Unexpected state ${state} for actor ${actor.type.name}.`)
@@ -313,7 +318,7 @@ export class Renderer {
 			return
 		}
 
-		specialFunc.call(this, ctx, tile, art)
+		specialFunc.call(this, ctx, this.level!, tile, art)
 	}
 	drawArt(ctx: ArtContext, tile: Actor | BasicTile, art: Art): void {
 		if (!art) return

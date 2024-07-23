@@ -1,12 +1,22 @@
-import { Actor, BasicTile } from "@notcc/logic"
-import { ArtContext, Renderer, SpecialArt } from "./renderer"
+import { Actor, BasicTile, Direction, Level } from "@notcc/logic"
+import {
+	Art,
+	ArtContext,
+	Frame,
+	Position,
+	Renderer,
+	Size,
+	SpecialArt,
+} from "./renderer"
 
-export const stateFuncs: Record<string, (actor: Actor | BasicTile) => string> =
-	{}
+export const stateFuncs: Record<
+	string,
+	(actor: Actor | BasicTile, level: Level) => string
+> = {}
 
 export function registerStateFunction<T extends BasicTile | Actor = BasicTile>(
 	id: string,
-	func: (actor: T) => string
+	func: (actor: T, level: Level) => string
 ): void {
 	stateFuncs[id] = func as (typeof stateFuncs)[string]
 }
@@ -16,6 +26,7 @@ export const specialFuncs: Record<
 	(
 		this: Renderer,
 		ctx: ArtContext,
+		level: Level,
 		actor: Actor | BasicTile,
 		art: SpecialArt
 	) => void
@@ -25,20 +36,16 @@ export function registerSpecialFunction<
 	T extends BasicTile | Actor = BasicTile,
 >(
 	id: string,
-	func: (this: Renderer, ctx: ArtContext, actor: T, art: SpecialArt) => void
+	func: (
+		this: Renderer,
+		ctx: ArtContext,
+		level: Level,
+		actor: T,
+		art: SpecialArt
+	) => void
 ): void {
 	specialFuncs[id] = func as (typeof specialFuncs)[string]
 }
-
-// function bitfieldToDirs(bitfield: number): Direction[] {
-// 	const directions: Direction[] = []
-// 	for (let dir = Direction.UP; dir <= Direction.LEFT; dir += 1) {
-// 		if ((bitfield & (1 << dir)) !== 0) {
-// 			directions.push(dir)
-// 		}
-// 	}
-// 	return directions
-// }
 
 function getPlayableState(actor: Actor): string {
 	// const inWater = actor.tile.findActor(actor => actor.hasTag("water"))
@@ -50,9 +57,80 @@ function getPlayableState(actor: Actor): string {
 
 registerStateFunction("chip", getPlayableState)
 registerStateFunction("melinda", getPlayableState)
-// registerStateFunction<InvisibleWall>("invisibleWall", actor =>
-// 	actor.animationLeft > 0 ? "touched" : "default"
-// )
+
+function animationStateFunction(actor: Actor): string {
+	return (4n - (actor.customData + 3n) / 4n).toString()
+}
+
+registerStateFunction("splashAnim", animationStateFunction)
+registerStateFunction("explosionAnim", animationStateFunction)
+
+interface PerspectiveSpecialArt extends SpecialArt {
+	somethingUnderneathOnly?: boolean
+	default: Art
+	revealed: Art
+}
+
+registerSpecialFunction<Actor>(
+	"perspective",
+	function (ctx, level, actor, art) {
+		const spArt = art as PerspectiveSpecialArt
+		// let perspective = level.getPerspective()
+		let perspective = false
+		if (perspective && spArt.somethingUnderneathOnly) {
+			const pos = actor.position
+			const tile = level.getCell(pos[0], pos[1])
+			perspective = !!(
+				tile.itemMod ||
+				tile.item ||
+				tile.terrain!.type.name !== "floor" ||
+				tile.terrain!.customData !== 0n
+			)
+		}
+		this.drawArt(ctx, actor, perspective ? spArt.revealed : spArt.default)
+	}
+)
+registerStateFunction<BasicTile>(
+	"iceCorner",
+	// @ts-ignore This is blatantly incorrect
+	actor => Direction[actor.customData]
+)
+registerStateFunction<BasicTile>(
+	"forceFloor",
+	// @ts-ignore This is blatantly incorrect
+	actor => Direction[actor.customData]
+)
+
+interface ScrollingSpecialArt extends SpecialArt {
+	duration: number
+	UP: [Frame, Frame]
+	DOWN: [Frame, Frame]
+	RIGHT: [Frame, Frame]
+	LEFT: [Frame, Frame]
+}
+
+registerSpecialFunction<BasicTile>(
+	"scrolling",
+	function (ctx, _level, actor, art) {
+		const spArt = art as ScrollingSpecialArt
+		const offsetMult = (ctx.ticks / spArt.duration) % 1
+		// @ts-ignore This is blatantly incorrect
+		const baseFrames = spArt[Direction[actor.customData] as "UP"]
+		const offset: Frame = [
+			baseFrames[1][0] - baseFrames[0][0],
+			baseFrames[1][1] - baseFrames[0][1],
+		]
+		const frame: Frame = [
+			baseFrames[0][0] + offset[0] * offsetMult,
+			baseFrames[0][1] + offset[1] * offsetMult,
+		]
+		this.tileBlit(ctx, [0, 0], frame)
+	}
+)
+
+registerStateFunction<BasicTile>("invisibleWall", (actor, level) =>
+	actor.customData - BigInt(level.subticksPassed()) > 0 ? "touched" : "default"
+)
 // registerStateFunction<BonusFlag>("bonusFlag", actor => actor.customData)
 // registerStateFunction<CustomWall>("customWall", actor => actor.customData)
 // registerStateFunction<CustomFloor>("customFloor", actor => actor.customData)
@@ -118,116 +196,67 @@ registerStateFunction("melinda", getPlayableState)
 // 		)
 // 	}
 // )
-// interface ArrowsSpecialArt extends SpecialArt {
-// 	UP: Frame
-// 	RIGHT: Frame
-// 	DOWN: Frame
-// 	LEFT: Frame
-// 	CENTER: Frame
-// }
+interface ArrowsSpecialArt extends SpecialArt {
+	UP: Frame
+	RIGHT: Frame
+	DOWN: Frame
+	LEFT: Frame
+	CENTER: Frame
+}
+
+registerSpecialFunction<Actor | BasicTile>(
+	"arrows",
+	function (ctx, _level, tile, art) {
+		const spArt = art as ArrowsSpecialArt
+		this.drawCompositionalSides(ctx, [0, 0], spArt, 0.25, tile.customData)
+		this.tileBlit(ctx, [0.25, 0.25], spArt.CENTER, [0.5, 0.5])
+	}
+)
+interface FuseSpecialArt extends SpecialArt {
+	duration: number
+	frames: Frame[]
+}
+
+registerSpecialFunction<BasicTile>("fuse", function (ctx, _level, _tile, art) {
+	const spArt = art as FuseSpecialArt
+	const frameN = Math.floor(
+		spArt.frames.length * ((ctx.ticks / spArt.duration) % 1)
+	)
+	this.tileBlit(ctx, [0.5, 0], spArt.frames[frameN], [0.5, 0.5])
+})
+
+interface ThinWallsSpecialArt extends SpecialArt {
+	UP: Frame
+	RIGHT: Frame
+	DOWN: Frame
+	LEFT: Frame
+}
+registerSpecialFunction<BasicTile>(
+	"thin walls",
+	function (ctx, _level, tile, art) {
+		const spArt = art as ThinWallsSpecialArt
+		this.drawCompositionalSides(ctx, [0, 0], spArt, 0.5, tile.customData)
+	}
+)
 //
-// registerSpecialFunction<CloneMachine | DirectionalBlock>(
-// 	"arrows",
-// 	function (ctx, actor, art) {
-// 		const spArt = art as ArrowsSpecialArt
-// 		const pos = actor.getVisualPosition()
-// 		const directions =
-// 			"legalDirections" in actor ? actor.legalDirections : actor.cloneArrows
-// 		this.drawCompositionalSides(ctx, pos, spArt, 0.25, directions)
-// 		this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], spArt.CENTER, [0.5, 0.5])
-// 	}
-// )
+registerStateFunction<BasicTile>("thinWall", tile =>
+	tile.customData & 0x10n ? "canopy" : "nothing"
+)
 //
-// interface ScrollingSpecialArt extends SpecialArt {
-// 	duration: number
-// 	UP: [Frame, Frame]
-// 	DOWN: [Frame, Frame]
-// 	RIGHT: [Frame, Frame]
-// 	LEFT: [Frame, Frame]
-// }
-//
-// registerSpecialFunction<Actor>("scrolling", function (ctx, actor, art) {
-// 	const spArt = art as ScrollingSpecialArt
-// 	const offsetMult = (ctx.ticks / spArt.duration) % 1
-// 	const baseFrames = spArt[actorToDir(actor)]
-// 	const offset: Frame = [
-// 		baseFrames[1][0] - baseFrames[0][0],
-// 		baseFrames[1][1] - baseFrames[0][1],
-// 	]
-// 	const frame: Frame = [
-// 		baseFrames[0][0] + offset[0] * offsetMult,
-// 		baseFrames[0][1] + offset[1] * offsetMult,
-// 	]
-// 	const pos = actor.getVisualPosition()
-// 	this.tileBlit(ctx, pos, frame)
-// })
-//
-// interface FuseSpecialArt extends SpecialArt {
-// 	duration: number
-// 	frames: Frame[]
-// }
-//
-// registerSpecialFunction<Actor>("fuse", function (ctx, actor, art) {
-// 	const spArt = art as FuseSpecialArt
-// 	const frameN = Math.floor(
-// 		spArt.frames.length * ((ctx.ticks / spArt.duration) % 1)
-// 	)
-// 	const pos = actor.getVisualPosition()
-// 	this.tileBlit(ctx, [pos[0] + 0.5, pos[1]], spArt.frames[frameN], [0.5, 0.5])
-// })
-//
-// interface PerspectiveSpecialArt extends SpecialArt {
-// 	somethingUnderneathOnly?: boolean
-// 	default: Art
-// 	revealed: Art
-// }
-//
-// registerSpecialFunction<Actor>("perspective", function (ctx, actor, art) {
-// 	const spArt = art as PerspectiveSpecialArt
-// 	let perspective = actor.level.getPerspective()
-// 	if (perspective && spArt.somethingUnderneathOnly) {
-// 		perspective =
-// 			!!actor.tile.findActor(actor => actor.layer < actor.layer) ||
-// 			actor.tile.wires !== 0
-// 	}
-// 	this.drawArt(ctx, actor, perspective ? spArt.revealed : spArt.default)
-// })
-//
-// // TODO letters
-//
-// interface ThinWallsSpecialArt extends SpecialArt {
-// 	UP: Frame
-// 	RIGHT: Frame
-// 	DOWN: Frame
-// 	LEFT: Frame
-// }
-// registerSpecialFunction<ThinWall>("thin walls", function (ctx, actor, art) {
-// 	const spArt = art as ThinWallsSpecialArt
-// 	const pos = actor.getVisualPosition()
-//
-// 	this.drawCompositionalSides(
-// 		ctx,
-// 		pos,
-// 		spArt,
-// 		0.5,
-// 		bitfieldToDirs(actor.allowedDirections)
-// 	)
-// })
-//
-// registerStateFunction<ThinWall>("thinWall", actor =>
-// 	actor.hasTag("canopy") ? "canopy" : "nothing"
-// )
-//
-// registerStateFunction<Actor>("blueWall", actor => actor.customData)
-// registerStateFunction<Actor>("greenWall", actor =>
-// 	actor.customData === "fake" &&
-// 	actor.tile.findActor(iterActor => iterActor.layer > actor.layer)
-// 		? "stepped"
-// 		: actor.customData
-// )
-// registerStateFunction<Actor>("toggleWall", actor => actor.customData)
-// registerStateFunction<Actor>("holdWall", actor => actor.customData)
-// registerStateFunction<Trap>("trap", actor => (actor.isOpen ? "open" : "closed"))
+registerStateFunction<BasicTile>("blueWall", actor =>
+	actor.customData & 0x100n ? "real" : "fake"
+)
+// TODO: Green wall
+registerStateFunction<BasicTile>("greenWall", _actor => "real")
+registerStateFunction<BasicTile>("toggleWall", (actor, level) =>
+	!!actor.customData != level.toggleWallInverted ? "on" : "off"
+)
+registerStateFunction<Actor>("holdWall", actor =>
+	actor.customData ? "on" : "off"
+)
+registerStateFunction<BasicTile>("trap", actor =>
+	actor.customData & 1n ? "open" : "closed"
+)
 // registerStateFunction<Actor>("teleportRed", actor =>
 // 	!actor.wired || actor.poweredWires !== 0 ? "on" : "off"
 // )
@@ -239,52 +268,55 @@ registerStateFunction("melinda", getPlayableState)
 // )
 // registerStateFunction<Actor>("toggleSwitch", actor => actor.customData)
 //
-// interface StretchSpecialArt extends SpecialArt {
-// 	idle: Art
-// 	vertical: Frame[]
-// 	horizontal: Frame[]
-// }
-//
-// registerSpecialFunction("stretch", function (ctx, actor, art) {
-// 	const spArt = art as StretchSpecialArt
-// 	if (actor.cooldown === 0) {
-// 		this.drawArt(ctx, actor, spArt.idle)
-// 		return
-// 	}
-// 	// Use the base position, not the visual, the frames themselves provide the offset
-// 	const pos = actor.tile.position
-// 	let frames: Frame[]
-// 	let framesReversed: boolean
-// 	const dir = actor.direction
-// 	let offset: Position = [0, 0]
-// 	let cropSize: Size
-// 	if (dir === Direction.UP) {
-// 		frames = spArt.vertical
-// 		framesReversed = true
-// 		cropSize = [1, 2]
-// 	} else if (dir === Direction.RIGHT) {
-// 		frames = spArt.horizontal
-// 		framesReversed = false
-// 		offset = [-1, 0]
-// 		cropSize = [2, 1]
-// 	} else if (dir === Direction.DOWN) {
-// 		frames = spArt.vertical
-// 		framesReversed = false
-// 		offset = [0, -1]
-// 		cropSize = [1, 2]
-// 	} else {
-// 		// Direction.LEFT
-// 		frames = spArt.horizontal
-// 		framesReversed = true
-// 		cropSize = [2, 1]
-// 	}
-// 	let progress = 1 - actor.cooldown / actor.currentMoveSpeed!
-// 	if (framesReversed) {
-// 		progress = 1 - progress
-// 	}
-// 	const frame = frames[Math.floor(progress * frames.length)]
-// 	this.tileBlit(ctx, [pos[0] + offset[0], pos[1] + offset[1]], frame, cropSize)
-// })
+interface StretchSpecialArt extends SpecialArt {
+	idle: Art
+	vertical: Frame[]
+	horizontal: Frame[]
+}
+
+registerSpecialFunction<Actor>("stretch", function (ctx, _level, actor, art) {
+	const spArt = art as StretchSpecialArt
+	if (actor.moveProgress === 0) {
+		this.drawArt(ctx, actor, spArt.idle)
+		return
+	}
+	const pos = [0, 0]
+	// Have to manually undo the visual offset which is applied by default
+	const builtinOffset = actor.getVisualOffset()
+	pos[0] -= builtinOffset[0]
+	pos[1] -= builtinOffset[1]
+	let frames: Frame[]
+	let framesReversed: boolean
+	const dir = actor.direction
+	let offset: Position = [0, 0]
+	let cropSize: Size
+	if (dir === Direction.UP) {
+		frames = spArt.vertical
+		framesReversed = true
+		cropSize = [1, 2]
+	} else if (dir === Direction.RIGHT) {
+		frames = spArt.horizontal
+		framesReversed = false
+		offset = [-1, 0]
+		cropSize = [2, 1]
+	} else if (dir === Direction.DOWN) {
+		frames = spArt.vertical
+		framesReversed = false
+		offset = [0, -1]
+		cropSize = [1, 2]
+	} else {
+		// Direction.LEFT
+		frames = spArt.horizontal
+		framesReversed = true
+		cropSize = [2, 1]
+	}
+	let progress = actor.moveProgress / actor.moveLength
+	if (framesReversed) {
+		progress = 1 - progress
+	}
+	const frame = frames[Math.floor(progress * frames.length)]
+	this.tileBlit(ctx, [pos[0] + offset[0], pos[1] + offset[1]], frame, cropSize)
+})
 //
 // registerSpecialFunction<VoodooTile>("voodoo", function (ctx, actor) {
 // 	if (actor.tileOffset === null) return
@@ -424,11 +456,3 @@ registerStateFunction("melinda", getPlayableState)
 // 	this.tileBlit(ctx, pos, spArt[actorToDir(actor)])
 // })
 //
-// function animationStateFunction(actor: Animation): string {
-// 	return Math.floor(
-// 		(1 - actor.animationCooldown / actor.animationLength) * 4
-// 	).toString()
-// }
-//
-// registerStateFunction("splashAnim", animationStateFunction)
-// registerStateFunction("explosionAnim", animationStateFunction)

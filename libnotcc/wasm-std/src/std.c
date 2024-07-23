@@ -3,10 +3,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <assert.h>
+#include <math.h>
 
 extern unsigned long __builtin_wasm_memory_grow(int mem_idx,
                                                 unsigned long delta);
 extern unsigned long __builtin_wasm_memory_size(int mem_idx);
+[[noreturn]] extern void __builtin_trap();
+
+void _wasmstd_assert(_Bool assertion) {
+ if (!assertion) __builtin_trap();
+}
+[[noreturn]] void abort() {
+ __builtin_trap();
+}
 
 extern size_t __heap_base;
 
@@ -123,4 +134,9 @@ int memcmp(const void* rptr1, const void* rptr2, size_t num) {
     ptr2 += 1;
   }
   return 0;
+}
+
+float fabsf(float v) {
+ if (v < 0.) return -v;
+ return v;
 }

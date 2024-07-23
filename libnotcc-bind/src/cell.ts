@@ -12,7 +12,7 @@ export class BasicTile extends Struct {
 	get type() {
 		return new TileType(wasmFuncs.BasicTile_get_type(this._ptr))
 	}
-	get customData() {
+	get customData(): bigint {
 		return wasmFuncs.BasicTile_get_custom_data(this._ptr)
 	}
 }

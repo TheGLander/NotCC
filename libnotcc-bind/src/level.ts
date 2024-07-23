@@ -165,6 +165,12 @@ export class Level extends Struct {
 	set randomForceFloorDirection(val: Direction) {
 		wasmFuncs.Level_set_rff_direction(this._ptr, val)
 	}
+	get toggleWallInverted(): boolean {
+		return !!wasmFuncs.Level_get_toggle_wall_inverted(this._ptr)
+	}
+	set toggleWallInverted(val: boolean) {
+		wasmFuncs.Level_set_toggle_wall_inverted(this._ptr, val)
+	}
 	clone() {
 		return new Level(wasmFuncs.Level_clone(this._ptr))
 	}
@@ -179,6 +185,9 @@ export class Level extends Struct {
 	}
 	hash(settings: HashSettings) {
 		return wasmFuncs.Level_hash(this._ptr, settings)
+	}
+	totalByteSize(): number {
+		return wasmFuncs.Level_total_size(this._ptr)
 	}
 }
 

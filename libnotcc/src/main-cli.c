@@ -58,7 +58,7 @@ void Syncfile_free(Syncfile* self) {
 }
 
 char* ranged_str_copy(const char* start, const char* end) {
-  char* str = malloc(end - start + 1);
+  char* str = xmalloc(end - start + 1);
   memcpy(str, start, end - start);
   str[end - start] = 0;
   return str;
@@ -81,7 +81,7 @@ DEFINE_RESULT(SyncfilePtr);
 
 Result_SyncfilePtr Syncfile_parse(const char* str) {
   // A somewhat hacky ini parser. Should be fine?
-  Syncfile* sync = malloc(sizeof(Syncfile));
+  Syncfile* sync = xmalloc(sizeof(Syncfile));
   const char* str_start = str;
 #define str_pos (size_t)(str - str_start)
   sync->default_entry =
@@ -121,7 +121,7 @@ Result_SyncfilePtr Syncfile_parse(const char* str) {
       } else {
         sync->entries_len += 1;
         sync->entries =
-            realloc(sync->entries, sync->entries_len * sizeof(SyncfileEntry));
+            xrealloc(sync->entries, sync->entries_len * sizeof(SyncfileEntry));
         current_entry = &sync->entries[sync->entries_len - 1];
         current_entry->level_name = capture_res;
         current_entry->expected_outcome = OUTCOME_SUCCESS;
@@ -198,7 +198,7 @@ Result_Buffer Buffer_read_file(const char* path) {
   fseek(file, 0, SEEK_END);
   long file_len = ftell(file);
   fseek(file, 0, SEEK_SET);
-  void* buf = malloc(file_len);
+  void* buf = xmalloc(file_len);
   fread(buf, 1, file_len, file);
   fclose(file);
   res.value = (Buffer){.data = buf, .length = file_len};
@@ -208,6 +208,8 @@ Result_Buffer Buffer_read_file(const char* path) {
 void Level_verify(Level* self) {
   PlayerSeat* seat = &self->player_seats[0];
   Replay* replay = self->builtin_replay;
+  self->rng_blob = replay->rng_blob;
+  self->rff_direction = replay->rff_direction;
   if (!replay)
     return;
   uint16_t bonus_ticks = 60 * 20;
@@ -234,7 +236,7 @@ Result_SyncfilePtr get_syncfile(const char* path) {
     if (!res_buf.success) {
       res_throw(res_buf.error);
     };
-    char* str_buf = malloc(res_buf.value.length + 1);
+    char* str_buf = xmalloc(res_buf.value.length + 1);
     memcpy(str_buf, res_buf.value.data, res_buf.value.length);
     str_buf[res_buf.value.length] = 0;
     free(res_buf.value.data);
@@ -244,7 +246,7 @@ Result_SyncfilePtr get_syncfile(const char* path) {
     return res;
   } else {
     // A basic default syncfile
-    syncfile = malloc(sizeof(Syncfile));
+    syncfile = xmalloc(sizeof(Syncfile));
     syncfile->default_entry = (SyncfileEntry){
         .level_name = NULL, .expected_outcome = OUTCOME_SUCCESS};
     syncfile->entries = NULL;
@@ -261,7 +263,7 @@ DEFINE_RESULT(FileList);
 
 void FileList_push(FileList* self, char* file) {
   self->files_n += 1;
-  self->files = realloc(self->files, self->files_n * sizeof(FileList));
+  self->files = xrealloc(self->files, self->files_n * sizeof(FileList));
   self->files[self->files_n - 1] = file;
 }
 void FileList_append(FileList* self, FileList* other) {
@@ -280,7 +282,7 @@ char* join_path(const char* a, const char* b) {
   size_t a_len = strlen(a);
   size_t b_len = strlen(b);
   size_t name_len = a_len + 1 + b_len + 1;
-  char* ab = malloc(name_len);
+  char* ab = xmalloc(name_len);
   memcpy(ab, a, a_len);
   ab[a_len] = '/';
   memcpy(ab + a_len + 1, b, b_len + 1);
@@ -304,7 +306,7 @@ Result_FileList expand_file_list(FileList input) {
     if (S_ISREG(stat_res.st_mode)) {
       size_t file_len = strlen(file);
       if (!strcasecmp(&file[file_len - 4], ".c2m")) {
-        FileList_push(&list, strdup(file));
+        FileList_push(&list, strdupz(file));
       }
     } else if (S_ISDIR(stat_res.st_mode)) {
       DIR* dir = opendir(file);
@@ -361,17 +363,26 @@ OutcomeReport verify_level(const char* file_path) {
     return report;
   }
   Result_LevelPtr res2 = parse_c2m(res1.value.data, res1.value.length);
-  free(res1.value.data);
   if (!res2.success) {
+    // Try to parse metadata-only for the level name
+    Result_LevelMetadataPtr res3 =
+        parse_c2m_meta(res1.value.data, res1.value.length);
+    free(res1.value.data);
+    if (res3.success) {
+      report.title = strdupz(res3.value->title);
+      LevelMetadata_uninit(res3.value);
+      free(res3.value);
+    }
     report.outcome = OUTCOME_ERROR;
     report.error_desc = res2.error;
     return report;
   }
+  free(res1.value.data);
   Level* level = res2.value;
-  report.title = strdup(level->metadata.title);
+  report.title = strdupz(level->metadata.title);
   if (!level->builtin_replay) {
     report.outcome = OUTCOME_ERROR;
-    report.error_desc = strdup("No built-in replay");
+    report.error_desc = strdupz("No built-in replay");
     Level_uninit(level);
     free(level);
     return report;
@@ -398,7 +409,7 @@ int level_thread(void* globals_v) {
       mtx_unlock(globals->levels_left_mtx);
       break;
     }
-    size_t file_idx = globals->file_list->files_n - *globals->levels_left;
+    size_t file_idx = *globals->levels_left - 1;
     *globals->levels_left -= 1;
     char* level_file = globals->file_list->files[file_idx];
     globals->file_list->files[file_idx] = NULL;
@@ -423,7 +434,19 @@ int level_thread(void* globals_v) {
 #define MAX_THREADS_N 16
 #define REPORT_PROGRESS_EVERY 100
 
+const char* help_message =
+    "notcc-cli - verify Chip's Challenge 2 level solutions\n"
+    "USAGE: notcc-cli [-vh] [-s syncfile.sync] [files or dirs ...]\n"
+    "Given list of files and directories is recursively expanded and filtered "
+    "for files ending in the C2M extension. By default, the built-in level "
+    "replays are verified.\n"
+    "A syncfile, if supplied, specifies the expected outcome for each "
+    "solution. See the NotCC syncfiles directory for examples. By default, all "
+    "levels are expected to succeed with no non-legal glitches.\n";
+
 int main(int argc, char* argv[]) {
+  // argc = 2;
+  // argv = (char*[]){"", "/home/glander/CC2Sets/steamcc1/001-020/map002.c2m"};
 #define error_and_exit(msg_alloc, msg) \
   do {                                 \
     fprintf(stderr, "%s\n", msg);      \
@@ -434,23 +457,33 @@ int main(int argc, char* argv[]) {
   int opt;
   bool verbose = false;
   char* syncfile_path = NULL;
-  while ((opt = getopt(argc, argv, "vs:")) != -1) {
+  while ((opt = getopt(argc, argv, "vhs:")) != -1) {
     switch (opt) {
+      case 'h':
+        fputs(help_message, stdout);
+        free(syncfile_path);
+        return 0;
       case 'v':
         verbose = true;
         break;
       case 's':
-        syncfile_path = strdup(optarg);
+        syncfile_path = strdupz(optarg);
+        break;
+      default:
+        free(syncfile_path);
+        return 1;
         break;
     }
   }
   if (optind >= argc) {
+    free(syncfile_path);
+    fputs(help_message, stderr);
     error_and_exit(false, "Must supply at least one positional argument");
   }
   // Get filelist
   size_t files_buf_size = (argc - optind) * sizeof(char*);
-  char** files = malloc(files_buf_size);
-  memcpy(files, argv + optind, files_buf_size);
+  char** files = xmalloc(files_buf_size);
+  memcpy(files, &argv[optind], files_buf_size);
   FileList initial_list = {.files = files, .files_n = (argc - optind)};
   Result_FileList res1 = expand_file_list(initial_list);
   free(files);
@@ -498,9 +531,9 @@ int main(int argc, char* argv[]) {
       .outcome_report_nonfull_cnd = &outcome_report_nonfull_cnd};
   size_t thread_count =
       list.files_n > MAX_THREADS_N ? MAX_THREADS_N : list.files_n;
-  thrd_t* threads = malloc(sizeof(thrd_t) * thread_count);
+  thrd_t* threads = xmalloc(sizeof(thrd_t) * thread_count);
   for (size_t idx = 0; idx < thread_count; idx += 1) {
-    thrd_create(threads + idx, level_thread, &globals);
+    thrd_create(&threads[idx], level_thread, &globals);
   }
   size_t levels_passed = 0;
   size_t levels_failed = 0;
@@ -518,7 +551,7 @@ int main(int argc, char* argv[]) {
       cnd_wait(&outcome_report_nonempty_cnd, &outcome_report_mtx);
     }
     // Copy the report so that it can be analyzed without locking the report
-    // mutex
+    // mutex for the whole check
     OutcomeReport report = shared_report;
     shared_report_set = false;
     cnd_signal(&outcome_report_nonfull_cnd);

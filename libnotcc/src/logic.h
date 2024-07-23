@@ -2,18 +2,23 @@
 #include "../include/logic.h"
 #include "accessors/struct.h"
 
-#define right(dir) (dir) % 4 + 1
-#define back(dir) (dir + 1) % 4 + 1
-#define left(dir) (dir + 2) % 4 + 1
-#define dir_from_cc2(dir) dir + 1
+#define right(dir) (dir % 4 + 1)
+#define back(dir) ((dir + 1) % 4 + 1)
+#define left(dir) ((dir + 2) % 4 + 1)
+#define right_n(dir, n) ((dir + n - 1) % 4 + 1)
+#define dir_from_cc2(dir) (dir + 1)
+#define dir_to_cc2(dir) (dir - 1)
+#define has_flag(actor, flag) \
+  ((actor) && (actor)->type && ((actor)->type->flags & (flag)))
 
 typedef struct Inventory {
   _libnotcc_accessors_Inventory
 } Inventory;
 
-#define has_item(inv, itype)                                         \
+#define has_item_generic(inv, itype)                                 \
   (inv.item1 == itype || inv.item2 == itype || inv.item3 == itype || \
    inv.item4 == itype)
+#define has_item_counter(inv, index) (inv.counters.val[index - 1] > 0)
 
 typedef struct Actor {
   _libnotcc_accessors_Actor

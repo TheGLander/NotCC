@@ -12,8 +12,8 @@
 	},
 	"scripts": {
 		"build:web": "pnpm build:logic && pnpm --filter @notcc/player build",
-		"build:cli": "cd libnotcc;./build-native.sh production",
-		"build:libnotcc": "cd libnotcc;./build-wasm.sh production",
+		"build:cli": "cd libnotcc;./build-native.sh release",
+		"build:libnotcc": "cd libnotcc;./build-wasm.sh release",
 		"build:libnotcc-bind": "pnpm i && pnpm build:libnotcc && pnpm --filter @notcc/logic build",
 		"build:logic": "pnpm build:libnotcc-bind",
 		"test": "zx ./testing.mjs",

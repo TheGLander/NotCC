@@ -55,10 +55,10 @@ export class Actor extends Struct {
 	get type() {
 		return new TileType(wasmFuncs.Actor_get_type(this._ptr))
 	}
-	get customData() {
+	get customData(): bigint {
 		return wasmFuncs.Actor_get_custom_data(this._ptr)
 	}
-	set customData(val) {
+	set customData(val: bigint) {
 		wasmFuncs.Actor_set_custom_data(this._ptr, val)
 	}
 	get inventory() {
@@ -73,10 +73,10 @@ export class Actor extends Struct {
 	}
 	// pending_decision
 	// pending_move_locked_in
-	get moveProgress() {
+	get moveProgress(): number {
 		return wasmFuncs.Actor_get_move_progress(this._ptr)
 	}
-	get moveLength() {
+	get moveLength(): number {
 		return wasmFuncs.Actor_get_move_length(this._ptr)
 	}
 	getVisualOffset(): [number, number] {

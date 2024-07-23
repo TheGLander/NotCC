@@ -14,8 +14,7 @@ export async function initWasm(): Promise<void> {
 	if (typeof Buffer !== "undefined") {
 		// Node: Just read the file using the FS lib
 		// The weird `+ "s"` is to prevent Vite from complaining about Node modules in the browser
-		/* @vite-ignore */
-		const fs = await import("node:fs/promise" + "s")
+		const fs = await import(/* @vite-ignore */ "node:fs/promise" + "s")
 		const data = await fs.readFile(new URL("./libnotcc.wasm", import.meta.url))
 		instSource = await WebAssembly.instantiate(data)
 	} else {
@@ -25,5 +24,5 @@ export async function initWasm(): Promise<void> {
 	}
 	moduleInstance = instSource.instance
 	Object.setPrototypeOf(wasmFuncs, instSource.instance.exports)
-	wasmFuncs.emmalloc_blank_slate_from_orbit()
+	wasmFuncs.__wasm_call_ctors()
 }

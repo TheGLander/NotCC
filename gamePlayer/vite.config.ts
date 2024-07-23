@@ -46,7 +46,7 @@ export default defineConfig({
 			registerType: "prompt",
 			workbox: {
 				globIgnores: ["**/ssg/**/*", "**/node_modules/**/*"],
-				globPatterns: ["**/*.{js,css,html,png,svg,wav,ogg,mp3,gif}"],
+				globPatterns: ["**/*.{js,css,html,png,svg,wav,ogg,mp3,gif,wasm}"],
 			},
 			manifest: JSON.parse(
 				readFileSync("./public/manifest.webmanifest").toString("utf-8")

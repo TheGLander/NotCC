@@ -67,6 +67,7 @@ static crc32_t crc_feed64(crc32_t crc, uint64_t val) {
 #define feed_hash64(val) hash = crc_feed64(hash, val);
 
 static crc32_t Inventory_hash(const Inventory* self, crc32_t hash) {
+ for(uint8_t idx=0;idx<16;idx+=1){feed_hash8(self->counters.val[idx]);}
   feed_hash64((uintptr_t)self->item1);
   feed_hash64((uintptr_t)self->item2);
   feed_hash64((uintptr_t)self->item3);
@@ -82,10 +83,9 @@ inline static bool Actor_should_direction_be_hashed(const Actor* self,
                                                     uint32_t settings) {
   if (self->sliding_state != SLIDING_NONE)
     return true;
-  // TODO: Clone machine, traps? Do they set sliding? (yes?)
-  if (self->type->flags & ACTOR_FLAGS_BLOCK)
+  if (has_flag(self, ACTOR_FLAGS_BLOCK))
     return false;
-  if (settings & HASH_SETTINGS_IGNORE_PLAYER_DIRECTION)
+  if (has_flag(self, ACTOR_FLAGS_REAL_PLAYER) && (settings & HASH_SETTINGS_IGNORE_PLAYER_DIRECTION))
     return false;
   return true;
 }
