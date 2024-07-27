@@ -1,4 +1,5 @@
 #include "logic.h"
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -377,6 +378,59 @@ Cell* Level_search_reading_order(Level* self,
   return NULL;
 }
 
+// Lol
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
+Cell* Level_search_taxicab(Level* self,
+                           Cell* base,
+                           bool (*match_func)(void* ctx,
+                                              Level* level,
+                                              Cell* cell),
+                           void* ctx) {
+  uint8_t max_dist = max(self->width, self->height) + 1;
+  Position base_pos = Level_pos_from_cell(self, base);
+
+  for (uint8_t dist = 1; dist <= max_dist; dist += 1) {
+    Cell* found_cell =
+        Level_search_taxicab_at_dist(self, base_pos, dist, match_func, ctx);
+    if (found_cell)
+      return found_cell;
+  }
+  return NULL;
+}
+
+Cell* Level_search_taxicab_at_dist(Level* self,
+                                   Position base_pos,
+                                   uint8_t dist,
+                                   bool (*match_func)(void* ctx,
+                                                      Level* level,
+                                                      Cell* cell),
+                                   void* ctx) {
+  int8_t x = base_pos.x + dist;
+  int8_t y = base_pos.y;
+  // The stages: 1. go UL (cells 1-3) 2. go DL (cells 3-5) 3. go DR (cells
+  // 5-7) 4. go UR (cells 7-1) (basically, go counterclockwise starting from
+  // the rightmost cell) At `dist`=2, the checked cells will be:
+
+  // # # 3 # #
+  // # 4 # 2 #
+  // 5 # x # 1
+  // # 6 # 8 #
+  // # # 7 # #
+  for (uint8_t stage = 0; stage < 4; stage += 1) {
+    for (uint8_t i = 0; i < dist; i += 1) {
+      if (0 <= x && x < self->width && 0 <= y && y < self->height) {
+        Cell* cell = Level_get_cell(self, (Position){x, y});
+        if (match_func(ctx, self, cell))
+          return cell;
+      }
+      x += stage > 1 ? 1 : -1;
+      y += stage == 0 || stage == 3 ? 1 : -1;
+    }
+  }
+  return NULL;
+}
+
 _libnotcc_accessors_PlayerSeat;
 
 BasicTile* Cell_get_layer(Cell* self, Layer layer) {
@@ -397,6 +451,22 @@ Actor* Cell_get_actor(Cell* self) {
 
 void Cell_set_actor(Cell* self, Actor* actor) {
   self->actor = actor;
+}
+
+Cell* BasicTile_get_cell(const BasicTile* tile, Layer layer) {
+  assert(layer != LAYER_ACTOR);
+  size_t offset;
+  if (layer == LAYER_SPECIAL)
+    offset = offsetof(Cell, special);
+  else if (layer == LAYER_ITEM_MOD)
+    offset = offsetof(Cell, item_mod);
+  else if (layer == LAYER_ITEM)
+    offset = offsetof(Cell, item);
+  else if (layer == LAYER_TERRAIN)
+    offset = offsetof(Cell, terrain);
+  else
+    return NULL;
+  return (Cell*)((void*)tile - offset);
 }
 
 _libnotcc_accessors_BasicTile;
@@ -452,15 +522,23 @@ Actor* Actor_new(Level* level,
   return self;
 }
 
-#define NOTIFY_ALL_LAYERS(cell, func, ...)                                 \
-  if (cell->special.type && cell->special.type->func)                      \
-    cell->special.type->func(&cell->special __VA_OPT__(, ) __VA_ARGS__);   \
-  if (cell->item_mod.type && cell->item_mod.type->func)                    \
-    cell->item_mod.type->func(&cell->item_mod __VA_OPT__(, ) __VA_ARGS__); \
-  if (cell->item.type && cell->item.type->func)                            \
-    cell->item.type->func(&cell->item __VA_OPT__(, ) __VA_ARGS__);         \
-  if (cell->terrain.type && cell->terrain.type->func)                      \
-    cell->terrain.type->func(&cell->terrain __VA_OPT__(, ) __VA_ARGS__);
+#define NOTIFY_LAYER(_btile, _func, _level, ...) \
+  if (_btile.type && _btile.type->_func)         \
+    _btile.type->_func(&_btile, _level __VA_OPT__(, ) __VA_ARGS__);
+
+#define NOTIFY_ITEM_LAYER(_cell, _func, _level, ...)                          \
+  if (_cell->item.type &&                                                     \
+      !(_cell->item_mod.type && _cell->item_mod.type->overrides_item_layer && \
+        _cell->item_mod.type->overrides_item_layer(&_cell->item_mod, _level,  \
+                                                   &_cell->item)) &&          \
+      _cell->item.type->_func)                                                \
+    _cell->item.type->_func(&_cell->item, _level __VA_OPT__(, ) __VA_ARGS__);
+
+#define NOTIFY_ALL_LAYERS(_cell, _func, _level, ...)                       \
+  NOTIFY_LAYER(_cell->special, _func, _level __VA_OPT__(, ) __VA_ARGS__);  \
+  NOTIFY_LAYER(_cell->item_mod, _func, _level __VA_OPT__(, ) __VA_ARGS__); \
+  NOTIFY_ITEM_LAYER(_cell, _func, _level __VA_OPT__(, ) __VA_ARGS__);      \
+  NOTIFY_LAYER(_cell->terrain, _func, _level __VA_OPT__(, ) __VA_ARGS__);
 
 void Actor_do_idle(Actor* self, Level* level) {
   Cell* cell = Level_get_cell(level, self->position);
@@ -471,17 +549,25 @@ bool Level_is_movement_subtick(Level* level) {
   return level->current_subtick == 2;
 }
 
-void Level_apply_blue_button(Level* self) {
+void Level_apply_tank_buttons(Level* self) {
+  if (!self->blue_button_pressed &&
+      self->yellow_button_pressed == DIRECTION_NONE)
+    return;
   for (size_t idx = 0; idx < self->actors_allocated_n; idx += 1) {
     Actor* actor = self->actors[idx];
-    if (actor->type != &BLUE_TANK_actor)
-      continue;
-    if (actor->custom_data & BLUE_TANK_ROTATE) {
-      actor->custom_data &= ~BLUE_TANK_ROTATE;
-    } else {
-      actor->custom_data |= BLUE_TANK_ROTATE;
+    if (actor->type == &BLUE_TANK_actor && self->blue_button_pressed) {
+      if (actor->custom_data & BLUE_TANK_ROTATE) {
+        actor->custom_data &= ~BLUE_TANK_ROTATE;
+      } else {
+        actor->custom_data |= BLUE_TANK_ROTATE;
+      }
+    } else if (actor->type == &YELLOW_TANK_actor &&
+               self->yellow_button_pressed) {
+      actor->custom_data = self->yellow_button_pressed;
     }
   }
+  self->blue_button_pressed = false;
+  self->yellow_button_pressed = DIRECTION_NONE;
 }
 
 void Level_tick(Level* self) {
@@ -526,10 +612,7 @@ void Level_tick(Level* self) {
     self->toggle_wall_inverted = !self->toggle_wall_inverted;
     self->green_button_pressed = false;
   }
-  if (self->blue_button_pressed) {
-    Level_apply_blue_button(self);
-    self->blue_button_pressed = false;
-  }
+  Level_apply_tank_buttons(self);
   // TODO: Jetlife
 
   Level_compact_actor_array(self);
@@ -576,9 +659,10 @@ void Actor_do_decision(Actor* self, Level* level) {
     self->move_decision = self->direction;
     return;
   }
-  if (!Level_is_movement_subtick(level))
+ self->move_decision = DIRECTION_NONE;
+  if (!Level_is_movement_subtick(level) &&
+      !has_flag(self, ACTOR_FLAGS_DECIDES_EVERY_SUBTICK))
     return;
-  self->move_decision = DIRECTION_NONE;
   Direction directions[4] = {DIRECTION_NONE, DIRECTION_NONE, DIRECTION_NONE,
                              DIRECTION_NONE};
   if (self->type->decide_movement) {
@@ -596,28 +680,44 @@ void Actor_do_decision(Actor* self, Level* level) {
 }
 
 void Actor_do_decided_move(Actor* self, Level* level) {
-  if (self->move_progress) {
+  if (Actor_is_moving(self)) {
     self->move_decision = DIRECTION_NONE;
     return;
   }
+ if(self->move_decision == DIRECTION_NONE) return;
   self->pending_decision = DIRECTION_NONE;
   self->pending_move_locked_in = false;
-  if (self->move_decision != DIRECTION_NONE) {
     Actor_move_to(self, level, self->move_decision);
-  }
-  self->move_decision = DIRECTION_NONE;
 }
 
 uint8_t Actor_get_move_speed(Actor* self, Level* level, Cell* cell) {
   uint8_t move_speed =
       self->type->move_duration == 0 ? 12 : self->type->move_duration;
   BasicTile* terrain = &cell->terrain;
-  if (terrain->type->modify_move_duration) {
+  if (has_item_counter(self->inventory, ITEM_INDEX_SPEED_BOOTS)) {
+    move_speed = move_speed / 2;
+  } else if (terrain->type->modify_move_duration) {
     move_speed =
         terrain->type->modify_move_duration(terrain, level, self, move_speed);
   }
-  // TODO Speed boots
   return move_speed;
+}
+
+static void notify_actor_left(Actor* self,
+                              Level* level,
+                              Direction direction,
+                              Cell* old_cell) {
+  NOTIFY_LAYER(old_cell->special, actor_left, level, self, direction);
+  if (old_cell->actor)
+    return;
+  NOTIFY_LAYER(old_cell->item_mod, actor_left, level, self, direction);
+  if (old_cell->actor)
+    return;
+  NOTIFY_ITEM_LAYER(old_cell, actor_left, level, self, direction);
+  if (old_cell->actor)
+    return;
+  old_cell->actor = NULL;
+  NOTIFY_LAYER(old_cell->terrain, actor_left, level, self, direction);
 }
 
 bool Actor_move_to(Actor* self, Level* level, Direction direction) {
@@ -628,20 +728,26 @@ bool Actor_move_to(Actor* self, Level* level, Direction direction) {
   self->bonked = !can_move;
   if (!can_move)
     return false;
+ // FIXME: THis as well?????
+  self->pending_decision = DIRECTION_NONE;
+  self->move_decision = DIRECTION_NONE;
   Position new_pos = Level_get_neighbor(level, self->position, direction);
   Cell* old_cell = Level_get_cell(level, self->position);
   Cell* new_cell = Level_get_cell(level, new_pos);
-  if (old_cell->actor && old_cell->actor != self) {
-    // TODO Report despawn
-  }
   self->sliding_state = SLIDING_NONE;
   self->move_progress = 1;
   self->move_length = Actor_get_move_speed(self, level, new_cell);
+  // Intentional ordering: don't report actors that are erased that were created
+  // *due* to the actor leaving. This is how dynamite always works, so
+  // generating a glitch every time a dynamite is dropped would be kinda dumb
+  if (old_cell->actor && old_cell->actor != self) {
+    // TODO: Report despawn
+  }
   old_cell->actor = NULL;
-  NOTIFY_ALL_LAYERS(old_cell, actor_left, level, self, direction);
+  notify_actor_left(self, level, direction, old_cell);
 
   if (new_cell->actor) {
-    // TODO Report despawn
+    // TODO: Report despawn
   }
   new_cell->actor = self;
   NOTIFY_ALL_LAYERS(new_cell, actor_joined, level, self, direction);
@@ -659,15 +765,18 @@ void Actor_enter_tile(Actor* self, Level* level) {
 void Actor_do_cooldown(Actor* self, Level* level) {
   self->move_progress += 1;
   if (self->move_progress == self->move_length) {
-    Actor_enter_tile(self, level);
-    self->move_progress = 0;
-    if (self->pending_decision) {
+  // FIXME: Is this needed also?????
+    if (self->pending_decision!=DIRECTION_NONE) {
       self->pending_move_locked_in = true;
     }
+    Actor_enter_tile(self, level);
+    self->move_progress = 0;
   }
 }
 
 bool Actor_push_to(Actor* self, Level* level, Direction direction) {
+ // FIXME: Is this needed??? Please verify this ASAP
+ if(self->pending_move_locked_in) return false;
   if (self->sliding_state) {
     if (!self->pending_move_locked_in) {
       self->pending_decision = self->move_decision = direction;
@@ -682,7 +791,7 @@ bool Actor_push_to(Actor* self, Level* level, Direction direction) {
 }
 
 bool Actor_check_collision(Actor* self, Level* level, Direction direction) {
-  if (has_flag(self, ACTOR_FLAGS_ANIMATION))
+  if (has_flag(self, ACTOR_FLAGS_ANIMATION) || self->frozen)
     return false;
   assert(direction != DIRECTION_NONE);
   Cell* this_cell = Level_get_cell(level, self->position);
@@ -773,8 +882,6 @@ void Actor_erase(Actor* self, Level* level) {
   level->actors_n -= 1;
 }
 
-enum { PLAYER_HAS_OVERRIDE = 1 << 0 };
-
 #define has_input(seat, bit) \
   ((seat->inputs & bit) != 0 && (seat->released_inputs & bit) == 0)
 
@@ -830,10 +937,12 @@ void Player_do_decision(Actor* self, Level* level) {
     if (has_input(seat, PLAYER_INPUT_CYCLE_ITEMS)) {
       const TileType** last_item_ptr =
           Inventory_get_rightmost_item(&self->inventory);
-      const TileType* last_item = *last_item_ptr;
-      *last_item_ptr = NULL;
-      Inventory_shift_right(&self->inventory);
-      self->inventory.item1 = last_item;
+      if (last_item_ptr) {
+        const TileType* last_item = *last_item_ptr;
+        *last_item_ptr = NULL;
+        Inventory_shift_right(&self->inventory);
+        self->inventory.item1 = last_item;
+      }
       release_input(PLAYER_INPUT_CYCLE_ITEMS);
     }
     if (!level->metadata.cc1_boots && has_input(seat, PLAYER_INPUT_DROP_ITEM)) {
@@ -900,7 +1009,7 @@ void Player_do_decision(Actor* self, Level* level) {
       self->bonked = true;
     }
   }
- #undef release_input
+#undef release_input
 }
 
 bool Actor_pickup_item(Actor* self, Level* level, BasicTile* item) {
@@ -925,7 +1034,7 @@ void Actor_place_item_on_tile(Actor* self,
   BasicTile* item_layer = Cell_get_layer(cell, item_type->layer);
   // No item despawns here!
   assert(item_layer->type == NULL);
- // TODO: Game should crash if dropping actor is despawned
+  // TODO: Game should crash if dropping actor is despawned
   item_layer->type = item_type;
   item_layer->custom_data = 0;
 }
@@ -987,7 +1096,7 @@ Actor* Level_find_closest_player(Level* self, Position from) {
       continue;
     PositionF pos = Actor_get_visual_position(seat->actor);
     // Taxicab distance, not Euclidean
-    float distance = pos.x - from.x + pos.y - from.y;
+    float distance = fabsf(pos.x - from.x) + fabsf(pos.y - from.y);
     if (!player || distance <= best_dist) {
       player = seat->actor;
       best_dist = distance;

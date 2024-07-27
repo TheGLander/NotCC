@@ -153,6 +153,7 @@ typedef enum GameState {
 BasicTile* Cell_get_layer(Cell* self, Layer layer);
 Actor* Cell_get_actor(Cell* self);
 void Cell_set_actor(Cell* self, Actor* actor);
+Cell* BasicTile_get_cell(const BasicTile* tile, Layer layer);
 
 typedef enum WireType {
   WIRES_NONE,
@@ -287,6 +288,19 @@ Cell* Level_search_reading_order(Level* self,
                                                     Level* level,
                                                     Cell* cell),
                                  void* ctx);
+Cell* Level_search_taxicab(Level* self,
+                           Cell* base,
+                           bool (*match_func)(void* ctx,
+                                              Level* level,
+                                              Cell* cell),
+                           void* ctx);
+Cell* Level_search_taxicab_at_dist(Level* self,
+                                   Position base_pos,
+                                   uint8_t dist,
+                                   bool (*match_func)(void* ctx,
+                                                      Level* level,
+                                                      Cell* cell),
+                                   void* ctx);
 Position Level_pos_from_cell(const Level* self, const Cell* cell);
 void Level_initialize_tiles(Level* self);
 Actor* Level_find_closest_player(Level* self, Position from);

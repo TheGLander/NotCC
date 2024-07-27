@@ -100,6 +100,11 @@ registerStateFunction<BasicTile>(
 	// @ts-ignore This is blatantly incorrect
 	actor => Direction[actor.customData]
 )
+registerStateFunction<BasicTile>(
+	"swivel",
+	// @ts-ignore This is blatantly incorrect
+	actor => Direction[actor.customData]
+)
 
 interface ScrollingSpecialArt extends SpecialArt {
 	duration: number
@@ -131,13 +136,30 @@ registerSpecialFunction<BasicTile>(
 registerStateFunction<BasicTile>("invisibleWall", (actor, level) =>
 	actor.customData - BigInt(level.subticksPassed()) > 0 ? "touched" : "default"
 )
-// registerStateFunction<BonusFlag>("bonusFlag", actor => actor.customData)
-// registerStateFunction<CustomWall>("customWall", actor => actor.customData)
-// registerStateFunction<CustomFloor>("customFloor", actor => actor.customData)
-// registerStateFunction<LitTNT>("tntLit", actor =>
-// 	Math.floor((actor.lifeLeft / 253) * 4).toString()
-// )
-// registerStateFunction<FlameJet>("flameJet", actor => actor.customData)
+registerStateFunction<BasicTile>(
+	"bonusFlag",
+	actor =>
+		(actor.customData & 0x8000n ? "x" : "") +
+		(actor.customData & 0x7fffn).toString()
+)
+function mapCustomTile(data: bigint) {
+	return { 0: "green", 1: "pink", 2: "yellow", 3: "blue" }[
+		(data % 4n).toString()
+	] as string
+}
+
+registerStateFunction<BasicTile>("customWall", actor =>
+	mapCustomTile(actor.customData)
+)
+registerStateFunction<BasicTile>("customFloor", actor =>
+	mapCustomTile(actor.customData)
+)
+registerStateFunction<BasicTile>("dynamiteLit", actor =>
+	Math.floor((Number(actor.customData) / 256) * 4).toString()
+)
+registerStateFunction<BasicTile>("flameJet", actor =>
+	actor.customData ? "on" : "off"
+)
 //
 // interface FreeformWiresSpecialArt extends SpecialArt {
 // 	base: Frame
@@ -257,9 +279,13 @@ registerStateFunction<Actor>("holdWall", actor =>
 registerStateFunction<BasicTile>("trap", actor =>
 	actor.customData & 1n ? "open" : "closed"
 )
-// registerStateFunction<Actor>("teleportRed", actor =>
-// 	!actor.wired || actor.poweredWires !== 0 ? "on" : "off"
-// )
+// TODO: Red tp
+registerStateFunction<Actor>(
+	"teleportRed",
+	actor =>
+		// !actor.wired || actor.poweredWires !== 0 ? "on" : "off"
+		"on"
+)
 //
 // // Note: We also check for `wires` here, unlike in the logic.
 // // This is intentional, this discrepency is also in CC2
@@ -373,15 +399,22 @@ registerSpecialFunction<Actor>("stretch", function (ctx, _level, actor, art) {
 // 	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
 // })
 //
-// registerSpecialFunction<Actor>("letters", function (ctx, actor) {
-// 	const pos = actor.getVisualPosition()
-// 	// A space doesn't render anything
-// 	if (actor.customData === " ") return
-// 	const frame = this.tileset.art.letters[actor.customData]
-// 	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
-// })
+registerSpecialFunction<BasicTile>("letters", function (ctx, _level, actor) {
+	let letter: string
+	if (actor.customData >= 0x20n) {
+		letter = String.fromCharCode(Number(actor.customData))
+	} else {
+		letter = Direction[(actor.customData - 0x1bn).toString() as "1"]
+	}
+	// A space doesn't render anything
+	if (letter === " ") return
+	const frame = this.tileset.art.letters[letter]
+	this.tileBlit(ctx, [0.25, 0.25], frame, [0.5, 0.5])
+})
 //
-// registerStateFunction<Actor>("greenBomb", actor => actor.customData)
+registerStateFunction<BasicTile>("greenBomb", actor =>
+	actor.customData ? "bomb" : "echip"
+)
 //
 // interface CounterSpecialArt extends SpecialArt {
 // 	0: Frame

@@ -155,7 +155,7 @@ Result_SyncfilePtr Syncfile_parse(const char* str) {
           Syncfile_free(sync);
           char* err = stringf("Invalid outcome string \"%s\"", val);
           free(val);
-          res_throw(err);
+          res_throwr(err);
         }
         free(val);
         current_entry->expected_outcome = outcome;
@@ -168,7 +168,7 @@ Result_SyncfilePtr Syncfile_parse(const char* str) {
         char* err = stringf("Unexpected key \"%s\"", key);
         free(key);
         Syncfile_free(sync);
-        res_throw(err);
+        res_throwr(err);
       }
 
     } else if (*str == '#') {
@@ -234,7 +234,7 @@ Result_SyncfilePtr get_syncfile(const char* path) {
   if (path) {
     Result_Buffer res_buf = Buffer_read_file(path);
     if (!res_buf.success) {
-      res_throw(res_buf.error);
+      res_throwr(res_buf.error);
     };
     char* str_buf = xmalloc(res_buf.value.length + 1);
     memcpy(str_buf, res_buf.value.data, res_buf.value.length);
@@ -321,7 +321,7 @@ Result_FileList expand_file_list(FileList input) {
         if (!res2.success) {
           closedir(dir);
           FileList_free(&list);
-          res_throw(res2.error);
+          res_throwr(res2.error);
         }
         FileList_append(&list, &res2.value);
         free(res2.value.files);
@@ -329,7 +329,7 @@ Result_FileList expand_file_list(FileList input) {
       closedir(dir);
     } else {
       FileList_free(&list);
-      res_throw("Encountered weird file type");
+      res_throws("Encountered weird file type");
     }
   }
   res_return(list);
@@ -372,6 +372,9 @@ OutcomeReport verify_level(const char* file_path) {
       report.title = strdupz(res3.value->title);
       LevelMetadata_uninit(res3.value);
       free(res3.value);
+    } else {
+      // Use the original error
+      free(res3.error);
     }
     report.outcome = OUTCOME_ERROR;
     report.error_desc = res2.error;
@@ -414,7 +417,9 @@ int level_thread(void* globals_v) {
     char* level_file = globals->file_list->files[file_idx];
     globals->file_list->files[file_idx] = NULL;
     mtx_unlock(globals->levels_left_mtx);
+    // printf("%s working\n", level_file);
     OutcomeReport report = verify_level(level_file);
+    // printf("%s done\n", level_file);
     free(level_file);
     // Submit the result
     mtx_lock(globals->outcome_report_mtx);
@@ -446,7 +451,7 @@ const char* help_message =
 
 int main(int argc, char* argv[]) {
   // argc = 2;
-  // argv = (char*[]){"", "/home/glander/CC2Sets/steamcc1/001-020/map002.c2m"};
+  // argv = (char*[]){"", "/home/glander/CC2Sets/cc2/121-140/BmbMaze.C2M"};
 #define error_and_exit(msg_alloc, msg) \
   do {                                 \
     fprintf(stderr, "%s\n", msg);      \

@@ -1,3 +1,5 @@
+#ifndef _libnotcc_misc_h
+#define _libnotcc_misc_h
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -10,9 +12,14 @@
     };                        \
   } Result_##T;
 
+typedef struct Result_void {
+  bool success;
+  char* error;
+} Result_void;
+
 // raw throw -- please only use with manually allocated strings or for
 // forwarding other error strings
-#define res_throw(msg)   \
+#define res_throwr(msg)  \
   do {                   \
     res.success = false; \
     res.error = msg;     \
@@ -20,19 +27,20 @@
   } while (false);
 
 // static string throw
-#define res_throws(msg) res_throw(strdup(msg))
+#define res_throws(msg) res_throwr(strdup(msg))
 char* stringf(const char* msg, ...)
     __attribute__((__format__(__printf__, 1, 2)));
 
 // printf-formatted throw
-#define res_throwf(msg, ...) res_throw(stringf(msg, __VA_ARGS__));
+#define res_throwf(msg, ...) res_throwr(stringf(msg, __VA_ARGS__));
 
 // perr-style throw
 #define res_throwe(msg, ...) \
   res_throwf(msg ": %s" __VA_OPT__(, ) __VA_ARGS__, strerror(errno));
-#define res_return(val) \
-  do {                  \
-    res.success = true; \
-    res.value = val;    \
-    return res;         \
+#define res_return(...)                  \
+  do {                                   \
+    res.success = true;                  \
+    __VA_OPT__(res.value = __VA_ARGS__;) \
+    return res;                          \
   } while (false);
+#endif

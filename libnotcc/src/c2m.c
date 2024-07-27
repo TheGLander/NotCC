@@ -1,4 +1,5 @@
 #include "c2m.h"
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -14,66 +15,75 @@ static uint32_t read_uint32_le(uint8_t* data) {
 }
 
 typedef struct SectionData {
+  char name[4];
   void* data;
   uint32_t len;
 } SectionData;
 
-static bool parse_section_internal(void** data,
-                                   const char* section_name,
-                                   SectionData* section_data) {
-  if (section_name != NULL && memcmp(*data, section_name, 4))
-    return false;
-  *data += 4;
-  section_data->len = *(uint32_t*)*data;
-  *data += 4;
-  section_data->data = *data;
-  *data += section_data->len;
+DEFINE_RESULT(SectionData);
 
-  return true;
-}
+static Result_SectionData unpack_section(SectionData section) {
+  Result_SectionData res;
+#define new_section (res.value)
+  if (section.len < 2)
+    res_throws("Packed data too short");
+  memcpy(new_section.name, section.name, 4);
 
-DEFINE_RESULT(char);
-
-static SectionData unpack_section(SectionData section) {
+  size_t data_left = section.len;
   uint8_t* data = section.data;
+
   uint16_t new_length = read_uint16_le(data);
   data += 2;
-  size_t data_processed = 0;
-  uint8_t* new_data = xmalloc(new_length);
-  uint8_t* og_new_data = new_data;
-  size_t new_data_processed = 0;
+  new_section.len = new_length;
 
-  while (data_processed + 1 < section.len && new_data_processed < new_length) {
+  size_t new_data_left = new_length;
+  uint8_t* new_data = xmalloc(new_length);
+  new_section.data = new_data;
+
+  while (data_left > 0 && new_data_left > 0) {
     uint8_t len = *data;
     data += 1;
-    data_processed += 1;
+    data_left -= 1;
     if (len < 0x80) {
+      if (len > data_left) {
+        free(new_data);
+        res_throws("Non-reference block spans beyond end of packed data");
+      }
+      if (len > new_data_left) {
+        free(new_data);
+        res_throws("Compressed data larger than specified");
+      }
+      uint8_t bytes_to_copy = len;
       memcpy(new_data, data, len);
       data += len;
-      data_processed += len;
+      data_left -= len;
       new_data += len;
-      new_data_processed += len;
+      new_data_left -= len;
     } else {
       len -= 0x80;
+      if (new_data_left == 0) {
+        free(new_data);
+        res_throws("Reference block spans beyond end of packed data");
+      }
+
+      if (len > new_data_left) {
+        free(new_data);
+        res_throws("Compressed data larger than specified");
+      }
       uint8_t offset = *data;
-      // In case `offset` is 0
-      *new_data = 0;
+      // XXX: What if `offset` is 0?
       for (uint8_t pos = 0; pos < len; pos += 1) {
         new_data[pos] = new_data[pos - offset];
       }
       data += 1;
-      data_processed += 1;
+      data_left -= 1;
       new_data += len;
-      new_data_processed += len;
+      new_data_left -= len;
     }
   }
-  memset(new_data, 0, new_data_processed - new_length);
+  memset(new_data, 0, new_data_left);
 
-  SectionData new_section;
-  new_data -= new_data_processed;
-  new_section.data = new_data;
-  new_section.len = new_length;
-  return new_section;
+  res_return(new_section);
 }
 
 static void parse_optn(LevelMetadata* meta, SectionData* section) {
@@ -179,17 +189,20 @@ static void parse_note(LevelMetadata* meta, SectionData* section) {
 
 static void parse_rpl(Level* level, SectionData* section) {
   const uint8_t* data = section->data;
-#define data_left() (section->len - (ptrdiff_t)(data - (uint8_t*)section->data))
+  size_t data_left = section->len;
   Replay* replay = xmalloc(sizeof(Replay));
   replay->rff_direction = dir_from_cc2(data[1] % 4);
   replay->rng_blob = data[2];
-  data += 4;
+  data += 3;
+  data_left -= 3;
   // Convert input/length pairs into a simple one-input-per-tick array
   size_t len = 0;
   size_t alloc_size = 100;
   PlayerInputs* inputs_buf = xmalloc(alloc_size);
 #define check_realloc()                            \
   if (len >= alloc_size) {                         \
+    if (alloc_size >= SIZE_MAX / 3 * 2)            \
+      abort();                                     \
     alloc_size = alloc_size * 3 / 2;               \
     inputs_buf = xrealloc(inputs_buf, alloc_size); \
   }
@@ -197,10 +210,11 @@ static void parse_rpl(Level* level, SectionData* section) {
   // We only need one input every tick, not subtick, so mimic how `Level_tick`
   // tracks the subtick to only record movement subtick inputs
   int8_t subtick = -1;
-  while (data_left() >= 2) {
-    PlayerInputs input = remap_cc2_input(*data);
-    uint8_t input_len = data[1];
-    data += 2;
+  PlayerInputs input = 0;
+  while (data_left >= 2) {
+    uint8_t input_len = data[0];
+    if (input_len == 0xff)
+      break;
     while (input_len > 0) {
       input_len -= 1;
       subtick += 1;
@@ -211,7 +225,13 @@ static void parse_rpl(Level* level, SectionData* section) {
         check_realloc();
       }
     }
+    input = remap_cc2_input(data[1]);
+    data += 2;
+    data_left -= 2;
   }
+  // Hold the last input until the end of time
+  inputs_buf[len] = input;
+  len += 1;
   inputs_buf = xrealloc(inputs_buf, len);
   replay->inputs = inputs_buf;
   replay->replay_length = len;
@@ -229,6 +249,7 @@ typedef struct C2MDef {
 enum { TERRAIN_MOD8, TERRAIN_MOD16, TERRAIN_MOD32, FRAME_BLOCK, THIN_WALL };
 
 static const C2MDef c2m_tiles[] = {
+ // 0x00
     {BASIC, NULL},
     {BASIC_READ_MOD, &FLOOR_tile},
     {BASIC, &WALL_tile},
@@ -245,22 +266,24 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &FORCE_FLOOR_tile, DIRECTION_LEFT},
     {BASIC, &TOGGLE_WALL_tile, true},
     {BASIC, &TOGGLE_WALL_tile, false},
-    {BASIC_READ_MOD, 0},  // Red Tp
+ // 0x10
+    {BASIC_READ_MOD, &TELEPORT_RED_tile},
     {BASIC_READ_MOD, &TELEPORT_BLUE_tile},
     {BASIC, 0},  // Yellow tp
-    {BASIC, 0},  // Green tp
+    {BASIC, &TELEPORT_GREEN_tile},
     {BASIC, &EXIT_tile},
     {BASIC_READ_MOD, &SLIME_tile},
     {ACTOR, &CHIP_actor},
     {ACTOR, &DIRT_BLOCK_actor},
     {ACTOR, &WALKER_actor},
     {ACTOR, &GLIDER_actor},
-    {ACTOR, 0},  // Ice block
-    {BASIC, &THIN_WALL_tile, 4},
-    {BASIC, &THIN_WALL_tile, 2},
-    {BASIC, &THIN_WALL_tile, 6},
+    {ACTOR, &ICE_BLOCK_actor},
+    {BASIC, &THIN_WALL_tile, 0b0100},
+    {BASIC, &THIN_WALL_tile, 0b0010},
+    {BASIC, &THIN_WALL_tile, 0b0110},
     {BASIC, &GRAVEL_tile},
     {BASIC, &BUTTON_GREEN_tile},
+ // 0x20
     {BASIC, &BUTTON_BLUE_tile},
     {ACTOR, &BLUE_TANK_actor},
     {BASIC_READ_MOD, &DOOR_RED_tile},
@@ -271,12 +294,13 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &KEY_BLUE_tile},
     {BASIC, &KEY_YELLOW_tile},
     {BASIC, &KEY_GREEN_tile},
-    {BASIC, &ECHIP_tile},
-    {BASIC, &ECHIP_tile, 1},
+    {BASIC, &ECHIP_tile, false},  // Required chip
+    {BASIC, &ECHIP_tile, true},   // Extra chip
     {BASIC_READ_MOD, &ECHIP_GATE_tile},
     {BASIC, &POPUP_WALL_tile},
     {BASIC, &APPEARING_WALL_tile},
     {BASIC, &INVISIBLE_WALL_tile},
+ // 0x30
     {BASIC, &BLUE_WALL_tile, BLUE_WALL_REAL},
     {BASIC_READ_MOD, &BLUE_WALL_tile},
     {BASIC_READ_MOD, &DIRT_tile},
@@ -293,6 +317,7 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &FIRE_BOOTS_tile},
     {BASIC, &WATER_BOOTS_tile},
     {BASIC, &THIEF_TOOL_tile},
+ // 0x40
     {BASIC, &BOMB_tile},
     {BASIC, &TRAP_tile,
      1},  // Open trap, trap's LSD of custom_data signifies if open
@@ -303,67 +328,71 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &HINT_tile},
     {BASIC, &FORCE_FLOOR_RANDOM_tile},
     {BASIC, 0},  // Gray button
-    {BASIC, 0},  // Swivel
-    {BASIC, 0},  // Swivel
-    {BASIC, 0},  // Swivel
-    {BASIC, 0},  // Swivel
+    {BASIC, &SWIVEL_tile, DIRECTION_DOWN},
+    {BASIC, &SWIVEL_tile, DIRECTION_LEFT},
+    {BASIC, &SWIVEL_tile, DIRECTION_UP},
+    {BASIC, &SWIVEL_tile, DIRECTION_RIGHT},
     {BASIC, 0},  // Time bonus
     {BASIC, 0},  // Stopwatch
     {BASIC, 0},  // Transmog
     {BASIC, 0},  // RR track
-    {BASIC, 0},  // Steel wall
-    {BASIC, 0},  // Dynamite
-    {BASIC, 0},  // Helmet
-    {BASIC, 0},  // Illegal actor: Direction (Mr. 53)
+ // 0x50
+    {BASIC_READ_MOD, &STEEL_WALL_tile},
+    {BASIC, &DYNAMITE_tile},
+    {BASIC, &HELMET_tile},
+    {ACTOR, 0},  // Illegal actor: Direction (Mr. 53)
     {BASIC, 0},  // Unused
     {BASIC, 0},  // Unused
-    {ACTOR, 0},  // Melinda
-    {ACTOR, 0},  // Blue teeth
+    {ACTOR, &MELINDA_actor},
+    {ACTOR, &TEETH_BLUE_actor},
     {ACTOR, &EXPLOSION_actor},
-    {BASIC, 0},  // Dirt boots
-    {BASIC, 0},  // No-Melinda sign
-    {BASIC, 0},  // No-Chip sign
+    {BASIC, &DIRT_BOOTS_tile},
+    {BASIC, &NO_CHIP_SIGN_tile},
+    {BASIC, &NO_MELINDA_SIGN_tile},
     {BASIC, 0},  // Logic gate
-    {BASIC, 0},  // Illegal actor: Wire
+    {ACTOR, 0},  // Illegal actor: Wire
     {BASIC, 0},  // Pink button
-    {BASIC, 0},  // Flame jet OFF
-    {BASIC, 0},  // Flame jet ON
-    {BASIC, 0},  // Orange button
+    {BASIC, &FLAME_JET_tile, false},
+ // 0x60
+    {BASIC, &FLAME_JET_tile, true},
+    {BASIC, &BUTTON_ORANGE_tile},
     {BASIC, 0},  // Lightning bolt
-    {BASIC, 0},  // Yellow tank
-    {BASIC, 0},  // Yellow button
-    {BASIC, 0},  // Mirror Chip
-    {BASIC, 0},  // Mirror Melinda
+    {ACTOR, &YELLOW_TANK_actor},
+    {BASIC, &BUTTON_YELLOW_tile},
+    {ACTOR, 0},  // Mirror Chip
+    {ACTOR, 0},  // Mirror Melinda
     {BASIC, 0},  // Unused
     {BASIC, 0},  // Bowling ball item
-    {BASIC, 0},  // Rover
+    {ACTOR, 0},  // Rover
     {BASIC, 0},  // Time penalty
-    {BASIC, 0},  // Custom floor
+    {BASIC_READ_MOD, &CUSTOM_FLOOR_tile},
     {BASIC, 0},  // Unused
     {SPECIAL, NULL, THIN_WALL},
-    {BASIC, 0},                      // Unused
-    {BASIC, 0},                      // RR sign
-    {BASIC, 0},                      // Custom wall
-    {BASIC, 0},                      // Letter tile
-    {BASIC, 0},                      // Pulse wall (floor)
-    {BASIC, 0},                      // Pulse wall  (wall)
-    {BASIC, 0},                      // Unused
-    {BASIC, 0},                      // Unused
-    {SPECIAL, NULL, TERRAIN_MOD8},   // 8 modifier
-    {SPECIAL, NULL, TERRAIN_MOD16},  // 16 modifier
-    {SPECIAL, NULL, TERRAIN_MOD32},  // 32 modifier
-    {ACTOR, 0},                      // Illegal actor: Unwire
-    {BASIC, 0},                      // 10pts flag
-    {BASIC, 0},                      // 100pts flag
-    {BASIC, 0},                      // 1000pts flag
+    {BASIC, 0},              // Unused
+    {BASIC, &RR_SIGN_tile},  // RR sign
+ // 0x70
+    {BASIC_READ_MOD, &CUSTOM_WALL_tile},
+    {BASIC_READ_MOD, &LETTER_FLOOR_tile},
+    {BASIC, 0},                       // Pulse wall (floor)
+    {BASIC, 0},                       // Pulse wall  (wall)
+    {BASIC, 0},                       // Unused
+    {BASIC, 0},                       // Unused
+    {SPECIAL, NULL, TERRAIN_MOD8},    // 8 modifier
+    {SPECIAL, NULL, TERRAIN_MOD16},   // 16 modifier
+    {SPECIAL, NULL, TERRAIN_MOD32},   // 32 modifier
+    {ACTOR, 0},                       // Illegal actor: Unwire
+    {BASIC, &BONUS_FLAG_tile, 10},    // 10pts flag
+    {BASIC, &BONUS_FLAG_tile, 100},   // 100pts flag
+    {BASIC, &BONUS_FLAG_tile, 1000},  // 1000pts flag
     {BASIC, &GREEN_WALL_tile, true},
     {BASIC, &GREEN_WALL_tile, false},
-    {BASIC, 0},  // No sign
-    {BASIC, 0},  // 2x pts flag
-    {BASIC, 0},  // Frame block
-    {BASIC, 0},  // Floor mimic
-    {BASIC, 0},  // Green bomb
-    {BASIC, 0},  // Green chip
+    {BASIC, &NO_SIGN_tile},
+ // 0x80
+    {BASIC, &BONUS_FLAG_tile, 0x8002},  // 2x pts flag
+    {SPECIAL, NULL, FRAME_BLOCK},       // Frame block
+    {ACTOR, &FLOOR_MIMIC_actor},
+    {BASIC, &GREEN_BOMB_tile, false},
+    {BASIC, &GREEN_BOMB_tile, true},
     {BASIC, 0},  // Unused
     {BASIC, 0},  // Unused
     {BASIC, 0},  // Black button
@@ -371,15 +400,18 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, 0},  // OFF switch
     {BASIC, &THIEF_KEY_tile},
     {BASIC, 0},  // Ghost
-    {BASIC, 0},  // Steel foil
-    {BASIC, 0},  // Turtle
-    {BASIC, 0},  // Secret eye
-    {BASIC, 0},  // Bribe
+    {BASIC, &STEEL_FOIL_tile},
+    {BASIC, &TURTLE_tile},
+    {BASIC, &SECRET_EYE_tile},
+    {BASIC, &BRIBE_tile},  // Bribe
+ // 0x90
+    {BASIC, &SPEED_BOOTS_tile},
+    {BASIC, 0},  // Unused
     {BASIC, 0},  // Hook
 };
 
-static Result_char parse_map(Level* level, SectionData* section) {
-  Result_char res;
+static Result_void parse_map(Level* level, SectionData* section) {
+  Result_void res;
   uint8_t* data = section->data;
   uint16_t tiles_placed = 0;
   uint8_t width = 0;
@@ -431,6 +463,11 @@ static Result_char parse_map(Level* level, SectionData* section) {
         assert_data_avail();
         tile->custom_data = *data;
         data += 1;
+      } else if (def.preset_custom == FRAME_BLOCK) {
+        // TODO:
+        res_throws("Frame blocks are unsupported for now");
+      } else {
+        res_throws("Internal: invalid custom preset type");
       }
     } else if (def.def_type == BASIC || def.def_type == BASIC_READ_MOD) {
       const TileType* type = def.ptr;
@@ -438,7 +475,8 @@ static Result_char parse_map(Level* level, SectionData* section) {
       tile->type = type;
       tile->custom_data =
           def.def_type == BASIC_READ_MOD ? mod : def.preset_custom;
-      if (type == &ECHIP_tile && def.preset_custom == 0) {
+      if ((type == &ECHIP_tile && def.preset_custom == 0) ||
+          (type == &GREEN_BOMB_tile)) {
         level->chips_left += 1;
       }
       if (type == &HINT_tile) {
@@ -466,7 +504,7 @@ static Result_char parse_map(Level* level, SectionData* section) {
     }
   }
   Level_initialize_tiles(level);
-  res_return(0);
+  res_return();
 }
 
 typedef union C2MInternalUnion {
@@ -474,97 +512,132 @@ typedef union C2MInternalUnion {
   LevelMetadata* meta;
 } C2MInternalUnion;
 
-static Result_char parse_c2m_internal(void* data,
+static Result_SectionData parse_section(uint8_t** data, size_t* data_left) {
+  Result_SectionData res;
+#define section (res.value)
+  if (*data_left < 8)
+    res_throws("Section goes beyond end of file");
+  *data_left -= 8;
+  memcpy(section.name, *data, 4);
+  *data += 4;
+  section.len = read_uint32_le(*data);
+  *data += 4;
+  if (*data_left < section.len)
+    res_throws("Section goes beyond end of file");
+  section.data = *data;
+  *data += section.len;
+  *data_left -= section.len;
+
+  res_return(section);
+#undef section
+}
+
+static Result_void parse_c2m_internal(uint8_t* data,
                                       size_t data_len,
                                       C2MInternalUnion uni,
                                       bool meta_only) {
-  Result_char res;
-  SectionData section;
+  Result_void res;
+  Result_SectionData section_res;
+#define section (section_res.value)
 
   LevelMetadata* meta = meta_only ? uni.meta : &uni.level->metadata;
   Level* level = meta_only ? NULL : uni.level;
 
-#define parse_section(sect) parse_section_internal(&data, sect, &section)
+  size_t data_left = data_len;
 
-  void* og_data = data;
-  if (!parse_section("CC2M"))
+  section_res = parse_section(&data, &data_left);
+  if (!section_res.success)
+    res_throwr(section_res.error);
+
+  if (memcmp(section.name, "CC2M", 4))
     res_throws("Missing CC2M header");
   // TODO: Care about this?
   uint64_t c2m_version = atol(section.data);
 
   while (true) {
-    if (data - og_data >= data_len) {
+    if (data_left == 0) {
       res_throws("C2M doesn't have END section");
     }
-    if (parse_section("TITL")) {
-      meta->title = strdupz(section.data);
-    } else if (parse_section("AUTH")) {
-      meta->author = strdupz(section.data);
-    } else if (parse_section("CLUE")) {
-      meta->default_hint = strdupz(section.data);
-    } else if (parse_section("NOTE")) {
+    section_res = parse_section(&data, &data_left);
+    if (!section_res.success)
+      res_throwr(section_res.error);
+#define match_section(str) !memcmp(section.name, str, 4)
+    if (match_section("TITL")) {
+      meta->title = strndupz(section.data, section.len);
+    } else if (match_section("AUTH")) {
+      meta->author = strndupz(section.data, section.len);
+    } else if (match_section("CLUE")) {
+      meta->default_hint = strndupz(section.data, section.len);
+    } else if (match_section("NOTE")) {
       parse_note(meta, &section);
-    } else if (parse_section("OPTN")) {
+    } else if (match_section("OPTN")) {
       parse_optn(meta, &section);
       if (!meta_only) {
         level->players_n = level->metadata.player_n;
         level->time_left = level->metadata.timer * 60;
         Level_init_players(level, level->metadata.player_n);
       }
-    } else if (parse_section("END ")) {
+    } else if (match_section("END ")) {
       break;
     } else if (meta_only) {
-      parse_section(NULL);
-    } else if (parse_section("PACK")) {
-      section = unpack_section(section);
-      Result_char res2 = parse_map(level, &section);
+      continue;
+    } else if (match_section("PACK")) {
+      section_res = unpack_section(section);
+      if (!section_res.success)
+        res_throwr(section_res.error);
+      Result_void res2 = parse_map(level, &section);
       free(section.data);
       if (!res2.success) {
-        res_throw(res2.error);
+        res_throwr(res2.error);
       }
-    } else if (parse_section("MAP ")) {
-      Result_char res2 = parse_map(level, &section);
-      free(section.data);
+    } else if (match_section("MAP ")) {
+      Result_void res2 = parse_map(level, &section);
       if (!res2.success) {
-        res_throw(res2.error);
+        res_throwr(res2.error);
       }
-    } else if (parse_section("PRPL")) {
-      section = unpack_section(section);
+    } else if (match_section("PRPL")) {
+      section_res = unpack_section(section);
+      if (!section_res.success)
+        res_throwr(section_res.error);
       parse_rpl(level, &section);
       free(section.data);
-    } else if (parse_section("REPL")) {
+    } else if (match_section("REPL")) {
       parse_rpl(level, &section);
     } else {
-      parse_section(NULL);
+      // If this is an unknown section, do nothing.
     }
   }
 
-  res_return(0);
+  res_return();
+#undef section
+#undef match_section
 }
 
 Result_LevelPtr parse_c2m(void* data, size_t data_len) {
+  assert(data != NULL);
   Result_LevelPtr res;
   Level* level = xmalloc(sizeof(Level));
   Level_init_basic(level);
-  Result_char int_res =
+  Result_void int_res =
       parse_c2m_internal(data, data_len, (C2MInternalUnion)level, false);
   if (!int_res.success) {
     Level_uninit(level);
     free(level);
-    res_throw(int_res.error);
+    res_throwr(int_res.error);
   }
   res_return(level);
 };
 Result_LevelMetadataPtr parse_c2m_meta(void* data, size_t data_len) {
+  assert(data != NULL);
   Result_LevelMetadataPtr res;
   LevelMetadata* meta = xmalloc(sizeof(LevelMetadata));
   LevelMetadata_init(meta);
-  Result_char int_res =
+  Result_void int_res =
       parse_c2m_internal(data, data_len, (C2MInternalUnion)meta, true);
   if (!int_res.success) {
     LevelMetadata_uninit(meta);
     free(meta);
-    res_throw(int_res.error);
+    res_throwr(int_res.error);
   }
   res_return(meta);
 };

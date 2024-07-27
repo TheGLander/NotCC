@@ -74,6 +74,12 @@ size_t strlen(const char* str) {
     len += 1;
   return len;
 }
+size_t strnlen(const char* str, size_t max_size) {
+  size_t len = 0;
+  while (len < max_size && str[len] != 0)
+    len += 1;
+  return len;
+}
 
 char* strdup(const char* str) {
   size_t len = strlen(str) + 1;

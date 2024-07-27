@@ -309,8 +309,8 @@ export const cc2ArtSet: ArtSet = {
 		},
 		echip: [11, 3],
 		echipPlus: [11, 3],
-		tnt: [0, 4],
-		tntLit: {
+		dynamite: [0, 4],
+		dynamiteLit: {
 			type: "state",
 			0: [0, 4],
 			1: [1, 4],
@@ -353,7 +353,7 @@ export const cc2ArtSet: ArtSet = {
 			DOWN: frange([6, 12], [8, 12]),
 			LEFT: frange([9, 12], [11, 12]),
 		},
-		foil: [12, 12],
+		steelFoil: [12, 12],
 		turtle: {
 			type: "overlay",
 			bottom: {
@@ -393,13 +393,14 @@ export const cc2ArtSet: ArtSet = {
 			duration: 4,
 			frames: frange([12, 9], [15, 9]),
 		},
-		steelWall: {
-			type: "special",
-			specialType: "freeform wires",
-			base: [15, 10],
-			overlap: [9, 26],
-			overlapCross: [11, 26],
-		},
+		// steelWall: {
+		// 	type: "special",
+		// 	specialType: "freeform wires",
+		// 	base: [15, 10],
+		// 	overlap: [9, 26],
+		// 	overlapCross: [11, 26],
+		// },
+		steelWall: [15, 10],
 		teethBlue: {
 			type: "directional",
 			duration: "steps",
@@ -630,7 +631,7 @@ export const cc2ArtSet: ArtSet = {
 		buttonPurple: { type: "wires", top: [12, 6] },
 		buttonBlack: { type: "wires", top: [13, 6] },
 		buttonOrange: [14, 6],
-		complexButtonYellow: [15, 6],
+		buttonYellow: [15, 6],
 		buttonGray: [11, 9],
 
 		teethRed: {

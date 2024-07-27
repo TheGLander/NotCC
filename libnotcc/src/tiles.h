@@ -13,13 +13,15 @@ enum ActorFlags {
   ACTOR_FLAGS_FORCE_FLOOR = 1 << 8,
   ACTOR_FLAGS_BLOCK = 1 << 9,
   ACTOR_FLAGS_GHOST = 1 << 10,
-  ACTOR_FLAGS_TNT_IMMUNE = 1 << 11,
-  ACTOR_FLAGS_IS_ITEM = 1 << 12,
+  ACTOR_FLAGS_DYNAMITE_IMMUNE = 1 << 11,
+  ACTOR_FLAGS_ITEM = 1 << 12,
   ACTOR_FLAGS_AVOIDS_GRAVEL = 1 << 13,
   ACTOR_FLAGS_CAN_PUSH = 1 << 14,
   ACTOR_FLAGS_ANIMATION = 1 << 15,
   ACTOR_FLAGS_KILLS_PLAYER = 1 << 16,
   ACTOR_FLAGS_REVEALS_HIDDEN = 1 << 17,
+  ACTOR_FLAGS_AVOIDS_TURTLE = 1 << 18,
+  ACTOR_FLAGS_DECIDES_EVERY_SUBTICK = 1 << 19,
   ACTOR_FLAGS_NOT_GHOST = ~ACTOR_FLAGS_GHOST
 };
 
@@ -42,9 +44,12 @@ enum ItemIndex {
   ITEM_INDEX_HOOK = 16
 };
 
+enum { PLAYER_HAS_OVERRIDE = 1 << 0 };
+
 extern const TileType FLOOR_tile;
 extern const TileType WALL_tile;
 extern const ActorType CHIP_actor;
+extern const ActorType MELINDA_actor;
 extern const ActorType CENTIPEDE_actor;
 extern const TileType EXIT_tile;
 extern const TileType LIGHTNING_tile;
@@ -53,6 +58,7 @@ extern const ActorType EXPLOSION_actor;
 
 extern const TileType ICE_tile;
 extern const TileType ICE_CORNER_tile;
+enum { THIN_WALL_HAS_CANOPY = 0x10 };
 extern const TileType THIN_WALL_tile;
 extern const TileType WATER_tile;
 extern const TileType FIRE_tile;
@@ -67,6 +73,8 @@ extern const ActorType DIRT_BLOCK_actor;
 extern const ActorType WALKER_actor;
 extern const ActorType BLOB_actor;
 extern const ActorType TEETH_RED_actor;
+extern const ActorType TEETH_BLUE_actor;
+extern const ActorType FLOOR_MIMIC_actor;
 extern const ActorType GLIDER_actor;
 extern const ActorType ICE_BLOCK_actor;
 extern const TileType GRAVEL_tile;
@@ -91,6 +99,7 @@ extern const TileType ICE_BOOTS_tile;
 extern const TileType FORCE_BOOTS_tile;
 extern const TileType FIRE_BOOTS_tile;
 extern const TileType WATER_BOOTS_tile;
+extern const TileType DIRT_BOOTS_tile;
 extern const ActorType FIREBALL_actor;
 extern const ActorType BALL_actor;
 extern const TileType BUTTON_BROWN_tile;
@@ -107,3 +116,26 @@ extern const TileType APPEARING_WALL_tile;
 extern const TileType THIEF_TOOL_tile;
 extern const TileType THIEF_KEY_tile;
 extern const TileType FORCE_FLOOR_RANDOM_tile;
+extern const TileType BONUS_FLAG_tile;
+extern const TileType TURTLE_tile;
+extern const TileType CUSTOM_WALL_tile;
+extern const TileType CUSTOM_FLOOR_tile;
+extern const TileType NO_SIGN_tile;
+extern const TileType LETTER_FLOOR_tile;
+extern const TileType SWIVEL_tile;
+extern const TileType GREEN_BOMB_tile;
+extern const TileType FLAME_JET_tile;
+extern const TileType BUTTON_ORANGE_tile;
+extern const TileType DYNAMITE_tile;
+extern const ActorType DYNAMITE_LIT_actor;
+extern const TileType STEEL_WALL_tile;
+extern const TileType STEEL_FOIL_tile;
+extern const TileType RR_SIGN_tile;
+extern const TileType HELMET_tile;
+extern const TileType BRIBE_tile;
+extern const TileType SPEED_BOOTS_tile;
+extern const TileType SECRET_EYE_tile;
+extern const TileType NO_CHIP_SIGN_tile;
+extern const TileType NO_MELINDA_SIGN_tile;
+extern const ActorType YELLOW_TANK_actor;
+extern const TileType BUTTON_YELLOW_tile;
