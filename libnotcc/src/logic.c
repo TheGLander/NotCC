@@ -271,7 +271,7 @@ Actor* Level_find_next_player(Level* self, Actor* player) {
   Actor** search_position = player_actors_ptr - 1;
   // Search between `player` and start of actor list
   while (search_position >= self->actors) {
-    if (has_flag(*search_position, ACTOR_FLAGS_REAL_PLAYER) &&
+    if ((has_flag(*search_position, ACTOR_FLAGS_REAL_PLAYER)) &&
         Level_find_player_seat(self, *search_position) == NULL) {
       return *search_position;
     }
@@ -290,6 +290,9 @@ Actor* Level_find_next_player(Level* self, Actor* player) {
 }
 
 PlayerSeat* Level_find_player_seat(Level* self, const Actor* player) {
+#if defined(__has_builtin) && __has_builtin(__builtin_expect_with_probability)
+  (void)__builtin_expect_with_probability(self->players_n == 1, true, .99);
+#endif
   for (uint32_t idx = 0; idx < self->players_n; idx += 1) {
     if (self->player_seats[idx].actor == player) {
       return &self->player_seats[idx];
@@ -433,6 +436,10 @@ Cell* Level_search_taxicab_at_dist(Level* self,
 
 _libnotcc_accessors_PlayerSeat;
 
+bool PlayerSeat_has_perspective(const PlayerSeat* self) {
+  return has_item_counter(self->actor->inventory, ITEM_INDEX_SECRET_EYE);
+}
+
 BasicTile* Cell_get_layer(Cell* self, Layer layer) {
   if (layer == LAYER_SPECIAL)
     return &self->special;
@@ -477,12 +484,19 @@ bool BasicTile_impedes(BasicTile* self,
                        Direction direction) {
   if (self->type->on_bumped_by)
     self->type->on_bumped_by(self, level, other, direction);
-  if (other->type->on_bump)
-    other->type->on_bump(other, level, self);
-  if (has_flag(other, self->type->impedes_mask))
+  if (has_flag(other, self->type->impedes_mask)) {
+    if (other->type->on_bonk)
+      other->type->on_bonk(other, level, self);
+
     return true;
-  if (self->type->impedes && self->type->impedes(self, level, other, direction))
+  }
+  if (self->type->impedes &&
+      self->type->impedes(self, level, other, direction)) {
+    if (other->type->on_bonk)
+      other->type->on_bonk(other, level, self);
+
     return true;
+  }
   return false;
 }
 void BasicTile_erase(BasicTile* self) {
@@ -571,6 +585,11 @@ void Level_apply_tank_buttons(Level* self) {
 }
 
 void Level_tick(Level* self) {
+  // Clear all previously-released inputs
+  for (size_t idx = 0; idx < self->players_n; idx += 1) {
+    PlayerSeat* seat = &self->player_seats[idx];
+    seat->released_inputs = 0;
+  }
   self->current_subtick += 1;
   if (self->current_subtick == 3) {
     self->current_tick += 1;
@@ -599,11 +618,12 @@ void Level_tick(Level* self) {
     }
   }
   if (self->players_left == 0) {
-    if (self->game_state == GAMESTATE_PLAYING && self->time_left > 0) {
+    if (self->game_state == GAMESTATE_PLAYING && !self->time_stopped &&
+        self->time_left > 0) {
       self->time_left -= 1;
     }
     self->game_state = GAMESTATE_WON;
-  } else if (self->time_left == 1) {
+  } else if (self->time_left == 1 && !self->time_stopped) {
     self->time_left -= 1;
     self->game_state = GAMESTATE_TIMEOUT;
   }
@@ -659,7 +679,7 @@ void Actor_do_decision(Actor* self, Level* level) {
     self->move_decision = self->direction;
     return;
   }
- self->move_decision = DIRECTION_NONE;
+  self->move_decision = DIRECTION_NONE;
   if (!Level_is_movement_subtick(level) &&
       !has_flag(self, ACTOR_FLAGS_DECIDES_EVERY_SUBTICK))
     return;
@@ -684,10 +704,11 @@ void Actor_do_decided_move(Actor* self, Level* level) {
     self->move_decision = DIRECTION_NONE;
     return;
   }
- if(self->move_decision == DIRECTION_NONE) return;
+  if (self->move_decision == DIRECTION_NONE)
+    return;
   self->pending_decision = DIRECTION_NONE;
   self->pending_move_locked_in = false;
-    Actor_move_to(self, level, self->move_decision);
+  Actor_move_to(self, level, self->move_decision);
 }
 
 uint8_t Actor_get_move_speed(Actor* self, Level* level, Cell* cell) {
@@ -728,7 +749,7 @@ bool Actor_move_to(Actor* self, Level* level, Direction direction) {
   self->bonked = !can_move;
   if (!can_move)
     return false;
- // FIXME: THis as well?????
+  // FIXME: THis as well?????
   self->pending_decision = DIRECTION_NONE;
   self->move_decision = DIRECTION_NONE;
   Position new_pos = Level_get_neighbor(level, self->position, direction);
@@ -765,8 +786,8 @@ void Actor_enter_tile(Actor* self, Level* level) {
 void Actor_do_cooldown(Actor* self, Level* level) {
   self->move_progress += 1;
   if (self->move_progress == self->move_length) {
-  // FIXME: Is this needed also?????
-    if (self->pending_decision!=DIRECTION_NONE) {
+    // FIXME: Is this needed also?????
+    if (self->pending_decision != DIRECTION_NONE) {
       self->pending_move_locked_in = true;
     }
     Actor_enter_tile(self, level);
@@ -775,8 +796,9 @@ void Actor_do_cooldown(Actor* self, Level* level) {
 }
 
 bool Actor_push_to(Actor* self, Level* level, Direction direction) {
- // FIXME: Is this needed??? Please verify this ASAP
- if(self->pending_move_locked_in) return false;
+  // FIXME: Is this needed??? Please verify this ASAP
+  if (self->pending_move_locked_in)
+    return false;
   if (self->sliding_state) {
     if (!self->pending_move_locked_in) {
       self->pending_decision = self->move_decision = direction;
@@ -808,14 +830,16 @@ bool Actor_check_collision(Actor* self, Level* level, Direction direction) {
   CHECK_REDIRECT(terrain);
 
   if (!Level_check_position_inbounds(level, self->position, direction, false)) {
-    // TODO Report bowlingball edge collision
+    if (self->type->on_bonk) {
+      self->type->on_bonk(self, level, NULL);
+    }
     return false;
   }
   Position new_pos = Level_get_neighbor(level, self->position, direction);
   Cell* cell = Level_get_cell(level, new_pos);
   // if `cell->actor != self`, we're a despawned actor trying to move
 #define CHECK_LAYER(layer)                                     \
-  if (cell->layer.type &&                                      \
+  if (cell->layer.type && self->type &&                        \
       BasicTile_impedes(&cell->layer, level, self, direction)) \
     return false;
   CHECK_LAYER(special);
@@ -844,7 +868,29 @@ bool Actor_check_collision(Actor* self, Level* level, Direction direction) {
       }
     }
   }
-  // TODO Pulling
+  if (has_item_counter(self->inventory, ITEM_INDEX_HOOK)) {
+    if (!Level_check_position_inbounds(level, self->position, back(direction),
+                                       true))
+      return true;
+    Cell* back_tile = Level_get_cell(
+        level, Level_get_neighbor(level, self->position, back(direction)));
+    Actor* pulled = back_tile->actor;
+    if (!pulled)
+      return true;
+    if (Actor_is_moving(pulled))
+      return false;
+    // XXX: also is_pulled? maybe?
+    if (pulled->pending_move_locked_in)
+      return true;
+    if (!has_flag(pulled, ACTOR_FLAGS_BLOCK) ||
+        (pulled->type->can_be_pushed &&
+         !pulled->type->can_be_pushed(pulled, level, self, direction)))
+      return true;
+    pulled->direction = direction;
+    if (pulled->frozen)
+      return true;
+    pulled->pending_decision = direction;
+  }
   return true;
 #undef CHECK_REDIRECT
 #undef CHECK_LAYER
@@ -916,14 +962,10 @@ Inventory* Actor_get_inventory_ptr(Actor* self) {
 
 void Player_do_decision(Actor* self, Level* level) {
   bool was_bonked = self->bonked;
-  if (Level_is_movement_subtick(level))
+  if (Level_is_movement_subtick(level)) {
     self->bonked = false;
-  PlayerSeat* seat = Level_find_player_seat(level, self);
-  if (seat != NULL) {
-    seat->released_inputs = 0;
   }
-#define release_input(bit) seat->released_inputs = seat->released_inputs | bit;
-
+  PlayerSeat* seat = Level_find_player_seat(level, self);
   bool can_move = seat != NULL && Level_is_movement_subtick(level) &&
                   (self->sliding_state == SLIDING_NONE ||
                    (self->sliding_state == SLIDING_WEAK &&
@@ -932,7 +974,8 @@ void Player_do_decision(Actor* self, Level* level) {
     if (level->players_left > level->players_n &&
         has_input(seat, PLAYER_INPUT_SWITCH_PLAYERS)) {
       seat->actor = Level_find_next_player(level, self);
-      release_input(PLAYER_INPUT_SWITCH_PLAYERS);
+      assert(seat->actor != NULL && seat->actor != self);
+      seat->released_inputs |= PLAYER_INPUT_SWITCH_PLAYERS;
     }
     if (has_input(seat, PLAYER_INPUT_CYCLE_ITEMS)) {
       const TileType** last_item_ptr =
@@ -943,11 +986,11 @@ void Player_do_decision(Actor* self, Level* level) {
         Inventory_shift_right(&self->inventory);
         self->inventory.item1 = last_item;
       }
-      release_input(PLAYER_INPUT_CYCLE_ITEMS);
+      seat->released_inputs |= PLAYER_INPUT_CYCLE_ITEMS;
     }
     if (!level->metadata.cc1_boots && has_input(seat, PLAYER_INPUT_DROP_ITEM)) {
       Actor_drop_item(self, level);
-      release_input(PLAYER_INPUT_DROP_ITEM);
+      seat->released_inputs |= PLAYER_INPUT_DROP_ITEM;
     }
   }
   bool bonked = false;
@@ -1004,12 +1047,25 @@ void Player_do_decision(Actor* self, Level* level) {
     self->custom_data |=
         bonked && self->sliding_state == SLIDING_WEAK ? PLAYER_HAS_OVERRIDE : 0;
     Cell* cell = Level_get_cell(level, self->position);
-    // TODO: FF boots
-    if (bonked && !(cell->terrain.type->flags & ACTOR_FLAGS_FORCE_FLOOR)) {
+    // Weird quirk: If you're on a force floor, you cannot bonk
+    if (bonked &&
+        !((cell->terrain.type->flags & ACTOR_FLAGS_FORCE_FLOOR) &&
+          !has_item_counter(self->inventory, ITEM_INDEX_FORCE_BOOTS))) {
       self->bonked = true;
     }
   }
 #undef release_input
+}
+
+Direction Player_get_last_decision(Actor* self) {
+  if (self->move_decision == DIRECTION_NONE) {
+    // We haven't decided yet, so return whatever direction we last had if we
+    // are moving or were trying to move
+    return Actor_is_moving(self) || self->bonked || self->sliding_state
+               ? self->direction
+               : DIRECTION_NONE;
+  }
+  return self->move_decision;
 }
 
 bool Actor_pickup_item(Actor* self, Level* level, BasicTile* item) {
@@ -1034,6 +1090,10 @@ void Actor_place_item_on_tile(Actor* self,
   BasicTile* item_layer = Cell_get_layer(cell, item_type->layer);
   // No item despawns here!
   assert(item_layer->type == NULL);
+  if (item_type == &BOWLING_BALL_tile) {
+    // We already emitted a rolling bowling ball, so don't duplicate the item
+    return;
+  }
   // TODO: Game should crash if dropping actor is despawned
   item_layer->type = item_type;
   item_layer->custom_data = 0;
@@ -1060,7 +1120,34 @@ bool TileType_can_be_dropped(const TileType** self,
   if ((*self)->layer != layer_to_ignore &&
       Cell_get_layer(cell, (*self)->layer)->type != NULL)
     return false;
-  // TODO: Bowling ball
+  // Yes, we have to place the rolling bowling ball *now*, while verifying if
+  // the item can be dropped. If we have four items (last is bowling ball), and
+  // we try to pick up a fifth item, but emitting the bowling ball fails (due
+  // to immediate collision on its way out from the dropper's cell), we *don't
+  // pick the item up, even though the failed bowling ball deploy still removes
+  // the bowling ball item from the dropper's inventory and thus gives room for
+  // the new item*.
+  if ((*self) == &BOWLING_BALL_tile) {
+    // Temporarily despawn the player to move out the bowling ball actor
+    cell->actor = NULL;
+    Actor* bowling_ball = Actor_new(level, &BOWLING_BALL_ROLLING_actor,
+                                    dropper->position, dropper->direction);
+    bool moved = Actor_move_to(bowling_ball, level, bowling_ball->direction);
+    if (!moved) {
+      // Use ourselves up, even if failed
+      Inventory_decrement_counter(&dropper->inventory, (*self)->item_index);
+      *self = NULL;
+      // We failed to move. Immediately erase the explosion anim so the dropper
+      // doesn't get despawned by it later
+      // TODO: This doesn't play an explosion SFX, so I guess we'll have to hack
+      // around that, even though a bowling ball colliding usually should make
+      // an explosion sound. ughh
+      Actor_erase(bowling_ball, level);
+      cell->actor = dropper;
+      return false;
+    }
+    cell->actor = dropper;
+  }
   return true;
 }
 

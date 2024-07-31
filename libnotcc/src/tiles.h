@@ -1,9 +1,11 @@
+#ifndef _libnotcc_tiles_h
+#define _libnotcc_tiles_h
 #include "logic.h"
 
 enum ActorFlags {
   ACTOR_FLAGS_BASIC_MONSTER = 1 << 0,
   ACTOR_FLAGS_AVOIDS_FIRE = 1 << 1,
-  ACTOR_FLAGS_CANOPIABLE = 1 << 2,
+  ACTOR_FLAGS_AVOIDS_CANOPY = 1 << 2,
   ACTOR_FLAGS_CHIP = 1 << 3,
   ACTOR_FLAGS_MELINDA = 1 << 4,
   ACTOR_FLAGS_PLAYER = ACTOR_FLAGS_CHIP | ACTOR_FLAGS_MELINDA,
@@ -22,7 +24,6 @@ enum ActorFlags {
   ACTOR_FLAGS_REVEALS_HIDDEN = 1 << 17,
   ACTOR_FLAGS_AVOIDS_TURTLE = 1 << 18,
   ACTOR_FLAGS_DECIDES_EVERY_SUBTICK = 1 << 19,
-  ACTOR_FLAGS_NOT_GHOST = ~ACTOR_FLAGS_GHOST
 };
 
 enum ItemIndex {
@@ -139,3 +140,17 @@ extern const TileType NO_CHIP_SIGN_tile;
 extern const TileType NO_MELINDA_SIGN_tile;
 extern const ActorType YELLOW_TANK_actor;
 extern const TileType BUTTON_YELLOW_tile;
+extern const TileType TRANSMOGRIFIER_tile;
+extern const ActorType FRAME_BLOCK_actor;
+extern const TileType TIME_BONUS_tile;
+extern const TileType TIME_PENALTY_tile;
+extern const TileType STOPWATCH_tile;
+extern const ActorType ROVER_actor;
+extern const ActorType MIRROR_CHIP_actor;
+extern const ActorType MIRROR_MELINDA_actor;
+extern const TileType BOWLING_BALL_tile;
+extern const ActorType BOWLING_BALL_ROLLING_actor;
+extern const TileType HOOK_tile;
+extern const TileType LIGHTNING_BOLT_tile;
+extern const ActorType GHOST_actor;
+#endif

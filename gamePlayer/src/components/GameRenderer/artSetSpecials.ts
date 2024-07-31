@@ -7,6 +7,7 @@ import {
 	Renderer,
 	Size,
 	SpecialArt,
+	actorToDir,
 } from "./renderer"
 
 export const stateFuncs: Record<
@@ -75,8 +76,7 @@ registerSpecialFunction<Actor>(
 	"perspective",
 	function (ctx, level, actor, art) {
 		const spArt = art as PerspectiveSpecialArt
-		// let perspective = level.getPerspective()
-		let perspective = false
+		let perspective = this.playerSeat!.hasPerspective()
 		if (perspective && spArt.somethingUnderneathOnly) {
 			const pos = actor.position
 			const tile = level.getCell(pos[0], pos[1])
@@ -289,9 +289,13 @@ registerStateFunction<Actor>(
 //
 // // Note: We also check for `wires` here, unlike in the logic.
 // // This is intentional, this discrepency is also in CC2
-// registerStateFunction<Actor>("transmogrifier", actor =>
-// 	actor.wires !== 0 && actor.wired && !actor.poweredWires ? "off" : "on"
-// )
+// TODO: transmog
+registerStateFunction<Actor>(
+	"transmogrifier",
+	actor =>
+		// actor.wires !== 0 && actor.wired && !actor.poweredWires ? "off" : "on"
+		"on"
+)
 // registerStateFunction<Actor>("toggleSwitch", actor => actor.customData)
 //
 interface StretchSpecialArt extends SpecialArt {
@@ -383,21 +387,39 @@ registerSpecialFunction<Actor>("stretch", function (ctx, _level, actor, art) {
 // 	}
 // })
 //
-// registerStateFunction<Rover>("rover", actor => actor.emulatedMonster)
+const roverEmulationPattern = [
+	"teethRed",
+	"glider",
+	"ant",
+	"ball",
+	"teethBlue",
+	"fireball",
+	"centipede",
+	"walker",
+]
+registerStateFunction<Actor>(
+	"rover",
+	actor =>
+		roverEmulationPattern[
+			((actor.customData & 0xff00n) >> 8n) as unknown as number
+		]
+)
 //
-// interface RoverAntennaSpecialArt extends SpecialArt {
-// 	UP: Frame
-// 	RIGHT: Frame
-// 	DOWN: Frame
-// 	LEFT: Frame
-// }
-//
-// registerSpecialFunction<Rover>("rover antenna", function (ctx, actor, art) {
-// 	const spArt = art as RoverAntennaSpecialArt
-// 	const pos = actor.getVisualPosition()
-// 	const frame = spArt[actorToDir(actor)]
-// 	this.tileBlit(ctx, [pos[0] + 0.25, pos[1] + 0.25], frame, [0.5, 0.5])
-// })
+interface RoverAntennaSpecialArt extends SpecialArt {
+	UP: Frame
+	RIGHT: Frame
+	DOWN: Frame
+	LEFT: Frame
+}
+
+registerSpecialFunction<Actor>(
+	"rover antenna",
+	function (ctx, _level, actor, art) {
+		const spArt = art as RoverAntennaSpecialArt
+		const frame = spArt[actorToDir(actor)]
+		this.tileBlit(ctx, [0.25, 0.25], frame, [0.5, 0.5])
+	}
+)
 //
 registerSpecialFunction<BasicTile>("letters", function (ctx, _level, actor) {
 	let letter: string

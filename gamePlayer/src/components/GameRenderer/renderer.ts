@@ -294,7 +294,7 @@ export class Renderer {
 		this.drawArt(ctx, actor, art.top)
 	}
 	drawState(ctx: ArtContext, actor: Actor | BasicTile, art: StateArt): void {
-		const stateFunc = stateFuncs[actor.type.name]
+		const stateFunc = stateFuncs[actor.type.name!]
 		if (stateFunc === undefined) {
 			console.warn(`No state function for actor ${actor.type.name}.`)
 			return
@@ -343,21 +343,17 @@ export class Renderer {
 		}
 	}
 	drawTile(ctxSession: ArtContext, tile: Actor | BasicTile): void {
-		const art = this.tileset.art.artMap[tile.type.name]
+		const art = this.tileset.art.artMap[tile.type.name!]
 		if (art === undefined) {
 			console.warn(`No art for actor ${tile.type.name}.`)
 			return
 		}
-		// if (
-		// 	ctxSession..playablesLeft > 1 &&
-		// 	actor === actor.level.selectedPlayable
-		// ) {
-		// 	this.tileBlit(
-		// 		ctx,
-		// 		actor.getVisualPosition(),
-		// 		this.tileset.art.currentPlayerMarker
-		// 	)
-		// }
+		if (
+			this.level!.playersLeft > this.level!.playersN &&
+			this.playerSeat!.actor?._ptr == tile._ptr
+		) {
+			this.tileBlit(ctxSession, [0, 0], this.tileset.art.currentPlayerMarker)
+		}
 		this.drawArt(ctxSession, tile, art)
 	}
 	updateCameraPosition(): void {

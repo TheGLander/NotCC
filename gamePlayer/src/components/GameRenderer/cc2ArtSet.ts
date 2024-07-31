@@ -291,7 +291,7 @@ export const cc2ArtSet: ArtSet = {
 			1000: [12, 2],
 			100: [13, 2],
 			10: [14, 2],
-			"*2": [15, 2],
+			x2: [15, 2],
 		},
 		customFloor: {
 			type: "state",
@@ -743,7 +743,7 @@ export const cc2ArtSet: ArtSet = {
 			},
 		},
 		noSign: [14, 5],
-		directionalBlock: {
+		frameBlock: {
 			type: "overlay",
 			bottom: [15, 5],
 			top: {
@@ -876,7 +876,7 @@ export const cc2ArtSet: ArtSet = {
 		},
 		timePenalty: [15, 11],
 		timeBonus: [15, 14],
-		timeToggle: [14, 14],
+		stopwatch: [14, 14],
 		counterGate: {
 			type: "wires",
 			top: {

@@ -89,6 +89,7 @@ void Actor_place_item_on_tile(Actor* self,
 uint16_t Actor_get_position_xy(Actor* self);
 Inventory* Actor_get_inventory_ptr(Actor* self);
 void Player_do_decision(Actor* self, Level* level);
+Direction Player_get_last_decision(Actor* self);
 void Actor_enter_tile(Actor* self, Level* level);
 PositionF Actor_get_visual_position(const Actor* self);
 
@@ -165,7 +166,7 @@ typedef enum WireType {
 typedef struct ActorType {
   char* name;
   void (*init)(Actor* self, Level* level);
-  void (*on_bump)(Actor* self, Level* level, BasicTile* other);
+  void (*on_bonk)(Actor* self, Level* level, BasicTile* other);
   void (*on_bump_actor)(Actor* self, Level* level, Actor* other);
   void (*on_bumped_by)(Actor* self, Level* level, Actor* other);
   void (*decide_movement)(Actor* self, Level* level, Direction* directions);
@@ -234,6 +235,7 @@ typedef uint8_t PlayerInputs;
   _libnotcc_accessor(PlayerSeat, released_inputs, PlayerInputs);
 
 void PlayerSeat_get_movement_directions(PlayerSeat* self, Direction dirs[2]);
+bool PlayerSeat_has_perspective(const PlayerSeat* self);
 _libnotcc_accessors_PlayerSeat;
 
 void LevelMetadata_init(LevelMetadata* self);

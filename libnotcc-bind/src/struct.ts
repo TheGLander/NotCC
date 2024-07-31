@@ -13,7 +13,8 @@ export function getWasmReader() {
 
 const decoder = new TextDecoder("utf-8")
 
-export function getStringAt(ptr: number): string {
+export function getStringAt(ptr: number): string | null {
+	if (ptr === 0) return null
 	const bytes: number[] = []
 	while (true) {
 		const byte = getWasmReader().getUint8(ptr)

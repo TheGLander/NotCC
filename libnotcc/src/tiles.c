@@ -3,10 +3,18 @@
 #include <math.h>
 #include <stdbool.h>
 #include "logic.h"
+#include "misc.h"
 
 // Terrain
 
-#define IS_GHOST(actor) has_flag(actor, ACTOR_FLAGS_GHOST)
+#define is_ghost(actor) has_flag(actor, ACTOR_FLAGS_GHOST)
+
+static bool impedes_non_ghost(BasicTile* self,
+                              Level* level,
+                              Actor* actor,
+                              Direction _dir) {
+  return !is_ghost(actor);
+}
 
 // FLOOR: `custom_data` indicates wires
 const TileType FLOOR_tile = {
@@ -27,7 +35,7 @@ static void WALL_on_bumped_by(BasicTile* self,
 
 const TileType WALL_tile = {.name = "wall",
                             .layer = LAYER_TERRAIN,
-                            .impedes_mask = ACTOR_FLAGS_NOT_GHOST,
+                            .impedes = impedes_non_ghost,
                             .on_bumped_by = WALL_on_bumped_by};
 
 // STEEL_WALL: `custom_data` indicates wires
@@ -42,7 +50,7 @@ static uint8_t ice_modify_move_duration(BasicTile* self,
                                         Level* level,
                                         Actor* actor,
                                         uint8_t move_duration) {
-  if (IS_GHOST(actor) || has_flag(actor, ACTOR_FLAGS_MELINDA))
+  if (is_ghost(actor) || has_flag(actor, ACTOR_FLAGS_MELINDA))
     return move_duration;
   if (has_item_counter(actor->inventory, ITEM_INDEX_ICE_BOOTS))
     return move_duration;
@@ -53,7 +61,7 @@ static uint8_t force_modify_move_duration(BasicTile* self,
                                           Level* level,
                                           Actor* actor,
                                           uint8_t move_duration) {
-  if (IS_GHOST(actor))
+  if (is_ghost(actor))
     return move_duration;
   if (has_item_counter(actor->inventory, ITEM_INDEX_FORCE_BOOTS))
     return move_duration;
@@ -110,12 +118,14 @@ static void ICE_on_idle(BasicTile* self, Level* level, Actor* actor) {
 
 // ICE_CORNER: `custom_data` indicates direction of the corner
 static void ICE_CORNER_on_idle(BasicTile* self, Level* level, Actor* actor) {
-  // TODO: Melinda (note that Melinda's behavior diverges from just having
-  // cleats)
   if (has_item_counter(actor->inventory, ITEM_INDEX_ICE_BOOTS))
     return;
   if (actor->bonked && has_flag(actor, ACTOR_FLAGS_MELINDA)) {
     Actor_enter_tile(actor, level);
+    return;
+  }
+  if (is_ghost(actor)) {
+    ICE_on_idle(self, level, actor);
     return;
   }
   if (actor->bonked)
@@ -170,7 +180,7 @@ static void force_on_idle(BasicTile* self,
   if (actor->bonked) {
     Actor_enter_tile(actor, level);
   }
-  if (IS_GHOST(actor))
+  if (is_ghost(actor))
     return;
   if (has_item_counter(actor->inventory, ITEM_INDEX_FORCE_BOOTS))
     return;
@@ -229,18 +239,27 @@ static void WATER_actor_completely_joined(BasicTile* self,
   if (actor->type == &ICE_BLOCK_actor) {
     BasicTile_transform_into(self, &ICE_tile);
   }
+  if (actor->type == &FRAME_BLOCK_actor) {
+    BasicTile_transform_into(self, &FLOOR_tile);
+  }
   Actor_destroy(actor, level, &SPLASH_actor);
 }
 
 const TileType WATER_tile = {
     .name = "water",
     .layer = LAYER_TERRAIN,
+    .impedes_mask = ACTOR_FLAGS_GHOST,
     .actor_completely_joined = WATER_actor_completely_joined};
 
 static void FIRE_actor_completely_joined(BasicTile* self,
                                          Level* level,
                                          Actor* actor) {
-  // TODO: Ghost double erasure thing
+  if (is_ghost(actor)) {
+    if (has_item_counter(actor->inventory, ITEM_INDEX_FIRE_BOOTS)) {
+      BasicTile_erase(self);
+    }
+    return;
+  }
   if (actor->type == &DIRT_BLOCK_actor || actor->type == &FIREBALL_actor)
     return;
   if (has_item_counter(actor->inventory, ITEM_INDEX_FIRE_BOOTS))
@@ -281,7 +300,7 @@ static bool TOGGLE_WALL_impedes(BasicTile* self,
                                 Level* level,
                                 Actor* actor,
                                 Direction _dir) {
-  if (IS_GHOST(actor))
+  if (is_ghost(actor))
     return false;
   return (bool)self->custom_data != level->toggle_wall_inverted;
 }
@@ -453,7 +472,7 @@ const TileType TELEPORT_YELLOW_tile = {.name = "teleportYellow",
 static void SLIME_actor_completely_joined(BasicTile* self,
                                           Level* level,
                                           Actor* actor) {
-  if (IS_GHOST(actor))
+  if (is_ghost(actor))
     return;
   if (actor->type == &DIRT_BLOCK_actor || actor->type == &ICE_BLOCK_actor) {
     BasicTile_erase(self);
@@ -493,7 +512,7 @@ const TileType GRAVEL_tile = {.name = "gravel",
 static void DIRT_actor_completely_joined(BasicTile* self,
                                          Level* level,
                                          Actor* other) {
-  if (IS_GHOST(other) &&
+  if (is_ghost(other) &&
       !has_item_counter(other->inventory, ITEM_INDEX_DIRT_BOOTS))
     return;
   BasicTile_erase(self);
@@ -520,7 +539,7 @@ static void trap_increment_opens(BasicTile* self, Level* level, Cell* cell) {
   self->custom_data += 2;
   if ((self->custom_data & 1) == 0) {
     self->custom_data |= 1;
-    if (cell->actor && !IS_GHOST(cell->actor)) {
+    if (cell->actor && !is_ghost(cell->actor)) {
       cell->actor->frozen = false;
       if (level->current_subtick != -1) {
         Actor_move_to(cell->actor, level, cell->actor->direction);
@@ -555,7 +574,7 @@ static Direction TRAP_redirect_exit(BasicTile* self,
                                     Level* level,
                                     Actor* actor,
                                     Direction direction) {
-  if (!(self->custom_data & 1) || IS_GHOST(actor))
+  if (!(self->custom_data & 1) || is_ghost(actor))
     return DIRECTION_NONE;
   return direction;
 }
@@ -583,6 +602,9 @@ static void clone_machine_trigger(BasicTile* self,
   if (self->type != &CLONE_MACHINE_tile)
     return;
   Actor* actor = cell->actor;
+  // Someone triggered an empty clone machine
+  if (actor == NULL)
+    return;
   actor->frozen = false;
   Direction og_actor_dir = actor->direction;
   Actor* new_actor = NULL;
@@ -630,7 +652,12 @@ static void EXIT_actor_completely_joined(BasicTile* self,
     return;
   level->players_left -= 1;
   PlayerSeat* seat = Level_find_player_seat(level, other);
-  seat->actor = Level_find_next_player(level, other);
+  // If this player is selected, switch to a different one. If the player was
+  // not select (eg. they slid into the win tile) don't try to change the
+  // current player
+  if (seat) {
+    seat->actor = Level_find_next_player(level, other);
+  }
   Actor_erase(other, level);
 }
 const TileType EXIT_tile = {
@@ -642,7 +669,7 @@ const TileType EXIT_tile = {
 #define MAKE_DOOR(var_name, capital, simple, reuse_flag)                       \
   static bool var_name##_impedes(BasicTile* self, Level* level, Actor* other,  \
                                  Direction direction) {                        \
-    if (IS_GHOST(other))                                                       \
+    if (is_ghost(other))                                                       \
       return false;                                                            \
     return other->inventory.keys_##simple == 0;                                \
   };                                                                           \
@@ -826,7 +853,7 @@ static bool ECHIP_GATE_impedes(BasicTile* self,
                                Level* level,
                                Actor* other,
                                Direction direction) {
-  if (IS_GHOST(other))
+  if (is_ghost(other))
     return false;
   return level->chips_left > 0;
 }
@@ -875,7 +902,7 @@ static void APPEARING_WALL_on_bumped_by(BasicTile* self,
 const TileType APPEARING_WALL_tile = {
     .name = "appearingWall",
     .layer = LAYER_TERRAIN,
-    .impedes_mask = ACTOR_FLAGS_NOT_GHOST,
+    .impedes = impedes_non_ghost,
     .on_bumped_by = APPEARING_WALL_on_bumped_by};
 
 static void INVISIBLE_WALL_on_bumped_by(BasicTile* self,
@@ -889,7 +916,7 @@ static void INVISIBLE_WALL_on_bumped_by(BasicTile* self,
 const TileType INVISIBLE_WALL_tile = {
     .name = "invisibleWall",
     .layer = LAYER_TERRAIN,
-    .impedes_mask = ACTOR_FLAGS_NOT_GHOST,
+    .impedes = impedes_non_ghost,
     .on_bumped_by = INVISIBLE_WALL_on_bumped_by};
 
 static void BLUE_WALL_on_bumped_by(BasicTile* self,
@@ -904,7 +931,7 @@ static void BLUE_WALL_on_bumped_by(BasicTile* self,
 
 const TileType BLUE_WALL_tile = {.name = "blueWall",
                                  .layer = LAYER_TERRAIN,
-                                 .impedes_mask = ACTOR_FLAGS_NOT_GHOST,
+                                 .impedes = impedes_non_ghost,
                                  .on_bumped_by = BLUE_WALL_on_bumped_by};
 
 static bool GREEN_WALL_impedes(BasicTile* self,
@@ -927,6 +954,7 @@ static bool thief_has_bribe(Actor* actor) {
     if (*item_type != &BRIBE_tile)
       continue;
     Inventory_remove_item(&actor->inventory, idx);
+  Inventory_decrement_counter(&actor->inventory, ITEM_INDEX_BRIBE);
     return true;
   }
   // Possible only when using the shadow inventory glitch
@@ -1027,6 +1055,73 @@ const TileType NO_MELINDA_SIGN_tile = {.name = "noMelindaSign",
                                        .layer = LAYER_TERRAIN,
                                        .impedes_mask = ACTOR_FLAGS_MELINDA};
 
+typedef struct TransmogEntry {
+  const ActorType* key;
+  const ActorType* val;
+} TransmogEntry;
+
+// A simple key-val array instead of a hashmap or whatever. Sue me.
+static TransmogEntry transmog_entries[] = {
+    // Chip-Melinda
+    {&CHIP_actor, &MELINDA_actor},
+    {&MELINDA_actor, &CHIP_actor},
+    // TODO: Mirror player
+
+    // Dirt block-ice block
+    {&DIRT_BLOCK_actor, &ICE_BLOCK_actor},
+    {&ICE_BLOCK_actor, &DIRT_BLOCK_actor},
+    // Ball-walker
+    {&BALL_actor, &WALKER_actor},
+    {&WALKER_actor, &BALL_actor},
+    // Fireball-ant-glider-centipede
+    {&FIREBALL_actor, &ANT_actor},
+    {&ANT_actor, &GLIDER_actor},
+    {&GLIDER_actor, &CENTIPEDE_actor},
+    {&CENTIPEDE_actor, &FIREBALL_actor},
+    // Blue-yellow tank
+    {&BLUE_TANK_actor, &YELLOW_TANK_actor},
+    {&YELLOW_TANK_actor, &BLUE_TANK_actor},
+    // Red-blue teeth
+    {&TEETH_RED_actor, &TEETH_BLUE_actor},
+    {&TEETH_BLUE_actor, &TEETH_RED_actor}};
+
+static const ActorType* const blob_transmog_options[] = {
+    &GLIDER_actor,    &CENTIPEDE_actor, &FIREBALL_actor,
+    &ANT_actor,       &WALKER_actor,    &BALL_actor,
+    &TEETH_RED_actor, &BLUE_TANK_actor, &TEETH_BLUE_actor};
+
+static const ActorType* get_transmogrified_type(const ActorType* type,
+                                                Level* level) {
+  if (!type)
+    return NULL;
+  if (type == &BLOB_actor) {
+    return blob_transmog_options[Level_rng(level) %
+                                 lengthof(blob_transmog_options)];
+  }
+  for (size_t idx = 0; idx < lengthof(transmog_entries); idx += 1) {
+    TransmogEntry* ent = &transmog_entries[idx];
+    if (ent->key == type)
+      return ent->val;
+  }
+  return NULL;
+}
+
+static void TRANSMOGRIFIER_actor_completely_joined(BasicTile* self,
+                                                   Level* level,
+                                                   Actor* actor) {
+  const ActorType* new_type = get_transmogrified_type(actor->type, level);
+  if (!new_type)
+    return;
+  // This keeps `custom_data`, important for eg. a yellow tank transforming into
+  // a blue tank and doing a (weird) move
+  Actor_transform_into(actor, new_type);
+}
+
+const TileType TRANSMOGRIFIER_tile = {
+    .name = "transmogrifier",
+    .layer = LAYER_TERRAIN,
+    .actor_completely_joined = TRANSMOGRIFIER_actor_completely_joined};
+
 // Actors
 
 static void kill_player(Actor* self, Level* level, Actor* other) {
@@ -1041,7 +1136,8 @@ static void kill_player(Actor* self, Level* level, Actor* other) {
 static void player_die_on_monster_bump(Actor* self,
                                        Level* level,
                                        Actor* other) {
-  if (has_flag(other, ACTOR_FLAGS_KILLS_PLAYER)) {
+  if (has_flag(other, ACTOR_FLAGS_KILLS_PLAYER) &&
+      !has_flag(other, ACTOR_FLAGS_BLOCK)) {
     kill_player(other, level, self);
   }
 }
@@ -1099,7 +1195,7 @@ static void ANT_decide(Actor* self, Level* level, Direction directions[4]) {
 
 const ActorType ANT_actor = {
     .name = "ant",
-    .flags = ACTOR_FLAGS_CC1_MONSTER | ACTOR_FLAGS_CANOPIABLE,
+    .flags = ACTOR_FLAGS_CC1_MONSTER | ACTOR_FLAGS_AVOIDS_CANOPY,
     .decide_movement = ANT_decide,
     .on_bump_actor = kill_player};
 
@@ -1124,7 +1220,8 @@ static void FIREBALL_decide_movement(Actor* self,
 
 const ActorType FIREBALL_actor = {
     .name = "fireball",
-    .flags = ACTOR_FLAGS_CC1_MONSTER & ~ACTOR_FLAGS_AVOIDS_FIRE,
+    .flags = (ACTOR_FLAGS_CC1_MONSTER | ACTOR_FLAGS_AVOIDS_TURTLE) &
+             ~ACTOR_FLAGS_AVOIDS_FIRE,
     .decide_movement = FIREBALL_decide_movement,
     .on_bump_actor = kill_player};
 
@@ -1246,27 +1343,66 @@ const ActorType FLOOR_MIMIC_actor = {
     .decide_movement = FLOOR_MIMIC_decide_movement,
     .on_bump_actor = kill_player};
 
+// ROVER: least significant byte specifies moves until the next monster is
+// emulated, second least byte significant specifies the currently emulated
+// monster
+static const ActorType* const rover_emulated_monsters[] = {
+    &TEETH_RED_actor,  &GLIDER_actor,   &ANT_actor,       &BALL_actor,
+    &TEETH_BLUE_actor, &FIREBALL_actor, &CENTIPEDE_actor, &WALKER_actor};
+
+static void ROVER_init(Actor* self, Level* level) {
+  self->custom_data = 32;
+}
+
+static void ROVER_decide_movement(Actor* self,
+                                  Level* level,
+                                  Direction dirs[4]) {
+  uint8_t current_monster_idx = (self->custom_data & 0xff00) >> 8;
+  uint8_t moves_until_next_emu = self->custom_data & 0xff;
+  moves_until_next_emu -= 1;
+  if (moves_until_next_emu == 0) {
+    current_monster_idx =
+        (current_monster_idx + 1) % lengthof(rover_emulated_monsters);
+    moves_until_next_emu = 32;
+  }
+  self->custom_data = (current_monster_idx << 8) + moves_until_next_emu;
+  const ActorType* emu_type = rover_emulated_monsters[current_monster_idx];
+  emu_type->decide_movement(self, level, dirs);
+}
+
+const ActorType ROVER_actor = {
+    .name = "rover",
+    .flags = ACTOR_FLAGS_PICKS_UP_ITEMS | ACTOR_FLAGS_KILLS_PLAYER |
+             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_AVOIDS_CANOPY |
+             ACTOR_FLAGS_AVOIDS_FIRE,
+    .init = ROVER_init,
+    .decide_movement = ROVER_decide_movement,
+    .on_bump_actor = kill_player,
+    .move_duration = 24};
+
 static bool DIRT_BLOCK_can_be_pushed(Actor* self,
                                      Level* level,
                                      Actor* other,
                                      Direction dir) {
-  // TODO: Frame blocks
-  return !has_flag(other, ACTOR_FLAGS_BLOCK);
+  return !has_flag(other, ACTOR_FLAGS_BLOCK) ||
+         other->type == &FRAME_BLOCK_actor;
 };
 
-const ActorType DIRT_BLOCK_actor = {
-    .name = "dirtBlock",
-    .flags = ACTOR_FLAGS_BLOCK | ACTOR_FLAGS_BASIC_MONSTER,
-    .can_be_pushed = DIRT_BLOCK_can_be_pushed,
-    .on_bump_actor = kill_player};
+const ActorType DIRT_BLOCK_actor = {.name = "dirtBlock",
+                                    .flags = ACTOR_FLAGS_BLOCK |
+                                             ACTOR_FLAGS_BASIC_MONSTER |
+                                             ACTOR_FLAGS_KILLS_PLAYER,
+                                    .can_be_pushed = DIRT_BLOCK_can_be_pushed,
+                                    .on_bump_actor = kill_player};
 
-static bool ICE_BLOCK_can_be_pushed(Actor* self,
+static bool cc2_block_can_be_pushed(Actor* self,
                                     Level* level,
                                     Actor* other,
                                     Direction _dir) {
-                                    if(self->sliding_state && has_flag(other, ACTOR_FLAGS_BLOCK)) return false;
-  return !(has_flag(other, ACTOR_FLAGS_BLOCK) &&
-           has_flag(other, ACTOR_FLAGS_BASIC_MONSTER));
+  // Weird quirk: we can't be pushed by a block if we're sliding
+  if (self->sliding_state && has_flag(other, ACTOR_FLAGS_BLOCK))
+    return false;
+  return true;
 }
 
 static void ICE_BLOCK_on_bumped_by(Actor* self, Level* level, Actor* other) {
@@ -1277,13 +1413,33 @@ static void ICE_BLOCK_on_bumped_by(Actor* self, Level* level, Actor* other) {
   }
 }
 
-const ActorType ICE_BLOCK_actor = {.name = "iceBlock",
-                                   .flags = ACTOR_FLAGS_BLOCK |
-                                            ACTOR_FLAGS_IGNORES_ITEMS |
-                                            ACTOR_FLAGS_CAN_PUSH,
-                                   .can_be_pushed = ICE_BLOCK_can_be_pushed,
-                                   .on_bump_actor = kill_player,
-                                   .on_bumped_by = ICE_BLOCK_on_bumped_by};
+const ActorType ICE_BLOCK_actor = {
+    .name = "iceBlock",
+    .flags = ACTOR_FLAGS_BLOCK | ACTOR_FLAGS_IGNORES_ITEMS |
+             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_KILLS_PLAYER,
+    .can_be_pushed = cc2_block_can_be_pushed,
+    .on_bump_actor = kill_player,
+    .on_bumped_by = ICE_BLOCK_on_bumped_by};
+
+static bool FRAME_BLOCK_can_be_pushed(Actor* self,
+                                      Level* level,
+                                      Actor* other,
+                                      Direction dir) {
+  uint8_t dir_bit = 1 << dir_to_cc2(dir);
+  if (!(self->custom_data & dir_bit))
+    return false;
+  return cc2_block_can_be_pushed(self, level, other, dir);
+}
+
+const ActorType FRAME_BLOCK_actor = {
+    .name = "frameBlock",
+    .flags = ACTOR_FLAGS_BLOCK | ACTOR_FLAGS_IGNORES_ITEMS |
+             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_KILLS_PLAYER,
+    .can_be_pushed = FRAME_BLOCK_can_be_pushed,
+    .on_bump_actor = kill_player,
+
+    // TODO: Railroads
+};
 
 // BLUE_TANK: `custom_data` is BLUE_TANK_ROTATE if it's to rotate
 static void BLUE_TANK_decide_movement(Actor* self,
@@ -1308,19 +1464,20 @@ const ActorType BLUE_TANK_actor = {.name = "tankBlue",
 static void YELLOW_TANK_decide_movement(Actor* self,
                                         Level* level,
                                         Direction dirs[4]) {
-                                        Direction dir=DIRECTION_NONE;
+  Direction dir = DIRECTION_NONE;
   if (self->custom_data & BLUE_TANK_ROTATE) {
     dir = self->direction;
   } else if (self->custom_data != DIRECTION_NONE) {
     dir = (Direction)self->custom_data;
   }
-  if(dir) {
-  // Do the check manually so that we don't try to do the last tried direction at move time
-  if(Actor_check_collision(self, level, dir)) {
-  self->move_decision = dir;
-  self->direction = dir;
+  if (dir) {
+    // Do the check manually so that we don't try to do the last tried direction
+    // at move time
+    if (Actor_check_collision(self, level, dir)) {
+      self->move_decision = dir;
+      self->direction = dir;
+    }
   }
- }
   self->custom_data = 0;
 }
 
@@ -1383,7 +1540,8 @@ static bool dynamite_lit_nuke_tile(void* ctx, Level* level, Cell* cell) {
     }
     return false;
   }
-  if (cell->terrain.type != &FLOOR_tile && !has_flag(&cell->terrain, ACTOR_FLAGS_DYNAMITE_IMMUNE)) {
+  if (cell->terrain.type != &FLOOR_tile &&
+      !has_flag(&cell->terrain, ACTOR_FLAGS_DYNAMITE_IMMUNE)) {
     BasicTile_erase(&cell->terrain);
     // We also have to manually unset the `custom_data` in case we're destroying
     // something with `custom_data` which would now make the new floor appear as
@@ -1438,6 +1596,66 @@ const ActorType DYNAMITE_LIT_actor = {
     .init = DYNAMITE_LIT_init,
     .decide_movement = DYNAMITE_LIT_decide_movement,
     .on_bump_actor = kill_player};
+
+static void mirror_player_decide_movement(Actor* self,
+                                          Level* level,
+                                          Direction dirs[4]) {
+  Actor* player = Level_find_closest_player(level, self->position);
+  if (!player || !has_flag(player, (self->type->flags & ACTOR_FLAGS_PLAYER)))
+    return;
+  self->move_decision = Player_get_last_decision(player);
+}
+
+const ActorType MIRROR_CHIP_actor = {
+    .name = "mirrorChip",
+    .flags = ACTOR_FLAGS_CHIP | ACTOR_FLAGS_PICKS_UP_ITEMS |
+             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_REVEALS_HIDDEN |
+             ACTOR_FLAGS_KILLS_PLAYER,
+    .on_bump_actor = kill_player,
+    .decide_movement = mirror_player_decide_movement};
+
+const ActorType MIRROR_MELINDA_actor = {
+    .name = "mirrorMelinda",
+    .flags = ACTOR_FLAGS_MELINDA | ACTOR_FLAGS_PICKS_UP_ITEMS |
+             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_REVEALS_HIDDEN |
+             ACTOR_FLAGS_KILLS_PLAYER,
+    .on_bump_actor = kill_player,
+    .decide_movement = mirror_player_decide_movement};
+
+static void bowling_ball_kill_whatever(Actor* self,
+                                       Level* level,
+                                       Actor* other) {
+  Actor_destroy(self, level, &EXPLOSION_actor);
+  Actor_destroy(other, level, &EXPLOSION_actor);
+}
+static void bowling_ball_kill_self(Actor* self,
+                                   Level* level,
+                                   BasicTile* _tile) {
+  Actor_destroy(self, level, &EXPLOSION_actor);
+}
+
+static void BOWLING_BALL_ROLLING_decide_movement(Actor* self,
+                                                 Level* level,
+                                                 Direction dirs[4]) {
+  dirs[0] = self->direction;
+}
+
+const ActorType BOWLING_BALL_ROLLING_actor = {
+    .name = "bowlingBallRolling",
+    .flags = ACTOR_FLAGS_PICKS_UP_ITEMS | ACTOR_FLAGS_REVEALS_HIDDEN |
+             ACTOR_FLAGS_KILLS_PLAYER,
+    .on_bump_actor = bowling_ball_kill_whatever,
+    .on_bumped_by = bowling_ball_kill_whatever,
+    .on_bonk = bowling_ball_kill_self,
+    .decide_movement = BOWLING_BALL_ROLLING_decide_movement};
+
+const ActorType GHOST_actor = {
+    .name = "ghost",
+    .flags = ACTOR_FLAGS_PICKS_UP_ITEMS | ACTOR_FLAGS_GHOST |
+             ACTOR_FLAGS_KILLS_PLAYER | ACTOR_FLAGS_AVOIDS_TURTLE,
+    .decide_movement = GLIDER_decide,
+    .on_bump_actor = kill_player,
+};
 
 // Items
 #define MAKE_KEY(var_name, capital, simple, impedes, collect_condition)        \
@@ -1497,6 +1715,54 @@ const TileType ECHIP_tile = {
     .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER,
     .actor_completely_joined = ECHIP_actor_completely_joined};
 
+static void TIME_BONUS_actor_completely_joined(BasicTile* self,
+                                               Level* level,
+                                               Actor* actor) {
+  if (!has_flag(actor, ACTOR_FLAGS_REAL_PLAYER))
+    return;
+  level->time_left += 600;
+  BasicTile_erase(self);
+}
+
+const TileType TIME_BONUS_tile = {
+    .name = "timeBonus",
+    .layer = LAYER_ITEM,
+    .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER,
+    .actor_completely_joined = TIME_BONUS_actor_completely_joined};
+
+static void TIME_PENALTY_actor_completely_joined(BasicTile* self,
+                                                 Level* level,
+                                                 Actor* actor) {
+  if (!has_flag(actor, ACTOR_FLAGS_REAL_PLAYER))
+    return;
+  if (level->time_left <= 600) {
+    level->time_left = 1;
+  } else {
+    level->time_left -= 600;
+  }
+  BasicTile_erase(self);
+}
+
+const TileType TIME_PENALTY_tile = {
+    .name = "timePenalty",
+    .layer = LAYER_ITEM,
+    .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER,
+    .actor_completely_joined = TIME_PENALTY_actor_completely_joined};
+
+static void STOPWATCH_actor_completely_joined(BasicTile* self,
+                                              Level* level,
+                                              Actor* actor) {
+  if (!has_flag(actor, ACTOR_FLAGS_PLAYER))
+    return;
+  level->time_stopped = !level->time_stopped;
+}
+
+const TileType STOPWATCH_tile = {
+    .name = "stopwatch",
+    .layer = LAYER_ITEM,
+    .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER,
+    .actor_completely_joined = STOPWATCH_actor_completely_joined};
+
 static void generic_item_pickup(BasicTile* self, Level* level, Actor* other) {
   if (other->type->flags & ACTOR_FLAGS_IGNORES_ITEMS)
     return;
@@ -1544,9 +1810,13 @@ MAKE_GENERIC_ITEM(DIRT_BOOTS, "bootDirt", ITEM_INDEX_DIRT_BOOTS);
 MAKE_GENERIC_ITEM(STEEL_FOIL, "steelFoil", ITEM_INDEX_STEEL_FOIL);
 MAKE_GENERIC_ITEM(RR_SIGN, "rrSign", ITEM_INDEX_RR_SIGN);
 MAKE_GENERIC_ITEM(BRIBE, "bribe", ITEM_INDEX_BRIBE);
-MAKE_GENERIC_ITEM(SPEED_BOOTS, "speedBoots", ITEM_INDEX_SPEED_BOOTS);
+MAKE_GENERIC_ITEM(SPEED_BOOTS, "bootSpeed", ITEM_INDEX_SPEED_BOOTS);
 MAKE_GENERIC_ITEM(SECRET_EYE, "secretEye", ITEM_INDEX_SECRET_EYE);
 MAKE_GENERIC_ITEM(HELMET, "helmet", ITEM_INDEX_HELMET);
+// MAKE_GENERIC_ITEM(LIGHTNING_BOLT, "lightningBolt",
+// ITEM_INDEX_LIGHTNING_BOLT);
+MAKE_GENERIC_ITEM(BOWLING_BALL, "bowlingBall", ITEM_INDEX_BOWLING_BALL);
+MAKE_GENERIC_ITEM(HOOK, "hook", ITEM_INDEX_HOOK);
 
 static void DYNAMITE_actor_left(BasicTile* self,
                                 Level* level,
@@ -1575,7 +1845,7 @@ const TileType DYNAMITE_tile = {
 static void BONUS_FLAG_actor_completely_joined(BasicTile* self,
                                                Level* level,
                                                Actor* actor) {
-  if (IS_GHOST(actor) || has_flag(actor, ACTOR_FLAGS_IGNORES_ITEMS))
+  if (is_ghost(actor) || has_flag(actor, ACTOR_FLAGS_IGNORES_ITEMS))
     return;
   if (has_flag(actor, ACTOR_FLAGS_REAL_PLAYER)) {
     if (self->custom_data & 0x8000) {
@@ -1599,7 +1869,7 @@ static Direction THIN_WALL_redirect_exit(BasicTile* self,
                                          Actor* actor,
                                          Direction direction) {
   assert(direction != DIRECTION_NONE);
-  if (IS_GHOST(actor))
+  if (is_ghost(actor))
     return direction;
   uint8_t matching_bit = 1 << dir_to_cc2(direction);
   if (self->custom_data & matching_bit)
@@ -1611,8 +1881,19 @@ static bool THIN_WALL_impedes(BasicTile* self,
                               Actor* actor,
                               Direction direction) {
   assert(direction != DIRECTION_NONE);
-  if (IS_GHOST(actor))
+  if (is_ghost(actor))
     return false;
+  if (actor->type == &BLOB_actor &&
+      (self->custom_data & THIN_WALL_HAS_CANOPY)) {
+    Cell* blob_tile = Level_get_cell(level, actor->position);
+    BasicTile* blob_special = &blob_tile->special;
+    if (blob_special->type == &THIN_WALL_tile &&
+        (blob_special->custom_data & THIN_WALL_HAS_CANOPY))
+      return true;
+  }
+  if ((self->custom_data & THIN_WALL_HAS_CANOPY) &&
+      has_flag(actor, ACTOR_FLAGS_AVOIDS_CANOPY))
+    return true;
   uint8_t matching_bit = 1 << dir_to_cc2(back(direction));
   if (self->custom_data & matching_bit)
     return true;
@@ -1623,18 +1904,16 @@ const TileType THIN_WALL_tile = {.name = "thinWall",
                                  .redirect_exit = THIN_WALL_redirect_exit,
                                  .impedes = THIN_WALL_impedes};
 
-static void BOMB_actor_completely_joined(BasicTile* self,
-                                         Level* level,
-                                         Actor* actor) {
-  if (IS_GHOST(actor))
+static void bomb_actor_interacts(BasicTile* self, Level* level, Actor* actor) {
+  if (is_ghost(actor))
     return;
   Actor_destroy(actor, level, &EXPLOSION_actor);
   BasicTile_erase(self);
 }
-const TileType BOMB_tile = {
-    .name = "bomb",
-    .layer = LAYER_ITEM,
-    .actor_completely_joined = BOMB_actor_completely_joined};
+const TileType BOMB_tile = {.name = "bomb",
+                            .layer = LAYER_ITEM,
+                            .on_idle = bomb_actor_interacts,
+                            .actor_completely_joined = bomb_actor_interacts};
 
 static bool NO_SIGN_impedes(BasicTile* self,
                             Level* level,
@@ -1684,7 +1963,7 @@ static bool GREEN_BOMB_impedes(BasicTile* self,
 static void GREEN_BOMB_actor_completely_joined(BasicTile* self,
                                                Level* level,
                                                Actor* actor) {
-  if (IS_GHOST(actor))
+  if (is_ghost(actor))
     return;
   if (green_bomb_is_chip(self, level)) {
     if (has_flag(actor, ACTOR_FLAGS_REAL_PLAYER)) {

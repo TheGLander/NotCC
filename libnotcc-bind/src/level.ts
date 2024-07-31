@@ -21,6 +21,9 @@ export class PlayerSeat extends Struct {
 	set releasedInputs(val: KeyInputs) {
 		wasmFuncs.PlayerSeat_set_released_inputs(this._ptr, val)
 	}
+	hasPerspective(): boolean {
+		return !!wasmFuncs.PlayerSeat_has_perspective(this._ptr)
+	}
 }
 export class LevelMetadata extends Struct {
 	get title() {
@@ -128,6 +131,12 @@ export class Level extends Struct {
 			)
 		}
 		return arr
+	}
+	get playersLeft(): number {
+		return wasmFuncs.Level_get_players_left(this._ptr)
+	}
+	get playersN(): number {
+		return wasmFuncs.Level_get_players_n(this._ptr)
 	}
 	// Metrics
 	get timeLeft(): number {

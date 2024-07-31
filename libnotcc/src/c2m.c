@@ -249,7 +249,7 @@ typedef struct C2MDef {
 enum { TERRAIN_MOD8, TERRAIN_MOD16, TERRAIN_MOD32, FRAME_BLOCK, THIN_WALL };
 
 static const C2MDef c2m_tiles[] = {
- // 0x00
+    // 0x00
     {BASIC, NULL},
     {BASIC_READ_MOD, &FLOOR_tile},
     {BASIC, &WALL_tile},
@@ -266,7 +266,7 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &FORCE_FLOOR_tile, DIRECTION_LEFT},
     {BASIC, &TOGGLE_WALL_tile, true},
     {BASIC, &TOGGLE_WALL_tile, false},
- // 0x10
+    // 0x10
     {BASIC_READ_MOD, &TELEPORT_RED_tile},
     {BASIC_READ_MOD, &TELEPORT_BLUE_tile},
     {BASIC, 0},  // Yellow tp
@@ -283,7 +283,7 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &THIN_WALL_tile, 0b0110},
     {BASIC, &GRAVEL_tile},
     {BASIC, &BUTTON_GREEN_tile},
- // 0x20
+    // 0x20
     {BASIC, &BUTTON_BLUE_tile},
     {ACTOR, &BLUE_TANK_actor},
     {BASIC_READ_MOD, &DOOR_RED_tile},
@@ -300,7 +300,7 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &POPUP_WALL_tile},
     {BASIC, &APPEARING_WALL_tile},
     {BASIC, &INVISIBLE_WALL_tile},
- // 0x30
+    // 0x30
     {BASIC, &BLUE_WALL_tile, BLUE_WALL_REAL},
     {BASIC_READ_MOD, &BLUE_WALL_tile},
     {BASIC_READ_MOD, &DIRT_tile},
@@ -317,7 +317,7 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &FIRE_BOOTS_tile},
     {BASIC, &WATER_BOOTS_tile},
     {BASIC, &THIEF_TOOL_tile},
- // 0x40
+    // 0x40
     {BASIC, &BOMB_tile},
     {BASIC, &TRAP_tile,
      1},  // Open trap, trap's LSD of custom_data signifies if open
@@ -332,11 +332,11 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &SWIVEL_tile, DIRECTION_LEFT},
     {BASIC, &SWIVEL_tile, DIRECTION_UP},
     {BASIC, &SWIVEL_tile, DIRECTION_RIGHT},
-    {BASIC, 0},  // Time bonus
-    {BASIC, 0},  // Stopwatch
-    {BASIC, 0},  // Transmog
+    {BASIC, &TIME_BONUS_tile},
+    {BASIC, &STOPWATCH_tile},
+    {BASIC, &TRANSMOGRIFIER_tile},
     {BASIC, 0},  // RR track
- // 0x50
+                 // 0x50
     {BASIC_READ_MOD, &STEEL_WALL_tile},
     {BASIC, &DYNAMITE_tile},
     {BASIC, &HELMET_tile},
@@ -347,49 +347,49 @@ static const C2MDef c2m_tiles[] = {
     {ACTOR, &TEETH_BLUE_actor},
     {ACTOR, &EXPLOSION_actor},
     {BASIC, &DIRT_BOOTS_tile},
-    {BASIC, &NO_CHIP_SIGN_tile},
     {BASIC, &NO_MELINDA_SIGN_tile},
+    {BASIC, &NO_CHIP_SIGN_tile},
     {BASIC, 0},  // Logic gate
     {ACTOR, 0},  // Illegal actor: Wire
     {BASIC, 0},  // Pink button
     {BASIC, &FLAME_JET_tile, false},
- // 0x60
+    // 0x60
     {BASIC, &FLAME_JET_tile, true},
     {BASIC, &BUTTON_ORANGE_tile},
     {BASIC, 0},  // Lightning bolt
     {ACTOR, &YELLOW_TANK_actor},
     {BASIC, &BUTTON_YELLOW_tile},
-    {ACTOR, 0},  // Mirror Chip
-    {ACTOR, 0},  // Mirror Melinda
+    {ACTOR, &MIRROR_CHIP_actor},
+    {ACTOR, &MIRROR_MELINDA_actor},
     {BASIC, 0},  // Unused
-    {BASIC, 0},  // Bowling ball item
-    {ACTOR, 0},  // Rover
-    {BASIC, 0},  // Time penalty
+    {BASIC, &BOWLING_BALL_tile},
+    {ACTOR, &ROVER_actor},
+    {BASIC, &TIME_PENALTY_tile},
     {BASIC_READ_MOD, &CUSTOM_FLOOR_tile},
     {BASIC, 0},  // Unused
     {SPECIAL, NULL, THIN_WALL},
-    {BASIC, 0},              // Unused
-    {BASIC, &RR_SIGN_tile},  // RR sign
- // 0x70
+    {BASIC, 0},  // Unused
+    {BASIC, &RR_SIGN_tile},
+    // 0x70
     {BASIC_READ_MOD, &CUSTOM_WALL_tile},
     {BASIC_READ_MOD, &LETTER_FLOOR_tile},
-    {BASIC, 0},                       // Pulse wall (floor)
-    {BASIC, 0},                       // Pulse wall  (wall)
-    {BASIC, 0},                       // Unused
-    {BASIC, 0},                       // Unused
-    {SPECIAL, NULL, TERRAIN_MOD8},    // 8 modifier
-    {SPECIAL, NULL, TERRAIN_MOD16},   // 16 modifier
-    {SPECIAL, NULL, TERRAIN_MOD32},   // 32 modifier
-    {ACTOR, 0},                       // Illegal actor: Unwire
-    {BASIC, &BONUS_FLAG_tile, 10},    // 10pts flag
-    {BASIC, &BONUS_FLAG_tile, 100},   // 100pts flag
-    {BASIC, &BONUS_FLAG_tile, 1000},  // 1000pts flag
+    {BASIC, 0},  // Pulse wall (floor)
+    {BASIC, 0},  // Pulse wall  (wall)
+    {BASIC, 0},  // Unused
+    {BASIC, 0},  // Unused
+    {SPECIAL, NULL, TERRAIN_MOD8},
+    {SPECIAL, NULL, TERRAIN_MOD16},
+    {SPECIAL, NULL, TERRAIN_MOD32},
+    {ACTOR, 0},  // Illegal actor: Unwire
+    {BASIC, &BONUS_FLAG_tile, 10},
+    {BASIC, &BONUS_FLAG_tile, 100},
+    {BASIC, &BONUS_FLAG_tile, 1000},
     {BASIC, &GREEN_WALL_tile, true},
     {BASIC, &GREEN_WALL_tile, false},
     {BASIC, &NO_SIGN_tile},
- // 0x80
+    // 0x80
     {BASIC, &BONUS_FLAG_tile, 0x8002},  // 2x pts flag
-    {SPECIAL, NULL, FRAME_BLOCK},       // Frame block
+    {SPECIAL, NULL, FRAME_BLOCK},
     {ACTOR, &FLOOR_MIMIC_actor},
     {BASIC, &GREEN_BOMB_tile, false},
     {BASIC, &GREEN_BOMB_tile, true},
@@ -399,15 +399,15 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, 0},  // ON switch
     {BASIC, 0},  // OFF switch
     {BASIC, &THIEF_KEY_tile},
-    {BASIC, 0},  // Ghost
+    {ACTOR, &GHOST_actor},
     {BASIC, &STEEL_FOIL_tile},
     {BASIC, &TURTLE_tile},
     {BASIC, &SECRET_EYE_tile},
-    {BASIC, &BRIBE_tile},  // Bribe
- // 0x90
+    {BASIC, &BRIBE_tile},
+    // 0x90
     {BASIC, &SPEED_BOOTS_tile},
     {BASIC, 0},  // Unused
-    {BASIC, 0},  // Hook
+    {BASIC, &HOOK_tile},
 };
 
 static Result_void parse_map(Level* level, SectionData* section) {
@@ -437,7 +437,7 @@ static Result_void parse_map(Level* level, SectionData* section) {
     assert_data_avail();
     uint8_t tile_id = *data;
     data += 1;
-    if (tile_id >= sizeof(c2m_tiles) / sizeof(C2MDef)) {
+    if (tile_id >= lengthof(c2m_tiles)) {
       res_throwf("Out-of-range tile %x", tile_id);
     }
     C2MDef def = c2m_tiles[tile_id];
@@ -464,8 +464,12 @@ static Result_void parse_map(Level* level, SectionData* section) {
         tile->custom_data = *data;
         data += 1;
       } else if (def.preset_custom == FRAME_BLOCK) {
-        // TODO:
-        res_throws("Frame blocks are unsupported for now");
+        Position pos = {tiles_placed % width, tiles_placed / width};
+        assert_data_avail(2);
+        Actor* actor =
+            Actor_new(level, &FRAME_BLOCK_actor, pos, dir_from_cc2(*data));
+        actor->custom_data = data[1];
+        data += 2;
       } else {
         res_throws("Internal: invalid custom preset type");
       }
