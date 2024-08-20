@@ -41,6 +41,20 @@ typedef enum SlidingState {
   SLIDING_STRONG
 } SlidingState;
 
+typedef struct WireNetworkMember {
+  Position pos;
+  uint8_t wires;
+} WireNetworkMember;
+
+DECLARE_VECTOR(WireNetworkMember);
+DECLARE_VECTOR(Position);
+
+typedef struct WireNetwork {
+  Vector_WireNetworkMember members;
+  Vector_WireNetworkMember emitters;
+  bool force_power_this_subtick;
+} WireNetwork;
+
 // 16 uint8_t's. C is kinda dumb here, you can return arbitrary structs but not
 // arrays? Weird
 typedef struct Uint8_16 {
@@ -69,10 +83,11 @@ Actor* Actor_new(Level* level,
                  const ActorType* type,
                  Position pos,
                  Direction direction);
-bool Actor_check_collision(Actor* self, Level* level, Direction direction);
+bool Actor_check_collision(Actor* self, Level* level, Direction* direction);
 bool Actor_move_to(Actor* self, Level* level, Direction direction);
 bool Actor_push_to(Actor* self, Level* level, Direction direction);
-bool Actor_is_moving(Actor* self);
+bool Actor_is_moving(const Actor* self);
+bool Actor_is_gone(const Actor* self);
 void Actor_do_decision(Actor* self, Level* level);
 void Actor_do_player_decision(Actor* self, Level* level);
 void Actor_do_decided_move(Actor* self, Level* level);
@@ -93,20 +108,23 @@ Direction Player_get_last_decision(Actor* self);
 void Actor_enter_tile(Actor* self, Level* level);
 PositionF Actor_get_visual_position(const Actor* self);
 
-#define _libnotcc_accessors_Actor                          \
-  _libnotcc_accessor(Actor, type, const ActorType*);       \
-  _libnotcc_accessor(Actor, custom_data, uint64_t);        \
-  _libnotcc_accessor(Actor, inventory, Inventory);         \
-  _libnotcc_accessor(Actor, position, Position);           \
-  _libnotcc_accessor(Actor, direction, Direction);         \
-  _libnotcc_accessor(Actor, move_decision, Direction);     \
-  _libnotcc_accessor(Actor, pending_decision, Direction);  \
-  _libnotcc_accessor(Actor, pending_move_locked_in, bool); \
-  _libnotcc_accessor(Actor, move_progress, uint8_t);       \
-  _libnotcc_accessor(Actor, move_length, uint8_t);         \
-  _libnotcc_accessor(Actor, sliding_state, SlidingState);  \
-  _libnotcc_accessor(Actor, bonked, bool);                 \
-  _libnotcc_accessor(Actor, frozen, bool);
+#define _libnotcc_accessors_Actor                                  \
+  _libnotcc_accessor(Actor, type, const ActorType*);               \
+  _libnotcc_accessor(Actor, custom_data, uint64_t);                \
+  _libnotcc_accessor(Actor, inventory, Inventory);                 \
+  _libnotcc_accessor(Actor, position, Position);                   \
+  _libnotcc_accessor(Actor, direction, Direction);                 \
+  _libnotcc_accessor_bits(Actor, move_decision, Direction, 3);     \
+  _libnotcc_accessor_bits(Actor, pending_decision, Direction, 3);  \
+  _libnotcc_accessor_bits(Actor, pending_move_locked_in, bool, 1); \
+  _libnotcc_accessor(Actor, move_progress, uint8_t);               \
+  _libnotcc_accessor(Actor, move_length, uint8_t);                 \
+  _libnotcc_accessor_bits(Actor, sliding_state, SlidingState, 2);  \
+  _libnotcc_accessor_bits(Actor, bonked, bool, 1);                 \
+  _libnotcc_accessor_bits(Actor, frozen, bool, 1);                 \
+  _libnotcc_accessor_bits(Actor, pulled, bool, 1);                 \
+  _libnotcc_accessor_bits(Actor, pulling, bool, 1);                \
+  _libnotcc_accessor_bits(Actor, pushing, bool, 1);
 
 _libnotcc_accessors_Actor;
 
@@ -154,13 +172,20 @@ typedef enum GameState {
 BasicTile* Cell_get_layer(Cell* self, Layer layer);
 Actor* Cell_get_actor(Cell* self);
 void Cell_set_actor(Cell* self, Actor* actor);
+uint8_t Cell_get_powered_wires(Cell* self);
+void Cell_set_powered_wires(Cell* self, uint8_t val);
+BasicTile* Cell_get_layer(Cell* self, Layer layer);
+bool Cell_get_is_wired(Cell* self);
+void Cell_set_is_wired(Cell* self, bool val);
 Cell* BasicTile_get_cell(const BasicTile* tile, Layer layer);
 
 typedef enum WireType {
   WIRES_NONE,
+  WIRES_READ,
   WIRES_UNCONNECTED,
   WIRES_CROSS,
-  WIRES_CONNECTED
+  WIRES_ALWAYS_CROSS,
+  WIRES_EVERYWHERE
 } WireType;
 
 typedef struct ActorType {
@@ -175,6 +200,7 @@ typedef struct ActorType {
                         Actor* other,
                         Direction direction);
   bool (*impedes)(Actor* self, Level* level, Actor* other, Direction direction);
+  void (*on_redirect)(Actor* self, Level* level, uint8_t turn);
   uint64_t flags;
   uint8_t move_duration;
 } ActorType;
@@ -202,6 +228,10 @@ typedef struct TileType {
   uint64_t flags;
   uint8_t item_index;
   WireType wire_type;
+  uint8_t (*give_power)(BasicTile* self, Level* level);
+  void (*receive_power)(BasicTile* self, Level* level, uint8_t powered_wires);
+  void (*on_wire_high)(BasicTile* self, Level* level, bool real);
+  void (*on_wire_low)(BasicTile* self, Level* level, bool real);
   uint8_t (*modify_move_duration)(BasicTile* self,
                                   Level* level,
                                   Actor* other,
@@ -240,12 +270,14 @@ _libnotcc_accessors_PlayerSeat;
 
 void LevelMetadata_init(LevelMetadata* self);
 void LevelMetadata_uninit(LevelMetadata* self);
+
+typedef char* CharPtr;
+DECLARE_VECTOR(CharPtr);
 #define _libnotcc_accessors_LevelMetadata                          \
   _libnotcc_accessor(LevelMetadata, title, char*);                 \
   _libnotcc_accessor(LevelMetadata, author, char*);                \
   _libnotcc_accessor(LevelMetadata, default_hint, char*);          \
-  _libnotcc_accessor(LevelMetadata, hints, char**);                \
-  _libnotcc_accessor(LevelMetadata, hints_n, uint32_t);            \
+  _libnotcc_accessor(LevelMetadata, hints, Vector_CharPtr);        \
   _libnotcc_accessor(LevelMetadata, c2g_command, char*);           \
   _libnotcc_accessor(LevelMetadata, jetlife_interval, int32_t);    \
   _libnotcc_accessor(LevelMetadata, rng_blob_4pat, bool);          \
@@ -271,7 +303,6 @@ Cell* Level_get_cell(Level* self, Position pos);
 Cell* Level_get_cell_xy(Level* self, uint8_t x, uint8_t y);
 Actor* Level_find_next_player(Level* self, Actor* player);
 PlayerSeat* Level_find_player_seat(Level* self, const Actor* player);
-PlayerSeat* Level_get_player_seat_n(Level* self, size_t idx);
 LevelMetadata* Level_get_metadata_ptr(Level* self);
 Level* Level_clone(const Level* self);
 enum HashSettings {
@@ -306,6 +337,20 @@ Cell* Level_search_taxicab_at_dist(Level* self,
 Position Level_pos_from_cell(const Level* self, const Cell* cell);
 void Level_initialize_tiles(Level* self);
 Actor* Level_find_closest_player(Level* self, Position from);
+bool Level_check_position_inbounds(const Level* self,
+                                   Position pos,
+                                   Direction dir,
+                                   bool wrap);
+Position Level_get_neighbor(Level* self, Position pos, Direction dir);
+void Level_init_wires(Level* self);
+void Level_do_wire_propagation(Level* self);
+void Level_do_wire_notification(Level* self);
+
+DECLARE_VECTOR(PlayerSeat);
+
+Vector_PlayerSeat* Level_get_player_seats_ptr(Level* self);
+
+DECLARE_VECTOR(WireNetwork);
 
 #define _libnotcc_accessors_Level                              \
   /* Basic */                                                  \
@@ -320,8 +365,7 @@ Actor* Level_find_closest_player(Level* self, Position from);
   _libnotcc_accessor(Level, metadata, LevelMetadata);          \
   _libnotcc_accessor(Level, builtin_replay, Replay*);          \
   /* Player */                                                 \
-  _libnotcc_accessor(Level, player_seats, PlayerSeat*);        \
-  _libnotcc_accessor(Level, players_n, uint32_t);              \
+  _libnotcc_accessor(Level, player_seats, Vector_PlayerSeat);  \
   _libnotcc_accessor(Level, players_left, uint32_t);           \
   /* Metrics */                                                \
   _libnotcc_accessor(Level, time_left, int32_t);               \
@@ -338,16 +382,27 @@ Actor* Level_find_closest_player(Level* self, Position from);
   _libnotcc_accessor(Level, toggle_wall_inverted, bool);       \
   _libnotcc_accessor(Level, blue_button_pressed, bool);        \
   _libnotcc_accessor(Level, yellow_button_pressed, Direction); \
-  _libnotcc_accessor(Level, current_hint, char*);
+  _libnotcc_accessor(Level, current_hint, char*);              \
+  /* Wires */                                                  \
+  _libnotcc_accessor(Level, wire_consumers, Vector_Position);  \
+  _libnotcc_accessor(Level, wire_networks, Vector_WireNetwork);
 
 _libnotcc_accessors_Level;
+
+DECLARE_VECTOR(PlayerInputs);
 
 #define _libnotcc_accessors_Replay                      \
   _libnotcc_accessor(Replay, rff_direction, Direction); \
   _libnotcc_accessor(Replay, rng_blob, uint8_t);        \
-  _libnotcc_accessor(Replay, replay_length, size_t);    \
-  _libnotcc_accessor(Replay, inputs, PlayerInputs*);
+  _libnotcc_accessor(Replay, inputs, Vector_PlayerInputs);
+
+Vector_PlayerInputs* Replay_get_inputs_ptr(Replay* self);
 
 _libnotcc_accessors_Replay;
+
+int8_t compare_wire_membs_in_reading_order(const void* ctx,
+                                           const WireNetworkMember* memb);
+int8_t compare_pos_in_reading_order(const Position* left,
+                                    const Position* right);
 
 #endif

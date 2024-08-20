@@ -90,18 +90,20 @@ interface WiresArt {
 }
 type StateArt = { type: "state" } & { [state: string]: string | Art }
 
+type SpecialArtVal =
+	| Art
+	| Frame[]
+	| string
+	| undefined
+	| boolean
+	| number
+	| { [arg: string]: SpecialArtVal }
+
 export type SpecialArt = {
 	type: "special"
 	specialType: string
 } & {
-	[arg: string]:
-		| Art
-		| Frame[]
-		| string
-		| undefined
-		| boolean
-		| number
-		| Record<string, Art>
+	[arg: string]: SpecialArtVal
 }
 export type Art =
 	| StaticArt
@@ -179,39 +181,39 @@ export class Renderer {
 			size[1] * tileSize
 		)
 	}
-	// drawWireBase(
-	// 	ctx: ArtContext,
-	// 	pos: Position,
-	// 	wires: Wires,
-	// 	state: boolean
-	// ): void {
-	// 	const frame = this.tileset.art.wire[state ? 1 : 0]
-	// 	const radius = this.tileset.wireWidth / 2
-	// 	const cropStart: Position = [0.5 - radius, 0.5 - radius]
-	// 	const cropEnd: Position = [0.5 + radius, 0.5 + radius]
-	// 	if (wires & Wires.UP) {
-	// 		cropStart[1] = 0
-	// 	}
-	// 	if (wires & Wires.RIGHT) {
-	// 		cropEnd[0] = 1
-	// 	}
-	// 	if (wires & Wires.DOWN) {
-	// 		cropEnd[1] = 1
-	// 	}
-	// 	if (wires & Wires.LEFT) {
-	// 		cropStart[0] = 0
-	// 	}
-	// 	const cropSize: Size = [
-	// 		cropEnd[0] - cropStart[0],
-	// 		cropEnd[1] - cropStart[1],
-	// 	]
-	// 	this.tileBlit(
-	// 		ctx,
-	// 		[pos[0] + cropStart[0], pos[1] + cropStart[1]],
-	// 		[frame[0] + cropStart[0], frame[1] + cropStart[1]],
-	// 		cropSize
-	// 	)
-	// }
+	drawWireBase(
+		ctx: ArtContext,
+		pos: Position,
+		wires: bigint,
+		state: boolean
+	): void {
+		const frame = this.tileset.art.wire[state ? 1 : 0]
+		const radius = this.tileset.wireWidth / 2
+		const cropStart: Position = [0.5 - radius, 0.5 - radius]
+		const cropEnd: Position = [0.5 + radius, 0.5 + radius]
+		if (wires & 0x1n) {
+			cropStart[1] = 0
+		}
+		if (wires & 0x2n) {
+			cropEnd[0] = 1
+		}
+		if (wires & 0x4n) {
+			cropEnd[1] = 1
+		}
+		if (wires & 0x8n) {
+			cropStart[0] = 0
+		}
+		const cropSize: Size = [
+			cropEnd[0] - cropStart[0],
+			cropEnd[1] - cropStart[1],
+		]
+		this.tileBlit(
+			ctx,
+			[pos[0] + cropStart[0], pos[1] + cropStart[1]],
+			[frame[0] + cropStart[0], frame[1] + cropStart[1]],
+			cropSize
+		)
+	}
 	/**
 	 * Generalized logic of drawing directional block and clone machine arrows
 	 * @param width The length from the side of the tile to crop to get the
@@ -284,13 +286,20 @@ export class Renderer {
 		this.drawArt(ctx, actor, art.bottom)
 		this.drawArt(ctx, actor, art.top)
 	}
-	drawWires(ctx: ArtContext, actor: Actor | BasicTile, art: WiresArt): void {
+	drawWires(ctx: ArtContext, actor: BasicTile, art: WiresArt): void {
 		this.tileBlit(ctx, [0, 0], this.tileset.art.wireBase)
-		// if (actor.level.hideWires && !art.alwaysShowTop) return
-		// if (!actor.level.hideWires) {
-		// 	this.drawWireBase(ctx, pos, actor.wires, false)
-		// 	this.drawWireBase(ctx, pos, actor.poweredWires & actor.wires, true)
-		// }
+		if (this.level!.metadata.wiresHidden && !art.alwaysShowTop) return
+		if (!this.level!.metadata.wiresHidden) {
+			const cell = actor.getCell()
+			const poweredWires = BigInt(cell.poweredWires)
+			this.drawWireBase(ctx, [0, 0], actor.customData & 0xfn, false)
+			this.drawWireBase(
+				ctx,
+				[0, 0],
+				poweredWires & actor.customData & 0xfn,
+				true
+			)
+		}
 		this.drawArt(ctx, actor, art.top)
 	}
 	drawState(ctx: ArtContext, actor: Actor | BasicTile, art: StateArt): void {
@@ -335,7 +344,7 @@ export class Renderer {
 		} else if (art.type === "overlay") {
 			this.drawOverlay(ctx, tile, art)
 		} else if (art.type === "wires") {
-			this.drawWires(ctx, tile, art)
+			this.drawWires(ctx, tile as BasicTile, art)
 		} else if (art.type === "state") {
 			this.drawState(ctx, tile, art)
 		} else if (art.type === "special") {
@@ -349,7 +358,7 @@ export class Renderer {
 			return
 		}
 		if (
-			this.level!.playersLeft > this.level!.playersN &&
+			this.level!.playersLeft > this.level!.playerSeats.length &&
 			this.playerSeat!.actor?._ptr == tile._ptr
 		) {
 			this.tileBlit(ctxSession, [0, 0], this.tileset.art.currentPlayerMarker)

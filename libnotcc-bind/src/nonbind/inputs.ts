@@ -219,13 +219,13 @@ export class ReplayInputProvider implements InputProvider {
 	}
 	getInput(level: Level, seatIdx: number): number {
 		if (seatIdx !== 0) throw new Error("C2M replays don't support multiseat")
-		let currentTick = Math.min(level.currentTick, this.replay.replayLength - 1)
-		return this.replay.getInputAt(currentTick)
+		let currentTick = Math.min(level.currentTick, this.replay.inputs.length - 1)
+		return this.replay.inputs[currentTick]
 	}
 	inputProgress(level: Level): number {
-		return Math.min(1, level.subticksPassed() / (3 * this.replay.replayLength))
+		return Math.min(1, level.subticksPassed() / (3 * this.replay.inputs.length))
 	}
 	outOfInput(level: Level): boolean {
-		return level.currentTick >= this.replay.replayLength + this.bonusTicks
+		return level.currentTick >= this.replay.inputs.length + this.bonusTicks
 	}
 }

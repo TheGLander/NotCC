@@ -7,6 +7,9 @@
 #include "logic.h"
 #include "tiles.h"
 
+DEFINE_VECTOR(CharPtr);
+DEFINE_VECTOR(PlayerInputs);
+
 static uint16_t read_uint16_le(uint8_t* data) {
   return data[0] + (data[1] << 8);
 }
@@ -157,9 +160,7 @@ static void parse_note(LevelMetadata* meta, SectionData* section) {
       char* clue_str = xmalloc(clue_size);
       memcpy(clue_str, clue_start, clue_size - 1);
       clue_str[clue_size - 1] = 0;
-      meta->hints_n += 1;
-      meta->hints = xrealloc(meta->hints, meta->hints_n * sizeof(char*));
-      meta->hints[meta->hints_n - 1] = clue_str;
+      Vector_CharPtr_push(&meta->hints, clue_str);
     } else if (str_left() > 5 && !memcmp(str, "[COM]", 5)) {
       str += 5;
       // `7 level =[COM]1 keys =[COM]ktools flags = 1 tools =`
@@ -174,6 +175,7 @@ static void parse_note(LevelMetadata* meta, SectionData* section) {
       str += 1;
     }
   };
+  Vector_CharPtr_shrink_to_fit(&meta->hints);
 }
 #undef str_left
 #undef assert_not_at_end
@@ -196,16 +198,7 @@ static void parse_rpl(Level* level, SectionData* section) {
   data += 3;
   data_left -= 3;
   // Convert input/length pairs into a simple one-input-per-tick array
-  size_t len = 0;
-  size_t alloc_size = 100;
-  PlayerInputs* inputs_buf = xmalloc(alloc_size);
-#define check_realloc()                            \
-  if (len >= alloc_size) {                         \
-    if (alloc_size >= SIZE_MAX / 3 * 2)            \
-      abort();                                     \
-    alloc_size = alloc_size * 3 / 2;               \
-    inputs_buf = xrealloc(inputs_buf, alloc_size); \
-  }
+  Vector_PlayerInputs inputs_buf = Vector_PlayerInputs_init(500);
 
   // We only need one input every tick, not subtick, so mimic how `Level_tick`
   // tracks the subtick to only record movement subtick inputs
@@ -220,9 +213,7 @@ static void parse_rpl(Level* level, SectionData* section) {
       subtick += 1;
       subtick %= 3;
       if (subtick == 2) {
-        inputs_buf[len] = input;
-        len += 1;
-        check_realloc();
+        Vector_PlayerInputs_push(&inputs_buf, input);
       }
     }
     input = remap_cc2_input(data[1]);
@@ -230,11 +221,9 @@ static void parse_rpl(Level* level, SectionData* section) {
     data_left -= 2;
   }
   // Hold the last input until the end of time
-  inputs_buf[len] = input;
-  len += 1;
-  inputs_buf = xrealloc(inputs_buf, len);
+  Vector_PlayerInputs_push(&inputs_buf, input);
+  Vector_PlayerInputs_shrink_to_fit(&inputs_buf);
   replay->inputs = inputs_buf;
-  replay->replay_length = len;
   level->builtin_replay = replay;
 };
 #undef data_left
@@ -246,11 +235,20 @@ typedef struct C2MDef {
   uint64_t preset_custom;
 } C2MDef;
 
-enum { TERRAIN_MOD8, TERRAIN_MOD16, TERRAIN_MOD32, FRAME_BLOCK, THIN_WALL };
+enum {
+  TERRAIN_MOD8,
+  TERRAIN_MOD16,
+  TERRAIN_MOD32,
+  FRAME_BLOCK,
+  THIN_WALL,
+  POWER_BUTTON_ON,
+  POWER_BUTTON_OFF,
+  LOGIC_GATE
+};
 
 static const C2MDef c2m_tiles[] = {
     // 0x00
-    {BASIC, NULL},
+    {BASIC, &FLOOR_tile},
     {BASIC_READ_MOD, &FLOOR_tile},
     {BASIC, &WALL_tile},
     {BASIC, &ICE_tile},
@@ -269,7 +267,7 @@ static const C2MDef c2m_tiles[] = {
     // 0x10
     {BASIC_READ_MOD, &TELEPORT_RED_tile},
     {BASIC_READ_MOD, &TELEPORT_BLUE_tile},
-    {BASIC, 0},  // Yellow tp
+    {BASIC, &TELEPORT_YELLOW_tile},
     {BASIC, &TELEPORT_GREEN_tile},
     {BASIC, &EXIT_tile},
     {BASIC_READ_MOD, &SLIME_tile},
@@ -327,16 +325,16 @@ static const C2MDef c2m_tiles[] = {
     {BASIC_READ_MOD, &CLONE_MACHINE_tile},
     {BASIC, &HINT_tile},
     {BASIC, &FORCE_FLOOR_RANDOM_tile},
-    {BASIC, 0},  // Gray button
+    {BASIC, &BUTTON_GRAY_tile},
     {BASIC, &SWIVEL_tile, DIRECTION_DOWN},
     {BASIC, &SWIVEL_tile, DIRECTION_LEFT},
     {BASIC, &SWIVEL_tile, DIRECTION_UP},
     {BASIC, &SWIVEL_tile, DIRECTION_RIGHT},
     {BASIC, &TIME_BONUS_tile},
     {BASIC, &STOPWATCH_tile},
-    {BASIC, &TRANSMOGRIFIER_tile},
-    {BASIC, 0},  // RR track
-                 // 0x50
+    {BASIC_READ_MOD, &TRANSMOGRIFIER_tile},
+    {BASIC_READ_MOD, &RAILROAD_tile},
+    // 0x50
     {BASIC_READ_MOD, &STEEL_WALL_tile},
     {BASIC, &DYNAMITE_tile},
     {BASIC, &HELMET_tile},
@@ -349,14 +347,14 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &DIRT_BOOTS_tile},
     {BASIC, &NO_MELINDA_SIGN_tile},
     {BASIC, &NO_CHIP_SIGN_tile},
-    {BASIC, 0},  // Logic gate
+    {SPECIAL, NULL, LOGIC_GATE},
     {ACTOR, 0},  // Illegal actor: Wire
-    {BASIC, 0},  // Pink button
+    {BASIC_READ_MOD, &BUTTON_PURPLE_tile},
     {BASIC, &FLAME_JET_tile, false},
     // 0x60
     {BASIC, &FLAME_JET_tile, true},
     {BASIC, &BUTTON_ORANGE_tile},
-    {BASIC, 0},  // Lightning bolt
+    {BASIC, &LIGHTNING_BOLT_tile},
     {ACTOR, &YELLOW_TANK_actor},
     {BASIC, &BUTTON_YELLOW_tile},
     {ACTOR, &MIRROR_CHIP_actor},
@@ -373,8 +371,8 @@ static const C2MDef c2m_tiles[] = {
     // 0x70
     {BASIC_READ_MOD, &CUSTOM_WALL_tile},
     {BASIC_READ_MOD, &LETTER_FLOOR_tile},
-    {BASIC, 0},  // Pulse wall (floor)
-    {BASIC, 0},  // Pulse wall  (wall)
+    {BASIC, &HOLD_WALL_tile, false},
+    {BASIC, &HOLD_WALL_tile, true},
     {BASIC, 0},  // Unused
     {BASIC, 0},  // Unused
     {SPECIAL, NULL, TERRAIN_MOD8},
@@ -395,9 +393,9 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, &GREEN_BOMB_tile, true},
     {BASIC, 0},  // Unused
     {BASIC, 0},  // Unused
-    {BASIC, 0},  // Black button
-    {BASIC, 0},  // ON switch
-    {BASIC, 0},  // OFF switch
+    {SPECIAL, &BUTTON_BLACK_tile, POWER_BUTTON_ON},
+    {SPECIAL, &TOGGLE_SWITCH_tile, POWER_BUTTON_OFF},
+    {SPECIAL, &TOGGLE_SWITCH_tile, POWER_BUTTON_ON},
     {BASIC, &THIEF_KEY_tile},
     {ACTOR, &GHOST_actor},
     {BASIC, &STEEL_FOIL_tile},
@@ -409,6 +407,46 @@ static const C2MDef c2m_tiles[] = {
     {BASIC, 0},  // Unused
     {BASIC, &HOOK_tile},
 };
+
+static const uint64_t logic_gate_custom_data[] = {
+    // 0x0
+    LOGIC_GATE_NOT_UP,
+    LOGIC_GATE_NOT_RIGHT,
+    LOGIC_GATE_NOT_DOWN,
+    LOGIC_GATE_NOT_LEFT,
+    LOGIC_GATE_AND_UP,
+    LOGIC_GATE_AND_RIGHT,
+    LOGIC_GATE_AND_DOWN,
+    LOGIC_GATE_AND_LEFT,
+    LOGIC_GATE_OR_UP,
+    LOGIC_GATE_OR_RIGHT,
+    LOGIC_GATE_OR_DOWN,
+    LOGIC_GATE_OR_LEFT,
+    LOGIC_GATE_XOR_UP,
+    LOGIC_GATE_XOR_RIGHT,
+    LOGIC_GATE_XOR_DOWN,
+    LOGIC_GATE_XOR_LEFT,
+    // 0x10
+    LOGIC_GATE_LATCH_UP,
+    LOGIC_GATE_LATCH_RIGHT,
+    LOGIC_GATE_LATCH_DOWN,
+    LOGIC_GATE_LATCH_LEFT,
+    LOGIC_GATE_NAND_UP,
+    LOGIC_GATE_NAND_RIGHT,
+    LOGIC_GATE_NAND_DOWN,
+    LOGIC_GATE_NAND_LEFT,
+};
+
+static const uint64_t logic_gate_counter_data[] = {
+    LOGIC_GATE_COUNTER_0, LOGIC_GATE_COUNTER_1, LOGIC_GATE_COUNTER_2,
+    LOGIC_GATE_COUNTER_3, LOGIC_GATE_COUNTER_4, LOGIC_GATE_COUNTER_5,
+    LOGIC_GATE_COUNTER_6, LOGIC_GATE_COUNTER_7, LOGIC_GATE_COUNTER_8,
+    LOGIC_GATE_COUNTER_9,
+};
+
+static const uint64_t logic_gate_latch_mirror_data[] = {
+    LOGIC_GATE_LATCH_MIRROR_UP, LOGIC_GATE_LATCH_MIRROR_RIGHT,
+    LOGIC_GATE_LATCH_MIRROR_DOWN, LOGIC_GATE_LATCH_MIRROR_LEFT};
 
 static Result_void parse_map(Level* level, SectionData* section) {
   Result_void res;
@@ -470,6 +508,37 @@ static Result_void parse_map(Level* level, SectionData* section) {
             Actor_new(level, &FRAME_BLOCK_actor, pos, dir_from_cc2(*data));
         actor->custom_data = data[1];
         data += 2;
+      } else if (def.preset_custom == POWER_BUTTON_ON) {
+        BasicTile* tile = Cell_get_layer(cell, LAYER_TERRAIN);
+        tile->type = def.ptr;
+        tile->custom_data = mod | 0x30;
+        tiles_placed += 1;
+        cell += 1;
+        mod = 0;
+      } else if (def.preset_custom == POWER_BUTTON_OFF) {
+        BasicTile* tile = Cell_get_layer(cell, LAYER_TERRAIN);
+        tile->type = def.ptr;
+        tile->custom_data = mod & ~0x30;
+        tiles_placed += 1;
+        cell += 1;
+        mod = 0;
+      } else if (def.preset_custom == LOGIC_GATE) {
+        BasicTile* tile = Cell_get_layer(cell, LAYER_TERRAIN);
+        tile->type = &LOGIC_GATE_tile;
+        if (mod < 0x18) {
+          tile->custom_data = logic_gate_custom_data[mod];
+        } else if (mod >= 0x1e && mod <= 0x27) {
+          tile->custom_data = logic_gate_counter_data[mod - 0x1e];
+        } else if (mod >= 0x40 && mod <= 0x43) {
+          tile->custom_data = logic_gate_latch_mirror_data[mod - 0x40];
+        } else {
+          // TODO: Voodoo tile
+          tile->type = &FLOOR_tile;
+        }
+        tiles_placed += 1;
+        cell += 1;
+        mod = 0;
+
       } else {
         res_throws("Internal: invalid custom preset type");
       }
@@ -499,14 +568,15 @@ static Result_void parse_map(Level* level, SectionData* section) {
       Actor* actor = Actor_new(level, type, pos, dir_from_cc2(*data % 4));
       data += 1;
       if (type->flags & ACTOR_FLAGS_REAL_PLAYER) {
-        if (level->players_left < level->players_n) {
-          PlayerSeat* seat = &level->player_seats[level->players_left];
+        if (level->players_left < level->player_seats.length) {
+          PlayerSeat* seat = &level->player_seats.items[level->players_left];
           seat->actor = actor;
         }
         level->players_left += 1;
       }
     }
   }
+  Level_init_wires(level);
   Level_initialize_tiles(level);
   res_return();
 }
@@ -577,7 +647,6 @@ static Result_void parse_c2m_internal(uint8_t* data,
     } else if (match_section("OPTN")) {
       parse_optn(meta, &section);
       if (!meta_only) {
-        level->players_n = level->metadata.player_n;
         level->time_left = level->metadata.timer * 60;
         Level_init_players(level, level->metadata.player_n);
       }

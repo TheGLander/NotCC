@@ -15,6 +15,10 @@ export class BasicTile extends Struct {
 	get customData(): bigint {
 		return wasmFuncs.BasicTile_get_custom_data(this._ptr)
 	}
+	getCell(): Cell {
+		// FIXME: AAA
+		return new Cell(wasmFuncs.BasicTile_get_cell(this._ptr, 4))
+	}
 }
 
 export enum Layer {
@@ -50,5 +54,11 @@ export class Cell extends Struct {
 		const ptr = wasmFuncs.Cell_get_layer(this._ptr, Layer.TERRAIN)
 		if (getWasmReader().getUint32(ptr) === 0) return null
 		return new BasicTile(ptr)
+	}
+	get poweredWires(): number {
+		return wasmFuncs.Cell_get_powered_wires(this._ptr)
+	}
+	get isWired(): boolean {
+		return !!wasmFuncs.Cell_get_is_wired(this._ptr)
 	}
 }

@@ -56,3 +56,57 @@ void* xrealloc(void* old_ptr, size_t size) {
   }
   return ptr;
 }
+
+// Vector_any Vector_any_init(size_t capacity, size_t item_size) {
+//   void* items = xmalloc(capacity * item_size);
+//   return (Vector_any){.capacity = capacity, .length = 0, .items = items};
+// }
+// void Vector_any_uninit(Vector_any* self) {
+//  free(self->items);
+// }
+size_t Vector_any_get_length(const Vector_any* self) {
+  return self->length;
+}
+void* Vector_any_get_ptr(const Vector_any* self, size_t item_size, size_t idx) {
+  return &self->items[idx * item_size];
+};
+// void Vector_any_shrink_to_fit(Vector_any* self, size_t item_size) {
+//   self->capacity = self->length;
+//   self->items = xrealloc(self->items, item_size * self->capacity);
+// };
+// void Vector_any_sort(Vector_any* self,
+//                      size_t item_size,
+//                      int (*comp)(const void*, const void*)) {
+//   qsort(self->items, self->length, item_size, comp);
+// };
+// void* Vector_any_search(const Vector_any* self,
+//                         size_t item_size,
+//                         bool (*match)(void*, const void*),
+//                         void* ctx) {
+//   for (size_t idx = 0; idx < self->length; idx += 1) {
+//     void* item = self->items + idx * item_size;
+//     if (match(ctx, item))
+//       return item;
+//   };
+//   return NULL;
+// };
+// void* Vector_any_binary_search(const Vector_any* self,
+//                                size_t item_size,
+//                                int8_t (*comp)(void*, const void*),
+//                                void* ctx) {
+//   size_t left_idx = 0;
+//   size_t right_idx = self->length;
+//   while (left_idx != right_idx) {
+//     size_t item_idx = (left_idx + right_idx) / 2;
+//     void* item = self->items + item_idx * item_size;
+//     int8_t comp_res = comp(ctx, item);
+//     if (comp_res == 0)
+//       return item;
+//     if (comp_res < 0) {
+//       left_idx = item_idx + 1;
+//     } else {
+//       right_idx = item_idx;
+//     }
+//   }
+//   return NULL;
+// };

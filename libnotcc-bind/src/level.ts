@@ -2,7 +2,7 @@ import { Actor, Direction } from "./actor.js"
 import { Cell } from "./cell.js"
 import { InputProvider, KeyInputs } from "./index.js"
 import { getModuleInstance, wasmFuncs } from "./module.js"
-import { getStringAt, getWasmReader, Struct } from "./struct.js"
+import { CVector, getStringAt, getWasmReader, Struct } from "./struct.js"
 export class PlayerSeat extends Struct {
 	get actor() {
 		const ptr = wasmFuncs.PlayerSeat_get_actor(this._ptr)
@@ -47,6 +47,21 @@ export class LevelMetadata extends Struct {
 	set cc1Boots(val: boolean) {
 		wasmFuncs.LevelMetadata_set_cc1_boots(this._ptr, val)
 	}
+	get wiresHidden(): boolean {
+		return !!wasmFuncs.LevelMetadata_get_wires_hidden(this._ptr)
+	}
+	set wiresHidden(val: boolean) {
+		wasmFuncs.LevelMetadata_set_wires_hidden(this._ptr, val)
+	}
+}
+
+export class VectorUint8 extends CVector<number> {
+	getSize(): number {
+		return 1
+	}
+	instantiateItem(ptr: number): number {
+		return getWasmReader().getUint8(ptr)
+	}
 }
 
 export class Replay extends Struct {
@@ -62,13 +77,8 @@ export class Replay extends Struct {
 	set rngBlob(val: number) {
 		wasmFuncs.Replay_set_rng_blob(this._ptr, val)
 	}
-	get replayLength(): number {
-		return wasmFuncs.Replay_get_replay_length(this._ptr)
-	}
-	getInputAt(tick: number): KeyInputs {
-		return getWasmReader().getUint8(
-			wasmFuncs.Replay_get_inputs(this._ptr) + tick
-		)
+	get inputs(): VectorUint8 {
+		return new VectorUint8(wasmFuncs.Replay_get_inputs_ptr(this._ptr))
 	}
 }
 
@@ -78,6 +88,15 @@ export enum HashSettings {
 	// TODO: IGNORE_PLAYER_BUMP = 1 << 2,
 	IGNORE_MIMIC_PARITY = 1 << 3,
 	IGNORE_TEETH_PARITY = 1 << 4,
+}
+
+export class VectorPlayerSeat extends CVector<PlayerSeat> {
+	getSize(): number {
+		return wasmFuncs._libnotcc_bind_PlayerSeat_size()
+	}
+	instantiateItem(ptr: number): PlayerSeat {
+		return new PlayerSeat(ptr)
+	}
 }
 
 export class Level extends Struct {
@@ -122,21 +141,11 @@ export class Level extends Struct {
 		return cell
 	}
 	// Player
-	get playerSeats(): PlayerSeat[] {
-		const len = wasmFuncs.Level_get_players_n(this._ptr)
-		const arr = []
-		for (let idx = 0; idx < len; idx += 1) {
-			arr.push(
-				new PlayerSeat(wasmFuncs.Level_get_player_seat_n(this._ptr, idx))
-			)
-		}
-		return arr
+	get playerSeats(): VectorPlayerSeat {
+		return new VectorPlayerSeat(wasmFuncs.Level_get_player_seats_ptr(this._ptr))
 	}
 	get playersLeft(): number {
 		return wasmFuncs.Level_get_players_left(this._ptr)
-	}
-	get playersN(): number {
-		return wasmFuncs.Level_get_players_n(this._ptr)
 	}
 	// Metrics
 	get timeLeft(): number {

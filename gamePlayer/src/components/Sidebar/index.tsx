@@ -358,7 +358,7 @@ function SolutionsTooltipList(props: { controls: LevelControls }) {
 		return <div class="mx-2 my-1">N/A</div>
 	const sols: SidebarReplayable[] = []
 	if (level.replay) {
-		const replayLength = Math.round(level.replay.replayLength / 20)
+		const replayLength = Math.round(level.replay.inputs.length / 20)
 		sols.push({
 			name: "Built-in",
 			metric: `${Math.floor(replayLength / 60)}:${(replayLength % 60)

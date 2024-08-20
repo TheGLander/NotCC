@@ -1,11 +1,11 @@
+#include <assert.h>
+#include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <math.h>
 
 extern unsigned long __builtin_wasm_memory_grow(int mem_idx,
                                                 unsigned long delta);
@@ -13,10 +13,11 @@ extern unsigned long __builtin_wasm_memory_size(int mem_idx);
 [[noreturn]] extern void __builtin_trap();
 
 void _wasmstd_assert(_Bool assertion) {
- if (!assertion) __builtin_trap();
+  if (!assertion)
+    __builtin_trap();
 }
 [[noreturn]] void abort() {
- __builtin_trap();
+  __builtin_trap();
 }
 
 extern size_t __heap_base;
@@ -143,6 +144,53 @@ int memcmp(const void* rptr1, const void* rptr2, size_t num) {
 }
 
 float fabsf(float v) {
- if (v < 0.) return -v;
- return v;
+  if (v < 0.)
+    return -v;
+  return v;
+}
+
+static inline void qsort_merge_arrs(void* to,
+                                    const void* from,
+                                    size_t left_idx,
+                                    size_t right_idx,
+                                    size_t right_end_idx,
+                                    size_t size,
+                                    int (*comp)(const void*, const void*)) {
+  const size_t left_end_idx = right_idx;
+  for (size_t to_idx = left_idx; to_idx < right_end_idx; to_idx += 1) {
+    const void* left_item = &from[left_idx * size];
+    const void* right_item = &from[right_idx * size];
+    void* to_item = &to[to_idx * size];
+    if (left_idx == left_end_idx ||
+        (right_idx != right_end_idx && comp(left_item, right_item) > 0)) {
+      memcpy(to_item, right_item, size);
+      right_idx += 1;
+    } else {
+      memcpy(to_item, left_item, size);
+      left_idx += 1;
+    }
+  }
+}
+// Lol
+#define min(a, b) ((a) < (b) ? (a) : (b))
+// Merge sort
+void qsort(void* ptr,
+           size_t count,
+           size_t size,
+           int (*comp)(const void*, const void*)) {
+  char temp_arr[count * size];
+  void* from_arr = ptr;
+  void* to_arr = temp_arr;
+  for (size_t width = 1; width < count; width *= 2) {
+    for (size_t pos = 0; pos < count; pos += 2 * width) {
+      qsort_merge_arrs(to_arr, from_arr, pos, min(pos + width, count),
+                       min(pos + width * 2, count), size, comp);
+    }
+    void* tmp_ptr = from_arr;
+    from_arr = to_arr;
+    to_arr = tmp_ptr;
+  }
+  if (from_arr != ptr) {
+    memcpy(ptr, from_arr, count * size);
+  }
 }

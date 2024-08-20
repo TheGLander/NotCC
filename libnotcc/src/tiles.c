@@ -6,8 +6,33 @@
 #include "misc.h"
 
 // Terrain
+//
+
+static WireNetwork* tile_find_network(Level* level,
+                                      Position pos,
+                                      uint8_t wires,
+                                      WireNetworkMember** out_memb) {
+  for_vector(WireNetwork*, network, &level->wire_networks) {
+    WireNetworkMember* found_memb = Vector_WireNetworkMember_binary_search(
+        &network->members,
+        // Have to remove `const` from the `ctx` argument. Why??
+        (int8_t(*)(void*, const WireNetworkMember*))
+            compare_wire_membs_in_reading_order,
+        (void*)&pos);
+    if (!found_memb)
+      continue;
+    if (!(found_memb->wires & wires))
+      continue;
+    if (out_memb) {
+      *out_memb = found_memb;
+    }
+    return network;
+  }
+  return NULL;
+}
 
 #define is_ghost(actor) has_flag(actor, ACTOR_FLAGS_GHOST)
+#define get_dir_bit(dir) (1 << dir_to_cc2(dir))
 
 static bool impedes_non_ghost(BasicTile* self,
                               Level* level,
@@ -16,13 +41,38 @@ static bool impedes_non_ghost(BasicTile* self,
   return !is_ghost(actor);
 }
 
-// FLOOR: `custom_data` indicates wires
-const TileType FLOOR_tile = {
+static void FLOOR_on_idle(BasicTile* self, Level* level, Actor* actor) {
+  if (compiler_expect_prob(!self->custom_data, true, .99))
+    return;
+  if (compiler_expect_prob(
+          !has_item_counter(actor->inventory, ITEM_INDEX_LIGHTNING_BOLT), true,
+          .99))
+    return;
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  if (!cell->is_wired)
+    return;
+  Position pos = Level_pos_from_cell(level, cell);
+  if ((self->custom_data & 0xf) == 0xf) {
+    WireNetwork* network1 = tile_find_network(level, pos, 0b0101, NULL);
+    WireNetwork* network2 = tile_find_network(level, pos, 0b1010, NULL);
+    // `network1 == network2` may be true if both wires are connected at another
+    // tile
+    assert(network1 != NULL);
+    assert(network2 != NULL);
+    network1->force_power_this_subtick = true;
+    network2->force_power_this_subtick = true;
+  } else {
+    WireNetwork* network = tile_find_network(level, pos, 0xf, NULL);
+    assert(network != NULL);
+    network->force_power_this_subtick = true;
+  }
+}
 
-    .name = "floor",
-    .layer = LAYER_TERRAIN,
-    .wire_type = WIRES_CROSS,
-};
+// FLOOR: `custom_data` indicates wires
+const TileType FLOOR_tile = {.name = "floor",
+                             .layer = LAYER_TERRAIN,
+                             .wire_type = WIRES_CROSS,
+                             .on_idle = FLOOR_on_idle};
 
 static void WALL_on_bumped_by(BasicTile* self,
                               Level* level,
@@ -39,12 +89,11 @@ const TileType WALL_tile = {.name = "wall",
                             .on_bumped_by = WALL_on_bumped_by};
 
 // STEEL_WALL: `custom_data` indicates wires
-const TileType STEEL_WALL_tile = {
-    .name = "steelWall",
-    .layer = LAYER_TERRAIN,
-    .flags = ACTOR_FLAGS_DYNAMITE_IMMUNE,
-    .impedes_mask = ~0,
-};
+const TileType STEEL_WALL_tile = {.name = "steelWall",
+                                  .layer = LAYER_TERRAIN,
+                                  .flags = ACTOR_FLAGS_DYNAMITE_IMMUNE,
+                                  .impedes_mask = ~0,
+                                  .wire_type = WIRES_CROSS};
 
 static uint8_t ice_modify_move_duration(BasicTile* self,
                                         Level* level,
@@ -72,8 +121,9 @@ static void ice_on_join(BasicTile* self,
                         Level* level,
                         Actor* other,
                         Direction _direction) {
-  if (has_item_counter(other->inventory, ITEM_INDEX_ICE_BOOTS) ||
-      has_flag(other, ACTOR_FLAGS_MELINDA))
+  if (!is_ghost(other) &&
+      (has_item_counter(other->inventory, ITEM_INDEX_ICE_BOOTS) ||
+       has_flag(other, ACTOR_FLAGS_MELINDA)))
     return;
   other->sliding_state = SLIDING_STRONG;
 }
@@ -82,12 +132,16 @@ static void force_on_join(BasicTile* self,
                           Level* level,
                           Actor* other,
                           Direction _direction) {
+  if (is_ghost(other))
+    return;
   if (has_item_counter(other->inventory, ITEM_INDEX_FORCE_BOOTS))
     return;
   other->sliding_state = SLIDING_WEAK;
 }
 
 static void ice_on_complete_join(BasicTile* self, Level* level, Actor* other) {
+  if (is_ghost(other))
+    return;
   // Cancel the slidingstate if the actor has an ice boot now
   if (has_item_counter(other->inventory, ITEM_INDEX_ICE_BOOTS)) {
     other->sliding_state = SLIDING_NONE;
@@ -112,6 +166,7 @@ static void ICE_on_idle(BasicTile* self, Level* level, Actor* actor) {
     Actor_enter_tile(actor, level);
     return;
   }
+  actor->sliding_state = SLIDING_STRONG;
   actor->direction = back(actor->direction);
   Actor_move_to(actor, level, actor->direction);
 }
@@ -120,21 +175,25 @@ static void ICE_on_idle(BasicTile* self, Level* level, Actor* actor) {
 static void ICE_CORNER_on_idle(BasicTile* self, Level* level, Actor* actor) {
   if (has_item_counter(actor->inventory, ITEM_INDEX_ICE_BOOTS))
     return;
-  if (actor->bonked && has_flag(actor, ACTOR_FLAGS_MELINDA)) {
-    Actor_enter_tile(actor, level);
+  if (has_flag(actor, ACTOR_FLAGS_MELINDA)) {
+    if (actor->bonked)
+      Actor_enter_tile(actor, level);
     return;
   }
   if (is_ghost(actor)) {
     ICE_on_idle(self, level, actor);
     return;
   }
-  if (actor->bonked)
+  if (actor->bonked) {
+    actor->sliding_state = SLIDING_STRONG;
     actor->direction = back(actor->direction);
+  }
   // I don't know how this works. sorry
   actor->direction =
       right_n(self->custom_data, 7 + self->custom_data - actor->direction);
-  if (actor->bonked)
+  if (actor->bonked) {
     Actor_move_to(actor, level, actor->direction);
+  }
 }
 // NOTE: `direction` means no impede, `DIRECTION_NONE` means impede, so take
 // note that ICE_CORNER_redirect_exit is the opposite of ICE_CORNER_impedes
@@ -142,6 +201,8 @@ static Direction ICE_CORNER_redirect_exit(BasicTile* self,
                                           Level* level,
                                           Actor* actor,
                                           Direction direction) {
+  if (is_ghost(actor))
+    return direction;
   return direction == self->custom_data || direction == right(self->custom_data)
              ? DIRECTION_NONE
              : direction;
@@ -150,6 +211,8 @@ static bool ICE_CORNER_impedes(BasicTile* self,
                                Level* level,
                                Actor* actor,
                                Direction direction) {
+  if (is_ghost(actor))
+    return false;
   return direction == back(self->custom_data) ||
          direction == left(self->custom_data);
 }
@@ -177,6 +240,7 @@ static void force_on_idle(BasicTile* self,
                           Level* level,
                           Actor* actor,
                           Direction (*get_dir)(BasicTile* self, Level* level)) {
+ if(Actor_is_gone(actor))return;
   if (actor->bonked) {
     Actor_enter_tile(actor, level);
   }
@@ -211,9 +275,18 @@ static void FORCE_FLOOR_RANDOM_on_idle(BasicTile* self,
   force_on_idle(self, level, actor, force_floor_random_idle_dir);
 }
 
+static void FORCE_FLOOR_on_wire_high(BasicTile* self,
+                                     Level* level,
+                                     bool _real) {
+  self->custom_data = back(self->custom_data);
+}
+
 const TileType FORCE_FLOOR_tile = {
     .name = "forceFloor",
     .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_READ,
+    .flags = ACTOR_FLAGS_FORCE_FLOOR,
+    .on_wire_high = FORCE_FLOOR_on_wire_high,
     .on_idle = FORCE_FLOOR_on_idle,
     .actor_joined = force_on_join,
     .actor_completely_joined = force_on_complete_join,
@@ -222,6 +295,7 @@ const TileType FORCE_FLOOR_tile = {
 const TileType FORCE_FLOOR_RANDOM_tile = {
     .name = "forceFloorRandom",
     .layer = LAYER_TERRAIN,
+    .flags = ACTOR_FLAGS_FORCE_FLOOR,
     .on_idle = FORCE_FLOOR_RANDOM_on_idle,
     .actor_joined = force_on_join,
     .actor_completely_joined = force_on_complete_join,
@@ -245,10 +319,18 @@ static void WATER_actor_completely_joined(BasicTile* self,
   Actor_destroy(actor, level, &SPLASH_actor);
 }
 
+static bool WATER_impedes(BasicTile* self,
+                          Level* level,
+                          Actor* actor,
+                          Direction dir) {
+  return is_ghost(actor) &&
+         !has_item_counter(actor->inventory, ITEM_INDEX_WATER_BOOTS);
+}
+
 const TileType WATER_tile = {
     .name = "water",
     .layer = LAYER_TERRAIN,
-    .impedes_mask = ACTOR_FLAGS_GHOST,
+    .impedes = WATER_impedes,
     .actor_completely_joined = WATER_actor_completely_joined};
 
 static void FIRE_actor_completely_joined(BasicTile* self,
@@ -282,6 +364,12 @@ const TileType FIRE_tile = {
 
 // FLAME_JET: `custom_data` indicates if the jet is on
 
+static void flip_state_on_wire_change(BasicTile* self,
+                                      Level* level,
+                                      bool _real) {
+  self->custom_data = !self->custom_data;
+}
+
 static void FLAME_JET_actor_idle(BasicTile* self, Level* level, Actor* actor) {
   if (has_item_counter(actor->inventory, ITEM_INDEX_FIRE_BOOTS) ||
       actor->type == &FIREBALL_actor || actor->type == &DIRT_BLOCK_actor)
@@ -290,9 +378,10 @@ static void FLAME_JET_actor_idle(BasicTile* self, Level* level, Actor* actor) {
     return;
   Actor_destroy(actor, level, &EXPLOSION_actor);
 }
-
 const TileType FLAME_JET_tile = {.name = "flameJet",
                                  .layer = LAYER_TERRAIN,
+                                 .wire_type = WIRES_READ,
+                                 .on_wire_high = flip_state_on_wire_change,
                                  .on_idle = FLAME_JET_actor_idle};
 
 // TOGGLE_WALL: `custom_data` indicates if this is a wall
@@ -304,10 +393,27 @@ static bool TOGGLE_WALL_impedes(BasicTile* self,
     return false;
   return (bool)self->custom_data != level->toggle_wall_inverted;
 }
-
 const TileType TOGGLE_WALL_tile = {.name = "toggleWall",
                                    .layer = LAYER_TERRAIN,
+                                   .wire_type = WIRES_READ,
+                                   .on_wire_high = flip_state_on_wire_change,
                                    .impedes = TOGGLE_WALL_impedes};
+
+static bool HOLD_WALL_impedes(BasicTile* self,
+                              Level* level,
+                              Actor* actor,
+                              Direction _dir) {
+  if (is_ghost(actor))
+    return false;
+  return self->custom_data;
+}
+
+const TileType HOLD_WALL_tile = {.name = "holdWall",
+                                 .layer = LAYER_TERRAIN,
+                                 .wire_type = WIRES_READ,
+                                 .on_wire_high = flip_state_on_wire_change,
+                                 .on_wire_low = flip_state_on_wire_change,
+                                 .impedes = HOLD_WALL_impedes};
 
 static bool search_for_type(void* type_void, Level* level, Cell* cell) {
   TileType* type = type_void;
@@ -325,50 +431,104 @@ static void weak_teleport_actor_joined(BasicTile* self,
   actor->sliding_state = SLIDING_WEAK;
 }
 
-static void TELEPORT_RED_actor_completely_joined(BasicTile* self,
-                                                 Level* level,
-                                                 Actor* actor) {
+enum { TP_ACTOR_JUST_JOINED = 0x100 };
+
+static void teleport_set_just_joined(BasicTile* self,
+                                     Level* level,
+                                     Actor* actor) {
+  self->custom_data |= TP_ACTOR_JUST_JOINED;
+}
+
+static void teleport_red_do_teleport(BasicTile* self,
+                                     Level* level,
+                                     Actor* actor) {
+  Cell* this_cell = Level_get_cell(level, actor->position);
   actor->sliding_state = SLIDING_WEAK;
-  // If this is a player, give them a free override
-  if (has_flag(actor, ACTOR_FLAGS_REAL_PLAYER)) {
-    actor->custom_data |= PLAYER_HAS_OVERRIDE;
-  }
+  if ((self->custom_data & 0xf) && this_cell->is_wired &&
+      !this_cell->powered_wires)
+    return;
   Cell* init_cell = Level_get_cell(level, actor->position);
   Cell* next_cell = init_cell;
+  Cell* last_cell = next_cell;
   while (true) {
-    Cell* old_cell = next_cell;
     next_cell = Level_search_reading_order(
         level, next_cell, false, search_for_type, (void*)&TELEPORT_RED_tile);
     // No other teleports (left) in the level, nothing to do here
     if (next_cell == NULL)
       return;
-    old_cell->actor = NULL;
-    // Ignore teleports which are already busy with an actor on top of them
-    if (next_cell->actor != NULL)
-      continue;
-    // Move the actor to the next potential tile
-    next_cell->actor = actor;
-    actor->position = Level_pos_from_cell(level, next_cell);
     // We're back where we started, give up
     // NOTE: Red teleports fail before trying all directions on themselves,
     // green teleports try all dirs on themselves before failing
     if (next_cell == init_cell)
-      return;
+      break;
+    // Ignore teleports which are already busy with an actor on top of them
+    if (next_cell->actor != NULL)
+      continue;
+    // Unpowered red TP
+    if (next_cell->is_wired && !next_cell->powered_wires &&
+        (next_cell->terrain.custom_data & 0xf))
+      continue;
+    last_cell->actor = NULL;
+    last_cell = next_cell;
+    // Move the actor to the next potential tile
+    next_cell->actor = actor;
+    actor->position = Level_pos_from_cell(level, next_cell);
     for (uint8_t dir_offset = 0; dir_offset < 4; dir_offset += 1) {
-      if (Actor_check_collision(actor, level,
-                                right_n(actor->direction, dir_offset))) {
-        actor->direction = right_n(actor->direction, dir_offset);
+      Direction dir = right_n(actor->direction, dir_offset);
+      if (Actor_check_collision(actor, level, &dir)) {
+        actor->direction = dir;
         return;
       }
     }
   }
+  last_cell->actor = NULL;
+  next_cell->actor = actor;
+  actor->position = Level_pos_from_cell(level, next_cell);
+}
+
+static void teleport_actor_idle(BasicTile* self,
+                                Level* level,
+                                Actor* actor,
+                                void (*teleport_actor_fn)(BasicTile* self,
+                                                          Level* level,
+                                                          Actor* actor)) {
+  if (self->custom_data & TP_ACTOR_JUST_JOINED) {
+    self->custom_data &= ~TP_ACTOR_JUST_JOINED;
+    teleport_actor_fn(self, level, actor);
+    return;
+  }
+  if (!actor->bonked)
+    return;
+  actor->sliding_state = SLIDING_NONE;
+  if (actor->type == &BOWLING_BALL_ROLLING_actor) {
+    // I don't know
+    Actor_destroy(actor, level, &EXPLOSION_actor);
+  }
+}
+static void TELEPORT_RED_actor_idle(BasicTile* self,
+                                    Level* level,
+                                    Actor* actor) {
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  // If this is a player, give them a free override
+  if (has_flag(actor, ACTOR_FLAGS_REAL_PLAYER)) {
+    actor->custom_data |= PLAYER_HAS_OVERRIDE;
+  }
+  if (cell->is_wired && (self->custom_data & 0xf) && !cell->powered_wires) {
+    // If an actor joined us and we're powered off, don't try to teleport the
+    // actor when we do get powered on
+    self->custom_data &= ~TP_ACTOR_JUST_JOINED;
+    return;
+  }
+  teleport_actor_idle(self, level, actor, teleport_red_do_teleport);
 }
 
 const TileType TELEPORT_RED_tile = {
     .name = "teleportRed",
     .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_UNCONNECTED,
     .actor_joined = weak_teleport_actor_joined,
-    .actor_completely_joined = TELEPORT_RED_actor_completely_joined};
+    .actor_completely_joined = teleport_set_just_joined,
+    .on_idle = TELEPORT_RED_actor_idle};
 
 static void strong_teleport_actor_joined(BasicTile* self,
                                          Level* level,
@@ -376,49 +536,246 @@ static void strong_teleport_actor_joined(BasicTile* self,
                                          Direction direction) {
   actor->sliding_state = SLIDING_STRONG;
 }
-// TODO: I don't want to think about wired teleports and logic gates.
-// All of this will have to be rewritten to accomodate for the rollover
-// nonsense...
-static void TELEPORT_BLUE_actor_completely_joined(BasicTile* self,
-                                                  Level* level,
-                                                  Actor* actor) {
-  actor->sliding_state = SLIDING_STRONG;
-  Cell* init_cell = Level_get_cell(level, actor->position);
-  Cell* next_cell = init_cell;
-  while (true) {
-    Cell* old_cell = next_cell;
-    next_cell = Level_search_reading_order(
-        level, next_cell, true, search_for_type, (void*)&TELEPORT_BLUE_tile);
-    // No other teleports (left) in the level, nothing to do here
-    if (next_cell == NULL)
-      return;
-    old_cell->actor = NULL;
-    // Ignore teleports which are already busy with an actor on top of them
-    if (next_cell->actor != NULL)
+
+static bool blue_tp_is_target_in_an_earlier_network_than_this_pos(
+    Level* level,
+    Position this_pos,
+    Position target_pos) {
+  for_vector(WireNetwork*, network, &level->wire_networks) {
+    // If the first member (the earliest one in reading order, since we iterated
+    // on cells in reading order when tracing, and thus if there could have been
+    // any cell before us in reading order also part of our network, the network
+    // would've been traced from that cell and not us) is later in RO than us,
+    // this network comes completely after us in RO, which we have to skip
+    if (compare_pos_in_reading_order(&network->members.items[0].pos,
+                                     &this_pos) > 0)
+      return false;
+
+    // By the way, all network members are also sorted in reading order after
+    // the fact, just to speed this (and other member lookups) up, but the
+    // first-member-is-first-in-RO-and-earliest-among-all-future-networks
+    // property holds regardless of us sorting it
+    WireNetworkMember* found_memb = Vector_WireNetworkMember_binary_search(
+        &network->members,
+        (int8_t(*)(void*, const WireNetworkMember*))
+            compare_wire_membs_in_reading_order,
+        (void*)&target_pos);
+    if (found_memb)
+      return true;
+  }
+  // This function should only be called when the cell at `target_pos` is
+  // `is_wired`, and thus must be an a wire network, all of which we have now
+  // iterated over
+  assert(false);
+  return false;
+}
+
+// WTD: Wired Teleportation Destination (wired blue TPs and logic gates)
+
+static uint8_t logic_gate_get_output_wire(const BasicTile* self) {
+  uint8_t wires = self->custom_data & 0xf;
+  if (wires == 0b1011)
+    return 0b0001;
+  if (wires == 0b0111)
+    return 0b0010;
+  if (wires == 0b1110)
+    return 0b0100;
+  if (wires == 0b1101)
+    return 0b1000;
+  if (wires == 0b1111)
+    return 0b1000;
+  bool not_gate_bottom_left = self->custom_data & 0b10000;
+  if (wires == 0b0101)
+    return not_gate_bottom_left ? 0b0100 : 0b0001;
+  if (wires == 0b1010)
+    return not_gate_bottom_left ? 0b1000 : 0b0010;
+  assert(false);
+  return 0;
+}
+
+enum { LOGIC_GATE_IS_BUSY = 0x800 };
+
+static Actor* logic_gate_find_actor(const BasicTile* self, Level* level) {
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  Position this_pos = Level_pos_from_cell(level, cell);
+  for (size_t idx = 0; idx < level->actors_allocated_n; idx += 1) {
+    Actor* actor = level->actors[idx];
+    if (actor->position.x != this_pos.x || actor->position.y != this_pos.y)
       continue;
-    // Move the actor to the next potential tile
-    next_cell->actor = actor;
-    actor->position = Level_pos_from_cell(level, next_cell);
-    // We're back where we started, give up
-    if (next_cell == init_cell)
-      return;
-    // If this is a valid exit tile, leave the actor on it
+    if (actor->frozen)
+      return actor;
+  }
+  return NULL;
+}
+
+static bool wtd_is_wtd(const BasicTile* self) {
+  return self->type == &TELEPORT_BLUE_tile || self->type == &LOGIC_GATE_tile;
+}
+static bool wtd_is_busy(BasicTile* self, Level* level) {
+  if (self->type == &TELEPORT_BLUE_tile) {
+    Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+    return cell->actor;
+  } else if (self->type == &LOGIC_GATE_tile) {
+    return self->custom_data & LOGIC_GATE_IS_BUSY;
+  }
+  // This function is only supposed to be for WTDs
+  assert(false);
+  return true;
+}
+static void wtd_remove_actor(BasicTile* self, Level* level, Actor* actor) {
+  if (self->type == &TELEPORT_BLUE_tile) {
+    Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+    assert(cell->actor == actor);
+    cell->actor = NULL;
+    return;
+  } else if (self->type == &LOGIC_GATE_tile) {
+    actor->frozen = false;
+    self->custom_data &= ~LOGIC_GATE_IS_BUSY;
+    return;
+  }
+  assert(false);
+}
+static void wtd_add_actor(BasicTile* self, Level* level, Actor* actor) {
+  if (self->type == &TELEPORT_BLUE_tile) {
+    Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+    assert(cell->actor == NULL);
+    cell->actor = actor;
+    actor->position = Level_pos_from_cell(level, cell);
+    actor->sliding_state = SLIDING_STRONG;
+    return;
+  } else if (self->type == &LOGIC_GATE_tile) {
+    Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+    actor->frozen = true;
+    actor->position = Level_pos_from_cell(level, cell);
+    self->custom_data |= LOGIC_GATE_IS_BUSY;
+    return;
+  }
+  assert(false);
+}
+
+static bool wtd_can_host(BasicTile* self, Level* level, Actor* actor) {
+  if (self->type == &TELEPORT_BLUE_tile) {
     // FIXME: This collision check ignores pulls in notcc.js, but Pullcrap had a
     // desync regarding teleports and pulling actors, so maybe not disabling
     // pulling is right?
-    if (Actor_check_collision(actor, level, actor->direction))
+
+    // Giving a reference to a real direction doesn't matter, there's not going
+    // to be a railroad on the cell
+    return Actor_check_collision(actor, level, &actor->direction);
+  } else if (self->type == &LOGIC_GATE_tile) {
+    Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+    uint8_t out_wire = logic_gate_get_output_wire(self);
+    return cell->powered_wires & out_wire;
+  }
+  assert(false);
+  return false;
+}
+
+// For wired blue TPs and logic gates
+static void wtd_do_teleport(BasicTile* self,
+                            Level* level,
+                            WireNetwork* tp_network,
+                            WireNetworkMember* memb,
+                            Actor* actor) {
+  BasicTile* last_wtd = self;
+
+  assert(tp_network != NULL);
+  assert(memb != NULL);
+  assert(memb >= &tp_network->members.items[0]);
+  size_t network_size = tp_network->members.length;
+  size_t starting_idx = memb - tp_network->members.items;
+  for (size_t network_memb_offset_idx = 1;
+       network_memb_offset_idx < network_size; network_memb_offset_idx += 1) {
+    size_t idx =
+        (network_size + starting_idx - network_memb_offset_idx) % network_size;
+    Cell* memb_cell = Level_get_cell(level, tp_network->members.items[idx].pos);
+    BasicTile* new_wtd = &memb_cell->terrain;
+    if (!wtd_is_wtd(new_wtd) || wtd_is_busy(new_wtd, level))
+      continue;
+    wtd_remove_actor(last_wtd, level, actor);
+    last_wtd = new_wtd;
+    wtd_add_actor(new_wtd, level, actor);
+    if (wtd_can_host(new_wtd, level, actor)) {
+      return;
+    }
+  }
+  // We didn't find any valid exit, just go through us again
+  wtd_remove_actor(last_wtd, level, actor);
+  wtd_add_actor(self, level, actor);
+}
+
+static void blue_tp_do_unwired_tp(BasicTile* self, Level* level, Actor* actor) {
+  Cell* this_cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  Cell* new_cell = this_cell;
+  Position this_pos = Level_pos_from_cell(level, new_cell);
+  Cell* last_cell = new_cell;
+  while (true) {
+    new_cell = Level_search_reading_order(
+        level, new_cell, true, search_for_type, (void*)&TELEPORT_BLUE_tile);
+    // No other teleports (left) in the level, nothing to do here
+    if (new_cell == NULL)
+      return;
+    // We're back where we started, give up
+    if (new_cell == this_cell)
+      break;
+    Position new_pos = Level_pos_from_cell(level, new_cell);
+    BasicTile* teleport = &new_cell->terrain;
+    compiler_expect(teleport->type == &TELEPORT_BLUE_tile, true);
+    // Ignore teleports which are already busy with an actor on top of them
+    if (wtd_is_busy(teleport, level))
+      continue;
+    if (new_cell->is_wired &&
+        blue_tp_is_target_in_an_earlier_network_than_this_pos(level, this_pos,
+                                                              new_pos))
+      continue;
+    // Move the actor to the next potential tile
+    compiler_expect(last_cell->terrain.type == &TELEPORT_BLUE_tile, true);
+    wtd_remove_actor(&last_cell->terrain, level, actor);
+    last_cell = new_cell;
+    wtd_add_actor(teleport, level, actor);
+    // If this is a valid exit tile, leave the actor on it
+    if (wtd_can_host(teleport, level, actor))
       return;
   }
+  // We couldn't find any other place to put the actor, add it back to ourselves
+  wtd_remove_actor(&last_cell->terrain, level, actor);
+  wtd_add_actor(self, level, actor);
 }
+
+static void teleport_blue_do_teleport(BasicTile* self,
+                                      Level* level,
+                                      Actor* actor) {
+  Cell* this_cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  if (this_cell->is_wired) {
+    Position this_pos = Level_pos_from_cell(level, this_cell);
+    WireNetworkMember* network_memb = NULL;
+    // XXX: Maybe do this at prepare-time, or at least cache the network index
+    // once we look it up?
+    WireNetwork* network =
+        tile_find_network(level, this_pos, 0xf, &network_memb);
+    wtd_do_teleport(self, level, network, network_memb, actor);
+  } else {
+    blue_tp_do_unwired_tp(self, level, actor);
+  }
+}
+
+static void TELEPORT_BLUE_actor_idle(BasicTile* self,
+                                     Level* level,
+                                     Actor* actor) {
+  teleport_actor_idle(self, level, actor, teleport_blue_do_teleport);
+}
+
 const TileType TELEPORT_BLUE_tile = {
     .name = "teleportBlue",
     .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_EVERYWHERE,
     .actor_joined = strong_teleport_actor_joined,
-    .actor_completely_joined = TELEPORT_BLUE_actor_completely_joined};
+    .actor_completely_joined = teleport_set_just_joined,
+    .on_idle = TELEPORT_BLUE_actor_idle};
 
-static void TELEPORT_GREEN_actor_completely_joined(BasicTile* self,
-                                                   Level* level,
-                                                   Actor* actor) {
+static void teleport_green_do_teleport(BasicTile* self,
+                                       Level* level,
+                                       Actor* actor) {
   Cell* this_cell = Level_get_cell(level, actor->position);
   size_t green_tp_n = 0;
   // Count all green TPs I guess?
@@ -435,8 +792,8 @@ static void TELEPORT_GREEN_actor_completely_joined(BasicTile* self,
   }
   uint8_t teleport_cells_until_target = Level_rng(level) % green_tp_n;
   Direction exit_dir = dir_from_cc2(Level_rng(level) % 4);
+  this_cell->actor = NULL;
   while (true) {
-    next_cell->actor = NULL;
     next_cell = Level_search_reading_order(
         level, next_cell, false, search_for_type, (void*)&TELEPORT_GREEN_tile);
     if (next_cell->actor)
@@ -447,32 +804,107 @@ static void TELEPORT_GREEN_actor_completely_joined(BasicTile* self,
     }
     next_cell->actor = actor;
     actor->position = Level_pos_from_cell(level, next_cell);
+    if (next_cell == this_cell) {
+      // We've come back to our original cell, give up
+      return;
+    }
     for (uint8_t dir_offset = 0; dir_offset < 4; dir_offset += 1) {
-      if (Actor_check_collision(actor, level, right_n(exit_dir, dir_offset))) {
-        actor->direction = right_n(exit_dir, dir_offset);
+      Direction dir = right_n(exit_dir, dir_offset);
+      if (Actor_check_collision(actor, level, &dir)) {
+        actor->direction = dir;
         return;
       }
     }
-    if (next_cell == this_cell) {
-      // We've come back to our original cell (and tried to exit in all
-      // directions). Give up
-      return;
-    }
+    next_cell->actor = NULL;
   }
+}
+
+static void TELEPORT_GREEN_actor_idle(BasicTile* self,
+                                      Level* level,
+                                      Actor* actor) {
+  teleport_actor_idle(self, level, actor, teleport_green_do_teleport);
 }
 
 const TileType TELEPORT_GREEN_tile = {
     .name = "teleportGreen",
     .layer = LAYER_TERRAIN,
     .actor_joined = strong_teleport_actor_joined,
-    .actor_completely_joined = TELEPORT_GREEN_actor_completely_joined};
+    .actor_completely_joined = teleport_set_just_joined,
+    .on_idle = TELEPORT_GREEN_actor_idle};
 
-const TileType TELEPORT_YELLOW_tile = {.name = "teleportYellow",
-                                       .layer = LAYER_TERRAIN};
+enum { YELLOW_TP_IS_ONLY_TP_IN_LEVEL = 0x1000 };
+
+static void teleport_yellow_init(BasicTile* self, Level* level, Cell* cell) {
+  Cell* other_tp_cell = Level_search_reading_order(
+      level, cell, true, search_for_type, (void*)&TELEPORT_YELLOW_tile);
+  if (!other_tp_cell) {
+    self->custom_data |= YELLOW_TP_IS_ONLY_TP_IN_LEVEL;
+  }
+}
+
+static void teleport_yellow_do_teleport(BasicTile* self,
+                                        Level* level,
+                                        Actor* actor) {
+  if (has_flag(actor, ACTOR_FLAGS_REAL_PLAYER)) {
+    actor->custom_data |= PLAYER_HAS_OVERRIDE;
+  }
+  actor->sliding_state = SLIDING_WEAK;
+  Cell* this_cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  Cell* next_cell = this_cell;
+  this_cell->actor = NULL;
+  while (true) {
+    next_cell = Level_search_reading_order(
+        level, next_cell, true, search_for_type, (void*)&TELEPORT_YELLOW_tile);
+    if (next_cell == NULL)
+      break;
+    if (next_cell->actor && next_cell != this_cell)
+      continue;
+    next_cell->actor = actor;
+    actor->position = Level_pos_from_cell(level, next_cell);
+    if (next_cell == this_cell)
+      break;
+    if (Actor_check_collision(actor, level, &actor->direction)) {
+      return;
+    }
+    next_cell->actor = NULL;
+  }
+  this_cell->actor = actor;
+  // Don't give us to the player if we're the only yellow teleport in the whole
+  // level
+  if ((self->custom_data & YELLOW_TP_IS_ONLY_TP_IN_LEVEL))
+    return;
+  if (has_flag(actor, ACTOR_FLAGS_IGNORES_ITEMS))
+    return;
+  // Can't be picked up if there's a no sign on us
+  if (this_cell->item_mod.type &&
+      this_cell->item_mod.type->overrides_item_layer(&this_cell->item_mod,
+                                                     level, self))
+    return;
+  bool picked_up = Actor_pickup_item(actor, level, self);
+  if (picked_up) {
+    actor->sliding_state = SLIDING_NONE;
+  }
+}
+
+static void TELEPORT_YELLOW_actor_idle(BasicTile* self,
+                                       Level* level,
+                                       Actor* actor) {
+  teleport_actor_idle(self, level, actor, teleport_yellow_do_teleport);
+}
+
+const TileType TELEPORT_YELLOW_tile = {
+    .name = "teleportYellow",
+    .layer = LAYER_TERRAIN,
+    .flags = ACTOR_FLAGS_ITEM,
+    .actor_joined = weak_teleport_actor_joined,
+    .actor_completely_joined = teleport_set_just_joined,
+    .on_idle = TELEPORT_YELLOW_actor_idle,
+    .item_index = ITEM_INDEX_YELLOW_TP};
+
 static void SLIME_actor_completely_joined(BasicTile* self,
                                           Level* level,
                                           Actor* actor) {
-  if (is_ghost(actor))
+  if (is_ghost(actor) || actor->type == &BLOB_actor)
     return;
   if (actor->type == &DIRT_BLOCK_actor || actor->type == &ICE_BLOCK_actor) {
     BasicTile_erase(self);
@@ -529,6 +961,8 @@ const TileType DIRT_tile = {
 // TRAP: rightmost bit of `custom_data` indicates open/closed state, other bits
 // are for the open request count
 
+enum { TRAP_OPENED = 1, TRAP_OPEN_REQUESTS = ~1 };
+
 static inline bool is_controlled_by_trap(Actor* actor) {
   return !has_flag(actor, ACTOR_FLAGS_GHOST | ACTOR_FLAGS_REAL_PLAYER);
 }
@@ -537,8 +971,8 @@ static void trap_increment_opens(BasicTile* self, Level* level, Cell* cell) {
   if (self->type != &TRAP_tile)
     return;
   self->custom_data += 2;
-  if ((self->custom_data & 1) == 0) {
-    self->custom_data |= 1;
+  if ((self->custom_data & TRAP_OPENED) == 0) {
+    self->custom_data |= TRAP_OPENED;
     if (cell->actor && !is_ghost(cell->actor)) {
       cell->actor->frozen = false;
       if (level->current_subtick != -1) {
@@ -550,10 +984,10 @@ static void trap_increment_opens(BasicTile* self, Level* level, Cell* cell) {
 static void trap_decrement_opens(BasicTile* self, Level* level, Cell* cell) {
   if (self->type != &TRAP_tile)
     return;
-  if ((self->custom_data & ~1) == 0)
+  if ((self->custom_data & TRAP_OPEN_REQUESTS) == 0)
     return;
   self->custom_data -= 2;
-  if (self->custom_data == 1) {
+  if ((self->custom_data & TRAP_OPEN_REQUESTS) == 0) {
     self->custom_data = 0;
     if (cell->actor && is_controlled_by_trap(cell->actor)) {
       cell->actor->frozen = true;
@@ -561,7 +995,7 @@ static void trap_decrement_opens(BasicTile* self, Level* level, Cell* cell) {
   }
 }
 static void trap_control_actor(BasicTile* self, Level* level, Actor* actor) {
-  if (!is_controlled_by_trap(actor) || (self->custom_data & 1))
+  if (!is_controlled_by_trap(actor) || (self->custom_data & TRAP_OPENED))
     return;
   actor->frozen = true;
 }
@@ -570,11 +1004,24 @@ static void TRAP_init(BasicTile* self, Level* level, Cell* cell) {
     trap_control_actor(self, level, cell->actor);
   }
 }
+static void TRAP_receive_power(BasicTile* self, Level* level, uint8_t power) {
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  if (!cell->is_wired)
+    return;
+  // NOTE: We intentionally don't respect open requests OR try to eject the
+  // actor here if we're now open
+  self->custom_data &= ~TRAP_OPENED;
+  self->custom_data |= power ? TRAP_OPENED : 0;
+  if (cell->actor && is_controlled_by_trap(cell->actor)) {
+    cell->actor->frozen = !power;
+  }
+}
+
 static Direction TRAP_redirect_exit(BasicTile* self,
                                     Level* level,
                                     Actor* actor,
                                     Direction direction) {
-  if (!(self->custom_data & 1) || is_ghost(actor))
+  if (!(self->custom_data & TRAP_OPENED) && !is_ghost(actor))
     return DIRECTION_NONE;
   return direction;
 }
@@ -582,8 +1029,10 @@ static Direction TRAP_redirect_exit(BasicTile* self,
 const TileType TRAP_tile = {.name = "trap",
                             .layer = LAYER_TERRAIN,
                             .actor_completely_joined = trap_control_actor,
+                            .receive_power = TRAP_receive_power,
                             .init = TRAP_init,
-                            .redirect_exit = TRAP_redirect_exit};
+                            .redirect_exit = TRAP_redirect_exit,
+                            .wire_type = WIRES_READ};
 
 static void clone_machine_control_actor(BasicTile* self,
                                         Level* level,
@@ -597,11 +1046,10 @@ static void CLONE_MACHINE_init(BasicTile* self, Level* level, Cell* cell) {
 }
 static void clone_machine_trigger(BasicTile* self,
                                   Level* level,
-                                  Cell* cell,
                                   bool try_all_dirs) {
   if (self->type != &CLONE_MACHINE_tile)
     return;
-  Actor* actor = cell->actor;
+  Actor* actor = BasicTile_get_cell(self, LAYER_TERRAIN)->actor;
   // Someone triggered an empty clone machine
   if (actor == NULL)
     return;
@@ -614,6 +1062,7 @@ static void clone_machine_trigger(BasicTile* self,
 #define release_actor() \
   new_actor = Actor_new(level, actor->type, this_pos, actor->direction);
 
+  actor->sliding_state = SLIDING_STRONG;
   if (Actor_move_to(actor, level, og_actor_dir)) {
     release_actor()
   } else if (try_all_dirs) {
@@ -625,7 +1074,10 @@ static void clone_machine_trigger(BasicTile* self,
       release_actor()
     } else {
       actor->direction = og_actor_dir;
+      actor->sliding_state = SLIDING_NONE;
     }
+  } else {
+    actor->sliding_state = SLIDING_NONE;
   }
   if (new_actor) {
     new_actor->frozen = true;
@@ -641,8 +1093,10 @@ const TileType CLONE_MACHINE_tile = {
 
     .name = "cloneMachine",
     .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_READ,
     .actor_completely_joined = clone_machine_control_actor,
     .init = CLONE_MACHINE_init,
+    .on_wire_high = clone_machine_trigger,
     .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER | ACTOR_FLAGS_REAL_PLAYER};
 
 static void EXIT_actor_completely_joined(BasicTile* self,
@@ -675,6 +1129,8 @@ const TileType EXIT_tile = {
   };                                                                           \
   static void var_name##_actor_completely_joined(BasicTile* self,              \
                                                  Level* level, Actor* other) { \
+    if (other->inventory.keys_##simple == 0)                                   \
+      return;                                                                  \
     BasicTile_erase(self);                                                     \
     if (!(other->type->flags & reuse_flag) &&                                  \
         other->inventory.keys_##simple > 0) {                                  \
@@ -811,8 +1267,7 @@ static void BUTTON_RED_actor_completely_joined(BasicTile* self,
   Cell* clone_machine_cell = get_connected_cell(self, level);
   if (!clone_machine_cell)
     return;
-  clone_machine_trigger(&clone_machine_cell->terrain, level, clone_machine_cell,
-                        false);
+  clone_machine_trigger(&clone_machine_cell->terrain, level, false);
 }
 
 const TileType BUTTON_RED_tile = {
@@ -849,6 +1304,116 @@ const TileType BUTTON_ORANGE_tile = {
     .actor_completely_joined = BUTTON_ORANGE_actor_completely_joined,
     .actor_left = BUTTON_ORANGE_actor_left};
 
+enum { BUTTON_PURPLE_SHOULD_POWER = 0b10000 };
+
+// BUTTON_PURPLE: lowest four bits indicate wires, 5th bit indicates if there
+// was an actor on us this subtick
+void BUTTON_PURPLE_on_idle(BasicTile* self, Level* level, Actor* actor) {
+  self->custom_data |= BUTTON_PURPLE_SHOULD_POWER;
+}
+uint8_t BUTTON_PURPLE_give_power(BasicTile* self, Level* level) {
+  bool should_power = self->custom_data & BUTTON_PURPLE_SHOULD_POWER;
+  self->custom_data &= ~BUTTON_PURPLE_SHOULD_POWER;
+  return should_power ? 0xf : 0;
+}
+
+const TileType BUTTON_PURPLE_tile = {.name = "buttonPurple",
+                                     .layer = LAYER_TERRAIN,
+                                     .wire_type = WIRES_UNCONNECTED,
+                                     .on_idle = BUTTON_PURPLE_on_idle,
+                                     .give_power = BUTTON_PURPLE_give_power};
+
+// BUTTON_BLACK, TOGGLE_SWITCH: Lowest 4 bits indicate wires, 5th indicates if
+// there should be pwoer (modulo the actor being destroyed), 6th indicates if
+// the 5th bit was set last subtick, which is what power emission actually
+// depends on
+enum {
+  POWER_BUTTON_SHOULD_BE_POWERED = 1 << 4,
+  POWER_BUTTON_WILL_BE_POWERED = 1 << 5
+};
+
+static uint8_t power_button_give_power(BasicTile* self, Level* level) {
+  bool should_power = self->custom_data & POWER_BUTTON_WILL_BE_POWERED;
+  self->custom_data &= ~POWER_BUTTON_WILL_BE_POWERED;
+  self->custom_data |= (self->custom_data & POWER_BUTTON_SHOULD_BE_POWERED)
+                           ? POWER_BUTTON_WILL_BE_POWERED
+                           : 0;
+  return should_power ? 0xf : 0;
+}
+
+static void BUTTON_BLACK_init(BasicTile* self, Level* level, Cell* cell) {
+  if (cell->actor) {
+    self->custom_data &= ~POWER_BUTTON_SHOULD_BE_POWERED;
+  }
+}
+
+static void BUTTON_BLACK_actor_completely_joined(BasicTile* self,
+                                                 Level* level,
+                                                 Actor* actor) {
+  self->custom_data &= ~POWER_BUTTON_SHOULD_BE_POWERED;
+}
+static void BUTTON_BLACK_actor_left(BasicTile* self,
+                                    Level* level,
+                                    Actor* actor,
+                                    Direction _dir) {
+  // Hack: If a bowling ball was rolled from this tile, don't become unpressed
+  // because an actor will be on us again in just a moment
+  if (actor->type == &BOWLING_BALL_ROLLING_actor && actor->custom_data & 1)
+    return;
+  self->custom_data |= POWER_BUTTON_SHOULD_BE_POWERED;
+}
+const TileType BUTTON_BLACK_tile = {
+    .name = "buttonBlack",
+    .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_ALWAYS_CROSS,
+    .init = BUTTON_BLACK_init,
+    .give_power = power_button_give_power,
+    .actor_completely_joined = BUTTON_BLACK_actor_completely_joined,
+    .actor_left = BUTTON_BLACK_actor_left};
+
+static void TOGGLE_SWITCH_actor_completely_joined(BasicTile* self,
+                                                  Level* level,
+                                                  Actor* cell) {
+  if (self->custom_data & POWER_BUTTON_SHOULD_BE_POWERED) {
+    self->custom_data &= ~POWER_BUTTON_SHOULD_BE_POWERED;
+  } else {
+    self->custom_data |= POWER_BUTTON_SHOULD_BE_POWERED;
+  }
+}
+
+const TileType TOGGLE_SWITCH_tile = {
+    .name = "toggleSwitch",
+    .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_UNCONNECTED,
+    .give_power = power_button_give_power,
+    .actor_completely_joined = TOGGLE_SWITCH_actor_completely_joined,
+};
+
+static void BUTTON_GRAY_actor_completely_joined(BasicTile* self,
+                                                Level* level,
+                                                Actor* actor) {
+  Cell* this_cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  Position this_pos = Level_pos_from_cell(level, this_cell);
+  for (int8_t dy = -2; dy <= 2; dy += 1) {
+    if (this_pos.y < -dy || this_pos.y >= level->height - dy)
+      continue;
+    for (int8_t dx = -2; dx <= 2; dx += 1) {
+      if (this_pos.x < -dx || this_pos.x >= level->width - dx)
+        continue;
+      Position pos = {this_pos.x + dx, this_pos.y + dy};
+      Cell* cell = Level_get_cell(level, pos);
+      if (cell->terrain.type->on_wire_high) {
+        cell->terrain.type->on_wire_high(&cell->terrain, level, false);
+      }
+    }
+  }
+}
+
+const TileType BUTTON_GRAY_tile = {
+    .name = "buttonGray",
+    .layer = LAYER_TERRAIN,
+    .actor_completely_joined = BUTTON_GRAY_actor_completely_joined};
+
 static bool ECHIP_GATE_impedes(BasicTile* self,
                                Level* level,
                                Actor* other,
@@ -883,6 +1448,8 @@ static void POPUP_WALL_actor_left(BasicTile* self,
                                   Level* level,
                                   Actor* actor,
                                   Direction direction) {
+  if (is_ghost(actor))
+    return;
   BasicTile_transform_into(self, &WALL_tile);
 }
 
@@ -938,6 +1505,8 @@ static bool GREEN_WALL_impedes(BasicTile* self,
                                Level* level,
                                Actor* actor,
                                Direction direction) {
+  if (is_ghost(actor))
+    return false;
   return self->custom_data || has_flag(actor, ACTOR_FLAGS_BLOCK);
 }
 
@@ -954,7 +1523,7 @@ static bool thief_has_bribe(Actor* actor) {
     if (*item_type != &BRIBE_tile)
       continue;
     Inventory_remove_item(&actor->inventory, idx);
-  Inventory_decrement_counter(&actor->inventory, ITEM_INDEX_BRIBE);
+    Inventory_decrement_counter(&actor->inventory, ITEM_INDEX_BRIBE);
     return true;
   }
   // Possible only when using the shadow inventory glitch
@@ -1004,6 +1573,8 @@ static void TURTLE_actor_left(BasicTile* self,
                               Level* level,
                               Actor* actor,
                               Direction dir) {
+  if (actor->type == &GLIDER_actor || is_ghost(actor))
+    return;
   BasicTile_transform_into(self, &WATER_tile);
   Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
   Actor_new(level, &SPLASH_actor, Level_pos_from_cell(level, cell),
@@ -1031,20 +1602,29 @@ static bool SWIVEL_impedes(BasicTile* self,
                            Level* level,
                            Actor* actor,
                            Direction dir) {
+  if (is_ghost(actor))
+    return false;
   return dir == back(self->custom_data) || dir == left(self->custom_data);
 }
 static void SWIVEL_actor_left(BasicTile* self,
                               Level* level,
                               Actor* actor,
                               Direction dir) {
+  if (is_ghost(actor))
+    return;
   Direction self_dir = (Direction)self->custom_data;
   if (dir == self_dir)
     self->custom_data = right(self->custom_data);
   else if (dir == right(self_dir))
     self->custom_data = left(self->custom_data);
 }
+static void SWIVEL_on_wire_high(BasicTile* self, Level* level, bool _real) {
+  self->custom_data = right(self->custom_data);
+}
 const TileType SWIVEL_tile = {.name = "swivel",
                               .layer = LAYER_TERRAIN,
+                              .wire_type = WIRES_READ,
+                              .on_wire_high = SWIVEL_on_wire_high,
                               .impedes = SWIVEL_impedes,
                               .actor_left = SWIVEL_actor_left};
 
@@ -1061,12 +1641,12 @@ typedef struct TransmogEntry {
 } TransmogEntry;
 
 // A simple key-val array instead of a hashmap or whatever. Sue me.
-static TransmogEntry transmog_entries[] = {
+static const TransmogEntry transmog_entries[] = {
     // Chip-Melinda
     {&CHIP_actor, &MELINDA_actor},
     {&MELINDA_actor, &CHIP_actor},
-    // TODO: Mirror player
-
+    {&MIRROR_CHIP_actor, &MIRROR_MELINDA_actor},
+    {&MIRROR_MELINDA_actor, &MIRROR_CHIP_actor},
     // Dirt block-ice block
     {&DIRT_BLOCK_actor, &ICE_BLOCK_actor},
     {&ICE_BLOCK_actor, &DIRT_BLOCK_actor},
@@ -1099,7 +1679,7 @@ static const ActorType* get_transmogrified_type(const ActorType* type,
                                  lengthof(blob_transmog_options)];
   }
   for (size_t idx = 0; idx < lengthof(transmog_entries); idx += 1) {
-    TransmogEntry* ent = &transmog_entries[idx];
+    const TransmogEntry* ent = &transmog_entries[idx];
     if (ent->key == type)
       return ent->val;
   }
@@ -1109,6 +1689,9 @@ static const ActorType* get_transmogrified_type(const ActorType* type,
 static void TRANSMOGRIFIER_actor_completely_joined(BasicTile* self,
                                                    Level* level,
                                                    Actor* actor) {
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  if (cell->is_wired && !cell->powered_wires)
+    return;
   const ActorType* new_type = get_transmogrified_type(actor->type, level);
   if (!new_type)
     return;
@@ -1120,7 +1703,287 @@ static void TRANSMOGRIFIER_actor_completely_joined(BasicTile* self,
 const TileType TRANSMOGRIFIER_tile = {
     .name = "transmogrifier",
     .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_READ,
     .actor_completely_joined = TRANSMOGRIFIER_actor_completely_joined};
+
+// RAILROAD: `custom_data` indicates-- Oh boy. Just go check tiles.h for the
+// RAILROAD_* enum
+static void RAILROAD_actor_completely_joined(BasicTile* self,
+                                  Level* level,
+                                  Actor* actor) {
+  self->custom_data = (self->custom_data & ~RAILROAD_ENTERED_DIR_MASK) |
+                      (dir_to_cc2(actor->direction) << 12);
+}
+static uint8_t rr_get_relevant_tracks(Direction dir) {
+  assert(dir != DIRECTION_NONE);
+  if (dir == DIRECTION_UP)
+    return RAILROAD_TRACK_UR | RAILROAD_TRACK_LU | RAILROAD_TRACK_UD;
+  if (dir == DIRECTION_RIGHT)
+    return RAILROAD_TRACK_UR | RAILROAD_TRACK_RD | RAILROAD_TRACK_LR;
+  if (dir == DIRECTION_DOWN)
+    return RAILROAD_TRACK_RD | RAILROAD_TRACK_DL | RAILROAD_TRACK_UD;
+  if (dir == DIRECTION_LEFT)
+    return RAILROAD_TRACK_DL | RAILROAD_TRACK_LU | RAILROAD_TRACK_LR;
+  return 0;
+}
+static uint8_t rr_get_active_track_idx(uint64_t custom_data) {
+  return (custom_data & RAILROAD_ACTIVE_TRACK_MASK) >> 8;
+}
+static uint8_t rr_get_available_tracks(uint64_t custom_data) {
+  if (custom_data & RAILROAD_TRACK_SWITCH) {
+    return (custom_data & RAILROAD_TRACK_MASK) &
+           (1 << rr_get_active_track_idx(custom_data));
+  }
+  return custom_data & RAILROAD_TRACK_MASK;
+}
+static uint8_t rr_get_entered_track(uint64_t custom_data) {
+  return dir_from_cc2((custom_data & RAILROAD_ENTERED_DIR_MASK) >> 12);
+}
+inline static bool rr_check_direction(BasicTile* self,
+                                      Level* level,
+                                      Actor* actor,
+                                      Direction base_dir,
+                                      uint8_t turn) {
+  Direction dir = right_n(base_dir, turn);
+  Direction entered_dir = rr_get_entered_track(self->custom_data);
+  if (dir == back(entered_dir) && !has_flag(actor, ACTOR_FLAGS_BLOCK))
+    return false;
+  uint8_t valid_exits = rr_get_relevant_tracks(back(entered_dir)) &
+                        rr_get_available_tracks(self->custom_data);
+  uint8_t dir_exits = rr_get_relevant_tracks(dir);
+  if (!(valid_exits & dir_exits))
+    return false;
+  if (actor->type->on_redirect) {
+    actor->type->on_redirect(actor, level, turn);
+  }
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  if (cell->special.type == &THIN_WALL_tile &&
+      cell->special.custom_data & get_dir_bit(dir))
+    return false;
+  return true;
+}
+static Direction RAILROAD_redirect_exit(BasicTile* self,
+                                        Level* level,
+                                        Actor* actor,
+                                        Direction dir) {
+  if (is_ghost(actor))
+    return dir;
+  if (has_item_counter(actor->inventory, ITEM_INDEX_RR_SIGN))
+    return dir;
+  if (rr_check_direction(self, level, actor, dir, 0))
+    return dir;
+  if (rr_check_direction(self, level, actor, dir, 1))
+    return right(dir);
+  if (rr_check_direction(self, level, actor, dir, 3))
+    return left(dir);
+  if (rr_check_direction(self, level, actor, dir, 2))
+    return back(dir);
+  return DIRECTION_NONE;
+}
+
+static bool RAILROAD_impedes(BasicTile* self,
+                             Level* level,
+                             Actor* actor,
+                             Direction dir) {
+  if (is_ghost(actor))
+    return false;
+  if (has_item_counter(actor->inventory, ITEM_INDEX_RR_SIGN))
+    return false;
+  uint8_t enter_rails = rr_get_relevant_tracks(back(dir));
+  return !(enter_rails & rr_get_available_tracks(self->custom_data));
+}
+enum { TRACKS_N = 6 };
+
+static void rr_toggle_to_next_track(BasicTile* self) {
+  uint8_t tracks = self->custom_data & RAILROAD_TRACK_MASK;
+  // Find the next track
+  uint8_t current_active_idx = rr_get_active_track_idx(self->custom_data);
+  for (uint8_t offset = 1; offset < TRACKS_N; offset += 1) {
+    uint8_t track_idx = (current_active_idx + offset) % TRACKS_N;
+    uint8_t track_bit = 1 << track_idx;
+    if (track_bit & tracks) {
+      self->custom_data =
+          (self->custom_data & ~RAILROAD_ACTIVE_TRACK_MASK) | (track_idx << 8);
+      return;
+    }
+  }
+}
+static void RAILROAD_on_wire_high(BasicTile* self, Level* _level, bool _real) {
+  rr_toggle_to_next_track(self);
+}
+
+static void RAILROAD_actor_left(BasicTile* self,
+                                Level* level,
+                                Actor* actor,
+                                Direction dir) {
+  if (is_ghost(actor))
+    return;
+  if (!(self->custom_data & RAILROAD_TRACK_SWITCH))
+    return;
+  // The rail that we "followed" when we entered and exited this railroad tile
+  uint8_t enter_exit_rail =
+      rr_get_relevant_tracks(dir) &
+      rr_get_relevant_tracks(back(rr_get_entered_track(self->custom_data)));
+  // Note that if we exited the opposite direction we entered (possible with
+  // blocks and anything with an RR sign), `enter_exit_rail` would have *three*
+  // rails. For example: if you have a switching railroad with RD, DL, and UD
+  // tracks, and go (with an RR sign) up onto and down off the tile repeatedly,
+  // it will cycle between all three rails
+  if (enter_exit_rail & rr_get_available_tracks(self->custom_data)) {
+    Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+    if (cell->is_wired)
+      return;
+    rr_toggle_to_next_track(self);
+  }
+}
+
+const TileType RAILROAD_tile = {.name = "railroad",
+                                .layer = LAYER_TERRAIN,
+                                .wire_type = WIRES_READ,
+                                .on_wire_high = RAILROAD_on_wire_high,
+                                .actor_completely_joined = RAILROAD_actor_completely_joined,
+                                .impedes = RAILROAD_impedes,
+                                .redirect_exit = RAILROAD_redirect_exit,
+                                .actor_left = RAILROAD_actor_left};
+
+enum { LOGIC_GATE_STATE_BITMASK = 0x7ff };
+
+static uint8_t normalize_wire_bits(uint8_t bits, Direction self_dir) {
+  assert(self_dir != DIRECTION_NONE);
+  if (self_dir == DIRECTION_UP)
+    return bits;
+  if (self_dir == DIRECTION_RIGHT)
+    return ((bits >> 1) & 0b0111) | ((bits << 3) & 0b1000);
+  if (self_dir == DIRECTION_DOWN)
+    return ((bits >> 2) & 0b0011) | ((bits << 2) & 0b1100);
+  if (self_dir == DIRECTION_LEFT)
+    return ((bits << 1) & 0b1110) | ((bits >> 3) & 0b0001);
+  assert(false);
+  return 0;
+}
+
+static Direction logic_gate_get_direction(const BasicTile* self) {
+  uint8_t wire_bits = self->custom_data & 0b1111;
+  // Three-wire gates (AND, OR, XOR, NOR, latch, latch mirror)
+  if (wire_bits == 0b1011)
+    return DIRECTION_UP;
+  if (wire_bits == 0b0111)
+    return DIRECTION_RIGHT;
+  if (wire_bits == 0b1110)
+    return DIRECTION_DOWN;
+  if (wire_bits == 0b1101)
+    return DIRECTION_LEFT;
+  uint8_t logic_gate_wire_state = self->custom_data & LOGIC_GATE_STATE_BITMASK;
+  // Two-wire gate (NOT)
+  if (logic_gate_wire_state == LOGIC_GATE_NOT_UP)
+    return DIRECTION_UP;
+  if (logic_gate_wire_state == LOGIC_GATE_NOT_RIGHT)
+    return DIRECTION_RIGHT;
+  if (logic_gate_wire_state == LOGIC_GATE_NOT_DOWN)
+    return DIRECTION_DOWN;
+  if (logic_gate_wire_state == LOGIC_GATE_NOT_LEFT)
+    return DIRECTION_LEFT;
+  // Four-wire gate (counter)
+  if (wire_bits == 0b1111)
+    return DIRECTION_UP;
+  return DIRECTION_NONE;
+}
+
+static uint8_t LOGIC_GATE_give_power(BasicTile* self, Level* level) {
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  Direction this_dir = logic_gate_get_direction(self);
+  uint8_t powered = normalize_wire_bits(cell->powered_wires, this_dir);
+  uint8_t powering = 0;
+  uint8_t wires = self->custom_data & 0xf;
+  if (wires == 0b0101 || wires == 0b1010) {
+    // NOT gate
+    powering = powered & 0b0100 ? 0 : 0b0001;
+  } else if (wires == 0b1111) {
+    // counter gate
+    uint8_t value = (self->custom_data & 0xf0) >> 4;
+    bool had_add = (self->custom_data & 0x100) >> 8;
+    bool is_add = powered & 0b0010;
+    bool had_sub = (self->custom_data & 0x200) >> 9;
+    bool is_sub = powered & 0b0100;
+    bool underflow = (self->custom_data & 0x400) >> 10;
+    bool do_add = !had_add && is_add;
+    bool do_sub = !had_sub && is_sub;
+    if (do_add && do_sub) {
+      underflow = false;
+    } else if (do_add) {
+      underflow = false;
+      value += 1;
+      if (value == 10) {
+        value = 0;
+        powering |= 0b1000;
+      }
+    } else if (do_sub) {
+      underflow = value == 0;
+      if (value == 0) {
+        value = 9;
+      } else {
+        value -= 1;
+      }
+    }
+    if (underflow) {
+      powering |= 0b0001;
+    }
+    self->custom_data &= ~LOGIC_GATE_STATE_BITMASK;
+    self->custom_data |= (underflow << 10) | (is_sub << 9) | (is_add << 8) |
+                         (value << 4) | 0b1111;
+
+  } else {
+    // Three-wire gates
+    uint8_t type_specifier =
+        (self->custom_data & LOGIC_GATE_SPECIFIER_BITMASK) >> 4;
+    uint8_t input_wires = powered & 0b1010;
+    if (type_specifier == LOGIC_GATE_SPECIFIER_OR) {
+      powering = input_wires ? 0b0001 : 0;
+    } else if (type_specifier == LOGIC_GATE_SPECIFIER_AND) {
+      powering = input_wires == 0b1010 ? 0b0001 : 0;
+    } else if (type_specifier == LOGIC_GATE_SPECIFIER_NAND) {
+      powering = input_wires == 0b1010 ? 0 : 0b0001;
+    } else if (type_specifier == LOGIC_GATE_SPECIFIER_XOR) {
+      powering = input_wires == 0b1000 || input_wires == 0b0010 ? 0b0001 : 0;
+    } else if (type_specifier == LOGIC_GATE_SPECIFIER_LATCH ||
+               type_specifier == LOGIC_GATE_SPECIFIER_LATCH_MIRROR) {
+      bool is_mirrored = type_specifier == LOGIC_GATE_SPECIFIER_LATCH_MIRROR;
+      bool memory = self->custom_data & 0x80;
+      bool write = powered & (is_mirrored ? 0b1000 : 0b0010);
+      bool written_value = powered & (is_mirrored ? 0b0010 : 0b1000);
+      if (write) {
+        memory = written_value;
+        self->custom_data &= ~0x80;
+        self->custom_data |= written_value ? 0x80 : 0;
+      }
+      powering = memory ? 0b0001 : 0;
+
+    } else {
+      assert(false && "Invalid logic gate type");
+    }
+  }
+  return normalize_wire_bits(powering, mirror_vert(this_dir));
+}
+
+static void LOGIC_GATE_on_idle(BasicTile* self, Level* level, Actor* actor) {
+  if (!(self->custom_data & LOGIC_GATE_IS_BUSY))
+    return;
+  if (!actor->frozen)
+    return;
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  Position this_pos = Level_pos_from_cell(level, cell);
+  uint8_t out_wire = logic_gate_get_output_wire(self);
+  WireNetworkMember* memb;
+  WireNetwork* network = tile_find_network(level, this_pos, out_wire, &memb);
+  wtd_do_teleport(self, level, network, memb, actor);
+}
+
+const TileType LOGIC_GATE_tile = {.name = "logicGate",
+                                  .layer = LAYER_TERRAIN,
+                                  .wire_type = WIRES_UNCONNECTED,
+                                  .flags = ACTOR_FLAGS_DYNAMITE_IMMUNE,
+                                  .on_idle = LOGIC_GATE_on_idle,
+                                  .give_power = LOGIC_GATE_give_power};
 
 // Actors
 
@@ -1129,6 +1992,8 @@ static void kill_player(Actor* self, Level* level, Actor* other) {
     return;
   if (has_item_counter(other->inventory, ITEM_INDEX_HELMET) ||
       has_item_counter(self->inventory, ITEM_INDEX_HELMET))
+    return;
+  if (self->pulled && other->pulling)
     return;
   Actor_destroy(other, level, &EXPLOSION_actor);
 }
@@ -1228,7 +2093,8 @@ const ActorType FIREBALL_actor = {
 static void WALKER_decide_movement(Actor* self,
                                    Level* level,
                                    Direction directions[4]) {
-  if (Actor_check_collision(self, level, self->direction)) {
+  Direction checked_dir = self->direction;
+  if (Actor_check_collision(self, level, &checked_dir)) {
     self->move_decision = self->direction;
     return;
   }
@@ -1407,7 +2273,7 @@ static bool cc2_block_can_be_pushed(Actor* self,
 
 static void ICE_BLOCK_on_bumped_by(Actor* self, Level* level, Actor* other) {
   Cell* cell = Level_get_cell(level, self->position);
-  if (other->type == &FIREBALL_actor && cell->terrain.type == &FLOOR_tile) {
+  if (other->type == &FIREBALL_actor && (cell->terrain.type == &FLOOR_tile || cell->terrain.type == &WATER_tile)) {
     BasicTile_transform_into(&cell->terrain, &WATER_tile);
     Actor_destroy(self, level, &SPLASH_actor);
   }
@@ -1416,7 +2282,8 @@ static void ICE_BLOCK_on_bumped_by(Actor* self, Level* level, Actor* other) {
 const ActorType ICE_BLOCK_actor = {
     .name = "iceBlock",
     .flags = ACTOR_FLAGS_BLOCK | ACTOR_FLAGS_IGNORES_ITEMS |
-             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_KILLS_PLAYER,
+             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_KILLS_PLAYER |
+             ACTOR_FLAGS_REVEALS_HIDDEN,
     .can_be_pushed = cc2_block_can_be_pushed,
     .on_bump_actor = kill_player,
     .on_bumped_by = ICE_BLOCK_on_bumped_by};
@@ -1425,20 +2292,29 @@ static bool FRAME_BLOCK_can_be_pushed(Actor* self,
                                       Level* level,
                                       Actor* other,
                                       Direction dir) {
-  uint8_t dir_bit = 1 << dir_to_cc2(dir);
-  if (!(self->custom_data & dir_bit))
+  if (!(self->custom_data & get_dir_bit(dir)))
     return false;
   return cc2_block_can_be_pushed(self, level, other, dir);
+}
+static uint8_t rotate_arrows_right(uint8_t arrows) {
+  return ((arrows & 0x7) << 1) | ((arrows & 0x8) ? 1 : 0);
+}
+
+static void FRAME_BLOCK_on_redirect(Actor* self, Level* level, uint8_t turn) {
+  while (turn > 0) {
+    self->custom_data = rotate_arrows_right(self->custom_data);
+    turn -= 1;
+  }
 }
 
 const ActorType FRAME_BLOCK_actor = {
     .name = "frameBlock",
     .flags = ACTOR_FLAGS_BLOCK | ACTOR_FLAGS_IGNORES_ITEMS |
-             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_KILLS_PLAYER,
+             ACTOR_FLAGS_CAN_PUSH | ACTOR_FLAGS_KILLS_PLAYER |
+             ACTOR_FLAGS_REVEALS_HIDDEN,
     .can_be_pushed = FRAME_BLOCK_can_be_pushed,
     .on_bump_actor = kill_player,
-
-    // TODO: Railroads
+    .on_redirect = FRAME_BLOCK_on_redirect,
 };
 
 // BLUE_TANK: `custom_data` is BLUE_TANK_ROTATE if it's to rotate
@@ -1473,7 +2349,8 @@ static void YELLOW_TANK_decide_movement(Actor* self,
   if (dir) {
     // Do the check manually so that we don't try to do the last tried direction
     // at move time
-    if (Actor_check_collision(self, level, dir)) {
+    Direction checked_dir = dir;
+    if (Actor_check_collision(self, level, &checked_dir)) {
       self->move_decision = dir;
       self->direction = dir;
     }
@@ -1586,7 +2463,7 @@ static void DYNAMITE_LIT_decide_movement(Actor* self,
   }
 }
 static void DYNAMITE_LIT_init(Actor* self, Level* level) {
-  self->custom_data = 255;
+  self->custom_data = 256;
 }
 
 const ActorType DYNAMITE_LIT_actor = {
@@ -1631,6 +2508,8 @@ static void bowling_ball_kill_whatever(Actor* self,
 static void bowling_ball_kill_self(Actor* self,
                                    Level* level,
                                    BasicTile* _tile) {
+  if (self->sliding_state)
+    return;
   Actor_destroy(self, level, &EXPLOSION_actor);
 }
 
@@ -1808,13 +2687,12 @@ MAKE_GENERIC_ITEM(FIRE_BOOTS, "bootFire", ITEM_INDEX_FIRE_BOOTS);
 MAKE_GENERIC_ITEM(WATER_BOOTS, "bootWater", ITEM_INDEX_WATER_BOOTS);
 MAKE_GENERIC_ITEM(DIRT_BOOTS, "bootDirt", ITEM_INDEX_DIRT_BOOTS);
 MAKE_GENERIC_ITEM(STEEL_FOIL, "steelFoil", ITEM_INDEX_STEEL_FOIL);
-MAKE_GENERIC_ITEM(RR_SIGN, "rrSign", ITEM_INDEX_RR_SIGN);
+MAKE_GENERIC_ITEM(RR_SIGN, "railroadSign", ITEM_INDEX_RR_SIGN);
 MAKE_GENERIC_ITEM(BRIBE, "bribe", ITEM_INDEX_BRIBE);
 MAKE_GENERIC_ITEM(SPEED_BOOTS, "bootSpeed", ITEM_INDEX_SPEED_BOOTS);
 MAKE_GENERIC_ITEM(SECRET_EYE, "secretEye", ITEM_INDEX_SECRET_EYE);
 MAKE_GENERIC_ITEM(HELMET, "helmet", ITEM_INDEX_HELMET);
-// MAKE_GENERIC_ITEM(LIGHTNING_BOLT, "lightningBolt",
-// ITEM_INDEX_LIGHTNING_BOLT);
+MAKE_GENERIC_ITEM(LIGHTNING_BOLT, "lightningBolt", ITEM_INDEX_LIGHTNING_BOLT);
 MAKE_GENERIC_ITEM(BOWLING_BALL, "bowlingBall", ITEM_INDEX_BOWLING_BALL);
 MAKE_GENERIC_ITEM(HOOK, "hook", ITEM_INDEX_HOOK);
 
@@ -1824,9 +2702,12 @@ static void DYNAMITE_actor_left(BasicTile* self,
                                 Direction dir) {
   if (!has_flag(actor, ACTOR_FLAGS_REAL_PLAYER))
     return;
+  Cell* this_cell = BasicTile_get_cell(self, LAYER_ITEM);
   // We will be despawned immediately after this because the player will
   // null-out their after notifying us
-  Actor_new(level, &DYNAMITE_LIT_actor, actor->position, dir);
+  Actor* dynamite = Actor_new(level, &DYNAMITE_LIT_actor,
+                              Level_pos_from_cell(level, this_cell), dir);
+  dynamite->inventory = actor->inventory;
   BasicTile_erase(self);
 }
 
@@ -1871,8 +2752,7 @@ static Direction THIN_WALL_redirect_exit(BasicTile* self,
   assert(direction != DIRECTION_NONE);
   if (is_ghost(actor))
     return direction;
-  uint8_t matching_bit = 1 << dir_to_cc2(direction);
-  if (self->custom_data & matching_bit)
+  if (self->custom_data & get_dir_bit(direction))
     return DIRECTION_NONE;
   return direction;
 }
@@ -1894,8 +2774,7 @@ static bool THIN_WALL_impedes(BasicTile* self,
   if ((self->custom_data & THIN_WALL_HAS_CANOPY) &&
       has_flag(actor, ACTOR_FLAGS_AVOIDS_CANOPY))
     return true;
-  uint8_t matching_bit = 1 << dir_to_cc2(back(direction));
-  if (self->custom_data & matching_bit)
+  if (self->custom_data & get_dir_bit(back(direction)))
     return true;
   return false;
 }

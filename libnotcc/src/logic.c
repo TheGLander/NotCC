@@ -7,7 +7,7 @@
 #include "assert.h"
 #include "misc.h"
 #include "tiles.h"
-
+DEFINE_VECTOR(PlayerSeat);
 _libnotcc_accessors_Inventory;
 void Inventory_increment_counter(Inventory* self, uint8_t iidx) {
   if (self->counters.val[iidx - 1] == 255) {
@@ -101,10 +101,10 @@ void LevelMetadata_uninit(LevelMetadata* self) {
   free(self->title);
   free(self->author);
   free(self->default_hint);
-  for (uint32_t idx = 0; idx < self->hints_n; idx += 1) {
-    free(self->hints[idx]);
+  for_vector(CharPtr*, hint_ptr, &self->hints) {
+    free(*hint_ptr);
   }
-  free(self->hints);
+  Vector_CharPtr_uninit(&self->hints);
   free(self->c2g_command);
 }
 
@@ -114,9 +114,9 @@ LevelMetadata LevelMetadata_clone(const LevelMetadata* self) {
   new_meta.title = strdupz(self->title);
   new_meta.author = strdupz(self->author);
   new_meta.default_hint = strdupz(self->default_hint);
-  new_meta.hints = xmalloc(sizeof(char*) * new_meta.hints_n);
-  for (uint32_t idx = 0; idx < new_meta.hints_n; idx += 1) {
-    new_meta.hints[idx] = strdupz(self->hints[idx]);
+  new_meta.hints = Vector_CharPtr_clone(&self->hints);
+  for_vector(CharPtr*, hint, &new_meta.hints) {
+    *hint = strdupz(*hint);
   }
   return new_meta;
 }
@@ -137,7 +137,7 @@ Position Level_get_neighbor(Level* self, Position pos, Direction dir) {
   return Position_from_offset(position_offset, pitch);
 }
 
-bool Level_check_position_inbounds(Level* self,
+bool Level_check_position_inbounds(const Level* self,
                                    Position pos,
                                    Direction dir,
                                    bool wrap) {
@@ -171,8 +171,10 @@ void Level_init_basic(Level* self) {
   LevelMetadata_init(&self->metadata);
 }
 void Level_init_players(Level* self, uint32_t players_n) {
-  self->player_seats = calloc(players_n, sizeof(PlayerSeat));
-  self->players_n = players_n;
+  self->player_seats = Vector_PlayerSeat_init(players_n);
+  for (size_t idx = 0; idx < players_n; idx += 1) {
+    Vector_PlayerSeat_push(&self->player_seats, (PlayerSeat){});
+  }
 }
 void Level_init(Level* self,
                 uint8_t width,
@@ -198,16 +200,22 @@ void Level_uninit(Level* self) {
   free(self->map);
   LevelMetadata_uninit(&self->metadata);
   if (self->builtin_replay) {
-    free(self->builtin_replay->inputs);
+    Vector_PlayerInputs_uninit(&self->builtin_replay->inputs);
     free(self->builtin_replay);
   }
-  free(self->player_seats);
+  Vector_PlayerSeat_uninit(&self->player_seats);
+  for_vector(WireNetwork*, wire_network, &self->wire_networks) {
+    Vector_WireNetworkMember_uninit(&wire_network->members);
+    Vector_WireNetworkMember_uninit(&wire_network->emitters);
+  }
+  Vector_WireNetwork_uninit(&self->wire_networks);
+  Vector_Position_uninit(&self->wire_consumers);
 }
 size_t Level_total_size(const Level* self) {
   return sizeof(Level) +
          self->actors_allocated_n * (sizeof(Actor) + sizeof(Actor*)) +
          self->width * self->height * sizeof(Cell) +
-         self->players_n * sizeof(PlayerSeat);
+         self->player_seats.capacity * sizeof(PlayerSeat);
 }
 uint8_t Level_rng(Level* self) {
   int16_t n = (self->rng1 >> 2) - self->rng1;
@@ -290,19 +298,20 @@ Actor* Level_find_next_player(Level* self, Actor* player) {
 }
 
 PlayerSeat* Level_find_player_seat(Level* self, const Actor* player) {
-#if defined(__has_builtin) && __has_builtin(__builtin_expect_with_probability)
-  (void)__builtin_expect_with_probability(self->players_n == 1, true, .99);
-#endif
-  for (uint32_t idx = 0; idx < self->players_n; idx += 1) {
-    if (self->player_seats[idx].actor == player) {
-      return &self->player_seats[idx];
+  if (compiler_expect_prob(self->player_seats.length == 1, true, .99)) {
+    PlayerSeat* seat = &self->player_seats.items[0];
+    return seat->actor == player ? seat : NULL;
+  }
+  for_vector(PlayerSeat*, seat, &self->player_seats) {
+    if (seat->actor == player) {
+      return seat;
     }
   }
   return NULL;
 }
 
-PlayerSeat* Level_get_player_seat_n(Level* self, size_t idx) {
-  return &self->player_seats[idx];
+Vector_PlayerSeat* Level_get_player_seats_ptr(Level* self) {
+  return &self->player_seats;
 }
 
 Level* Level_clone(const Level* self) {
@@ -313,10 +322,7 @@ Level* Level_clone(const Level* self) {
   size_t map_size = self->width * self->height * sizeof(Cell);
   new_level->map = xmalloc(map_size);
   memcpy(new_level->map, self->map, map_size);
-  // `player_seats`
-  size_t seats_size = self->players_n * sizeof(PlayerSeat);
-  new_level->player_seats = xmalloc(seats_size);
-  memcpy(new_level->player_seats, self->player_seats, seats_size);
+  new_level->player_seats = Vector_PlayerSeat_clone(&self->player_seats);
   // `actors`
   new_level->actors = xmalloc(self->actors_allocated_n * sizeof(Actor*));
   for (size_t idx = 0; idx < new_level->actors_allocated_n; idx += 1) {
@@ -337,6 +343,12 @@ Level* Level_clone(const Level* self) {
     }
   }
   new_level->metadata = LevelMetadata_clone(&self->metadata);
+  new_level->wire_consumers = Vector_Position_clone(&self->wire_consumers);
+  new_level->wire_networks = Vector_WireNetwork_clone(&self->wire_networks);
+  for_vector(WireNetwork*, network, &new_level->wire_networks) {
+    network->members = Vector_WireNetworkMember_clone(&network->members);
+    network->emitters = Vector_WireNetworkMember_clone(&network->emitters);
+  }
   return new_level;
 }
 
@@ -428,7 +440,7 @@ Cell* Level_search_taxicab_at_dist(Level* self,
           return cell;
       }
       x += stage > 1 ? 1 : -1;
-      y += stage == 0 || stage == 3 ? 1 : -1;
+      y += stage == 0 || stage == 3 ? -1 : 1;
     }
   }
   return NULL;
@@ -455,12 +467,28 @@ BasicTile* Cell_get_layer(Cell* self, Layer layer) {
 Actor* Cell_get_actor(Cell* self) {
   return self->actor;
 }
-
 void Cell_set_actor(Cell* self, Actor* actor) {
   self->actor = actor;
 }
+uint8_t Cell_get_powered_wires(Cell* self) {
+  return self->powered_wires;
+}
+void Cell_set_powered_wires(Cell* self, uint8_t val) {
+  self->powered_wires = val;
+}
+bool Cell_get_is_wired(Cell* self) {
+  return self->is_wired;
+}
+void Cell_set_is_wired(Cell* self, bool val) {
+  self->is_wired = val;
+}
 
-Cell* BasicTile_get_cell(const BasicTile* tile, Layer layer) {
+Vector_PlayerInputs* Replay_get_inputs_ptr(Replay* self) {
+  return &self->inputs;
+}
+
+[[clang::always_inline]] Cell* BasicTile_get_cell(const BasicTile* tile,
+                                                  Layer layer) {
   assert(layer != LAYER_ACTOR);
   size_t offset;
   if (layer == LAYER_SPECIAL)
@@ -513,9 +541,12 @@ void BasicTile_transform_into(BasicTile* self, const TileType* new_type) {
 
 _libnotcc_accessors_Actor;
 
-bool Actor_is_moving(Actor* actor) {
+bool Actor_is_moving(const Actor* actor) {
   return actor->move_progress > 0;
 }
+
+bool Actor_is_gone(const Actor* actor){
+return !actor->type || has_flag(actor, ACTOR_FLAGS_ANIMATION);}
 
 Actor* Actor_new(Level* level,
                  const ActorType* type,
@@ -553,7 +584,6 @@ Actor* Actor_new(Level* level,
   NOTIFY_LAYER(_cell->item_mod, _func, _level __VA_OPT__(, ) __VA_ARGS__); \
   NOTIFY_ITEM_LAYER(_cell, _func, _level __VA_OPT__(, ) __VA_ARGS__);      \
   NOTIFY_LAYER(_cell->terrain, _func, _level __VA_OPT__(, ) __VA_ARGS__);
-
 void Actor_do_idle(Actor* self, Level* level) {
   Cell* cell = Level_get_cell(level, self->position);
   NOTIFY_ALL_LAYERS(cell, on_idle, level, self);
@@ -586,8 +616,7 @@ void Level_apply_tank_buttons(Level* self) {
 
 void Level_tick(Level* self) {
   // Clear all previously-released inputs
-  for (size_t idx = 0; idx < self->players_n; idx += 1) {
-    PlayerSeat* seat = &self->player_seats[idx];
+  for_vector(PlayerSeat*, seat, &self->player_seats) {
     seat->released_inputs = 0;
   }
   self->current_subtick += 1;
@@ -598,6 +627,7 @@ void Level_tick(Level* self) {
   if (self->time_left > 0 && !self->time_stopped) {
     self->time_left -= 1;
   }
+  Level_do_wire_notification(self);
   for (int32_t idx = self->actors_allocated_n - 1; idx >= 0; idx -= 1) {
     Actor* actor = self->actors[idx];
     if (actor->type == NULL)
@@ -606,7 +636,7 @@ void Level_tick(Level* self) {
   }
   for (int32_t idx = self->actors_allocated_n - 1; idx >= 0; idx -= 1) {
     Actor* actor = self->actors[idx];
-    if (actor->type == NULL || has_flag(actor, ACTOR_FLAGS_ANIMATION))
+    if (Actor_is_gone(actor))
       continue;
     if (Actor_is_moving(actor)) {
       Actor_do_cooldown(actor, self);
@@ -617,6 +647,7 @@ void Level_tick(Level* self) {
       Actor_do_idle(actor, self);
     }
   }
+  Level_do_wire_propagation(self);
   if (self->players_left == 0) {
     if (self->game_state == GAMESTATE_PLAYING && !self->time_stopped &&
         self->time_left > 0) {
@@ -659,6 +690,8 @@ void Animation_do_decision(Actor* self, Level* level) {
 }
 
 void Actor_do_decision(Actor* self, Level* level) {
+  self->pushing = false;
+  self->bonked = false;
   if (has_flag(self, ACTOR_FLAGS_ANIMATION)) {
     Animation_do_decision(self, level);
     return;
@@ -693,22 +726,23 @@ void Actor_do_decision(Actor* self, Level* level) {
     if (dir == DIRECTION_NONE)
       return;
     self->move_decision = dir;
-    if (Actor_check_collision(self, level, dir)) {
+    // XXX: Is the `dir` redirected by the collision check before it's set as
+    // the decision, or not? I can't come up with a way to check
+    if (Actor_check_collision(self, level, &dir)) {
       return;
     }
   }
 }
 
 void Actor_do_decided_move(Actor* self, Level* level) {
-  if (Actor_is_moving(self)) {
-    self->move_decision = DIRECTION_NONE;
+  if (self->move_decision == DIRECTION_NONE) {
+    self->pulled = false;
     return;
   }
-  if (self->move_decision == DIRECTION_NONE)
-    return;
   self->pending_decision = DIRECTION_NONE;
   self->pending_move_locked_in = false;
   Actor_move_to(self, level, self->move_decision);
+  self->pulled = false;
 }
 
 uint8_t Actor_get_move_speed(Actor* self, Level* level, Cell* cell) {
@@ -744,8 +778,10 @@ static void notify_actor_left(Actor* self,
 bool Actor_move_to(Actor* self, Level* level, Direction direction) {
   if (Actor_is_moving(self))
     return false;
+  if (has_flag(self, ACTOR_FLAGS_ANIMATION) || self->frozen)
+    return false;
+  bool can_move = Actor_check_collision(self, level, &direction);
   self->direction = direction;
-  bool can_move = Actor_check_collision(self, level, direction);
   self->bonked = !can_move;
   if (!can_move)
     return false;
@@ -758,6 +794,8 @@ bool Actor_move_to(Actor* self, Level* level, Direction direction) {
   self->sliding_state = SLIDING_NONE;
   self->move_progress = 1;
   self->move_length = Actor_get_move_speed(self, level, new_cell);
+  self->position = new_pos;
+  new_cell->actor = self;
   // Intentional ordering: don't report actors that are erased that were created
   // *due* to the actor leaving. This is how dynamite always works, so
   // generating a glitch every time a dynamite is dropped would be kinda dumb
@@ -770,10 +808,7 @@ bool Actor_move_to(Actor* self, Level* level, Direction direction) {
   if (new_cell->actor) {
     // TODO: Report despawn
   }
-  new_cell->actor = self;
   NOTIFY_ALL_LAYERS(new_cell, actor_joined, level, self, direction);
-
-  self->position = new_pos;
 
   return true;
 }
@@ -784,6 +819,8 @@ void Actor_enter_tile(Actor* self, Level* level) {
 };
 
 void Actor_do_cooldown(Actor* self, Level* level) {
+  self->move_decision = DIRECTION_NONE;
+  self->pulled = false;
   self->move_progress += 1;
   if (self->move_progress == self->move_length) {
     // FIXME: Is this needed also?????
@@ -796,51 +833,56 @@ void Actor_do_cooldown(Actor* self, Level* level) {
 }
 
 bool Actor_push_to(Actor* self, Level* level, Direction direction) {
-  // FIXME: Is this needed??? Please verify this ASAP
+ if(self->frozen) return false;
   if (self->pending_move_locked_in)
     return false;
   if (self->sliding_state) {
-    if (!self->pending_move_locked_in) {
-      self->pending_decision = self->move_decision = direction;
-    }
+    self->pending_decision = self->move_decision = direction;
     return false;
   }
-  if (Actor_is_moving(self) || !Actor_check_collision(self, level, direction)) {
+  // I don't think it matters if the `direction` is redirected here
+  if (Actor_is_moving(self) ||
+      !Actor_check_collision(self, level, &direction)) {
     return false;
   }
   Actor_move_to(self, level, direction);
   return true;
 }
 
-bool Actor_check_collision(Actor* self, Level* level, Direction direction) {
-  if (has_flag(self, ACTOR_FLAGS_ANIMATION) || self->frozen)
-    return false;
+bool Actor_check_collision(Actor* self, Level* level, Direction* direction) {
   assert(direction != DIRECTION_NONE);
   Cell* this_cell = Level_get_cell(level, self->position);
+  Direction redir_dir;
 #define CHECK_REDIRECT(layer)                                                  \
   if (this_cell->layer.type && this_cell->layer.type->redirect_exit) {         \
-    direction = this_cell->layer.type->redirect_exit(&this_cell->layer, level, \
-                                                     self, direction);         \
-    if (direction == DIRECTION_NONE)                                           \
+    redir_dir = this_cell->layer.type->redirect_exit(&this_cell->layer, level, \
+                                                     self, *direction);        \
+    if (redir_dir == DIRECTION_NONE) {                                         \
+      if (self->type->on_bonk) {                                               \
+        self->type->on_bonk(self, level, &this_cell->layer);                   \
+      };                                                                       \
       return false;                                                            \
+    };                                                                         \
+    *direction = redir_dir;                                                    \
   }
   CHECK_REDIRECT(special);
   CHECK_REDIRECT(item_mod);
   CHECK_REDIRECT(item);
   CHECK_REDIRECT(terrain);
 
-  if (!Level_check_position_inbounds(level, self->position, direction, false)) {
+  if (!Level_check_position_inbounds(level, self->position, *direction,
+                                     false)) {
     if (self->type->on_bonk) {
       self->type->on_bonk(self, level, NULL);
     }
     return false;
   }
-  Position new_pos = Level_get_neighbor(level, self->position, direction);
+  Position new_pos = Level_get_neighbor(level, self->position, *direction);
   Cell* cell = Level_get_cell(level, new_pos);
   // if `cell->actor != self`, we're a despawned actor trying to move
-#define CHECK_LAYER(layer)                                     \
-  if (cell->layer.type && self->type &&                        \
-      BasicTile_impedes(&cell->layer, level, self, direction)) \
+#define CHECK_LAYER(layer)                                      \
+  if (cell->layer.type && self->type &&                         \
+      BasicTile_impedes(&cell->layer, level, self, *direction)) \
     return false;
   CHECK_LAYER(special);
   CHECK_LAYER(item_mod);
@@ -853,9 +895,13 @@ bool Actor_check_collision(Actor* self, Level* level, Direction direction) {
       self->type->on_bump_actor(self, level, other);
     if (self->type && other->type && has_flag(self, ACTOR_FLAGS_CAN_PUSH) &&
         other->type->can_be_pushed &&
-        other->type->can_be_pushed(other, level, self, direction)) {
-      if (!Actor_push_to(other, level, direction))
+        other->type->can_be_pushed(other, level, self, *direction)) {
+      if (!Actor_push_to(other, level, *direction)) {
         return false;
+   } else {
+
+  self->pushing = true;
+   }
     } else if (other->type)
       return false;
   } else if (cell->item.type) {
@@ -863,33 +909,36 @@ bool Actor_check_collision(Actor* self, Level* level, Direction direction) {
     BasicTile* item = &cell->item;
     if (!item_mod->type || !item_mod->type->overrides_item_layer ||
         !item_mod->type->overrides_item_layer(item_mod, level, item)) {
-      if (BasicTile_impedes(item, level, self, direction)) {
+      if (BasicTile_impedes(item, level, self, *direction)) {
         return false;
       }
     }
   }
   if (has_item_counter(self->inventory, ITEM_INDEX_HOOK)) {
-    if (!Level_check_position_inbounds(level, self->position, back(direction),
+    if (!Level_check_position_inbounds(level, self->position, back(*direction),
                                        true))
       return true;
     Cell* back_tile = Level_get_cell(
-        level, Level_get_neighbor(level, self->position, back(direction)));
+        level, Level_get_neighbor(level, self->position, back(*direction)));
     Actor* pulled = back_tile->actor;
     if (!pulled)
       return true;
+    bool was_pulled = pulled->pulled;
+    pulled->pulled = true;
+    self->pulling = true;
     if (Actor_is_moving(pulled))
       return false;
-    // XXX: also is_pulled? maybe?
-    if (pulled->pending_move_locked_in)
-      return true;
+    // if (pulled->pending_move_locked_in && was_pulled)
+    //   return true;
     if (!has_flag(pulled, ACTOR_FLAGS_BLOCK) ||
         (pulled->type->can_be_pushed &&
-         !pulled->type->can_be_pushed(pulled, level, self, direction)))
+         !pulled->type->can_be_pushed(pulled, level, self, *direction)))
       return true;
-    pulled->direction = direction;
+    pulled->direction = *direction;
     if (pulled->frozen)
       return true;
-    pulled->pending_decision = direction;
+    pulled->pending_decision = *direction;
+    pulled->move_decision = *direction;
   }
   return true;
 #undef CHECK_REDIRECT
@@ -961,17 +1010,15 @@ Inventory* Actor_get_inventory_ptr(Actor* self) {
 }
 
 void Player_do_decision(Actor* self, Level* level) {
-  bool was_bonked = self->bonked;
-  if (Level_is_movement_subtick(level)) {
-    self->bonked = false;
-  }
   PlayerSeat* seat = Level_find_player_seat(level, self);
+
   bool can_move = seat != NULL && Level_is_movement_subtick(level) &&
                   (self->sliding_state == SLIDING_NONE ||
                    (self->sliding_state == SLIDING_WEAK &&
                     (self->custom_data & PLAYER_HAS_OVERRIDE) != 0));
+
   if (seat && Level_is_movement_subtick(level)) {
-    if (level->players_left > level->players_n &&
+    if (level->players_left > level->player_seats.length &&
         has_input(seat, PLAYER_INPUT_SWITCH_PLAYERS)) {
       seat->actor = Level_find_next_player(level, self);
       assert(seat->actor != NULL && seat->actor != self);
@@ -988,12 +1035,16 @@ void Player_do_decision(Actor* self, Level* level) {
       }
       seat->released_inputs |= PLAYER_INPUT_CYCLE_ITEMS;
     }
-    if (!level->metadata.cc1_boots && has_input(seat, PLAYER_INPUT_DROP_ITEM)) {
+    if (!level->metadata.cc1_boots && can_move &&
+        has_input(seat, PLAYER_INPUT_DROP_ITEM)) {
       Actor_drop_item(self, level);
       seat->released_inputs |= PLAYER_INPUT_DROP_ITEM;
     }
   }
   bool bonked = false;
+  if (Level_is_movement_subtick(level)) {
+    self->custom_data &= ~PLAYER_IS_VISUALLY_BONKING;
+  }
   // `dirs[0]` is the vertical direction (if set), `dirs[1]` is the horizontal
   // dir (if set)
   Direction dirs[2] = {DIRECTION_NONE, DIRECTION_NONE};
@@ -1015,14 +1066,17 @@ void Player_do_decision(Actor* self, Level* level) {
     }
   } else {
     // TODO: Report simul movement glitch
-    bool bonked = false;
+    Direction checked_dir;
     if (dirs[0] == DIRECTION_NONE || dirs[1] == DIRECTION_NONE) {
       Direction chosen_dir = dirs[0] == DIRECTION_NONE ? dirs[1] : dirs[0];
-      bonked = !Actor_check_collision(self, level, chosen_dir);
+      checked_dir = chosen_dir;
+      bonked = !Actor_check_collision(self, level, &checked_dir);
       self->move_decision = chosen_dir;
     } else {
-      bool can_vert = Actor_check_collision(self, level, dirs[0]);
-      bool can_horiz = Actor_check_collision(self, level, dirs[1]);
+      checked_dir = dirs[0];
+      bool can_vert = Actor_check_collision(self, level, &checked_dir);
+      checked_dir = dirs[1];
+      bool can_horiz = Actor_check_collision(self, level, &checked_dir);
       if (can_horiz && !can_vert) {
         self->move_decision = dirs[1];
       } else if (!can_horiz && can_vert) {
@@ -1047,12 +1101,14 @@ void Player_do_decision(Actor* self, Level* level) {
     self->custom_data |=
         bonked && self->sliding_state == SLIDING_WEAK ? PLAYER_HAS_OVERRIDE : 0;
     Cell* cell = Level_get_cell(level, self->position);
-    // Weird quirk: If you're on a force floor, you cannot bonk
-    if (bonked &&
-        !((cell->terrain.type->flags & ACTOR_FLAGS_FORCE_FLOOR) &&
-          !has_item_counter(self->inventory, ITEM_INDEX_FORCE_BOOTS))) {
-      self->bonked = true;
+
+    // Weird quirk: If you're on a force floor, you aren't visually bonking
+    if (has_flag(&cell->terrain, ACTOR_FLAGS_FORCE_FLOOR) &&
+        !has_item_counter(self->inventory, ITEM_INDEX_FORCE_BOOTS)) {
+      bonked = false;
     }
+    self->custom_data |=
+        bonked || self->pushing ? PLAYER_IS_VISUALLY_BONKING : 0;
   }
 #undef release_input
 }
@@ -1061,7 +1117,9 @@ Direction Player_get_last_decision(Actor* self) {
   if (self->move_decision == DIRECTION_NONE) {
     // We haven't decided yet, so return whatever direction we last had if we
     // are moving or were trying to move
-    return Actor_is_moving(self) || self->bonked || self->sliding_state
+    return Actor_is_moving(self) ||
+                   (self->custom_data & PLAYER_IS_VISUALLY_BONKING) ||
+                   self->sliding_state
                ? self->direction
                : DIRECTION_NONE;
   }
@@ -1089,14 +1147,14 @@ void Actor_place_item_on_tile(Actor* self,
   Cell* cell = Level_get_cell(level, self->position);
   BasicTile* item_layer = Cell_get_layer(cell, item_type->layer);
   // No item despawns here!
-  assert(item_layer->type == NULL);
+  assert(item_layer->type == NULL || item_layer->type == &FLOOR_tile);
   if (item_type == &BOWLING_BALL_tile) {
     // We already emitted a rolling bowling ball, so don't duplicate the item
     return;
   }
   // TODO: Game should crash if dropping actor is despawned
   item_layer->type = item_type;
-  item_layer->custom_data = 0;
+  // item_layer->custom_data = 0;
 }
 
 bool Actor_drop_item(Actor* self, Level* level) {
@@ -1117,8 +1175,9 @@ bool TileType_can_be_dropped(const TileType** self,
   if (*self == NULL)
     return true;
   Cell* cell = Level_get_cell(level, dropper->position);
-  if ((*self)->layer != layer_to_ignore &&
-      Cell_get_layer(cell, (*self)->layer)->type != NULL)
+  const TileType* occupant_type = Cell_get_layer(cell, (*self)->layer)->type;
+  if ((*self)->layer != layer_to_ignore && occupant_type != NULL &&
+      occupant_type != &FLOOR_tile)
     return false;
   // Yes, we have to place the rolling bowling ball *now*, while verifying if
   // the item can be dropped. If we have four items (last is bowling ball), and
@@ -1132,7 +1191,11 @@ bool TileType_can_be_dropped(const TileType** self,
     cell->actor = NULL;
     Actor* bowling_ball = Actor_new(level, &BOWLING_BALL_ROLLING_actor,
                                     dropper->position, dropper->direction);
+    // HACK: The JustStartedRolling Bit™ (for black buttons, see
+    // BUTTON_BLACK_actor_left)
+    bowling_ball->custom_data |= 1;
     bool moved = Actor_move_to(bowling_ball, level, bowling_ball->direction);
+    bowling_ball->custom_data &= ~1;
     if (!moved) {
       // Use ourselves up, even if failed
       Inventory_decrement_counter(&dropper->inventory, (*self)->item_index);
@@ -1168,17 +1231,12 @@ PositionF Actor_get_visual_position(const Actor* self) {
 }
 
 Actor* Level_find_closest_player(Level* self, Position from) {
-#if defined(__has_builtin) && __has_builtin(__builtin_expect_with_probability)
-  if (__builtin_expect_with_probability(self->players_n == 1, true, .99)) {
-#else
-  if (self->players_n == 1) {
-#endif
-    return self->player_seats[0].actor;
+  if (compiler_expect_prob(self->player_seats.length == 1, true, .99)) {
+    return self->player_seats.items[0].actor;
   }
   Actor* player = NULL;
   float best_dist = 0;
-  for (size_t idx = 0; idx < self->players_n; idx += 1) {
-    PlayerSeat* seat = &self->player_seats[idx];
+  for_vector(PlayerSeat*, seat, &self->player_seats) {
     if (!seat->actor)
       continue;
     PositionF pos = Actor_get_visual_position(seat->actor);

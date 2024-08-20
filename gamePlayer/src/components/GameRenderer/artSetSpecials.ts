@@ -51,8 +51,7 @@ export function registerSpecialFunction<
 function getPlayableState(actor: Actor): string {
 	// const inWater = actor.tile.findActor(actor => actor.hasTag("water"))
 	// if (inWater) return "water"
-	// TODO: extract isPushing and inWater from customData
-	if (actor.bonked) return "bump"
+	if (actor.customData & 0x2n) return "bump"
 	return "normal"
 }
 
@@ -161,63 +160,56 @@ registerStateFunction<BasicTile>("flameJet", actor =>
 	actor.customData ? "on" : "off"
 )
 //
-// interface FreeformWiresSpecialArt extends SpecialArt {
-// 	base: Frame
-// 	overlap: Frame
-// 	overlapCross: Frame
-// }
-//
-// registerSpecialFunction<Tile | [number, number] | Actor>(
-// 	"freeform wires",
-// 	function (ctx, actor, art) {
-// 		const spArt = art as FreeformWiresSpecialArt
-// 		const pos = Array.isArray(actor)
-// 			? actor
-// 			: actor instanceof Tile
-// 				? actor.position
-// 				: actor.tile.position
-// 		const wires = Array.isArray(actor) ? 0 : actor.wires
-// 		const wireTunnels = Array.isArray(actor) ? 0 : actor.wireTunnels
-// 		this.tileBlit(ctx, pos, spArt.base)
-// 		// If we don't have anything else to draw, don't draw the overlay
-// 		// TODO Wire tunnels are drawn on top of everything else, so maybe they
-// 		// don't cause the base to be drawn?
-// 		if (wires === 0 && wireTunnels === 0) {
-// 			return
-// 		}
-// 		if (actor instanceof Array || actor.level.hideWires) {
-// 			return
-// 		}
-// 		const crossWires =
-// 			(actor.wireOverlapMode === WireOverlapMode.CROSS &&
-// 				actor.wires === 0b1111) ||
-// 			actor.wireOverlapMode === WireOverlapMode.ALWAYS_CROSS
-// 		if (crossWires) {
-// 			this.drawWireBase(
-// 				ctx,
-// 				pos,
-// 				wires & 0b0101,
-// 				(actor.poweredWires & 0b0101) !== 0
-// 			)
-// 			this.drawWireBase(
-// 				ctx,
-// 				pos,
-// 				wires & 0b1010,
-// 				(actor.poweredWires & 0b1010) !== 0
-// 			)
-// 		} else {
-// 			this.drawWireBase(ctx, pos, wires, actor.poweredWires !== 0)
-// 		}
-// 		this.tileBlit(ctx, pos, crossWires ? spArt.overlapCross : spArt.overlap)
-// 		this.drawCompositionalSides(
-// 			ctx,
-// 			pos,
-// 			this.tileset.art.wireTunnel,
-// 			0.25,
-// 			bitfieldToDirs(wireTunnels)
-// 		)
-// 	}
-// )
+interface FreeformWiresSpecialArt extends SpecialArt {
+	base: Frame
+	overlap: Frame
+	overlapCross: Frame
+}
+
+registerSpecialFunction<BasicTile>(
+	"freeform wires",
+	function (ctx, level, tile, art) {
+		const spArt = art as FreeformWiresSpecialArt
+		const wires = tile.customData & 0x0fn
+		const wireTunnels = (tile.customData & 0xf0n) >> 4n
+		this.tileBlit(ctx, [0, 0], spArt.base)
+		// If we don't have anything else to draw, don't draw the overlay
+		// TODO: Wire tunnels are drawn on top of everything else, so maybe they
+		// don't cause the base to be drawn?
+		if (wires === 0n && wireTunnels === 0n) {
+			return
+		}
+		if (level.metadata.wiresHidden) {
+			return
+		}
+		const poweredWires = tile.getCell().poweredWires
+		const crossWires = wires === 0xfn
+		if (crossWires) {
+			this.drawWireBase(
+				ctx,
+				[0, 0],
+				wires & 0b0101n,
+				(poweredWires & 0b0101) !== 0
+			)
+			this.drawWireBase(
+				ctx,
+				[0, 0],
+				wires & 0b1010n,
+				(poweredWires & 0b1010) !== 0
+			)
+		} else {
+			this.drawWireBase(ctx, [0, 0], wires, poweredWires !== 0)
+		}
+		this.tileBlit(ctx, [0, 0], crossWires ? spArt.overlapCross : spArt.overlap)
+		this.drawCompositionalSides(
+			ctx,
+			[0, 0],
+			this.tileset.art.wireTunnel,
+			0.25,
+			wireTunnels
+		)
+	}
+)
 interface ArrowsSpecialArt extends SpecialArt {
 	UP: Frame
 	RIGHT: Frame
@@ -279,24 +271,21 @@ registerStateFunction<Actor>("holdWall", actor =>
 registerStateFunction<BasicTile>("trap", actor =>
 	actor.customData & 1n ? "open" : "closed"
 )
-// TODO: Red tp
-registerStateFunction<Actor>(
-	"teleportRed",
-	actor =>
-		// !actor.wired || actor.poweredWires !== 0 ? "on" : "off"
-		"on"
+registerStateFunction<BasicTile>("teleportRed", tile => {
+	const cell = tile.getCell()
+	return !(cell.isWired && tile.customData & 0xfn) || cell.poweredWires !== 0
+		? "on"
+		: "off"
+})
+registerStateFunction<BasicTile>("transmogrifier", tile => {
+	const cell = tile.getCell()
+	return !(cell.isWired && tile.customData & 0xfn) || cell.poweredWires !== 0
+		? "on"
+		: "off"
+})
+registerStateFunction<BasicTile>("toggleSwitch", actor =>
+	actor.customData & 0x10n ? "on" : "off"
 )
-//
-// // Note: We also check for `wires` here, unlike in the logic.
-// // This is intentional, this discrepency is also in CC2
-// TODO: transmog
-registerStateFunction<Actor>(
-	"transmogrifier",
-	actor =>
-		// actor.wires !== 0 && actor.wired && !actor.poweredWires ? "off" : "on"
-		"on"
-)
-// registerStateFunction<Actor>("toggleSwitch", actor => actor.customData)
 //
 interface StretchSpecialArt extends SpecialArt {
 	idle: Art
@@ -358,34 +347,63 @@ registerSpecialFunction<Actor>("stretch", function (ctx, _level, actor, art) {
 // 	this.tileBlit(ctx, pos, frame)
 // })
 //
-// interface RailroadSpecialArt extends SpecialArt {
-// 	toggleMark: Frame
-// 	wood: Record<string, Frame>
-// 	rail: Record<string, Frame>
-// 	toggleRail: Record<string, Frame>
-// }
-//
-// registerSpecialFunction<Railroad>("railroad", function (ctx, actor, art) {
-// 	const spArt = art as RailroadSpecialArt
-// 	const pos = actor.getVisualPosition()
-// 	for (const dir of actor.baseRedirects) {
-// 		this.tileBlit(ctx, pos, spArt.wood[dir])
-// 	}
-// 	for (const dir of actor.baseRedirects) {
-// 		if (actor.isSwitch) {
-// 			if (dir === actor.activeTrack) continue
-// 			this.tileBlit(ctx, pos, spArt.toggleRail[dir])
-// 		} else {
-// 			this.tileBlit(ctx, pos, spArt.rail[dir])
-// 		}
-// 	}
-// 	if (actor.isSwitch && actor.baseRedirects.includes(actor.activeTrack)) {
-// 		this.tileBlit(ctx, pos, spArt.rail[actor.activeTrack])
-// 	}
-// 	if (actor.isSwitch) {
-// 		this.tileBlit(ctx, pos, spArt.toggleMark)
-// 	}
-// })
+interface RailroadSpecialArt extends SpecialArt {
+	toggleMark: Frame
+	wood: Record<string, Frame>
+	rail: Record<string, Frame>
+	toggleRail: Record<string, Frame>
+}
+
+const RailroadFlags = {
+	TRACK_UR: 0x01n,
+	TRACK_RD: 0x02n,
+	TRACK_DL: 0x04n,
+	TRACK_LU: 0x08n,
+	TRACK_LR: 0x10n,
+	TRACK_UD: 0x20n,
+	TRACK_MASK: 0x3fn,
+	TRACK_SWITCH: 0x40n,
+	ACTIVE_TRACK_MASK: 0xf00n,
+	ENTERED_DIR_MASK: 0xf000n,
+}
+
+function* railroadTracks(customData: bigint) {
+	for (let trackIdx = 0n; trackIdx < 6n; trackIdx += 1n) {
+		if (customData & (1n << trackIdx)) yield trackIdx
+	}
+}
+
+registerSpecialFunction<BasicTile>(
+	"railroad",
+	function (ctx, _level, tile, art) {
+		const spArt = art as RailroadSpecialArt
+		const isSwitch = (tile.customData & RailroadFlags.TRACK_SWITCH) != 0n
+		const activeTrackIdx =
+			(tile.customData & RailroadFlags.ACTIVE_TRACK_MASK) >> 8n
+		const activeTrack = 1n << activeTrackIdx
+		for (const dir of railroadTracks(tile.customData)) {
+			this.tileBlit(ctx, [0, 0], spArt.wood[dir as unknown as number])
+		}
+		for (const dir of railroadTracks(tile.customData)) {
+			if (isSwitch) {
+				if (dir === activeTrackIdx) continue
+				this.tileBlit(ctx, [0, 0], spArt.toggleRail[dir as unknown as number])
+			} else {
+				this.tileBlit(ctx, [0, 0], spArt.rail[dir as unknown as number])
+			}
+		}
+		if (isSwitch && activeTrack & tile.customData) {
+			this.tileBlit(
+				ctx,
+				[0, 0],
+				spArt.rail[activeTrackIdx as unknown as number]
+			)
+		}
+		if (isSwitch) {
+			this.tileBlit(ctx, [0, 0], spArt.toggleMark)
+		}
+	}
+)
 //
 const roverEmulationPattern = [
 	"teethRed",
@@ -464,50 +482,126 @@ registerStateFunction<BasicTile>("greenBomb", actor =>
 // 	)
 // })
 //
-// interface LogicGateSpecialArt extends SpecialArt {
-// 	UP: Frame
-// 	RIGHT: Frame
-// 	DOWN: Frame
-// 	LEFT: Frame
-// }
-//
-// function rotateWires(wires: number, dir: Direction): number {
-// 	return ((wires << dir) | (wires >> (4 - dir))) & 0b1111
-// }
-//
-// registerSpecialFunction("logic gate", function (ctx, actor, art) {
-// 	if (actor.level.hideWires) {
-// 		this.drawFloor(ctx, actor.tile)
-// 		return
-// 	}
-// 	const spArt = art as LogicGateSpecialArt
-// 	const pos = actor.getVisualPosition()
-// 	const poweredWires = actor.wires & actor.poweredWires
-// 	// Figure out which wires correspond to the which gate parts.
-// 	const gateHead = rotateWires(0b0001, actor.direction)
-// 	const gateRight = rotateWires(0b0010, actor.direction)
-// 	const gateBack = rotateWires(0b0100, actor.direction)
-// 	const gateLeft = rotateWires(0b1000, actor.direction)
-//
-// 	// Blit left and right as if they are also connected to the back,
-// 	// to have the bends in some tilesets
-// 	// Draw the left side first, the right one has control over the middle
-// 	this.drawWireBase(
-// 		ctx,
-// 		pos,
-// 		gateLeft | gateBack,
-// 		(gateLeft & poweredWires) !== 0
-// 	)
-// 	this.drawWireBase(
-// 		ctx,
-// 		pos,
-// 		gateRight | gateBack,
-// 		(gateRight & poweredWires) !== 0
-// 	)
-//
-// 	// And last, draw the output
-// 	this.drawWireBase(ctx, pos, gateHead, (poweredWires & gateHead) !== 0)
-// 	// Now, just draw the base
-// 	this.tileBlit(ctx, pos, spArt[actorToDir(actor)])
-// })
-//
+type LogicGateArtEntry =
+	| {
+			type?: "normal" | "not"
+			UP: Frame
+			RIGHT: Frame
+			DOWN: Frame
+			LEFT: Frame
+	  }
+	| { type: "counter"; bottom: Frame; [arg: number]: Frame }
+
+interface LogicGateSpecialArt extends SpecialArt {
+	types: Record<string, LogicGateArtEntry>
+	base: Frame
+}
+
+// NOTE: This differs from the `tiles.c` implementation, left/right are mirrored here so that we don't have to mirror the logic gate direction separately
+function rotateWireBitsMirrored(bits: bigint, dir: Direction): bigint {
+	if (dir == Direction.UP) return bits
+	if (dir == Direction.LEFT)
+		return ((bits >> 1n) & 0b0111n) | ((bits << 3n) & 0b1000n)
+	if (dir == Direction.DOWN)
+		return ((bits >> 2n) & 0b0011n) | ((bits << 2n) & 0b1100n)
+	if (dir == Direction.RIGHT)
+		return ((bits << 1n) & 0b1110n) | ((bits >> 3n) & 0b0001n)
+	return 0n
+}
+
+function getLogicGateDirection(bits: bigint) {
+	const wireBits = bits & 0xfn
+	// Three-wire gates (AND, OR, XOR, NOR, latch, latch mirror)
+	if (wireBits == 0b1011n) return Direction.UP
+	if (wireBits == 0b0111n) return Direction.RIGHT
+	if (wireBits == 0b1110n) return Direction.DOWN
+	if (wireBits == 0b1101n) return Direction.LEFT
+	// Two-wire gate (NOT)
+	if (bits == 0b00101n) return Direction.UP
+	if (bits == 0b01010n) return Direction.RIGHT
+	if (bits == 0b10101n) return Direction.DOWN
+	if (bits == 0b11010n) return Direction.LEFT
+	// Four-wire gate (counter)
+	if (wireBits == 0b1111n) return Direction.UP
+	return Direction.NONE
+}
+function getLogicGateType(bits: bigint): string | null {
+	const wireBits = bits & 0xfn
+	if (wireBits == 0b1010n || wireBits == 0b0101n) return "not"
+	if (wireBits == 0b1111n) return "counter"
+	const specifier = (bits & 0x70n) >> 4n
+	const threeWireLogicGates = [
+		"or",
+		"and",
+		"nand",
+		"xor",
+		"latch",
+		"latchMirror",
+	]
+	const gate = threeWireLogicGates[Number(specifier)]
+	if (gate !== undefined) return gate
+	return null
+}
+
+registerSpecialFunction<BasicTile>(
+	"logic gate",
+	function (ctx, level, tile, art) {
+		const spArt = art as LogicGateSpecialArt
+		if (level.metadata.wiresHidden) {
+			this.tileBlit(ctx, [0, 0], spArt.base)
+			return
+		}
+		const gateType = getLogicGateType(tile.customData)
+		if (gateType === null) return
+
+		const direction = getLogicGateDirection(tile.customData)
+		const cell = tile.getCell()
+		const poweredWires = tile.customData & 0xfn & BigInt(cell.poweredWires)
+
+		const ent = spArt.types[gateType]
+
+		if (ent.type === "counter") {
+			this.drawWireBase(ctx, [0, 0], 0xfn, false)
+			this.drawWireBase(ctx, [0, 0], poweredWires, true)
+			this.tileBlit(ctx, [0, 0], ent.bottom)
+			const value = (tile.customData & 0xf0n) >> 4n
+			this.tileBlit(ctx, [0.125, 0], ent[Number(value)], [0.75, 1])
+			return
+		}
+
+		if (ent.type === "not") {
+			this.tileBlit(ctx, [0, 0], spArt.base)
+			this.drawWireBase(ctx, [0, 0], tile.customData & 0xfn, false)
+			this.drawWireBase(ctx, [0, 0], poweredWires, true)
+			this.tileBlit(ctx, [0, 0], ent[Direction[direction] as "UP"])
+			return
+		}
+
+		// Figure out which wires correspond to the which gate parts.
+		const gateHead = rotateWireBitsMirrored(0b0001n, direction)
+		const gateRight = rotateWireBitsMirrored(0b0010n, direction)
+		const gateBack = rotateWireBitsMirrored(0b0100n, direction)
+		const gateLeft = rotateWireBitsMirrored(0b1000n, direction)
+
+		// Blit left and right as if they are also connected to the back,
+		// to have the bends in some tilesets
+		// Draw the left side first, the right one has control over the middle
+		this.drawWireBase(
+			ctx,
+			[0, 0],
+			gateLeft | gateBack,
+			(gateLeft & poweredWires) !== 0n
+		)
+		this.drawWireBase(
+			ctx,
+			[0, 0],
+			gateRight | gateBack,
+			(gateRight & poweredWires) !== 0n
+		)
+
+		// And last, draw the output
+		this.drawWireBase(ctx, [0, 0], gateHead, (poweredWires & gateHead) !== 0n)
+		// Now, just draw the base
+		this.tileBlit(ctx, [0, 0], ent[Direction[direction] as "UP"])
+	}
+)

@@ -9,6 +9,7 @@ list(APPEND notcc_src
   src/c2m.c
   src/hash.c
   src/misc.c
+  src/wires.c
 )
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WebAssembly")

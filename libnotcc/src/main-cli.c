@@ -206,7 +206,7 @@ Result_Buffer Buffer_read_file(const char* path) {
 }
 
 void Level_verify(Level* self) {
-  PlayerSeat* seat = &self->player_seats[0];
+  PlayerSeat* seat = &self->player_seats.items[0];
   Replay* replay = self->builtin_replay;
   self->rng_blob = replay->rng_blob;
   self->rff_direction = replay->rff_direction;
@@ -216,11 +216,11 @@ void Level_verify(Level* self) {
   Level_tick(self);
   Level_tick(self);
   while (self->game_state == GAMESTATE_PLAYING && bonus_ticks > 0) {
-    if (self->current_tick >= replay->replay_length) {
+    if (self->current_tick >= replay->inputs.length) {
       bonus_ticks -= 1;
-      seat->inputs = replay->inputs[replay->replay_length - 1];
+      seat->inputs = replay->inputs.items[replay->inputs.length - 1];
     } else {
-      seat->inputs = replay->inputs[self->current_tick];
+      seat->inputs = replay->inputs.items[self->current_tick];
     }
     Level_tick(self);
     Level_tick(self);
@@ -439,19 +439,20 @@ int level_thread(void* globals_v) {
 #define MAX_THREADS_N 16
 #define REPORT_PROGRESS_EVERY 100
 
-const char* help_message =
+const char* const help_message =
     "notcc-cli - verify Chip's Challenge 2 level solutions\n"
-    "USAGE: notcc-cli [-vh] [-s syncfile.sync] [files or dirs ...]\n"
+    "USAGE: notcc-cli [-vh] [-s syncfile.sync] [-j <max_threads>] [files or "
+    "dirs ...]\n\n"
     "Given list of files and directories is recursively expanded and filtered "
     "for files ending in the C2M extension. By default, the built-in level "
-    "replays are verified.\n"
+    "replays are verified.\n\n"
     "A syncfile, if supplied, specifies the expected outcome for each "
     "solution. See the NotCC syncfiles directory for examples. By default, all "
     "levels are expected to succeed with no non-legal glitches.\n";
 
 int main(int argc, char* argv[]) {
   // argc = 2;
-  // argv = (char*[]){"", "/home/glander/CC2Sets/cc2/121-140/BmbMaze.C2M"};
+  // argv = (char*[]){"", "/home/glander/wired tp recorded.c2m"};
 #define error_and_exit(msg_alloc, msg) \
   do {                                 \
     fprintf(stderr, "%s\n", msg);      \
@@ -462,7 +463,8 @@ int main(int argc, char* argv[]) {
   int opt;
   bool verbose = false;
   char* syncfile_path = NULL;
-  while ((opt = getopt(argc, argv, "vhs:")) != -1) {
+  size_t max_threads = MAX_THREADS_N;
+  while ((opt = getopt(argc, argv, "vhs:j:")) != -1) {
     switch (opt) {
       case 'h':
         fputs(help_message, stdout);
@@ -473,6 +475,9 @@ int main(int argc, char* argv[]) {
         break;
       case 's':
         syncfile_path = strdupz(optarg);
+        break;
+      case 'j':
+        max_threads = atol(optarg);
         break;
       default:
         free(syncfile_path);
@@ -534,8 +539,7 @@ int main(int argc, char* argv[]) {
       .outcome_report_mtx = &outcome_report_mtx,
       .outcome_report_nonempty_cnd = &outcome_report_nonempty_cnd,
       .outcome_report_nonfull_cnd = &outcome_report_nonfull_cnd};
-  size_t thread_count =
-      list.files_n > MAX_THREADS_N ? MAX_THREADS_N : list.files_n;
+  size_t thread_count = list.files_n > max_threads ? max_threads : list.files_n;
   thrd_t* threads = xmalloc(sizeof(thrd_t) * thread_count);
   for (size_t idx = 0; idx < thread_count; idx += 1) {
     thrd_create(&threads[idx], level_thread, &globals);
@@ -562,8 +566,7 @@ int main(int argc, char* argv[]) {
     cnd_signal(&outcome_report_nonfull_cnd);
     mtx_unlock(&outcome_report_mtx);
     levels_verified_total += 1;
-    if (report.title == NULL) {
-      assert(report.outcome == OUTCOME_ERROR);
+    if (report.outcome == OUTCOME_ERROR && report.title == NULL) {
       assert(report.error_desc != NULL);
       printf(RED_ESCAPE "Reading error: %s\n" RESET_ESCAPE, report.error_desc);
       free(report.error_desc);

@@ -123,3 +123,31 @@ export class Struct {
 		getWasmReader().setInt32(this._ptr + offset, val, true)
 	}
 }
+
+export abstract class CVector<T> extends Struct {
+	get length(): number {
+		return wasmFuncs.Vector_any_get_length(this._ptr)
+	}
+	[idx: number]: T
+	constructor(_ptr: number) {
+		super(_ptr)
+		return new Proxy(this, {
+			get(target, p, receiver) {
+				if (typeof p === "symbol") return Reflect.get(target, p, receiver)
+				const pInt = parseInt(p)
+				if (isNaN(pInt) || pInt < 0 || pInt >= target.length)
+					return Reflect.get(target, p, receiver)
+				return target.instantiateItem(
+					wasmFuncs.Vector_any_get_ptr(target._ptr, target.getSize(), pInt)
+				)
+			},
+		})
+	}
+	abstract getSize(): number
+	abstract instantiateItem(ptr: number): T
+	*[Symbol.iterator]() {
+		for (let idx = 0; idx < this.length; idx += 1) {
+			yield this[idx]
+		}
+	}
+}

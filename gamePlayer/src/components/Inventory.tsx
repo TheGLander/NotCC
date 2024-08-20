@@ -20,11 +20,11 @@ export function Inventory(props: {
 
 		function drawFloor(x: number, y: number) {
 			// TODO Don't tie this to the default ArtSet
-			const floorFrame = props.tileset.art.artMap.floor as Frame
+			const floorFrame = props.tileset.art.artMap.floor as { base: Frame }
 			ctx!.drawImage(
 				props.tileset.image,
-				floorFrame[0] * sTileSize,
-				floorFrame[1] * sTileSize,
+				floorFrame.base[0] * sTileSize,
+				floorFrame.base[1] * sTileSize,
 				sTileSize,
 				sTileSize,
 				x * sTileSize,
@@ -68,7 +68,7 @@ export function Inventory(props: {
 		function drawItemTile(idx: number, item: TileType | null) {
 			drawFloor(idx, 0)
 			if (item) {
-				drawItem(item.name, idx, 0)
+				drawItem(item.name!, idx, 0)
 			}
 		}
 		drawItemTile(0, inv.item1)
