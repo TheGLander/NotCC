@@ -306,6 +306,8 @@ export function RealExaPlayerPage() {
 			playInputs: async repl => {
 				const ip = typeof repl.ip === "function" ? await repl.ip() : repl.ip
 				const model = makeModel(aLevel!, modelConfig!, ip)
+				// @ts-ignore Temporary
+				globalThis.NotCC.exa = { model }
 				setModel(model)
 				const UPDATE_PERIOD = 200
 				const toast: Toast = { title: "Importing route (0%)" }
@@ -399,13 +401,13 @@ export function RealExaPlayerPage() {
 				if (model?.level.gameState !== GameState.PLAYING) return
 				if (!model!.isCurrentlyAlignedToMove()) {
 					model!.redo()
-					render()
+					updateLevel()
 					return
 				}
 				const curTime = model.level.msecsPassed()
 				model!.addInput(inputRef.current)
 				checkForNonlegalGlitches(curTime)
-				render()
+				updateLevel()
 			} finally {
 				setInput(0)
 			}

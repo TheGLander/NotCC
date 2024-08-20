@@ -316,6 +316,8 @@ export function DumbLevelPlayer(props: {
 		setAttempt(null)
 		setReplay(null)
 		const level = props.level.initLevel()
+		// @ts-ignore
+		globalThis.NotCC.player = { level }
 		setLevel(level)
 		// level.sfxManager = sfx
 		setPlayerState("pregame")
@@ -333,7 +335,9 @@ export function DumbLevelPlayer(props: {
 		timeLeftRef.current!.innerText = `${Math.ceil(level.timeLeft / 60)}s`
 		chipsLeftRef.current!.innerText = level.chipsLeft.toString()
 		bonusPointsRef.current!.innerText = `${level.bonusPoints}pts`
-		hintRef.current!.innerText = level.getHint() ?? ""
+		if (hintRef.current) {
+			hintRef.current.innerText = level.getHint() ?? ""
+		}
 	}, [level])
 	useLayoutEffect(() => {
 		updateLevelMetrics()
@@ -556,7 +560,8 @@ export function DumbLevelPlayer(props: {
 				if (typeof repl.ip === "function") {
 					repl.ip = await repl.ip()
 				}
-				resetLevel()
+				const level = resetLevel()
+				repl.ip.setupLevel(level)
 				setReplay(repl as SimpleSidebarReplayable)
 				setPlayerState("play")
 			},
