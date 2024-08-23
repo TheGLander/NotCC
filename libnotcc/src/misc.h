@@ -52,7 +52,8 @@ void* xrealloc(void* old_ptr, size_t size) attr_alloc_size((2));
     Vector_##T new_self = {.length = self->length,                          \
                            .capacity = self->capacity};                     \
     new_self.items = xmalloc(new_self.capacity * sizeof(T));                \
-    memcpy(new_self.items, self->items, new_self.capacity * sizeof(T));     \
+    if (self->items != NULL) {\
+    memcpy(new_self.items, self->items, new_self.capacity * sizeof(T));    } \
     return new_self;                                                        \
   };                                                                        \
   MOD void Vector_##T##_push(Vector_##T* self, T item) {                    \
@@ -90,6 +91,7 @@ void* xrealloc(void* old_ptr, size_t size) attr_alloc_size((2));
   };                                                                        \
   MOD void Vector_##T##_sort(Vector_##T* self,                              \
                              int (*comp)(const void*, const void*)) {       \
+  if(self->length < 2 || self->items == NULL) return;\
     qsort(self->items, self->length, sizeof(T), comp);                      \
   };                                                                        \
   MOD T* Vector_##T##_search(const Vector_##T* self,                        \
@@ -102,6 +104,7 @@ void* xrealloc(void* old_ptr, size_t size) attr_alloc_size((2));
   };                                                                        \
   MOD T* Vector_##T##_binary_search(                                        \
       const Vector_##T* self, int8_t (*comp)(void*, const T*), void* ctx) { \
+  if(self->items == NULL) return NULL;\
     size_t left_idx = 0;                                                    \
     size_t right_idx = self->length;                                        \
     while (left_idx != right_idx) {                                         \
@@ -119,8 +122,5 @@ void* xrealloc(void* old_ptr, size_t size) attr_alloc_size((2));
   };
 
 #define for_vector(type_ptr, var, vec)  \
-  for (type_ptr var = &(vec)->items[0]; \
-       var - &(vec)->items[0] < (vec)->length; var += 1)
-#define for_vector_reverse(type_ptr, var, vec)          \
-  for (type_ptr var = &(vec)->items[(vec)->length - 1]; \
-       var - &(vec)->items[0] >= 0; var -= 1)
+  for (type_ptr var = (vec)->items == NULL ? NULL : &(vec)->items[0]; \
+       var != NULL && var - &(vec)->items[0] < (vec)->length; var += 1)

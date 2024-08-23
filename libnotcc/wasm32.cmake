@@ -5,8 +5,9 @@ if (CMAKE_TOOLCHAIN_FILE)
 endif()
 
 # which compilers to use for C and C++
-set(CMAKE_C_COMPILER clang -target wasm32 --sysroot=${CMAKE_CURRENT_LIST_DIR}/wasm-std)
-add_link_options(-fuse-ld=${CMAKE_CURRENT_LIST_DIR}/sane-ld.py)
+set(CMAKE_C_COMPILER clang -target wasm32 -nostdlib --sysroot=${CMAKE_CURRENT_LIST_DIR}/wasm-std)
+add_link_options(-fuse-ld=${CMAKE_CURRENT_LIST_DIR}/wasm-remove-shared-ld.sh)
+add_link_options(-Wl,--no-entry,--export-all)
 
 # adjust the default behavior of the FIND_XXX() commands:
 # search programs in the host environment

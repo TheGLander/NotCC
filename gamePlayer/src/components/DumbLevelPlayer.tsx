@@ -109,6 +109,7 @@ type PlayerState =
 	| "win"
 	| "gz"
 	| "nonlegal"
+	| "crash"
 
 type CoverButton = [string, null | (() => void)]
 
@@ -393,6 +394,8 @@ export function DumbLevelPlayer(props: {
 				setPlayerState("dead")
 			} else if (level.gameState === GameState.TIMEOUT) {
 				setPlayerState("timeout")
+			} else if (level.gameState === GameState.CRASH) {
+				setPlayerState("crash")
 			}
 		}
 	}, [level, inputMan, submitLevelAttempt, playerState, attempt])
@@ -547,6 +550,8 @@ export function DumbLevelPlayer(props: {
 		cover = <PauseCover onUnpause={() => setPlayerState("play")} />
 	} else if (playerState === "nonlegal") {
 		cover = <NonlegalCover glitch={caughtGlitch!} onRestart={resetLevel} />
+	} else if (playerState === "crash") {
+		cover = <div>whoops</div>
 	} else {
 		cover = null
 	}

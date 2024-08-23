@@ -75,4 +75,8 @@ typedef struct Level {
 typedef struct Replay {
   _libnotcc_accessors_Replay
 } Replay;
+
+typedef struct Glitch {
+  _libnotcc_accessors_Glitch
+} Glitch;
 #endif

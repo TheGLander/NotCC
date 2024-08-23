@@ -8,6 +8,10 @@
 // Terrain
 //
 
+int8_t compare_wire_membs_in_reading_order_unconst(void* ctx,const WireNetworkMember* val) {
+ return compare_wire_membs_in_reading_order(ctx,val);
+}
+
 static WireNetwork* tile_find_network(Level* level,
                                       Position pos,
                                       uint8_t wires,
@@ -15,9 +19,7 @@ static WireNetwork* tile_find_network(Level* level,
   for_vector(WireNetwork*, network, &level->wire_networks) {
     WireNetworkMember* found_memb = Vector_WireNetworkMember_binary_search(
         &network->members,
-        // Have to remove `const` from the `ctx` argument. Why??
-        (int8_t(*)(void*, const WireNetworkMember*))
-            compare_wire_membs_in_reading_order,
+            compare_wire_membs_in_reading_order_unconst,
         (void*)&pos);
     if (!found_memb)
       continue;
@@ -240,7 +242,8 @@ static void force_on_idle(BasicTile* self,
                           Level* level,
                           Actor* actor,
                           Direction (*get_dir)(BasicTile* self, Level* level)) {
- if(Actor_is_gone(actor))return;
+  if (Actor_is_gone(actor))
+    return;
   if (actor->bonked) {
     Actor_enter_tile(actor, level);
   }
@@ -307,6 +310,8 @@ static void WATER_actor_completely_joined(BasicTile* self,
   if (actor->type == &GLIDER_actor ||
       has_item_counter(actor->inventory, ITEM_INDEX_WATER_BOOTS))
     return;
+  if (is_ghost(actor))
+    return;
   if (actor->type == &DIRT_BLOCK_actor) {
     BasicTile_transform_into(self, &DIRT_tile);
   }
@@ -362,19 +367,21 @@ const TileType FIRE_tile = {
     .actor_completely_joined = FIRE_actor_completely_joined,
 };
 
-// FLAME_JET: `custom_data` indicates if the jet is on
+// FLAME_JET: lowest bit of `custom_data` indicates if the jet is on
 
 static void flip_state_on_wire_change(BasicTile* self,
                                       Level* level,
                                       bool _real) {
-  self->custom_data = !self->custom_data;
+  bool was_on = self->custom_data & 1;
+  self->custom_data &= ~1;
+  self->custom_data |= was_on ? 0 : 1;
 }
 
 static void FLAME_JET_actor_idle(BasicTile* self, Level* level, Actor* actor) {
   if (has_item_counter(actor->inventory, ITEM_INDEX_FIRE_BOOTS) ||
       actor->type == &FIREBALL_actor || actor->type == &DIRT_BLOCK_actor)
     return;
-  if (!self->custom_data)
+  if (!(self->custom_data & 1))
     return;
   Actor_destroy(actor, level, &EXPLOSION_actor);
 }
@@ -557,8 +564,7 @@ static bool blue_tp_is_target_in_an_earlier_network_than_this_pos(
     // property holds regardless of us sorting it
     WireNetworkMember* found_memb = Vector_WireNetworkMember_binary_search(
         &network->members,
-        (int8_t(*)(void*, const WireNetworkMember*))
-            compare_wire_membs_in_reading_order,
+            compare_wire_membs_in_reading_order_unconst,
         (void*)&target_pos);
     if (found_memb)
       return true;
@@ -709,25 +715,52 @@ static void blue_tp_do_unwired_tp(BasicTile* self, Level* level, Actor* actor) {
   Cell* new_cell = this_cell;
   Position this_pos = Level_pos_from_cell(level, new_cell);
   Cell* last_cell = new_cell;
+  Position last_unwired_pos = this_pos;
+  Position last_unwired_prewrapped_pos;
+  bool found_wrap_pos = false;
+  bool crash_if_tp_into_wired = false;
   while (true) {
     new_cell = Level_search_reading_order(
         level, new_cell, true, search_for_type, (void*)&TELEPORT_BLUE_tile);
     // No other teleports (left) in the level, nothing to do here
     if (new_cell == NULL)
       return;
+    Position new_pos = Level_pos_from_cell(level, new_cell);
+    if (!found_wrap_pos) {
+      if (compare_pos_in_reading_order(&new_pos, &last_unwired_pos) > 0) {
+        last_unwired_prewrapped_pos = last_unwired_pos;
+        found_wrap_pos = true;
+        crash_if_tp_into_wired = true;
+      }
+   if(!new_cell->is_wired) {
+      last_unwired_pos = new_pos;
+   }
+    }
     // We're back where we started, give up
     if (new_cell == this_cell)
       break;
-    Position new_pos = Level_pos_from_cell(level, new_cell);
     BasicTile* teleport = &new_cell->terrain;
     compiler_expect(teleport->type == &TELEPORT_BLUE_tile, true);
     // Ignore teleports which are already busy with an actor on top of them
     if (wtd_is_busy(teleport, level))
       continue;
-    if (new_cell->is_wired &&
-        blue_tp_is_target_in_an_earlier_network_than_this_pos(level, this_pos,
-                                                              new_pos))
-      continue;
+    if (new_cell->is_wired) {
+      if (!crash_if_tp_into_wired)
+        continue;
+      crash_if_tp_into_wired = false;
+      if (blue_tp_is_target_in_an_earlier_network_than_this_pos(
+              level, last_unwired_prewrapped_pos, new_pos)) {
+        crash_if_tp_into_wired = true;
+        continue;
+      }
+      // Very dumb behavior in CC2 here, just crash.
+      Level_add_glitch(
+          level,
+          (Glitch){.glitch_kind = GLITCH_TYPE_BLUE_TELEPORT_INFINITE_LOOP,
+                   .location = new_pos});
+      return;
+    }
+    crash_if_tp_into_wired = false;
     // Move the actor to the next potential tile
     compiler_expect(last_cell->terrain.type == &TELEPORT_BLUE_tile, true);
     wtd_remove_actor(&last_cell->terrain, level, actor);
@@ -1044,6 +1077,10 @@ static void CLONE_MACHINE_init(BasicTile* self, Level* level, Cell* cell) {
     clone_machine_control_actor(self, level, cell->actor);
   }
 }
+static bool clone_machine_try_dir(Actor* actor, Level* level, Direction dir) {
+  return Actor_check_collision(actor, level, &dir) &&
+         Actor_move_to(actor, level, dir);
+}
 static void clone_machine_trigger(BasicTile* self,
                                   Level* level,
                                   bool try_all_dirs) {
@@ -1052,6 +1089,8 @@ static void clone_machine_trigger(BasicTile* self,
   Actor* actor = BasicTile_get_cell(self, LAYER_TERRAIN)->actor;
   // Someone triggered an empty clone machine
   if (actor == NULL)
+    return;
+  if (Actor_is_moving(actor))
     return;
   actor->frozen = false;
   Direction og_actor_dir = actor->direction;
@@ -1063,14 +1102,14 @@ static void clone_machine_trigger(BasicTile* self,
   new_actor = Actor_new(level, actor->type, this_pos, actor->direction);
 
   actor->sliding_state = SLIDING_STRONG;
-  if (Actor_move_to(actor, level, og_actor_dir)) {
+  if (clone_machine_try_dir(actor, level, og_actor_dir)) {
     release_actor()
   } else if (try_all_dirs) {
-    if (Actor_move_to(actor, level, right(og_actor_dir))) {
+    if (clone_machine_try_dir(actor, level, right(og_actor_dir))) {
       release_actor()
-    } else if (Actor_move_to(actor, level, back(og_actor_dir))) {
+    } else if (clone_machine_try_dir(actor, level, back(og_actor_dir))) {
       release_actor()
-    } else if (Actor_move_to(actor, level, left(og_actor_dir))) {
+    } else if (clone_machine_try_dir(actor, level, left(og_actor_dir))) {
       release_actor()
     } else {
       actor->direction = og_actor_dir;
@@ -1308,10 +1347,10 @@ enum { BUTTON_PURPLE_SHOULD_POWER = 0b10000 };
 
 // BUTTON_PURPLE: lowest four bits indicate wires, 5th bit indicates if there
 // was an actor on us this subtick
-void BUTTON_PURPLE_on_idle(BasicTile* self, Level* level, Actor* actor) {
+static void BUTTON_PURPLE_on_idle(BasicTile* self, Level* level, Actor* actor) {
   self->custom_data |= BUTTON_PURPLE_SHOULD_POWER;
 }
-uint8_t BUTTON_PURPLE_give_power(BasicTile* self, Level* level) {
+static uint8_t BUTTON_PURPLE_give_power(BasicTile* self, Level* level) {
   bool should_power = self->custom_data & BUTTON_PURPLE_SHOULD_POWER;
   self->custom_data &= ~BUTTON_PURPLE_SHOULD_POWER;
   return should_power ? 0xf : 0;
@@ -1709,8 +1748,8 @@ const TileType TRANSMOGRIFIER_tile = {
 // RAILROAD: `custom_data` indicates-- Oh boy. Just go check tiles.h for the
 // RAILROAD_* enum
 static void RAILROAD_actor_completely_joined(BasicTile* self,
-                                  Level* level,
-                                  Actor* actor) {
+                                             Level* level,
+                                             Actor* actor) {
   self->custom_data = (self->custom_data & ~RAILROAD_ENTERED_DIR_MASK) |
                       (dir_to_cc2(actor->direction) << 12);
 }
@@ -1837,14 +1876,15 @@ static void RAILROAD_actor_left(BasicTile* self,
   }
 }
 
-const TileType RAILROAD_tile = {.name = "railroad",
-                                .layer = LAYER_TERRAIN,
-                                .wire_type = WIRES_READ,
-                                .on_wire_high = RAILROAD_on_wire_high,
-                                .actor_completely_joined = RAILROAD_actor_completely_joined,
-                                .impedes = RAILROAD_impedes,
-                                .redirect_exit = RAILROAD_redirect_exit,
-                                .actor_left = RAILROAD_actor_left};
+const TileType RAILROAD_tile = {
+    .name = "railroad",
+    .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_READ,
+    .on_wire_high = RAILROAD_on_wire_high,
+    .actor_completely_joined = RAILROAD_actor_completely_joined,
+    .impedes = RAILROAD_impedes,
+    .redirect_exit = RAILROAD_redirect_exit,
+    .actor_left = RAILROAD_actor_left};
 
 enum { LOGIC_GATE_STATE_BITMASK = 0x7ff };
 
@@ -2273,7 +2313,8 @@ static bool cc2_block_can_be_pushed(Actor* self,
 
 static void ICE_BLOCK_on_bumped_by(Actor* self, Level* level, Actor* other) {
   Cell* cell = Level_get_cell(level, self->position);
-  if (other->type == &FIREBALL_actor && (cell->terrain.type == &FLOOR_tile || cell->terrain.type == &WATER_tile)) {
+  if (other->type == &FIREBALL_actor && (cell->terrain.type == &FLOOR_tile ||
+                                         cell->terrain.type == &WATER_tile)) {
     BasicTile_transform_into(&cell->terrain, &WATER_tile);
     Actor_destroy(self, level, &SPLASH_actor);
   }
@@ -2434,10 +2475,9 @@ static void DYNAMITE_LIT_decide_movement(Actor* self,
                                          Direction _directions[4]) {
   // Weird dynamite behavior: always try to respawn ourselves.
   Cell* cell = Level_get_cell(level, self->position);
-  // TODO: Report despawn of other actor
-  // Also: does this happen before or after the explosion of other tiles? (could
+  Cell_place_actor(cell, level, self);
+  // XXX: does this happen before or after the explosion of other tiles? (could
   // potentially affect what happens to a lit dynamite with 0 cooldown)
-  cell->actor = self;
   self->custom_data -= 1;
   // # 3 3 3 #
   // 3 2 1 2 3

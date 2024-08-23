@@ -214,6 +214,7 @@ export enum GameState {
 	DEATH,
 	TIMEOUT,
 	WON,
+	CRASH,
 }
 
 export class CResult extends Struct {

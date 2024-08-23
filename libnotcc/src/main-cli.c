@@ -12,7 +12,6 @@
 #include "c2m.h"
 #include "logic.h"
 #include "stdbool.h"
-#include "tiles.h"
 
 typedef enum Outcome {
   OUTCOME_SUCCESS = 0,
@@ -26,11 +25,12 @@ const char* outcome_names[] = {"success", "badInput", "noInput", "error"};
 #define GREEN_ESCAPE "\x1b[92m"
 #define CYAN_ESCAPE "\x1b[36m"
 #define RESET_ESCAPE "\x1b[0m"
+#define CLEAR_LINES_ESCAPE(n) "\x1b[" #n "F\x1b[2K"
 
 typedef struct SyncfileEntry {
   char* level_name;
   Outcome expected_outcome;
-  // TODO: Glitches
+  Vector_Glitch expected_glitches;
 } SyncfileEntry;
 
 typedef struct Syncfile {
@@ -52,6 +52,7 @@ void Syncfile_free(Syncfile* self) {
   free(self->default_entry.level_name);
   for (size_t idx = 0; idx < self->entries_len; idx += 1) {
     free(self->entries[idx].level_name);
+    Vector_Glitch_uninit(&self->entries[idx].expected_glitches);
   }
   free(self->entries);
   free(self);
@@ -79,15 +80,66 @@ int match_outcome_str(const char* str) {
 typedef Syncfile* SyncfilePtr;
 DEFINE_RESULT(SyncfilePtr);
 
+DEFINE_RESULT(Glitch);
+
+typedef struct GlitchKindNameEnt {
+  const char* key;
+  GlitchKind val;
+} GlitchKindNameEnt;
+
+static const GlitchKindNameEnt glitch_kind_names[] = {
+    {"DESPAWN", GLITCH_TYPE_DESPAWN},
+    {"SIMULTANEOUS_CHARACTER_MOVEMENT",
+     GLITCH_TYPE_SIMULTANEOUS_CHARACTER_MOVEMENT},
+    {"DYNAMITE_EXPLOSION_SNEAKING", GLITCH_TYPE_DYNAMITE_EXPLOSION_SNEAKING},
+    {"DROP_BY_DESPAWNED", GLITCH_TYPE_DROP_BY_DESPAWNED},
+    {"BLUE_TELEPORT_INFINITE_LOOP", GLITCH_TYPE_BLUE_TELEPORT_INFINITE_LOOP}};
+
+Result_Glitch parse_glitch_str(const char* str) {
+  Result_Glitch res;
+  Glitch glitch = {};
+  int x;
+  int y;
+  char glitch_kind_str[51];
+  char glitch_specifier_str[51];
+  int scanf_ret = sscanf(str, " (%d, %d) %50s %50s", &x, &y, glitch_kind_str,
+                         glitch_specifier_str);
+  if (scanf_ret < 3)
+    res_throws("Failed to read glitch string");
+  glitch.location = (Position){x, y};
+  for (size_t idx = 0; idx < lengthof(glitch_kind_names); idx += 1) {
+    GlitchKindNameEnt ent = glitch_kind_names[idx];
+    if (!strcmp(glitch_kind_str, ent.key)) {
+      glitch.glitch_kind = ent.val;
+      break;
+    }
+  }
+  if (glitch.glitch_kind == GLITCH_TYPE_INVALID)
+    res_throwf("Unknown glitch type \"%s\"", glitch_kind_str);
+  if (glitch.glitch_kind == GLITCH_TYPE_DESPAWN) {
+    if (scanf_ret != 4)
+      res_throws("Despawn glitches need a specifier");
+    if (!strcmp(glitch_specifier_str, "replace"))
+      glitch.specifier = GLITCH_SPECIFIER_DESPAWN_REPLACE;
+    else if (!strcmp(glitch_specifier_str, "delete"))
+      glitch.specifier = GLITCH_SPECIFIER_DESPAWN_REMOVE;
+    else
+      res_throws("Invalid despawn specifier");
+  }
+
+  res_return(glitch);
+}
+
 Result_SyncfilePtr Syncfile_parse(const char* str) {
   // A somewhat hacky ini parser. Should be fine?
   Syncfile* sync = xmalloc(sizeof(Syncfile));
   const char* str_start = str;
 #define str_pos (size_t)(str - str_start)
-  sync->default_entry =
-      (SyncfileEntry){.level_name = NULL, .expected_outcome = OUTCOME_SUCCESS};
-  sync->entries = NULL;
-  sync->entries_len = 0;
+  *sync = (Syncfile){
+      .default_entry = (SyncfileEntry){.level_name = NULL,
+                                       .expected_outcome = OUTCOME_SUCCESS},
+      .entries = NULL,
+      .entries_len = 0};
   Result_SyncfilePtr res;
 #define skip_str_while(expr, fail_on_null)  \
   while ((expr) && *str != '\0')            \
@@ -123,8 +175,10 @@ Result_SyncfilePtr Syncfile_parse(const char* str) {
         sync->entries =
             xrealloc(sync->entries, sync->entries_len * sizeof(SyncfileEntry));
         current_entry = &sync->entries[sync->entries_len - 1];
-        current_entry->level_name = capture_res;
-        current_entry->expected_outcome = OUTCOME_SUCCESS;
+        *current_entry = (SyncfileEntry){
+            .level_name = capture_res,
+            .expected_outcome = OUTCOME_SUCCESS,
+        };
       }
       skip_str_while(*str != '\n', false);
     } else if (isalnum(*str)) {
@@ -161,8 +215,17 @@ Result_SyncfilePtr Syncfile_parse(const char* str) {
         current_entry->expected_outcome = outcome;
       } else if (!strcmp(key, "glitches")) {
         free(key);
+        Result_Glitch glitch_res = parse_glitch_str(val);
+        if (!glitch_res.success) {
+          Syncfile_free(sync);
+          char* err = stringf("Invalid glitch string \"%s\" - %s", val,
+                              glitch_res.error);
+          free(val);
+          free(glitch_res.error);
+          res_throwr(err);
+        }
+        Vector_Glitch_push(&current_entry->expected_glitches, glitch_res.value);
         free(val);
-        // TODO: Glitches
       } else {
         free(val);
         char* err = stringf("Unexpected key \"%s\"", key);
@@ -223,8 +286,8 @@ void Level_verify(Level* self) {
       seat->inputs = replay->inputs.items[self->current_tick];
     }
     Level_tick(self);
-    Level_tick(self);
-    Level_tick(self);
+   	Level_tick(self);
+   	Level_tick(self);
   }
 }
 
@@ -340,7 +403,7 @@ typedef struct OutcomeReport {
   char* title;
   Outcome outcome;
   char* error_desc;
-  // TODO: Glitches
+  Vector_Glitch glitches;
 } OutcomeReport;
 
 typedef struct ThreadGlobals {
@@ -391,6 +454,7 @@ OutcomeReport verify_level(const char* file_path) {
     return report;
   }
   Level_verify(level);
+  report.glitches = Vector_Glitch_clone(&level->glitches);
   if (level->game_state == GAMESTATE_WON) {
     report.outcome = OUTCOME_SUCCESS;
   } else if (level->game_state == GAMESTATE_PLAYING) {
@@ -401,6 +465,25 @@ OutcomeReport verify_level(const char* file_path) {
   Level_uninit(level);
   free(level);
   return report;
+}
+
+bool glitch_vectors_equal(const Vector_Glitch* restrict left,
+                          const Vector_Glitch* restrict right) {
+  if (left->length != right->length)
+    return false;
+  for (size_t idx = 0; idx < left->length; idx += 1) {
+    Glitch* restrict left_g = &left->items[idx];
+    Glitch* restrict right_g = &right->items[idx];
+    if (left_g->glitch_kind != right_g->glitch_kind)
+      return false;
+    // Ignore `happens_at`, since it isn't specified in syncfiles
+    if (left_g->location.x != right_g->location.x ||
+        left_g->location.y != right_g->location.y)
+      return false;
+    if (left_g->specifier != right_g->specifier)
+      return false;
+  }
+  return true;
 }
 
 int level_thread(void* globals_v) {
@@ -437,7 +520,6 @@ int level_thread(void* globals_v) {
 }
 
 #define MAX_THREADS_N 16
-#define REPORT_PROGRESS_EVERY 100
 
 const char* const help_message =
     "notcc-cli - verify Chip's Challenge 2 level solutions\n"
@@ -449,6 +531,71 @@ const char* const help_message =
     "A syncfile, if supplied, specifies the expected outcome for each "
     "solution. See the NotCC syncfiles directory for examples. By default, all "
     "levels are expected to succeed with no non-legal glitches.\n";
+
+void complain_about_wrong_outcome(const OutcomeReport* report,
+                                  Outcome expected_outcome) {
+  char* outcome_str;
+  if (report->outcome == OUTCOME_ERROR) {
+    assert(report->error_desc != NULL);
+    outcome_str =
+        stringf("%s (%s)", outcome_names[report->outcome], report->error_desc);
+    free(report->error_desc);
+  } else {
+    assert(report->error_desc == NULL);
+    // We don't ever modify this if `report.outcome != OUTCOME_ERROR`, so
+    // discarding `const` is fine here
+    outcome_str = (char*)outcome_names[report->outcome];
+  }
+  printf(RED_ESCAPE "%s - expected outcome %s, got %s\n" RESET_ESCAPE,
+         report->title, outcome_names[expected_outcome], outcome_str);
+  if (report->outcome == OUTCOME_ERROR) {
+    free(outcome_str);
+  }
+}
+
+char* make_glitch_str(const Vector_Glitch* glitches) {
+  char* str = strdup("[");
+  for_vector(Glitch*, glitch, glitches) {
+    const char* glitch_name = NULL;
+
+    for (size_t idx = 0; idx < lengthof(glitch_kind_names); idx += 1) {
+      GlitchKindNameEnt ent = glitch_kind_names[idx];
+      if (glitch->glitch_kind == ent.val) {
+        glitch_name = ent.key;
+        break;
+      }
+    }
+    if (glitch_name == NULL)
+      glitch_name = "UNKNOWN_GLITCH_TYPE";
+
+    const char* glitch_specifier = "";
+    if (glitch->glitch_kind == GLITCH_TYPE_DESPAWN) {
+      if (glitch->specifier == GLITCH_SPECIFIER_DESPAWN_REPLACE)
+        glitch_specifier = " replace";
+      else if (glitch->specifier == GLITCH_SPECIFIER_DESPAWN_REMOVE)
+        glitch_specifier = " delete";
+    }
+
+    char* glitch_str =
+        stringf("(%d, %d) %s%s, ", glitch->location.x, glitch->location.y,
+                glitch_name, glitch_specifier);
+    str = realloc(str, strlen(str) + strlen(glitch_str) + 1);
+    strcat(str, glitch_str);
+    free(glitch_str);
+  }
+  str = realloc(str, strlen(str) + 2);
+  strcat(str, "]");
+  return str;
+}
+void complain_about_wrong_glitches(const OutcomeReport* report,
+                                   const Vector_Glitch* expected_glitches) {
+  char* expected_glitches_str = make_glitch_str(expected_glitches);
+  char* got_glitches_str = make_glitch_str(&report->glitches);
+  printf(RED_ESCAPE "%s - expected glitches %s, got %s\n" RESET_ESCAPE,
+         report->title, expected_glitches_str, got_glitches_str);
+  free(expected_glitches_str);
+  free(got_glitches_str);
+}
 
 int main(int argc, char* argv[]) {
   // argc = 2;
@@ -541,6 +688,7 @@ int main(int argc, char* argv[]) {
       .outcome_report_nonfull_cnd = &outcome_report_nonfull_cnd};
   size_t thread_count = list.files_n > max_threads ? max_threads : list.files_n;
   thrd_t* threads = xmalloc(sizeof(thrd_t) * thread_count);
+  memset(threads, 0, sizeof(thrd_t) * thread_count);
   for (size_t idx = 0; idx < thread_count; idx += 1) {
     thrd_create(&threads[idx], level_thread, &globals);
   }
@@ -573,25 +721,15 @@ int main(int argc, char* argv[]) {
       levels_failed += 1;
     } else {
       const SyncfileEntry* entry = Syncfile_get_entry(syncfile, report.title);
-      if (entry->expected_outcome != report.outcome) {
+      bool glitches_equal =
+          glitch_vectors_equal(&report.glitches, &entry->expected_glitches);
+      if (entry->expected_outcome != report.outcome || !glitches_equal) {
         levels_failed += 1;
-        char* outcome_str;
-        if (report.outcome == OUTCOME_ERROR) {
-          assert(report.error_desc != NULL);
-          outcome_str = stringf("%s (%s)", outcome_names[report.outcome],
-                                report.error_desc);
-          free(report.error_desc);
-        } else {
-          assert(report.error_desc == NULL);
-          // We don't ever modify this if `report.outcome != OUTCOME_ERROR`, so
-          // discarding `const` is fine here
-          outcome_str = (char*)outcome_names[report.outcome];
+        if (entry->expected_outcome != report.outcome) {
+          complain_about_wrong_outcome(&report, entry->expected_outcome);
         }
-        printf(RED_ESCAPE "%s - expected %s, got %s\n" RESET_ESCAPE,
-               report.title, outcome_names[entry->expected_outcome],
-               outcome_str);
-        if (report.outcome == OUTCOME_ERROR) {
-          free(outcome_str);
+        if (!glitches_equal) {
+          complain_about_wrong_glitches(&report, &entry->expected_glitches);
         }
       } else {
         if (verbose) {
@@ -601,11 +739,10 @@ int main(int argc, char* argv[]) {
         levels_passed += 1;
       }
       free(report.title);
+      Vector_Glitch_uninit(&report.glitches);
     }
-    if (levels_verified_total % REPORT_PROGRESS_EVERY == 0) {
-      print_stats();
-      printf("\n");
-    }
+    print_stats();
+    printf(CLEAR_LINES_ESCAPE(3));
     if (levels_verified_total == list.files_n) {
       break;
     }

@@ -349,6 +349,7 @@ Level* Level_clone(const Level* self) {
     network->members = Vector_WireNetworkMember_clone(&network->members);
     network->emitters = Vector_WireNetworkMember_clone(&network->emitters);
   }
+  new_level->glitches = Vector_Glitch_clone(&self->glitches);
   return new_level;
 }
 
@@ -446,6 +447,75 @@ Cell* Level_search_taxicab_at_dist(Level* self,
   return NULL;
 }
 
+static bool jetlife_get_power_state(const BasicTile* tile,
+                                    bool tile_before_current) {
+  if (tile->type == &FIRE_tile)
+    return true;
+  if (tile->type == &FLAME_JET_tile) {
+    // We use the second bit of flame jet's to specify if this jet was on last
+    // subtick We can ignore the bit of all tiles after us (because we haven't
+    // gotten to them yet this loop), and we can be sure all previous jets'
+    // bit was set this loop (because we already updated them)
+    return tile_before_current ? (tile->custom_data & 2)
+                               : (tile->custom_data & 1);
+  }
+  return false;
+}
+
+static bool jetlife_power_at_offset(const Level* self,
+                                    Position base,
+                                    int8_t dx,
+                                    int8_t dy) {
+  uint8_t x;
+  if (dx == 0)
+    x = base.x;
+  else if (dx == 1)
+    x = base.x + 1;
+  else if (dx == -1)
+    x = base.x + self->width - 1;
+  else
+    compiler_expect(false, true);
+  x %= self->width;
+  uint8_t y;
+  if (dy == 0)
+    y = base.y;
+  else if (dy == 1)
+    y = base.y + 1;
+  else if (dy == -1)
+    y = base.y + self->height - 1;
+  else
+    compiler_expect(false, true);
+  y %= self->height;
+  Cell* cell = &self->map[y * self->width + x];
+  Position pos = {x, y};
+  bool is_checked_before_us = compare_pos_in_reading_order(&base, &pos) > 0;
+  return jetlife_get_power_state(&cell->terrain, is_checked_before_us);
+}
+
+void Level_do_jetlife(Level* self) {
+  for (uint8_t y = 0; y < self->height; y += 1) {
+    for (uint8_t x = 0; x < self->width; x += 1) {
+      Cell* cell = &self->map[y * self->width + x];
+      BasicTile* jet = &cell->terrain;
+      if (jet->type != &FLAME_JET_tile)
+        continue;
+      bool was_state = jet->custom_data & 1;
+      Position pos = {x, y};
+      uint8_t neighbors = 0;
+      neighbors += jetlife_power_at_offset(self, pos, -1, -1);
+      neighbors += jetlife_power_at_offset(self, pos, -1, 0);
+      neighbors += jetlife_power_at_offset(self, pos, -1, 1);
+      neighbors += jetlife_power_at_offset(self, pos, 0, -1);
+      neighbors += jetlife_power_at_offset(self, pos, 0, 1);
+      neighbors += jetlife_power_at_offset(self, pos, 1, -1);
+      neighbors += jetlife_power_at_offset(self, pos, 1, 0);
+      neighbors += jetlife_power_at_offset(self, pos, 1, 1);
+      bool new_state = neighbors == 3 || (neighbors == 2 && was_state);
+      jet->custom_data = (was_state << 1) | new_state;
+    }
+  }
+}
+
 _libnotcc_accessors_PlayerSeat;
 
 bool PlayerSeat_has_perspective(const PlayerSeat* self) {
@@ -469,6 +539,30 @@ Actor* Cell_get_actor(Cell* self) {
 }
 void Cell_set_actor(Cell* self, Actor* actor) {
   self->actor = actor;
+}
+[[clang::always_inline]] void Cell_place_actor(Cell* self,
+                                               Level* level,
+                                               Actor* actor) {
+  assert(actor != NULL);
+  if (self->actor != NULL && self->actor != actor) {
+    Level_add_glitch(level,
+                     (Glitch){.glitch_kind = GLITCH_TYPE_DESPAWN,
+                              .location = Level_pos_from_cell(level, self),
+                              .specifier = GLITCH_SPECIFIER_DESPAWN_REPLACE});
+  }
+  self->actor = actor;
+}
+[[clang::always_inline]] void Cell_remove_actor(Cell* self,
+                                                Level* level,
+                                                Actor* actor) {
+  if (self->actor != NULL && self->actor != actor) {
+    Level_add_glitch(level,
+                     (Glitch){.glitch_kind = GLITCH_TYPE_DESPAWN,
+                              .location = Level_pos_from_cell(level, self),
+                              .specifier = GLITCH_SPECIFIER_DESPAWN_REMOVE});
+  }
+
+  self->actor = NULL;
 }
 uint8_t Cell_get_powered_wires(Cell* self) {
   return self->powered_wires;
@@ -545,8 +639,9 @@ bool Actor_is_moving(const Actor* actor) {
   return actor->move_progress > 0;
 }
 
-bool Actor_is_gone(const Actor* actor){
-return !actor->type || has_flag(actor, ACTOR_FLAGS_ANIMATION);}
+bool Actor_is_gone(const Actor* actor) {
+  return !actor->type || has_flag(actor, ACTOR_FLAGS_ANIMATION);
+}
 
 Actor* Actor_new(Level* level,
                  const ActorType* type,
@@ -559,11 +654,9 @@ Actor* Actor_new(Level* level,
   level->actors[level->actors_allocated_n - 1] = self;
   *self = (Actor){.type = type, .position = position, .direction = direction};
   Cell* cell = Level_get_cell(level, position);
-  cell->actor = self;
+  Cell_place_actor(cell, level, self);
   if (self->type->init)
     self->type->init(self, level);
-  // TODO warn about despawn
-  // TODO notify other layers?
   return self;
 }
 
@@ -627,6 +720,15 @@ void Level_tick(Level* self) {
   if (self->time_left > 0 && !self->time_stopped) {
     self->time_left -= 1;
   }
+  int32_t jetlife_interval = self->metadata.jetlife_interval;
+  if (jetlife_interval != 0) {
+    uint32_t subticks = self->current_tick * 3 + self->current_subtick;
+    // If `jetlife_interval` is negative, it only triggers on the first subtick
+    if (subticks == 0 ||
+        (jetlife_interval > 0 && subticks % jetlife_interval == 0)) {
+      Level_do_jetlife(self);
+    }
+  }
   Level_do_wire_notification(self);
   for (int32_t idx = self->actors_allocated_n - 1; idx >= 0; idx -= 1) {
     Actor* actor = self->actors[idx];
@@ -648,13 +750,14 @@ void Level_tick(Level* self) {
     }
   }
   Level_do_wire_propagation(self);
-  if (self->players_left == 0) {
+  if (self->players_left == 0 && self->game_state != GAMESTATE_CRASH) {
     if (self->game_state == GAMESTATE_PLAYING && !self->time_stopped &&
         self->time_left > 0) {
       self->time_left -= 1;
     }
     self->game_state = GAMESTATE_WON;
-  } else if (self->time_left == 1 && !self->time_stopped) {
+  } else if (self->time_left == 1 && !self->time_stopped &&
+             self->game_state != GAMESTATE_CRASH) {
     self->time_left -= 1;
     self->game_state = GAMESTATE_TIMEOUT;
   }
@@ -664,8 +767,6 @@ void Level_tick(Level* self) {
     self->green_button_pressed = false;
   }
   Level_apply_tank_buttons(self);
-  // TODO: Jetlife
-
   Level_compact_actor_array(self);
 }
 
@@ -726,6 +827,7 @@ void Actor_do_decision(Actor* self, Level* level) {
     if (dir == DIRECTION_NONE)
       return;
     self->move_decision = dir;
+    self->direction = dir;
     // XXX: Is the `dir` redirected by the collision check before it's set as
     // the decision, or not? I can't come up with a way to check
     if (Actor_check_collision(self, level, &dir)) {
@@ -771,7 +873,7 @@ static void notify_actor_left(Actor* self,
   NOTIFY_ITEM_LAYER(old_cell, actor_left, level, self, direction);
   if (old_cell->actor)
     return;
-  old_cell->actor = NULL;
+  Cell_remove_actor(old_cell, level, self);
   NOTIFY_LAYER(old_cell->terrain, actor_left, level, self, direction);
 }
 
@@ -795,19 +897,13 @@ bool Actor_move_to(Actor* self, Level* level, Direction direction) {
   self->move_progress = 1;
   self->move_length = Actor_get_move_speed(self, level, new_cell);
   self->position = new_pos;
-  new_cell->actor = self;
+  Cell_place_actor(new_cell, level, self);
   // Intentional ordering: don't report actors that are erased that were created
   // *due* to the actor leaving. This is how dynamite always works, so
   // generating a glitch every time a dynamite is dropped would be kinda dumb
-  if (old_cell->actor && old_cell->actor != self) {
-    // TODO: Report despawn
-  }
-  old_cell->actor = NULL;
+  Cell_remove_actor(old_cell, level, self);
   notify_actor_left(self, level, direction, old_cell);
 
-  if (new_cell->actor) {
-    // TODO: Report despawn
-  }
   NOTIFY_ALL_LAYERS(new_cell, actor_joined, level, self, direction);
 
   return true;
@@ -833,7 +929,8 @@ void Actor_do_cooldown(Actor* self, Level* level) {
 }
 
 bool Actor_push_to(Actor* self, Level* level, Direction direction) {
- if(self->frozen) return false;
+  if (self->frozen)
+    return false;
   if (self->pending_move_locked_in)
     return false;
   if (self->sliding_state) {
@@ -898,10 +995,9 @@ bool Actor_check_collision(Actor* self, Level* level, Direction* direction) {
         other->type->can_be_pushed(other, level, self, *direction)) {
       if (!Actor_push_to(other, level, *direction)) {
         return false;
-   } else {
-
-  self->pushing = true;
-   }
+      } else {
+        self->pushing = true;
+      }
     } else if (other->type)
       return false;
   } else if (cell->item.type) {
@@ -926,10 +1022,10 @@ bool Actor_check_collision(Actor* self, Level* level, Direction* direction) {
     bool was_pulled = pulled->pulled;
     pulled->pulled = true;
     self->pulling = true;
-    if (Actor_is_moving(pulled))
-      return false;
     // if (pulled->pending_move_locked_in && was_pulled)
     //   return true;
+    if (Actor_is_moving(pulled))
+      return false;
     if (!has_flag(pulled, ACTOR_FLAGS_BLOCK) ||
         (pulled->type->can_be_pushed &&
          !pulled->type->can_be_pushed(pulled, level, self, *direction)))
@@ -951,7 +1047,9 @@ void Actor_transform_into(Actor* self, const ActorType* new_type) {
 
 void Actor_destroy(Actor* self, Level* level, const ActorType* anim_type) {
   if (has_flag(self, ACTOR_FLAGS_REAL_PLAYER)) {
-    level->game_state = GAMESTATE_DEAD;
+    if (level->game_state != GAMESTATE_CRASH) {
+      level->game_state = GAMESTATE_DEAD;
+    }
     PlayerSeat* seat = Level_find_player_seat(level, self);
     if (seat) {
       seat->actor = NULL;
@@ -969,8 +1067,7 @@ void Actor_destroy(Actor* self, Level* level, const ActorType* anim_type) {
 
 void Actor_erase(Actor* self, Level* level) {
   Cell* cell = Level_get_cell(level, self->position);
-  // TODO: Record despawn glitch
-  cell->actor = NULL;
+  Cell_remove_actor(cell, level, self);
   // The allocation for the actor itself will be freed in
   // `Level_compact_actor_array`
   self->type = NULL;
@@ -1016,12 +1113,14 @@ void Player_do_decision(Actor* self, Level* level) {
                   (self->sliding_state == SLIDING_NONE ||
                    (self->sliding_state == SLIDING_WEAK &&
                     (self->custom_data & PLAYER_HAS_OVERRIDE) != 0));
+  bool character_switched = false;
 
   if (seat && Level_is_movement_subtick(level)) {
     if (level->players_left > level->player_seats.length &&
         has_input(seat, PLAYER_INPUT_SWITCH_PLAYERS)) {
       seat->actor = Level_find_next_player(level, self);
       assert(seat->actor != NULL && seat->actor != self);
+      character_switched = true;
       seat->released_inputs |= PLAYER_INPUT_SWITCH_PLAYERS;
     }
     if (has_input(seat, PLAYER_INPUT_CYCLE_ITEMS)) {
@@ -1065,7 +1164,12 @@ void Player_do_decision(Actor* self, Level* level) {
       }
     }
   } else {
-    // TODO: Report simul movement glitch
+    if (character_switched) {
+      Level_add_glitch(
+          level,
+          (Glitch){.glitch_kind = GLITCH_TYPE_SIMULTANEOUS_CHARACTER_MOVEMENT,
+                   .location = self->position});
+    }
     Direction checked_dir;
     if (dirs[0] == DIRECTION_NONE || dirs[1] == DIRECTION_NONE) {
       Direction chosen_dir = dirs[0] == DIRECTION_NONE ? dirs[1] : dirs[0];
@@ -1152,9 +1256,13 @@ void Actor_place_item_on_tile(Actor* self,
     // We already emitted a rolling bowling ball, so don't duplicate the item
     return;
   }
-  // TODO: Game should crash if dropping actor is despawned
+  // Dropping an item while despawned crashes the game
+  if (cell->actor != self) {
+    Level_add_glitch(level,
+                     (Glitch){.glitch_kind = GLITCH_TYPE_DROP_BY_DESPAWNED,
+                              .location = self->position});
+  }
   item_layer->type = item_type;
-  // item_layer->custom_data = 0;
 }
 
 bool Actor_drop_item(Actor* self, Level* level) {
@@ -1188,7 +1296,7 @@ bool TileType_can_be_dropped(const TileType** self,
   // the new item*.
   if ((*self) == &BOWLING_BALL_tile) {
     // Temporarily despawn the player to move out the bowling ball actor
-    cell->actor = NULL;
+    Cell_remove_actor(cell, level, dropper);
     Actor* bowling_ball = Actor_new(level, &BOWLING_BALL_ROLLING_actor,
                                     dropper->position, dropper->direction);
     // HACK: The JustStartedRolling Bit™ (for black buttons, see
@@ -1206,10 +1314,10 @@ bool TileType_can_be_dropped(const TileType** self,
       // around that, even though a bowling ball colliding usually should make
       // an explosion sound. ughh
       Actor_erase(bowling_ball, level);
-      cell->actor = dropper;
+      Cell_place_actor(cell, level, dropper);
       return false;
     }
-    cell->actor = dropper;
+    Cell_place_actor(cell, level, dropper);
   }
   return true;
 }
@@ -1248,4 +1356,21 @@ Actor* Level_find_closest_player(Level* self, Position from) {
     }
   }
   return player;
+}
+
+_libnotcc_accessors_Glitch;
+
+DEFINE_VECTOR(Glitch);
+
+void Level_add_glitch(Level* self, Glitch glitch) {
+  glitch.happens_at = self->current_tick * 3 + self->current_subtick;
+  Vector_Glitch_push(&self->glitches, glitch);
+  if (Glitch_is_crashing(&glitch)) {
+    self->game_state = GAMESTATE_CRASH;
+  }
+}
+
+bool Glitch_is_crashing(const Glitch* self) {
+  return self->glitch_kind == GLITCH_TYPE_DROP_BY_DESPAWNED ||
+         self->glitch_kind == GLITCH_TYPE_BLUE_TELEPORT_INFINITE_LOOP;
 }
