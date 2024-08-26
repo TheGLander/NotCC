@@ -18,6 +18,11 @@ import {
 	protobuf,
 	Level,
 	KEY_INPUTS,
+	BasicTile,
+	Actor,
+	Direction,
+	SlidingState,
+	protoTimeToMs,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
@@ -53,8 +58,7 @@ import {
 	TimelineHead,
 } from "@/components/Timeline"
 import { Toast, addToastGs, adjustToastGs, removeToastGs } from "@/toast"
-import { Tileset } from "@/components/GameRenderer/renderer"
-import { NonlegalMessage } from "@/components/NonLegalMessage"
+import { Renderer, Tileset } from "@/components/GameRenderer/renderer"
 import {
 	NonlegalMessage,
 	isGlitchKindNonlegal,
@@ -184,6 +188,58 @@ const CameraUtil: PromptComponent<void> = pProps => {
 			>
 				Auto
 			</button>
+		</Dialog>
+	)
+}
+
+const hoveredTileAtom = atom<null | [number, number]>(null)
+
+function getBasicTileDesc(tile: BasicTile) {
+	return `${tile.type.name} (${tile.customData.toString(16)})`
+}
+function getActorDesc(actor: Actor) {
+	return `${actor.type.name} (${actor.customData}) ${Direction[actor.direction]}${
+		actor.pendingDecision !== Direction.NONE
+			? ` pending ${
+					Direction[actor.pendingDecision]
+				} (${actor.pendingDecisionLockedIn ? "locked" : "unlocked"})`
+			: ""
+	}${
+		actor.moveProgress !== 0
+			? ` moving ${actor.moveProgress}/${actor.moveLength}`
+			: ""
+	}${actor.slidingState !== SlidingState.NONE ? ` sliding ${SlidingState[actor.slidingState]}` : ""}${
+		actor.bonked ? " bonked" : ""
+	}${actor.frozen ? " frozen" : ""}${actor.pulling ? " pulling" : ""}${
+		actor.pulled ? " pulled" : ""
+	}${actor.pushing ? " pushing" : ""}`
+}
+
+const TileInspector: PromptComponent<void> = pProps => {
+	const model = useAtomValue(modelAtom)
+	const hoveredTile = useAtomValue(hoveredTileAtom)
+	const cell =
+		model && hoveredTile && model.level.getCell(hoveredTile[0], hoveredTile[1])
+	return (
+		<Dialog
+			header="Tile inspector"
+			notModal
+			buttons={[["Close", () => {}]]}
+			onResolve={pProps.onResolve}
+		>
+			<div>
+				Hovered tile{" "}
+				{hoveredTile === null
+					? "none"
+					: `(${hoveredTile[0]}, ${hoveredTile[1]}):`}
+			</div>
+			<div class="bg-theme-950 h-40 w-96 whitespace-pre-line rounded font-mono">
+				{cell?.actor && `Actor: ${getActorDesc(cell.actor)}\n`}
+				{cell?.special && `Special: ${getBasicTileDesc(cell.special)}\n`}
+				{cell?.itemMod && `Item mod: ${getBasicTileDesc(cell.itemMod)}\n`}
+				{cell?.item && `Item: ${getBasicTileDesc(cell.item)}\n`}
+				{cell?.terrain && `Terrain: ${getBasicTileDesc(cell.terrain)}\n`}
+			</div>
 		</Dialog>
 	)
 }
@@ -347,6 +403,9 @@ export function RealExaPlayerPage() {
 				cameraControls() {
 					showPrompt(CameraUtil)
 				},
+				tileInspector() {
+					showPrompt(TileInspector)
+				},
 			},
 		})
 	}, [model, checkForNonlegalGlitches])
@@ -496,6 +555,25 @@ export function RealExaPlayerPage() {
 			timerRef.current = null
 		}
 	}, [])
+	const rendererRef = useRef<Renderer>(null)
+	const tilePosFromCanvasCoords = useCallback(
+		(coords: [number, number]): [number, number] | null => {
+			const renderer = rendererRef.current
+			const level = renderer?.level
+			if (!renderer || !level) return null
+			const tileSize = renderer.tileset.tileSize * tileScale
+			const cameraOffset = renderer.cameraPosition
+			const coordsTiled = [coords[0] / tileSize, coords[1] / tileSize]
+			const pos = [
+				coordsTiled[0] - cameraOffset[0],
+				coordsTiled[1] - cameraOffset[1],
+			]
+			if (pos[0] >= level?.width || pos[1] >= level.height) return null
+			return [Math.floor(pos[0]), Math.floor(pos[1])]
+		},
+		[tileScale]
+	)
+	const setHoveredTile = useSetAtom(hoveredTileAtom)
 	return (
 		<div class="flex h-full w-full">
 			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr_auto/auto_min-content]">
@@ -507,6 +585,14 @@ export function RealExaPlayerPage() {
 						tileScale={tileScale}
 						tileset={tileset!}
 						cameraType={cameraType}
+						rendererRef={rendererRef}
+						onMouseOver={ev => {
+							setHoveredTile(tilePosFromCanvasCoords([ev.offsetX, ev.offsetY]))
+						}}
+						onMouseMove={ev => {
+							setHoveredTile(tilePosFromCanvasCoords([ev.offsetX, ev.offsetY]))
+						}}
+						onMouseOut={() => setHoveredTile(null)}
 					/>
 				</div>
 				<div class="box row-start-3">

@@ -71,8 +71,12 @@ export class Actor extends Struct {
 	get direction(): Direction {
 		return wasmFuncs.Actor_get_direction(this._ptr)
 	}
-	// pending_decision
-	// pending_move_locked_in
+	get pendingDecision(): Direction {
+		return wasmFuncs.Actor_get_pending_decision(this._ptr)
+	}
+	get pendingDecisionLockedIn(): boolean {
+		return wasmFuncs.Actor_get_pending_move_locked_in(this._ptr)
+	}
 	get moveProgress(): number {
 		return wasmFuncs.Actor_get_move_progress(this._ptr)
 	}
@@ -100,5 +104,17 @@ export class Actor extends Struct {
 	}
 	get bonked(): boolean {
 		return !!wasmFuncs.Actor_get_bonked(this._ptr)
+	}
+	get frozen(): boolean {
+		return !!wasmFuncs.Actor_get_frozen(this._ptr)
+	}
+	get pulled(): boolean {
+		return !!wasmFuncs.Actor_get_pulled(this._ptr)
+	}
+	get pulling(): boolean {
+		return !!wasmFuncs.Actor_get_pulling(this._ptr)
+	}
+	get pushing(): boolean {
+		return !!wasmFuncs.Actor_get_pushing(this._ptr)
 	}
 }

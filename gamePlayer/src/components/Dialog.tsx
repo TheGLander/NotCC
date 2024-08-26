@@ -21,7 +21,7 @@ export const Dialog = forwardRef(function (
 			<dialog
 				class={twJoin(
 					"box fixed bottom-0 top-0 z-10 flex max-h-[75vh] max-w-[75vw] flex-col p-0 backdrop:bg-black/50 max-sm:max-w-[95vw]",
-					!props.notModal && "min-w-[33vw]"
+					!props.notModal ? "modal min-w-[33vw]" : "nonModal"
 				)}
 				ref={refVal => {
 					if (props.notModal) {

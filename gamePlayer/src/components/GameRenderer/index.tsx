@@ -1,30 +1,52 @@
-import { useCallback, useLayoutEffect, useMemo, useState } from "preact/hooks"
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useState,
+} from "preact/hooks"
 import { Renderer, Tileset } from "./renderer"
 import { Level, PlayerSeat } from "@notcc/logic"
 import { Ref as RefG } from "preact"
 import { AnimationTimer, applyRef } from "@/helpers"
 import { twJoin } from "tailwind-merge"
+import { HTMLProps } from "preact/compat"
 
 export interface CameraType {
 	width: number
 	height: number
 }
 
-export interface GameRendererProps {
+export interface GameRendererProps extends HTMLProps<HTMLCanvasElement> {
 	tileset: Tileset
 	level: Level | { current: Level }
 	tileScale?: number
 	class?: string
 	autoDraw?: boolean
 	renderRef?: RefG<(() => void) | null | undefined>
+	rendererRef?: RefG<Renderer>
 	cameraType: CameraType
 	playerSeat: PlayerSeat
 }
 
 export function GameRenderer(props: GameRendererProps) {
+	const {
+		tileset,
+		level,
+		tileScale,
+		autoDraw,
+		renderRef,
+		rendererRef,
+		cameraType,
+		playerSeat,
+		...canvasProps
+	} = props
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
 
 	const renderer = useMemo(() => new Renderer(props.tileset), [])
+	useEffect(() => {
+		applyRef(rendererRef, renderer)
+	}, [renderer, rendererRef])
 	const ctx = useMemo(
 		() => canvas?.getContext("2d", { alpha: false }),
 		[canvas]
@@ -67,6 +89,7 @@ export function GameRenderer(props: GameRendererProps) {
 
 	return (
 		<canvas
+			{...canvasProps}
 			ref={canvas => setCanvas(canvas)}
 			class={twJoin("[image-rendering:pixelated]", props.class)}
 			style={{

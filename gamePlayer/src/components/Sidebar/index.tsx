@@ -52,6 +52,7 @@ export interface LevelControls {
 		redo?(): void
 		purgeBackfeed?(): void
 		cameraControls?(): void
+		tileInspector?(): void
 	}
 }
 
@@ -471,7 +472,7 @@ export function Sidebar() {
 	const hasSet = !!get(levelSetAtom)
 	useEffect(() => {
 		const listener = (ev: KeyboardEvent) => {
-			if (document.querySelector("dialog[open]")) return
+			if (document.querySelector("dialog.modal[open]")) return
 			for (const action of sidebarActions) {
 				if (!action.shortcut) continue
 				if (!isHotkey(action.shortcut)(ev)) continue
@@ -573,6 +574,13 @@ export function Sidebar() {
 							levelControls.exa!.cameraControls!()
 						}}
 						disabled={!levelControls.exa?.cameraControls}
+					/>
+					<ChooserButton
+						label="Tile inspector"
+						onTrigger={() => {
+							levelControls.exa!.tileInspector!()
+						}}
+						disabled={!levelControls.exa?.tileInspector}
 					/>
 					<ChooserButton
 						label="Prune backfeed"

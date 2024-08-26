@@ -122,8 +122,10 @@ export class AttemptTracker {
 			this.currentAttempt.solution!.steps = this.stepRecorders.map(rec =>
 				rec.finalizeSteps()
 			)
-			// FIXME: Add `Level.glitches`
-			// this.currentAttempt.solution!.usedGlitches = level.glitches
+			this.currentAttempt.solution!.usedGlitches = Array.from(
+				level.glitches,
+				glitch => glitch.toGlitchInfo()
+			)
 		}
 
 		return this.currentAttempt
