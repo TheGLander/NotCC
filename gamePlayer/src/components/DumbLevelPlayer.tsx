@@ -29,7 +29,7 @@ import { embedReadyAtom, embedModeAtom, pageAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { useGameInputs } from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
-import { Ref, VNode } from "preact"
+import { ComponentChildren, Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
 import { LevelData, borrowLevelSetGs } from "@/levelData"
@@ -44,7 +44,12 @@ import {
 } from "./Timeline"
 import { sfxAtom } from "./PreferencesPrompt/SfxPrompt"
 import { protobuf } from "@notcc/logic"
-import { NonlegalMessage } from "./NonLegalMessage"
+import {
+	CrashMessage,
+	NonlegalMessage,
+	isGlitchKindNonlegal,
+} from "./NonLegalMessage"
+import { Expl } from "./Expl"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -115,9 +120,9 @@ type CoverButton = [string, null | (() => void)]
 
 function Cover(props: {
 	class: string
-	header: VNode
 	buttons: CoverButton[]
 	focusedButton?: string
+	children: ComponentChildren
 }) {
 	const focusedRef = useRef<HTMLButtonElement>(null)
 	useEffect(() => {
@@ -131,7 +136,7 @@ function Cover(props: {
 				props.class
 			)}
 		>
-			{props.header}
+			{props.children}
 			{props.buttons.length !== 0 && (
 				<div class="box mb-5 mt-auto flex h-20 w-4/5 flex-row gap-1">
 					{props.buttons.map(([name, callback]) => (
@@ -163,24 +168,21 @@ function PregameCover(props: {
 	return (
 		<Cover
 			class="from-black/20 to-black/50"
-			header={
-				<>
-					{props.set && (
-						<span class="mb-1 mt-6 text-xl">
-							{props.set?.scriptRunner.state.gameTitle} #
-							{props.set.scriptRunner.state.variables?.level}:
-						</span>
-					)}
-					<h2 class={twJoin(!props.set && "mt-6", "text-5xl [line-height:1]")}>
-						{props.level.metadata.title ?? "UNNAMED"}
-					</h2>
-					<span class="mt-1 text-2xl">
-						by {props.level.metadata.author ?? "???"}
-					</span>
-				</>
-			}
 			buttons={props.mobile ? [["Start", props.onStart]] : []}
-		/>
+		>
+			{props.set && (
+				<span class="mb-1 mt-6 text-xl">
+					{props.set?.scriptRunner.state.gameTitle} #
+					{props.set.scriptRunner.state.variables?.level}:
+				</span>
+			)}
+			<h2 class={twJoin(!props.set && "mt-6", "text-5xl [line-height:1]")}>
+				{props.level.metadata.title ?? "UNNAMED"}
+			</h2>
+			<span class="mt-1 text-2xl">
+				by {props.level.metadata.author ?? "???"}
+			</span>
+		</Cover>
 	)
 }
 
@@ -189,24 +191,23 @@ function PauseCover(props: { onUnpause: () => void }) {
 	return (
 		<Cover
 			class="from-theme-900 to-theme-900"
-			header={
-				<div class="flex flex-1 flex-col items-center">
-					<h2 class="mt-6 text-left text-5xl">Paused</h2>
-					<div class="bg-theme-950 relative my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
-						<div class="mb-1 text-lg">Did you know?</div>
-						{trivia[triviaIdx]}
-						{/* For the guaranteed space */}
-						<span class="invisible">
-							{triviaIdx + 1}/{trivia.length}
-						</span>
-						<span class="absolute right-2">
-							{triviaIdx + 1}/{trivia.length}
-						</span>
-					</div>
-				</div>
-			}
 			buttons={[["Unpause", props.onUnpause]]}
-		/>
+		>
+			<div class="flex flex-1 flex-col items-center">
+				<h2 class="mt-6 text-left text-5xl">Paused</h2>
+				<div class="bg-theme-950 relative my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
+					<div class="mb-1 text-lg">Did you know?</div>
+					{trivia[triviaIdx]}
+					{/* For the guaranteed space */}
+					<span class="invisible">
+						{triviaIdx + 1}/{trivia.length}
+					</span>
+					<span class="absolute right-2">
+						{triviaIdx + 1}/{trivia.length}
+					</span>
+				</div>
+			</div>
+		</Cover>
 	)
 }
 
@@ -218,15 +219,12 @@ function LoseCover(props: { timeout: boolean; onRestart: () => void }) {
 					? "from-blue-900/10 to-blue-950/90"
 					: "from-red-600/10 to-red-950/70"
 			)}
-			header={
-				<>
-					<h2 class="mt-6 text-5xl">
-						{props.timeout ? "Ran out of time" : "You lost..."}
-					</h2>
-				</>
-			}
 			buttons={[["Restart", props.onRestart]]}
-		/>
+		>
+			<h2 class="mt-6 text-5xl">
+				{props.timeout ? "Ran out of time" : "You lost..."}
+			</h2>
+		</Cover>
 	)
 }
 
@@ -237,18 +235,138 @@ function NonlegalCover(props: {
 	return (
 		<Cover
 			class="bg-repeating-conic-gradient from-black/50 via-black/75 via-5% to-black/50 to-10%"
-			header={
-				<>
-					<div class="flex flex-1 flex-col items-center">
-						<h2 class="mx-2 mt-8  text-5xl">Stop! You've violated the law!</h2>
-						<div class="box my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
-							<NonlegalMessage glitch={props.glitch} />
-						</div>
-					</div>
-				</>
-			}
 			buttons={[["Restart", props.onRestart]]}
-		/>
+		>
+			<div class="flex flex-1 flex-col items-center">
+				<h2 class="mx-2 mt-8  text-5xl">Stop! You've violated the law!</h2>
+				<div class="box my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
+					<NonlegalMessage glitch={props.glitch} />
+				</div>
+			</div>
+		</Cover>
+	)
+}
+
+function CrashCover(props: {
+	glitch: protobuf.IGlitchInfo
+	onRestart: () => void
+}) {
+	return (
+		<Cover
+			class="bg-[conic-gradient(#300a,_#509a,_#950a,_#300a)]"
+			buttons={[["Restart", props.onRestart]]}
+		>
+			<div class="flex flex-1 flex-col items-center">
+				<h2 class="mx-2 mt-8  text-5xl">Game crash</h2>
+				<div class="box my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
+					<CrashMessage glitch={props.glitch} />
+				</div>
+			</div>
+		</Cover>
+	)
+}
+
+type ReportGrade = "b+" | "bc" | "pc" | "b" | "p+" | "p" | "s" | "u"
+
+function Bi(props: { children?: ComponentChildren }) {
+	return (
+		<strong>
+			<em>{props.children}</em>
+		</strong>
+	)
+}
+function Sm(props: { children?: ComponentChildren }) {
+	return <span class="text-sm">{props.children}</span>
+}
+
+const gradeMap: Record<ReportGrade, VNode> = {
+	"b+": (
+		<Bi>
+			B<Sm>old</Sm>+
+		</Bi>
+	),
+	bc: (
+		<Bi>
+			B<Sm>old</Sm>C<Sm>onf</Sm>
+		</Bi>
+	),
+	pc: (
+		<Bi>
+			P<Sm>art</Sm>C<Sm>onf</Sm>
+		</Bi>
+	),
+	b: (
+		<strong>
+			B<Sm>old</Sm>
+		</strong>
+	),
+	"p+": (
+		<>
+			P<Sm>ublic</Sm>+
+		</>
+	),
+	p: (
+		<>
+			P<Sm>ublic</Sm>
+		</>
+	),
+	s: (
+		<>
+			S<Sm>olved</Sm>
+		</>
+	),
+	u: (
+		<>
+			U<Sm>nsolved</Sm>
+		</>
+	),
+}
+
+function ExplGrade() {
+	return (
+		<Expl title="Score grade" mode="dialog">
+			<div class="grid gap-2 [grid-template-columns:repeat(2,auto);]">
+				<div>Grade</div>
+				<div>Meaning</div>
+				<Grade grade="b+" />
+				<div>
+					Better than bold. You've achieved a higher score than what is on the
+					scoreboards! Report it and be part of Chips history!
+				</div>
+				<Grade grade="bc" />
+				<div>
+					Bold Confirm. You're the second person to achieve this score, thus{" "}
+					<i>confirming</i> the <i>unconfirmed</i> score.
+				</div>
+				<Grade grade="pc" />
+				<div>
+					Partial Confirm. You've achieved a score higher than the highest
+					confirmed score, but lower than the unconfirmed score, thus confirming
+					that the unconfirmed score is at least <i>partially</i> real.
+				</div>
+				<Grade grade="b" />
+				<div>Bold. Same as highest known/reported score for this level.</div>
+				<Grade grade="p+" />
+				<div>
+					Better than public. This score is better than the score of the public
+					route, but is less than bold.
+				</div>
+				<Grade grade="p" />
+				<div>Public. This score matches the public route score.</div>
+				<Grade grade="s" />
+				<div>Solved. This score is worse than the public route score.</div>
+				<Grade grade="u" />
+				<div>Unsolved. This level has not been solved yet.</div>
+			</div>
+		</Expl>
+	)
+}
+
+function Grade(props: { grade: ReportGrade }) {
+	return (
+		<span>
+			<span class="text-lg">{gradeMap[props.grade]}</span>
+		</span>
 	)
 }
 
@@ -272,14 +390,45 @@ function WinCover(props: {
 	return (
 		<Cover
 			class="from-yellow-900/30 to-yellow-600/70"
-			header={
-				<>
-					<h2 class="mt-6 text-4xl">You won!</h2>
-				</>
-			}
 			buttons={buttons}
 			focusedButton="Next level"
-		/>
+		>
+			<div class="flex w-full flex-1 flex-col items-center">
+				<h2 class="mt-6 text-4xl">You won!</h2>
+				<div class="box my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
+					<div class="grid w-auto items-center justify-items-end gap-x-2 [grid-template-columns:repeat(4,auto);]">
+						<div>Metric</div>
+						<div>This run</div>
+						<div>Best run</div>
+						<div>
+							Grade
+							<ExplGrade />
+						</div>
+						<div>Time</div>
+						<div>123s</div>
+						<div>125s</div>
+						<div>
+							<Grade grade="pc" />
+						</div>
+						<div>Score</div>
+						<div>4000pts</div>
+						<div>3900pts</div>
+						<div>
+							<Grade grade="p+" />
+						</div>
+					</div>
+					<div class="mt-4">
+						<div>
+							Total set time: 1000s / 10.7 ABC (unreported: 12s / 0.4 ABC)
+						</div>
+						<div>
+							Total set score: 100000pts / 12.3 ABC (unreported: 1200pts / 1.6
+							ABC)
+						</div>
+					</div>
+				</div>
+			</div>
+		</Cover>
 	)
 }
 
@@ -321,7 +470,7 @@ export function DumbLevelPlayer(props: {
 		globalThis.NotCC.player = { level }
 		setLevel(level)
 		// level.sfxManager = sfx
-		setPlayerState("pregame")
+		setPlayerState("win")
 		return level
 	}, [sfx, props.level])
 	useLayoutEffect(() => void resetLevel(), [props.level])
@@ -380,6 +529,15 @@ export function DumbLevelPlayer(props: {
 		}
 		level.tick()
 		inputMan.setReleasedInputs()
+		if (props.endOnNonlegalGlitch) {
+			for (const glitch of level.glitches) {
+				if (isGlitchKindNonlegal(glitch.glitchKind)) {
+					setCaughtGlitch(glitch.toGlitchInfo())
+					setPlayerState("nonlegal")
+					return
+				}
+			}
+		}
 		if (level.gameState === GameState.PLAYING) {
 			renderInventoryRef.current?.()
 			if (replay) {
@@ -395,10 +553,21 @@ export function DumbLevelPlayer(props: {
 			} else if (level.gameState === GameState.TIMEOUT) {
 				setPlayerState("timeout")
 			} else if (level.gameState === GameState.CRASH) {
+				setCaughtGlitch(
+					[...level.glitches].find(gl => gl.isCrashing())?.toGlitchInfo() ??
+						null
+				)
 				setPlayerState("crash")
 			}
 		}
-	}, [level, inputMan, submitLevelAttempt, playerState, attempt])
+	}, [
+		level,
+		inputMan,
+		submitLevelAttempt,
+		playerState,
+		attempt,
+		props.endOnNonlegalGlitch,
+	])
 
 	// Report embed ready
 	const embedMode = useAtomValue(embedModeAtom)
@@ -519,9 +688,9 @@ export function DumbLevelPlayer(props: {
 	const shouldShowMobileControls = useShouldShowMobileControls()
 	const goToNextLevel = useJotaiFn(goToNextLevelGs)
 	const setPage = useSetAtom(pageAtom)
-	// TODO: Glitch info
-	const [caughtGlitch, _setCaughtGlitch] =
-		useState<protobuf.IGlitchInfo | null>(null)
+	const [caughtGlitch, setCaughtGlitch] = useState<protobuf.IGlitchInfo | null>(
+		null
+	)
 
 	let cover: VNode | null
 	if (playerState === "pregame") {
@@ -551,7 +720,7 @@ export function DumbLevelPlayer(props: {
 	} else if (playerState === "nonlegal") {
 		cover = <NonlegalCover glitch={caughtGlitch!} onRestart={resetLevel} />
 	} else if (playerState === "crash") {
-		cover = <div>whoops</div>
+		cover = <CrashCover glitch={caughtGlitch!} onRestart={resetLevel} />
 	} else {
 		cover = null
 	}
@@ -583,19 +752,6 @@ export function DumbLevelPlayer(props: {
 			applyRef(props.controlsRef, null)
 		}
 	}, [props.controlsRef, playerState])
-
-	useLayoutEffect(() => {
-		// if (props.endOnNonlegalGlitch) {
-		// 	level.onGlitch = glitch => {
-		// 		if (isGlitchNonlegal(glitch)) {
-		// 			setCaughtGlitch(glitch)
-		// 			setPlayerState("nonlegal")
-		// 		}
-		// 	}
-		// } else {
-		// 	level.onGlitch = null
-		// }
-	}, [props.endOnNonlegalGlitch, level])
 
 	return (
 		<div

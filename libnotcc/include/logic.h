@@ -358,39 +358,42 @@ Vector_PlayerSeat* Level_get_player_seats_ptr(Level* self);
 DECLARE_VECTOR(WireNetwork);
 DECLARE_VECTOR(Glitch);
 
-#define _libnotcc_accessors_Level                                 \
-  /* Basic */                                                     \
-  _libnotcc_accessor(Level, width, uint8_t);                      \
-  _libnotcc_accessor(Level, height, uint8_t);                     \
-  _libnotcc_accessor(Level, actors, Actor**);                     \
-  _libnotcc_accessor(Level, actors_n, uint32_t);                  \
-  _libnotcc_accessor(Level, actors_allocated_n, uint32_t);        \
-  _libnotcc_accessor(Level, current_tick, uint32_t);              \
-  _libnotcc_accessor(Level, current_subtick, int8_t);             \
-  _libnotcc_accessor(Level, game_state, GameState);               \
-  _libnotcc_accessor(Level, metadata, LevelMetadata);             \
-  _libnotcc_accessor(Level, builtin_replay, Replay*);             \
-  _libnotcc_accessor(Level, glitches, Vector_Glitch) /* Player */ \
-      _libnotcc_accessor(Level, player_seats, Vector_PlayerSeat); \
-  _libnotcc_accessor(Level, players_left, uint32_t);              \
-  /* Metrics */                                                   \
-  _libnotcc_accessor(Level, time_left, int32_t);                  \
-  _libnotcc_accessor(Level, time_stopped, bool);                  \
-  _libnotcc_accessor(Level, chips_left, int32_t);                 \
-  _libnotcc_accessor(Level, bonus_points, int32_t);               \
-  /* Rng */                                                       \
-  _libnotcc_accessor(Level, rng1, uint8_t);                       \
-  _libnotcc_accessor(Level, rng2, uint8_t);                       \
-  _libnotcc_accessor(Level, rng_blob, uint8_t);                   \
-  /* Global state */                                              \
-  _libnotcc_accessor(Level, rff_direction, Direction);            \
-  _libnotcc_accessor(Level, green_button_pressed, bool);          \
-  _libnotcc_accessor(Level, toggle_wall_inverted, bool);          \
-  _libnotcc_accessor(Level, blue_button_pressed, bool);           \
-  _libnotcc_accessor(Level, yellow_button_pressed, Direction);    \
-  _libnotcc_accessor(Level, current_hint, char*);                 \
-  /* Wires */                                                     \
-  _libnotcc_accessor(Level, wire_consumers, Vector_Position);     \
+Vector_Glitch* Level_get_glitches_ptr(Level* self);
+
+#define _libnotcc_accessors_Level                              \
+  /* Basic */                                                  \
+  _libnotcc_accessor(Level, width, uint8_t);                   \
+  _libnotcc_accessor(Level, height, uint8_t);                  \
+  _libnotcc_accessor(Level, actors, Actor**);                  \
+  _libnotcc_accessor(Level, actors_n, uint32_t);               \
+  _libnotcc_accessor(Level, actors_allocated_n, uint32_t);     \
+  _libnotcc_accessor(Level, current_tick, uint32_t);           \
+  _libnotcc_accessor(Level, current_subtick, int8_t);          \
+  _libnotcc_accessor(Level, game_state, GameState);            \
+  _libnotcc_accessor(Level, metadata, LevelMetadata);          \
+  _libnotcc_accessor(Level, builtin_replay, Replay*);          \
+  _libnotcc_accessor(Level, glitches, Vector_Glitch);          \
+  /* Player */                                                 \
+  _libnotcc_accessor(Level, player_seats, Vector_PlayerSeat);  \
+  _libnotcc_accessor(Level, players_left, uint32_t);           \
+  /* Metrics */                                                \
+  _libnotcc_accessor(Level, time_left, int32_t);               \
+  _libnotcc_accessor(Level, time_stopped, bool);               \
+  _libnotcc_accessor(Level, chips_left, int32_t);              \
+  _libnotcc_accessor(Level, bonus_points, int32_t);            \
+  /* Rng */                                                    \
+  _libnotcc_accessor(Level, rng1, uint8_t);                    \
+  _libnotcc_accessor(Level, rng2, uint8_t);                    \
+  _libnotcc_accessor(Level, rng_blob, uint8_t);                \
+  /* Global state */                                           \
+  _libnotcc_accessor(Level, rff_direction, Direction);         \
+  _libnotcc_accessor(Level, green_button_pressed, bool);       \
+  _libnotcc_accessor(Level, toggle_wall_inverted, bool);       \
+  _libnotcc_accessor(Level, blue_button_pressed, bool);        \
+  _libnotcc_accessor(Level, yellow_button_pressed, Direction); \
+  _libnotcc_accessor(Level, current_hint, char*);              \
+  /* Wires */                                                  \
+  _libnotcc_accessor(Level, wire_consumers, Vector_Position);  \
   _libnotcc_accessor(Level, wire_networks, Vector_WireNetwork);
 
 _libnotcc_accessors_Level;
@@ -427,6 +430,7 @@ typedef enum GlitchSpecifier {
   _libnotcc_accessor(Glitch, happens_at, uint64_t);
 
 _libnotcc_accessors_Glitch;
+uint16_t Glitch_get_location_xy(const Glitch* self);
 bool Glitch_is_crashing(const Glitch* self);
 
 int8_t compare_wire_membs_in_reading_order(const void* ctx,

@@ -286,8 +286,8 @@ void Level_verify(Level* self) {
       seat->inputs = replay->inputs.items[self->current_tick];
     }
     Level_tick(self);
-   	Level_tick(self);
-   	Level_tick(self);
+    Level_tick(self);
+    Level_tick(self);
   }
 }
 

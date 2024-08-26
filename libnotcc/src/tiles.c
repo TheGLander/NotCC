@@ -8,8 +8,10 @@
 // Terrain
 //
 
-int8_t compare_wire_membs_in_reading_order_unconst(void* ctx,const WireNetworkMember* val) {
- return compare_wire_membs_in_reading_order(ctx,val);
+int8_t compare_wire_membs_in_reading_order_unconst(
+    void* ctx,
+    const WireNetworkMember* val) {
+  return compare_wire_membs_in_reading_order(ctx, val);
 }
 
 static WireNetwork* tile_find_network(Level* level,
@@ -18,8 +20,7 @@ static WireNetwork* tile_find_network(Level* level,
                                       WireNetworkMember** out_memb) {
   for_vector(WireNetwork*, network, &level->wire_networks) {
     WireNetworkMember* found_memb = Vector_WireNetworkMember_binary_search(
-        &network->members,
-            compare_wire_membs_in_reading_order_unconst,
+        &network->members, compare_wire_membs_in_reading_order_unconst,
         (void*)&pos);
     if (!found_memb)
       continue;
@@ -563,8 +564,7 @@ static bool blue_tp_is_target_in_an_earlier_network_than_this_pos(
     // first-member-is-first-in-RO-and-earliest-among-all-future-networks
     // property holds regardless of us sorting it
     WireNetworkMember* found_memb = Vector_WireNetworkMember_binary_search(
-        &network->members,
-            compare_wire_membs_in_reading_order_unconst,
+        &network->members, compare_wire_membs_in_reading_order_unconst,
         (void*)&target_pos);
     if (found_memb)
       return true;
@@ -732,9 +732,9 @@ static void blue_tp_do_unwired_tp(BasicTile* self, Level* level, Actor* actor) {
         found_wrap_pos = true;
         crash_if_tp_into_wired = true;
       }
-   if(!new_cell->is_wired) {
-      last_unwired_pos = new_pos;
-   }
+      if (!new_cell->is_wired) {
+        last_unwired_pos = new_pos;
+      }
     }
     // We're back where we started, give up
     if (new_cell == this_cell)

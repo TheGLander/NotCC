@@ -1,7 +1,8 @@
 import { Actor, Direction } from "./actor.js"
 import { Cell } from "./cell.js"
-import { InputProvider, KeyInputs } from "./index.js"
+import { InputProvider, KeyInputs, msToProtoTime } from "./index.js"
 import { getModuleInstance, wasmFuncs } from "./module.js"
+import { GlitchInfo, IGlitchInfo } from "./nonbind/nccs.pb.js"
 import { CVector, getStringAt, getWasmReader, Struct } from "./struct.js"
 export class PlayerSeat extends Struct {
 	get actor() {
@@ -99,6 +100,43 @@ export class VectorPlayerSeat extends CVector<PlayerSeat> {
 	}
 }
 
+export class Glitch extends Struct {
+	get glitchKind(): GlitchInfo.KnownGlitches {
+		return wasmFuncs.Glitch_get_glitch_kind(this._ptr)
+	}
+	get location(): [number, number] {
+		const loc: number = wasmFuncs.Glitch_get_location_xy(this._ptr)
+		return [loc & 0xff, loc >> 8]
+	}
+	get specifier(): number {
+		return wasmFuncs.Glitch_get_specifier(this._ptr)
+	}
+	get happensAt(): bigint {
+		return wasmFuncs.Glitch_get_happens_at(this._ptr)
+	}
+	isCrashing(): boolean {
+		return !!wasmFuncs.Glitch_is_crashing(this._ptr)
+	}
+	toGlitchInfo(): IGlitchInfo {
+		const pos = this.location
+		return {
+			glitchKind: this.glitchKind,
+			location: { x: pos[0], y: pos[1] },
+			happensAt: msToProtoTime(Number((this.happensAt * 1000n) / 60n)),
+			specifier: this.specifier,
+		}
+	}
+}
+
+export class VectorGlitch extends CVector<Glitch> {
+	getSize(): number {
+		return wasmFuncs._libnotcc_bind_Glitch_size()
+	}
+	instantiateItem(ptr: number): Glitch {
+		return new Glitch(ptr)
+	}
+}
+
 export class Level extends Struct {
 	static unalloc(ptr: number) {
 		wasmFuncs.Level_uninit(ptr)
@@ -139,6 +177,9 @@ export class Level extends Struct {
 	getCell(x: number, y: number): Cell {
 		const cell = new Cell(wasmFuncs.Level_get_cell_xy(this._ptr, x, y))
 		return cell
+	}
+	get glitches(): VectorGlitch {
+		return new VectorGlitch(wasmFuncs.Level_get_glitches_ptr(this._ptr))
 	}
 	// Player
 	get playerSeats(): VectorPlayerSeat {

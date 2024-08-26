@@ -887,7 +887,6 @@ bool Actor_move_to(Actor* self, Level* level, Direction direction) {
   self->bonked = !can_move;
   if (!can_move)
     return false;
-  // FIXME: THis as well?????
   self->pending_decision = DIRECTION_NONE;
   self->move_decision = DIRECTION_NONE;
   Position new_pos = Level_get_neighbor(level, self->position, direction);
@@ -919,7 +918,6 @@ void Actor_do_cooldown(Actor* self, Level* level) {
   self->pulled = false;
   self->move_progress += 1;
   if (self->move_progress == self->move_length) {
-    // FIXME: Is this needed also?????
     if (self->pending_decision != DIRECTION_NONE) {
       self->pending_move_locked_in = true;
     }
@@ -1359,6 +1357,9 @@ Actor* Level_find_closest_player(Level* self, Position from) {
 }
 
 _libnotcc_accessors_Glitch;
+uint16_t Glitch_get_location_xy(const Glitch* self) {
+  return self->location.y * 0x100 + self->location.x;
+}
 
 DEFINE_VECTOR(Glitch);
 
@@ -1373,4 +1374,8 @@ void Level_add_glitch(Level* self, Glitch glitch) {
 bool Glitch_is_crashing(const Glitch* self) {
   return self->glitch_kind == GLITCH_TYPE_DROP_BY_DESPAWNED ||
          self->glitch_kind == GLITCH_TYPE_BLUE_TELEPORT_INFINITE_LOOP;
+}
+
+Vector_Glitch* Level_get_glitches_ptr(Level* self) {
+  return &self->glitches;
 }

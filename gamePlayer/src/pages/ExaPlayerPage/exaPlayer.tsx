@@ -55,6 +55,10 @@ import {
 import { Toast, addToastGs, adjustToastGs, removeToastGs } from "@/toast"
 import { Tileset } from "@/components/GameRenderer/renderer"
 import { NonlegalMessage } from "@/components/NonLegalMessage"
+import {
+	NonlegalMessage,
+	isGlitchKindNonlegal,
+} from "@/components/NonLegalMessage"
 
 const modelConfigAtom = atom<ExaNewEvent | null>(null)
 type Model = LinearModel | GraphModel
@@ -273,23 +277,24 @@ export function RealExaPlayerPage() {
 	}
 	const complainAboutNonlegal = useAtomValue(exaComplainAboutNonlegalGlitches)
 	const checkForNonlegalGlitches = useCallback(
-		(_lastCheck: number) => {
+		(lastCheck: number) => {
 			if (!complainAboutNonlegal) return
-			// TODO: Readd glitch support
-			// const nonlegalGlitches = model.level.glitches.filter(
-			// 	gl => isGlitchNonlegal(gl) && protoTimeToMs(gl.happensAt!) > lastCheck
-			// )
-			// if (nonlegalGlitches.length > 0) {
-			// 	showPrompt(
-			// 		NonlegalPrompt({
-			// 			glitch: nonlegalGlitches[0],
-			// 			undo: () => {
-			// 				model.undo()
-			// 				updateLevel()
-			// 			},
-			// 		})
-			// 	)
-			// }
+			const nonlegalGlitches = [...model.level.glitches].filter(
+				gl =>
+					isGlitchKindNonlegal(gl.glitchKind) &&
+					protoTimeToMs(gl.toGlitchInfo().happensAt!) > lastCheck
+			)
+			if (nonlegalGlitches.length > 0) {
+				showPrompt(
+					NonlegalPrompt({
+						glitch: nonlegalGlitches[0].toGlitchInfo(),
+						undo: () => {
+							model.undo()
+							updateLevel()
+						},
+					})
+				)
+			}
 		},
 		[model, complainAboutNonlegal]
 	)
