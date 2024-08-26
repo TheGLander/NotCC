@@ -395,38 +395,38 @@ function WinCover(props: {
 		>
 			<div class="flex w-full flex-1 flex-col items-center">
 				<h2 class="mt-6 text-4xl">You won!</h2>
-				<div class="box my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
-					<div class="grid w-auto items-center justify-items-end gap-x-2 [grid-template-columns:repeat(4,auto);]">
-						<div>Metric</div>
-						<div>This run</div>
-						<div>Best run</div>
-						<div>
-							Grade
-							<ExplGrade />
-						</div>
-						<div>Time</div>
-						<div>123s</div>
-						<div>125s</div>
-						<div>
-							<Grade grade="pc" />
-						</div>
-						<div>Score</div>
-						<div>4000pts</div>
-						<div>3900pts</div>
-						<div>
-							<Grade grade="p+" />
-						</div>
-					</div>
-					<div class="mt-4">
-						<div>
-							Total set time: 1000s / 10.7 ABC (unreported: 12s / 0.4 ABC)
-						</div>
-						<div>
-							Total set score: 100000pts / 12.3 ABC (unreported: 1200pts / 1.6
-							ABC)
-						</div>
-					</div>
-				</div>
+				{/* <div class="box my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]"> */}
+				{/* 	<div class="grid w-auto items-center justify-items-end gap-x-2 [grid-template-columns:repeat(4,auto);]"> */}
+				{/* 		<div>Metric</div> */}
+				{/* 		<div>This run</div> */}
+				{/* 		<div>Best run</div> */}
+				{/* 		<div> */}
+				{/* 			Grade */}
+				{/* 			<ExplGrade /> */}
+				{/* 		</div> */}
+				{/* 		<div>Time</div> */}
+				{/* 		<div>123s</div> */}
+				{/* 		<div>125s</div> */}
+				{/* 		<div> */}
+				{/* 			<Grade grade="pc" /> */}
+				{/* 		</div> */}
+				{/* 		<div>Score</div> */}
+				{/* 		<div>4000pts</div> */}
+				{/* 		<div>3900pts</div> */}
+				{/* 		<div> */}
+				{/* 			<Grade grade="p+" /> */}
+				{/* 		</div> */}
+				{/* 	</div> */}
+				{/* 	<div class="mt-4"> */}
+				{/* 		<div> */}
+				{/* 			Total set time: 1000s / 10.7 ABC (unreported: 12s / 0.4 ABC) */}
+				{/* 		</div> */}
+				{/* 		<div> */}
+				{/* 			Total set score: 100000pts / 12.3 ABC (unreported: 1200pts / 1.6 */}
+				{/* 			ABC) */}
+				{/* 		</div> */}
+				{/* 	</div> */}
+				{/* </div> */}
 			</div>
 		</Cover>
 	)
@@ -470,7 +470,7 @@ export function DumbLevelPlayer(props: {
 		globalThis.NotCC.player = { level }
 		setLevel(level)
 		// level.sfxManager = sfx
-		setPlayerState("win")
+		setPlayerState("pregame")
 		return level
 	}, [sfx, props.level])
 	useLayoutEffect(() => void resetLevel(), [props.level])
