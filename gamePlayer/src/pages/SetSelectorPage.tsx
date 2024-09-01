@@ -140,7 +140,7 @@ function AlphaHeader() {
 	)
 }
 
-function DesktopHeader() {
+function DesktopWipHeader() {
 	return (
 		<div class="box relative mt-2 max-w-lg lg:max-w-xl">
 			<h2 class="text-center text-lg">NotCC Desktop!</h2>
@@ -157,7 +157,7 @@ export function SetSelectorPage() {
 	return (
 		<div class="flex flex-col items-center">
 			<Header />
-			{!isDesktop() && <DesktopHeader />}
+			{isDesktop() && <DesktopWipHeader />}
 			{!alphaHeaderClosed && <AlphaHeader />}
 			<UploadBox />
 		</div>
