@@ -1,0 +1,34 @@
+{
+	"applicationId": "notcc-player.glander.club",
+	"version": "2.0.0",
+	"defaultMode": "window",
+	"documentRoot": "/dist/",
+	"url": "/",
+	"enableServer": true,
+	"enableNativeAPI": true,
+	"nativeAllowList": [
+		"os.getEnv",
+		"os.showOpenDialog",
+		"os.showSaveDialog",
+		"os.showFolderDialog",
+		"filesystem.*",
+		"computer.getKernelInfo",
+		"debug.log"
+	],
+	"modes": {
+		"window": {
+			"title": "NotCC",
+			"icon": "/dist/iconDesktop.png",
+			"enableInspector": true,
+			"resizable": true,
+			"exitProcessOnClose": true
+		}
+	},
+	"cli": {
+		"binaryName": "notcc-player",
+		"distributionPath": "/neuDist",
+		"resourcesPath": "/dist/",
+		"binaryVersion": "5.3.0",
+		"clientVersion": "3.8.2"
+	}
+}

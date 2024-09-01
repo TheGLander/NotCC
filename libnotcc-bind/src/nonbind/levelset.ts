@@ -386,6 +386,7 @@ export class LevelSet {
 			if (record === null) {
 				throw new Error("This set appears to have no levels.")
 			}
+			await this.verifyLevelDataAvailability(this.currentLevel)
 			return record
 		} else {
 			// This set already has data. Just verify that the level data exists and

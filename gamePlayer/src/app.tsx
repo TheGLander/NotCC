@@ -6,9 +6,9 @@ import { PromptComponent, Prompts, showPrompt as showPromptGs } from "./prompts"
 import { useAtomValue } from "jotai"
 import { useEffect } from "preact/hooks"
 import { twJoin } from "tailwind-merge"
-import { useJotaiFn } from "./helpers"
+import { isDesktop, useJotaiFn } from "./helpers"
 import { Dialog } from "./components/Dialog"
-import { registerSW } from "virtual:pwa-register"
+import * as pwaRegister from "virtual:pwa-register"
 import { ToastDisplay } from "./toast"
 
 const ErrorPrompt =
@@ -64,7 +64,8 @@ export function App() {
 	const embedReady = useAtomValue(embedReadyAtom)
 	const showPrompt = useJotaiFn(showPromptGs)
 	useEffect(() => {
-		const updateSW = registerSW({
+		if (isDesktop()) return
+		const updateSW = pwaRegister.registerSW({
 			onNeedRefresh() {
 				showPrompt(UpdatePrompt(updateSW))
 			},

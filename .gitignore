@@ -106,3 +106,10 @@ dist
 original.bmp
 
 *.pb.*
+
+# Neutralino browser binaries
+gamePlayer/bin
+gamePlayer/neuDist
+gamePlayer/artifacts
+gamePlayer/NotCC.zip
+.tmp

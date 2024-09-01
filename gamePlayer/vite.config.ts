@@ -1,6 +1,6 @@
 import { execSync } from "child_process"
 import { join } from "path"
-import { PluginOption, defineConfig } from "vite"
+import { AliasOptions, PluginOption, defineConfig } from "vite"
 import preact from "@preact/preset-vite"
 import { VitePWA } from "vite-plugin-pwa"
 import { readFileSync } from "fs"
@@ -38,20 +38,25 @@ function ssg(): PluginOption {
 }
 
 const prodBuild = !process.env.SSG && process.env.NODE_ENV === "production"
+const desktopBuild = process.env.VITE_BUILD_PLATFORM === "desktop"
+const pwaAlias: AliasOptions = desktopBuild
+	? { "virtual:pwa-register": "/src/extra-types.d.ts" }
+	: {}
 
 export default defineConfig({
 	plugins: [
 		preact({ babel: { plugins: [jotaiDebugLabel, jotaiReactRefresh] } }),
-		VitePWA({
-			registerType: "prompt",
-			workbox: {
-				globIgnores: ["**/ssg/**/*", "**/node_modules/**/*"],
-				globPatterns: ["**/*.{js,css,html,png,svg,wav,ogg,mp3,gif,wasm}"],
-			},
-			manifest: JSON.parse(
-				readFileSync("./public/manifest.webmanifest").toString("utf-8")
-			),
-		}),
+		!desktopBuild &&
+			VitePWA({
+				registerType: "prompt",
+				workbox: {
+					globIgnores: ["**/ssg/**/*", "**/node_modules/**/*"],
+					globPatterns: ["**/*.{js,css,html,png,svg,wav,ogg,mp3,gif,wasm}"],
+				},
+				manifest: JSON.parse(
+					readFileSync("./public/manifest.webmanifest").toString("utf-8")
+				),
+			}),
 		prodBuild && ssg(),
 	],
 	base: process.env.SSG ? SSG_FAKE_ASSET_PATH : "./",
@@ -60,6 +65,7 @@ export default defineConfig({
 		alias: {
 			path: join(process.cwd(), "node_modules/path-browserify"),
 			"@": "/src",
+			...pwaAlias,
 		},
 	},
 	ssr: process.env.SSG ? { noExternal: new RegExp("", "g") } : {},

@@ -322,7 +322,7 @@ const gradeMap: Record<ReportGrade, VNode> = {
 	),
 }
 
-function ExplGrade() {
+export function ExplGrade() {
 	return (
 		<Expl title="Score grade" mode="dialog">
 			<div class="grid gap-2 [grid-template-columns:repeat(2,auto);]">

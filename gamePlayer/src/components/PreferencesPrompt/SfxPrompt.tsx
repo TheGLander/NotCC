@@ -4,11 +4,17 @@ import { AudioSfxManager } from "@/sfx"
 import { atom, useAtom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { Gallery, GalleryItem } from "./Gallery"
-import { readFile, remove, writeFile } from "@/fs"
+import {
+	readFile,
+	remove,
+	writeFile,
+	showLoadPrompt,
+	showDirectoryPrompt,
+} from "@/fs"
 import { suspend } from "suspend-react"
 import { useCallback, useState } from "preact/hooks"
 import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
-import { showLoadPrompt, useJotaiFn, zipAsync } from "@/helpers"
+import { useJotaiFn, zipAsync } from "@/helpers"
 import { Dialog } from "../Dialog"
 import { PrefDisplayProps } from "."
 
@@ -76,11 +82,15 @@ export const SfxPrompt =
 			setCustomSfx(arr => arr.concat(id))
 		}
 		async function addSfxZip() {
-			const sfxZip = (await showLoadPrompt(["*.zip"]))[0]
-			addSfx(await sfxZip.arrayBuffer())
+			const sfxZip = await showLoadPrompt("Load SFX zip", {
+				filters: [{ name: "SFX Zip", extensions: ["zip"] }],
+			})
+			if (!sfxZip?.[0]) return
+			addSfx(await sfxZip[0].arrayBuffer())
 		}
 		async function addSfxDir() {
-			const sfxDir = await showLoadPrompt([], false, true)
+			const sfxDir = await showDirectoryPrompt("Load SFX directory")
+			if (!sfxDir) return
 			const files: Record<string, Uint8Array> = {}
 			for (const file of sfxDir) {
 				if (file.webkitRelativePath.split("/").length > 2) {

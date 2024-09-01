@@ -14,12 +14,11 @@ import {
 	makeImagefromBlob,
 	readImage,
 	reencodeImage,
-	showLoadPrompt,
 	useJotaiFn,
 } from "@/helpers"
 import { atom, useAtom, useAtomValue } from "jotai"
 import { isPreloading, preferenceAtom } from "@/preferences"
-import { readFile, remove, writeFile } from "@/fs"
+import { readFile, remove, writeFile, showLoadPrompt } from "@/fs"
 import { suspend } from "suspend-react"
 import { PrefDisplayProps } from "."
 import { atomEffect } from "jotai-effect"
@@ -114,7 +113,11 @@ export const TilesetsPrompt =
 		const [chosenTset, setChosenTset] = useState(currentTset)
 		const [customTsets, setCustomTsets] = useAtom(customTsetsAtom)
 		async function addTset() {
-			let img = await makeImagefromBlob((await showLoadPrompt(["*.png"]))[0])
+			const imageFiles = await showLoadPrompt("Load tileset image", {
+				filters: [{ name: "Image file", extensions: ["bmp", "png"] }],
+			})
+			if (!imageFiles?.[0]) return
+			let img = await makeImagefromBlob(imageFiles[0])
 			if (img.width % 8 !== 0 || img.height !== img.width * 2) {
 				throw new Error(
 					"Invalid tileset image proportions. Are you sure this a CC2 tileset?"

@@ -21,7 +21,7 @@ import { loadable, unwrap } from "jotai/utils"
 import { Dialog } from "./components/Dialog"
 import { useRef } from "preact/hooks"
 import { PromptComponent, hidePrompt, showPrompt } from "./prompts"
-import { decodeBase64, showLoadPrompt, unzlibAsync } from "./helpers"
+import { decodeBase64, unzlibAsync } from "./helpers"
 import {
 	IMPORTANT_SETS,
 	LevelSetData,
@@ -29,7 +29,7 @@ import {
 	makeSetDataFromFiles,
 } from "./setLoading"
 import { basename, dirname } from "path-browserify"
-import { readFile, writeFile } from "./fs"
+import { readFile, writeFile, showLoadPrompt, showDirectoryPrompt } from "./fs"
 import { atomEffect } from "jotai-effect"
 import { getRRRoutes, setRRRoutesAtomWrapped } from "./railroad"
 import { preloadFinishedAtom } from "./preferences"
@@ -60,6 +60,8 @@ export function useSwrLevel(): LevelData | null {
 
 const levelSetAtomWrapped = atom<LevelSet | Promise<LevelSet> | null>(null)
 export const levelSetAtom = unwrap(levelSetAtomWrapped)
+// HACK: This is updated each time `levelSetAtom` is modified and the result of which should be saved (eg. after navigating to or beating a level).
+export const levelSetChangedAtom = atom(Symbol())
 
 export async function borrowLevelSetGs(
 	get: Getter,
@@ -70,6 +72,7 @@ export async function borrowLevelSetGs(
 	if (!lset) return
 	await func(lset)
 	set(levelSetAtom, lset)
+	set(levelSetChangedAtom, Symbol())
 }
 
 export async function goToLevelNGs(get: Getter, set: Setter) {
@@ -133,6 +136,7 @@ async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
 
 export const levelSetAutosaveAtom = atomEffect((get, _set) => {
 	const lSet = get(levelSetAtom)
+	get(levelSetChangedAtom)
 	if (!lSet) return
 	void writeFile(
 		`./solutions/default/${lSet.scriptRunner.state.scriptTitle!}.nccs`,
@@ -147,27 +151,23 @@ export function useSetLoaded(): {
 	const { set } = useStore()
 	const page = useAtomValue(pageAtom)
 	return {
-		setSet(setData, ident) {
-			const lset = setData.then(data => loadSetSave(data))
+		async setSet(setData, ident) {
+			const lset = await setData.then(data => loadSetSave(data))
+			const record = await lset.getCurrentRecord()
+			await lset.verifyLevelDataAvailability(record.levelInfo.levelNumber!)
+			if (!record.levelData) throw new Error("Expected levelData to be present")
+			set(levelAtom, new LevelData(record.levelData))
 			set(levelSetAtom, lset)
-			set(
-				levelAtom,
-				lset
-					.then(set => set.getCurrentRecord())
-					.then(rec => new LevelData(rec.levelData!))
-			)
-			lset.then(lset => {
-				set(levelNAtom, lset.currentLevel)
-				const importantIdent = IMPORTANT_SETS.find(
-					iset => iset.setName === lset.scriptRunner.state.scriptTitle!
-				)?.setIdent
-				if (importantIdent) {
-					set(setRRRoutesAtomWrapped, getRRRoutes(importantIdent, true))
-				} else {
-					set(setRRRoutesAtomWrapped, null)
-				}
-				set(levelSetIdentAtom, ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
-			})
+			set(levelNAtom, lset.currentLevel)
+			const importantIdent = IMPORTANT_SETS.find(
+				iset => iset.setName === lset.scriptRunner.state.scriptTitle!
+			)?.setIdent
+			if (importantIdent) {
+				set(setRRRoutesAtomWrapped, getRRRoutes(importantIdent, true))
+			} else {
+				set(setRRRoutesAtomWrapped, null)
+			}
+			set(levelSetIdentAtom, ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
 			if (!page?.isLevelPlayer) {
 				set(pageAtom, "play")
 			}
@@ -186,8 +186,13 @@ export function useSetLoaded(): {
 }
 
 export async function showFileLevelPrompt(): Promise<LevelData | null> {
-	const file: File | undefined = (await showLoadPrompt(["c2m"]))[0]
-	return file?.arrayBuffer().then(buf => new LevelData(parseC2M(buf)))
+	const files = await showLoadPrompt("Load level file", {
+		filters: [{ name: "CC2 level file", extensions: ["c2m"] }],
+	})
+
+	return (
+		files?.[0]?.arrayBuffer().then(buf => new LevelData(parseC2M(buf))) ?? null
+	)
 }
 
 export function useOpenFile(): () => Promise<{
@@ -196,12 +201,13 @@ export function useOpenFile(): () => Promise<{
 } | null> {
 	const { setLevel } = useSetLoaded()
 	return async () => {
-		const files = await showLoadPrompt([
-			"c2m",
-			// TODO Set loading
-			// "zip"
-		])
-		const file = files[0]
+		const files = await showLoadPrompt("Load set or level file", {
+			filters: [
+				{ name: "CC2 level file", extensions: ["c2m"] },
+				// TODO: { name: "Set ZIP", extensions: ["zip"] },
+			],
+		})
+		const file = files?.[0]
 		if (!file) return null
 		const levelPromise = file
 			.arrayBuffer()
@@ -211,17 +217,19 @@ export function useOpenFile(): () => Promise<{
 	}
 }
 
-export async function showSetDirectoryPrompt(): Promise<LevelSetData> {
-	const files = await showLoadPrompt([], false, true)
+export async function showSetDirectoryPrompt(): Promise<LevelSetData | null> {
+	const files = await showDirectoryPrompt("Load set directory")
+	if (!files) return null
 	return await makeSetDataFromFiles(files)
 }
 
 export function useOpenDir(): () => Promise<{
 	setData: LevelSetData
-}> {
+} | null> {
 	const { setSet } = useSetLoaded()
 	return async () => {
 		const setData = await showSetDirectoryPrompt()
+		if (!setData) return null
 		setSet(Promise.resolve(setData))
 		return { setData }
 	}

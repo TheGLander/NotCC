@@ -205,32 +205,6 @@ export function useJotaiFn<A extends unknown[], R>(
 	return (...args) => fn(get, set, ...args)
 }
 
-// TODO Neutralino prompts
-export async function showLoadPrompt(
-	extensions?: string[],
-	multiSelections: boolean = false,
-	dir: boolean = false
-): Promise<File[]> {
-	const fileLoader = document.createElement("input")
-	fileLoader.type = "file"
-	if (extensions !== undefined) {
-		fileLoader.accept = extensions.map(ext => `.${ext}`).join(",")
-	}
-	fileLoader.multiple = multiSelections
-	fileLoader.webkitdirectory = dir
-	return new Promise((res, rej) => {
-		fileLoader.addEventListener("change", () => {
-			if (fileLoader.files === null || fileLoader.files.length === 0) {
-				rej(new Error("No files specified"))
-			} else {
-				res(Array.from(fileLoader.files))
-			}
-			fileLoader.remove()
-		})
-		fileLoader.click()
-	})
-}
-
 export function sleep(s: number): Promise<void> {
 	return new Promise(res => {
 		setTimeout(() => res(), s * 1000)
@@ -270,4 +244,8 @@ export function formatTicks(timeLeft: number) {
 		.toString()
 		.padStart(2, "0")
 	return `${sign}${int}.${decimal}${subtickStr[subtick]}`
+}
+
+export function isDesktop(): boolean {
+	return import.meta.env.VITE_BUILD_PLATFORM === "desktop"
 }

@@ -1,7 +1,7 @@
 import { useOpenDir, useOpenFile } from "../levelData"
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
-import { encodeBase64, zlibAsync } from "@/helpers"
+import { encodeBase64, isDesktop, zlibAsync } from "@/helpers"
 import prewriteIcon from "../prewrite.png"
 import { preferenceAtom } from "@/preferences"
 
@@ -44,7 +44,7 @@ function UploadBox() {
 					class="flex-1"
 					onClick={async () => {
 						const levelData = await openFile()
-						if (levelData && embedLevelInfo) {
+						if (levelData && embedLevelInfo && isDesktop()) {
 							let buf = levelData.buffer
 							const compBuf = await zlibAsync(new Uint8Array(levelData.buffer))
 							if (compBuf.byteLength < buf.byteLength) {
@@ -68,16 +68,18 @@ function UploadBox() {
 				</button>
 			</div>
 			<div class="flex flex-col">
-				<label>
-					<input
-						type="checkbox"
-						checked={embedLevelInfo}
-						onInput={ev =>
-							setEmbedLevelInfo((ev.target as HTMLInputElement).checked)
-						}
-					/>{" "}
-					Embed level info in URL
-				</label>
+				{!isDesktop() && (
+					<label>
+						<input
+							type="checkbox"
+							checked={embedLevelInfo}
+							onInput={ev =>
+								setEmbedLevelInfo((ev.target as HTMLInputElement).checked)
+							}
+						/>{" "}
+						Embed level info in URL
+					</label>
+				)}
 				<label>
 					<input type="checkbox" disabled /> Store sets locally
 				</label>
@@ -144,6 +146,22 @@ export function SetSelectorPage() {
 		<div class="flex flex-col items-center">
 			<Header />
 			{!alphaHeaderClosed && <AlphaHeader />}
+			<div class="box relative mt-2 max-w-lg lg:max-w-xl">
+				{" "}
+				<h2 class="text-center text-lg">
+					NotCC Desktop{" "}
+					<em>
+						I just cobbled together something which has some issues but works
+					</em>
+					!
+				</h2>
+				<p>
+					Hi Sharpeye and whoever I want to distribute this to. This is NotCC
+					(Prewrite), but as a desktop app! Neat, isn't it? Please tell me about
+					any bugs you come across. By the way, this uses libnotcc, so report
+					any logic issues you might spot as well!
+				</p>
+			</div>
 			<UploadBox />
 		</div>
 	)

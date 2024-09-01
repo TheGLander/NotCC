@@ -5,7 +5,11 @@
 	"scripts": {
 		"dev": "vite",
 		"build:ssg": "SSG=true vite build -c vite.config.js --ssr src/main-ssg.tsx --outDir dist/ssg",
-		"build": "rm -rf dist && tsc && pnpm build:ssg && vite build && rm -r dist/ssg"
+		"build": "rm -rf dist && tsc && pnpm build:ssg && vite build && rm -r dist/ssg",
+		"build:neu": "VITE_BUILD_PLATFORM=desktop pnpm build && zx makeDists.mjs",
+		"build:neu-zip": "pnpm build:neu && rm -f NotCC.zip && cd artifacts && zip -r ../NotCC.zip .",
+		"dev:neu": "neu run",
+		"prepublish": "neu update"
 	},
 	"repository": {
 		"type": "git",
@@ -19,6 +23,8 @@
 	"homepage": "https://github.com/TheGLander/NotCC#readme",
 	"type": "module",
 	"devDependencies": {
+		"@neutralinojs/lib": "^5.3.0",
+		"@neutralinojs/neu": "^11.2.2",
 		"@notcc/logic": "workspace:^",
 		"@preact/preset-vite": "^2.6.0",
 		"@types/clone": "^2.1.4",
