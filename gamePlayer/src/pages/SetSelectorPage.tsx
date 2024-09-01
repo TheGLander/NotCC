@@ -140,28 +140,25 @@ function AlphaHeader() {
 	)
 }
 
+function DesktopHeader() {
+	return (
+		<div class="box relative mt-2 max-w-lg lg:max-w-xl">
+			<h2 class="text-center text-lg">NotCC Desktop!</h2>
+			<p>
+				Hello! This is the desktop version of NotCC, and is still very much a
+				work in progress! Please report any bugs or annoyances you come across!
+			</p>
+		</div>
+	)
+}
+
 export function SetSelectorPage() {
 	const alphaHeaderClosed = useAtomValue(alphaHeaderClosedAtom)
 	return (
 		<div class="flex flex-col items-center">
 			<Header />
+			{!isDesktop() && <DesktopHeader />}
 			{!alphaHeaderClosed && <AlphaHeader />}
-			<div class="box relative mt-2 max-w-lg lg:max-w-xl">
-				{" "}
-				<h2 class="text-center text-lg">
-					NotCC Desktop{" "}
-					<em>
-						I just cobbled together something which has some issues but works
-					</em>
-					!
-				</h2>
-				<p>
-					Hi Sharpeye and whoever I want to distribute this to. This is NotCC
-					(Prewrite), but as a desktop app! Neat, isn't it? Please tell me about
-					any bugs you come across. By the way, this uses libnotcc, so report
-					any logic issues you might spot as well!
-				</p>
-			</div>
 			<UploadBox />
 		</div>
 	)
