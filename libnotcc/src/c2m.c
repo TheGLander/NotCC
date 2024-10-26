@@ -192,6 +192,8 @@ static void parse_note(LevelMetadata* meta, SectionData* section) {
 static void parse_rpl(Level* level, SectionData* section) {
   const uint8_t* data = section->data;
   size_t data_left = section->len;
+  if (data_left < 3)
+    return;
   Replay* replay = xmalloc(sizeof(Replay));
   replay->rff_direction = dir_from_cc2(data[1] % 4);
   replay->rng_blob = data[2];
