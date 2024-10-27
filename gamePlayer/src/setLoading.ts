@@ -1,6 +1,7 @@
 import { LevelSetLoaderFunction, findScriptName } from "@notcc/logic"
 import { AsyncUnzipOptions, Unzipped, unzip, unzipSync } from "fflate"
 import { join, normalize } from "path-browserify"
+import { findAllFiles, readFile } from "./fs"
 
 function getFilePath(file: File): string {
 	return file.webkitRelativePath ?? file.name
@@ -57,6 +58,13 @@ export function makeZipFileLoader(
 		if (binary) return fileData.buffer
 		return decoder.decode(fileData)
 	}
+}
+export function makeSetDataFromZip(
+	zipData: ArrayBuffer
+): Promise<LevelSetData> {
+	const loaderFunction = makeZipFileLoader(zipData)
+	const filePaths = buildZipIndex(zipData)
+	return findEntryFilePath(loaderFunction, filePaths)
 }
 
 export function makeFileListFileLoader(
@@ -138,7 +146,7 @@ export async function findEntryFilePath(
 	}
 	if (c2gFiles.length < 1)
 		throw new Error(
-			"This ZIP archive doesn't contain a script. Are you sure this is the correct file?"
+			`Given file source doesn't appear to contain a main script, searched through these files: ${fileIndex.join(", ")}`
 		)
 	return { loaderFunction, scriptFile: c2gFiles[0].path }
 }
@@ -150,13 +158,47 @@ export async function makeSetDataFromFiles(
 	const fileIndex = buildFileListIndex(files)
 	return findEntryFilePath(loaderFunction, fileIndex)
 }
+export function makeFsFileLoader(basePath: string): LevelSetLoaderFunction {
+	const decoder = new TextDecoder("utf-8")
+	return async (path: string, binary: boolean) => {
+		const data = await readFile(join(basePath, normalize("/" + path)))
+		return binary ? data : decoder.decode(data)
+	}
+}
+
+export async function makeSetDataFromFsPath(
+	basePath: string
+): Promise<LevelSetData> {
+	return findEntryFilePath(
+		makeFsFileLoader(basePath),
+		await findAllFiles(basePath)
+	)
+}
 
 export interface ImportantSetInfo {
 	setIdent: string
 	setName: string
+	acquireInfo?: { url: string; term: string }
 }
 export const IMPORTANT_SETS: ImportantSetInfo[] = [
-	{ setIdent: "cc1", setName: "Chips Challenge" },
-	{ setIdent: "cc2", setName: "Chips Challenge 2" },
-	{ setIdent: "cc2lp1", setName: "Chips Challenge 2 Level Pack 1" },
+	{
+		setIdent: "cc1",
+		setName: "Chips Challenge",
+		acquireInfo: {
+			url: "https://store.steampowered.com/app/346850/Chips_Challenge_1",
+			term: "download it for free from",
+		},
+	},
+	{
+		setIdent: "cc2",
+		setName: "Chips Challenge 2",
+		acquireInfo: {
+			url: "https://store.steampowered.com/app/348300/Chips_Challenge_2",
+			term: "buy it on",
+		},
+	},
+	{
+		setIdent: "cc2lp1",
+		setName: "Chips Challenge 2 Level Pack 1",
+	},
 ]

@@ -46,8 +46,12 @@
 		--low-color: theme(colors.theme.900);
 	}
 	select,
-	input[type="number"] {
+	input[type="number"],
+	input[type="text"] {
 		@apply bg-theme-950;
+	}
+	input[type="text"]::placeholder {
+		@apply text-neutral-400;
 	}
 	@media (max-aspect-ratio: 1/1) {
 		/* Mobile */

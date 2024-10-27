@@ -1,4 +1,4 @@
-import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
+import { PromptComponent, showPromptGs } from "@/prompts"
 import { Dialog } from "../Dialog"
 import { useCallback, useMemo, useState } from "preact/hooks"
 import { Tileset, removeBackground } from "../GameRenderer/renderer"

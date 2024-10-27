@@ -2,7 +2,7 @@ import "./index.css"
 import { Sidebar } from "./components/Sidebar"
 import { makeThemeCssVars, colorSchemeAtom } from "./themeHelper"
 import { Router, embedModeAtom, embedReadyAtom } from "./routing"
-import { PromptComponent, Prompts, showPrompt as showPromptGs } from "./prompts"
+import { PromptComponent, Prompts, showPromptGs } from "./prompts"
 import { useAtomValue } from "jotai"
 import { useEffect } from "preact/hooks"
 import { twJoin } from "tailwind-merge"
@@ -10,6 +10,7 @@ import { isDesktop, useJotaiFn } from "./helpers"
 import { Dialog } from "./components/Dialog"
 import * as pwaRegister from "virtual:pwa-register"
 import { ToastDisplay } from "./toast"
+import { ErrorBox } from "./components/ErrorBox"
 
 const ErrorPrompt =
 	(err: Error): PromptComponent<void> =>
@@ -21,14 +22,7 @@ const ErrorPrompt =
 		>
 			{" "}
 			It appears something went wrong and an error has occured in NotCC!
-			<div
-				class="bg-theme-950 max-h-60 overflow-auto whitespace-pre-wrap p-1"
-				tabIndex={0}
-			>
-				{err.name}: {err.message}
-				<br />
-				{err.stack && `Stack trace: ${err.stack}`}
-			</div>
+			<ErrorBox error={err} />
 			Please report this error by{" "}
 			<a href="https://github.com/TheGLander/NotCC/issues/new">
 				making a GitHub issue
@@ -82,6 +76,7 @@ export function App() {
 	}, [embedReady])
 	useEffect(() => {
 		const listener = (ev: ErrorEvent | PromiseRejectionEvent) => {
+			// return
 			let errorMsg: Error
 			if ("reason" in ev) {
 				errorMsg = ev.reason

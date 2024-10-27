@@ -8,6 +8,14 @@ const store = !globalThis.window
 	? (null as unknown as UseStore)
 	: createStore("notcc", "fs")
 
+function normalizeRootPath(path: string): string {
+	path = join("/", path)
+	if (path.endsWith("/") && path !== "/") {
+		path = path.slice(0, -1)
+	}
+	return path
+}
+
 async function assertValidPath(path: string): Promise<void> {
 	const parsedPath = parse(path)
 	const dir = await get<string[]>(parsedPath.dir, store)
@@ -32,9 +40,9 @@ async function addDirEnt(path: string): Promise<void> {
 
 async function removeDirEnt(path: string): Promise<void> {
 	const parsedPath = parse(path)
-	const dir = await get<string[]>(parsedPath.base, store)
+	const dir = await get<string[]>(parsedPath.dir, store)
 	if (!dir)
-		throw new Error(`failed to make ${path}, no ${parsedPath.base} directory`)
+		throw new Error(`failed to remove ${path}, no ${parsedPath.dir} directory`)
 	await update(
 		parsedPath.dir,
 		ents => {
@@ -48,10 +56,11 @@ async function removeDirEnt(path: string): Promise<void> {
 }
 
 export async function readFile(path: string): Promise<ArrayBuffer> {
-	path = join("/", path)
+	path = normalizeRootPath(path)
 	await assertValidPath(path)
 	const result = await get<ArrayBuffer>(path, store)
 	if (!result) throw new Error(`${path}: no such file`)
+	if (result instanceof Array) throw new Error(`${path}: is a directory`)
 	return result
 }
 
@@ -59,8 +68,9 @@ export async function writeFile(
 	path: string,
 	data: ArrayBuffer
 ): Promise<void> {
-	path = join("/", path)
+	path = normalizeRootPath(path)
 	await assertValidPath(path)
+	if (await isDir(path)) throw new Error(`${path}: is a directory`)
 	await addDirEnt(path)
 	if (data instanceof Uint8Array) data = data.buffer
 	await set(path, data, store)
@@ -74,36 +84,73 @@ export async function remove(path: string): Promise<void> {
 }
 
 export async function isFile(path: string): Promise<boolean> {
-	path = join("/", path)
+	path = normalizeRootPath(path)
 	await assertValidPath(path)
 	const result = await get<ArrayBuffer>(path, store)
 	return !!result && result instanceof ArrayBuffer
 }
 
 export async function readDir(path: string): Promise<string[]> {
-	path = join("/", path)
+	path = normalizeRootPath(path)
 	await assertValidPath(path)
 	const result = await get<string[]>(path, store)
 	if (!result) throw new Error(`${path}: no such directory`)
+	if (result instanceof ArrayBuffer) throw new Error(`${path}: is a file`)
 	return result
 }
 
 export async function makeDir(path: string): Promise<void> {
-	path = join("/", path)
-	await assertValidPath(path)
+	path = normalizeRootPath(path)
+	if (await isFile(path)) throw new Error(`${path}: is a file`)
 	if (await isDir(path)) return
 	await addDirEnt(path)
 	await set(path, [], store)
 }
 
 export async function isDir(path: string): Promise<boolean> {
-	path = join("/", path)
+	path = normalizeRootPath(path)
 	await assertValidPath(path)
 	const result = await get<string[]>(path, store)
 	return !!result && result instanceof Array
 }
 
-export async function initFilesystem(): Promise<void> {}
+export async function exists(path: string): Promise<boolean> {
+	path = normalizeRootPath(path)
+	const ent = await get<string[] | ArrayBuffer | undefined>(path, store)
+	return ent !== undefined
+}
+
+async function moveInternal(source: string, dest: string) {
+	if (await isFile(source)) {
+		const content = await readFile(source)
+		await remove(source)
+		await writeFile(dest, content)
+		return
+	}
+	await makeDir(dest)
+
+	for (const item of await readDir(source)) {
+		await moveInternal(join(source, item), join(dest, item))
+	}
+
+	await remove(source)
+}
+
+export async function move(source: string, dest: string): Promise<void> {
+	source = normalizeRootPath(source)
+	await assertValidPath(source)
+
+	dest = normalizeRootPath(dest)
+	const destParent = parse(dest).dir
+	await assertValidPath(destParent)
+	await moveInternal(source, dest)
+}
+
+export async function initFilesystem(): Promise<void> {
+	if (!(await exists("/"))) {
+		await set("/", [], store)
+	}
+}
 
 function showInputPrompt(fileLoader: HTMLInputElement): Promise<File[] | null> {
 	return new Promise(res => {

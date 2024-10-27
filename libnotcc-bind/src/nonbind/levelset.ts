@@ -328,8 +328,13 @@ export class LevelSet {
 		if (!newLevelN) return null
 		return this.goToLevel(newLevelN)
 	}
+	canGoToLevel(levelN: number): boolean {
+		return levelN in this.seenLevels
+	}
 	async goToLevel(newLevelN: number): Promise<LevelSetRecord> {
 		const newRecord = this.seenLevels[newLevelN]
+		if (!newRecord)
+			throw new Error(`Level set hasn't seen level ${newLevelN} yet.`)
 		const scriptLevelN = newRecord.levelInfo.scriptState?.variables?.level ?? 0
 
 		if (scriptLevelN !== newLevelN)

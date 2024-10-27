@@ -1,6 +1,6 @@
 import { useStore } from "jotai"
 import { useEffect, useState } from "preact/compat"
-import { initNotCCFs, isFile, readDir, readFile } from "@/fs"
+import { initNotCCFs, isFile, readDir, readJson } from "@/fs"
 import {
 	allPreferencesAtom,
 	preloadFinishedAtom,
@@ -29,13 +29,11 @@ export function Preloader(props: { preloadComplete?: () => void }) {
 		setLoadingStage("game logic")
 		await initWasm()
 		setLoadingStage("user data")
+		await initNotCCFs()
 		let prefs: any = {}
 		try {
-			await initNotCCFs()
 			if (await isFile("preferences.json")) {
-				prefs = JSON.parse(
-					new TextDecoder("utf-8").decode(await readFile("preferences.json"))
-				)
+				prefs = await readJson("preferences.json")
 			}
 		} catch (err) {
 			console.error(`Couldn't load preferences: ${err}`)

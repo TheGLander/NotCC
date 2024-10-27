@@ -17,7 +17,7 @@ import { twJoin } from "tailwind-merge"
 import { useMediaQuery } from "react-responsive"
 import { Getter, Setter, atom, useAtomValue, useStore } from "jotai"
 import { levelSetIdentAtom, pageAtom } from "@/routing"
-import { showPrompt } from "@/prompts"
+import { showPromptGs } from "@/prompts"
 import { AboutPrompt } from "../AboutDialog"
 import { applyRef, formatTimeLeft } from "@/helpers"
 import { PreferencesPrompt } from "../PreferencesPrompt"
@@ -472,7 +472,11 @@ export function Sidebar() {
 	const hasSet = !!get(levelSetAtom)
 	useEffect(() => {
 		const listener = (ev: KeyboardEvent) => {
-			if (document.querySelector("dialog.modal[open]")) return
+			if (
+				document.querySelector("dialog.modal[open]") ||
+				(ev.target as HTMLElement).tagName === "INPUT"
+			)
+				return
 			for (const action of sidebarActions) {
 				if (!action.shortcut) continue
 				if (!isHotkey(action.shortcut)(ev)) continue
@@ -603,7 +607,7 @@ export function Sidebar() {
 					<ChooserButton
 						label="Preferences"
 						shortcut="Shift+C"
-						onTrigger={(get, set) => showPrompt(get, set, PreferencesPrompt)}
+						onTrigger={(get, set) => showPromptGs(get, set, PreferencesPrompt)}
 					/>
 					<ChooserButton label="Save file manager" shortcut="Alt+S" />
 				</SidebarButton>
@@ -611,7 +615,7 @@ export function Sidebar() {
 					<ChooserButton
 						label="About"
 						shortcut="F1"
-						onTrigger={(get, set) => showPrompt(get, set, AboutPrompt)}
+						onTrigger={(get, set) => showPromptGs(get, set, AboutPrompt)}
 					/>
 				</SidebarButton>
 			</div>

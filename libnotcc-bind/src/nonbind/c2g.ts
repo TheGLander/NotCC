@@ -841,6 +841,7 @@ export interface ScriptMetadata {
 	difficulty?: number
 	thumbnail?: "first level" | "image" | "none"
 	listingPriority?: "top" | "bottom" | "unlisted"
+	anyMetadataSpecified: boolean
 }
 
 export function parseScriptMetadata(text: string): ScriptMetadata {
@@ -893,5 +894,6 @@ export function parseScriptMetadata(text: string): ScriptMetadata {
 		by: rawScriptMeta["by"],
 		description: rawScriptMeta["description"],
 		difficulty,
+		anyMetadataSpecified: Object.keys(rawScriptMeta).length > 0,
 	}
 }

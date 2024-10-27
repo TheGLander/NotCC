@@ -1,6 +1,6 @@
 import { Getter, PrimitiveAtom, WritableAtom, atom } from "jotai"
 import { atomEffect } from "jotai-effect"
-import { writeFile } from "@/fs"
+import { writeJson } from "@/fs"
 
 export const DEFAULT_VALUE = Symbol()
 
@@ -48,13 +48,6 @@ export const allPreferencesAtom = atom(
 	}
 )
 
-function writePrefs(prefs: any) {
-	return writeFile(
-		"preferences.json",
-		new TextEncoder().encode(JSON.stringify(prefs)).buffer
-	)
-}
-
 export const preloadFinishedAtom = atom(false)
 export const syncAllowed_thisisstupid = { val: false }
 
@@ -65,5 +58,5 @@ export const preferenceWritingAtom = atomEffect((get, _set) => {
 	void get(allPreferencesAtom)
 	if (isPreloading(get)) return
 	const prefs = get(allPreferencesAtom)
-	writePrefs(prefs)
+	writeJson("preferences.json", prefs)
 })

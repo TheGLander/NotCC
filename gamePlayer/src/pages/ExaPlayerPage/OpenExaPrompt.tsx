@@ -1,5 +1,5 @@
 import { Dialog } from "@/components/Dialog"
-import { PromptComponent, showPrompt } from "@/prompts"
+import { PromptComponent, showPromptGs } from "@/prompts"
 import { HashSettings, Route as RouteFile } from "@notcc/logic"
 import { Getter, Setter } from "jotai"
 import { useState } from "preact/hooks"
@@ -251,7 +251,7 @@ export async function toggleExaCC(get: Getter, set: Setter) {
 		if (!levelData) return
 		let config = get(exaToggleConfig)
 		if (!config) {
-			const openEv = await showPrompt(
+			const openEv = await showPromptGs(
 				get,
 				set,
 				OpenExaPrompt({ toggleMode: true })
@@ -270,7 +270,7 @@ export async function toggleExaCC(get: Getter, set: Setter) {
 export async function openExaCC(get: Getter, set: Setter) {
 	const levelData = await get(levelAtom)
 	if (!levelData) return
-	const openEv = await showPrompt(
+	const openEv = await showPromptGs(
 		get,
 		set,
 		OpenExaPrompt({ toggleMode: false })

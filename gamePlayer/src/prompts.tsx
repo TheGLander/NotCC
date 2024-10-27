@@ -1,6 +1,7 @@
-import { atom, useAtomValue } from "jotai"
+import { Getter, Setter, atom, useAtomValue } from "jotai"
 import { ComponentType } from "preact"
 import { ReactNode } from "preact/compat"
+import { Dialog } from "./components/Dialog"
 
 interface Prompt<R> {
 	el: ReactNode
@@ -15,7 +16,7 @@ export type PromptComponent<R> = ComponentType<{
 
 const promptsAtom = atom<Prompt<unknown>[]>([])
 
-export function showPrompt<T>(
+export function showPromptGs<T>(
 	get: (atom: typeof promptsAtom) => Prompt<unknown>[],
 	set: (atom: typeof promptsAtom, val: Prompt<unknown>[]) => void,
 	Prompt: PromptComponent<T>,
@@ -58,6 +59,22 @@ export function showPrompt<T>(
 	prompt = { el, promise, ident }
 	set(promptsAtom, get(promptsAtom).concat(prompt))
 	return promise
+}
+
+export async function showAlertGs(
+	get: Getter,
+	set: Setter,
+	body: string,
+	title?: string
+): Promise<void> {
+	await showPromptGs<void>(get, set, pProps => (
+		<Dialog
+			header={title ?? "Alert!"}
+			buttons={[["Close", () => pProps.onResolve()]]}
+		>
+			{body}
+		</Dialog>
+	))
 }
 
 export function hidePrompt(

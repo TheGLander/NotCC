@@ -48,7 +48,7 @@ import { levelNAtom, pageAtom } from "@/routing"
 import { LevelData, useSwrLevel } from "@/levelData"
 import { exaComplainAboutNonlegalGlitches, modelAtom } from "."
 import { calcScale } from "@/components/DumbLevelPlayer"
-import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
+import { PromptComponent, showPromptGs } from "@/prompts"
 import { Dialog } from "@/components/Dialog"
 import { levelControlsAtom } from "@/components/Sidebar"
 import {

@@ -1,5 +1,5 @@
 import { filesystem, init as neuInit, os } from "@neutralinojs/lib"
-import { basename, join } from "path"
+import { basename, join, parse } from "path"
 import { applicationConfigPath } from "./configPath"
 
 /**
@@ -83,6 +83,18 @@ export async function readDir(path: string): Promise<string[]> {
 	return ents.map(ent => ent.entry).filter(ent => ent !== "." && ent !== "..")
 }
 
+export async function exists(path: string): Promise<boolean> {
+	const truePath = await getPath(path)
+	return await filesystem
+		.getStats(truePath)
+		.then(() => true)
+		.catch(err => err.code !== "NE_FS_NOPATHE")
+}
+
+export async function move(source: string, dest: string): Promise<void> {
+	await filesystem.move(await getPath(source), await getPath(dest))
+}
+
 export async function showLoadPrompt(
 	title?: string,
 	options?: os.OpenDialogOptions
@@ -130,7 +142,7 @@ export async function showDirectoryPrompt(
 ): Promise<File[] | null> {
 	const dirName = await os.showFolderDialog(title, options)
 	if (dirName === "") return null
-	return await scanDirectory(dirName, "")
+	return await scanDirectory(dirName, parse(dirName).base)
 }
 
 export async function showSavePrompt(

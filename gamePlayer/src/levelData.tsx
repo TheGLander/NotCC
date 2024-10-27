@@ -1,10 +1,11 @@
-import { Getter, Setter, atom, useAtomValue, useSetAtom, useStore } from "jotai"
+import { Getter, Setter, atom, useAtomValue, useSetAtom } from "jotai"
 import {
 	Level,
 	LevelSet,
 	findScriptName,
 	parseC2M,
 	parseNCCS,
+	parseScriptMetadata,
 	writeNCCS,
 } from "@notcc/logic"
 import {
@@ -19,11 +20,17 @@ import {
 } from "./routing"
 import { loadable, unwrap } from "jotai/utils"
 import { Dialog } from "./components/Dialog"
-import { useRef } from "preact/hooks"
-import { PromptComponent, hidePrompt, showPrompt } from "./prompts"
-import { decodeBase64, unzlibAsync } from "./helpers"
+import { useCallback, useRef } from "preact/hooks"
+import {
+	PromptComponent,
+	hidePrompt,
+	showAlertGs,
+	showPromptGs,
+} from "./prompts"
+import { decodeBase64, formatBytes, unzlibAsync, useJotaiFn } from "./helpers"
 import {
 	IMPORTANT_SETS,
+	ImportantSetInfo,
 	LevelSetData,
 	makeLoaderWithPrefix,
 	makeSetDataFromFiles,
@@ -33,6 +40,16 @@ import { readFile, writeFile, showLoadPrompt, showDirectoryPrompt } from "./fs"
 import { atomEffect } from "jotai-effect"
 import { getRRRoutes, setRRRoutesAtomWrapped } from "./railroad"
 import { preloadFinishedAtom } from "./preferences"
+import { parse } from "path"
+import {
+	ItemLevelSet,
+	downloadBBClubSetGs,
+	fetchBBClubSets,
+	findLocalSet,
+	saveFilesLocallyGs,
+} from "./setManagement"
+import { BB_CLUB_SETS_URL } from "./setsApi"
+import { Toast, addToastGs, adjustToastGs, removeToastGs } from "./toast"
 
 export class LevelData {
 	constructor(private level: Level) {}
@@ -75,9 +92,8 @@ export async function borrowLevelSetGs(
 	set(levelSetChangedAtom, Symbol())
 }
 
-export async function goToLevelNGs(get: Getter, set: Setter) {
-	const levelN = get(levelNAtom)
-	if (levelN === null) return
+export async function goToLevelNGs(get: Getter, set: Setter, levelN: number) {
+	set(levelNAtom, levelN)
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.goToLevel(levelN)
 		await lSet.verifyLevelDataAvailability(levelN)
@@ -110,7 +126,7 @@ export async function goToPreviousLevelGs(get: Getter, set: Setter) {
 	})
 }
 
-async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
+export async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
 	let { loaderFunction, scriptFile } = setData
 	const filePrefix = dirname(scriptFile)
 	// If the zip file has the entry script in a subdirectory instead of the zip
@@ -144,44 +160,45 @@ export const levelSetAutosaveAtom = atomEffect((get, _set) => {
 	)
 })
 
-export function useSetLoaded(): {
-	setSet(set: Promise<LevelSetData>, ident?: string): void
-	setLevel(level: Promise<LevelData>): void
-} {
-	const { set } = useStore()
-	const page = useAtomValue(pageAtom)
-	return {
-		async setSet(setData, ident) {
-			const lset = await setData.then(data => loadSetSave(data))
-			const record = await lset.getCurrentRecord()
-			await lset.verifyLevelDataAvailability(record.levelInfo.levelNumber!)
-			if (!record.levelData) throw new Error("Expected levelData to be present")
-			set(levelAtom, new LevelData(record.levelData))
-			set(levelSetAtom, lset)
-			set(levelNAtom, lset.currentLevel)
-			const importantIdent = IMPORTANT_SETS.find(
-				iset => iset.setName === lset.scriptRunner.state.scriptTitle!
-			)?.setIdent
-			if (importantIdent) {
-				set(setRRRoutesAtomWrapped, getRRRoutes(importantIdent, true))
-			} else {
-				set(setRRRoutesAtomWrapped, null)
-			}
-			set(levelSetIdentAtom, ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
-			if (!page?.isLevelPlayer) {
-				set(pageAtom, "play")
-			}
-		},
-		setLevel(level) {
-			set(levelSetAtom, null)
-			set(levelSetIdentAtom, CUSTOM_LEVEL_SET_IDENT)
-			set(levelAtom, level)
-			set(levelNAtom, 1)
-			set(setRRRoutesAtomWrapped, null)
-			if (!page?.isLevelPlayer) {
-				set(pageAtom, "play")
-			}
-		},
+export async function setLevelSetGs(
+	get: Getter,
+	set: Setter,
+	setData: LevelSetData,
+	ident?: string
+) {
+	const lset = await loadSetSave(setData)
+	const record = await lset.getCurrentRecord()
+	await lset.verifyLevelDataAvailability(record.levelInfo.levelNumber!)
+	if (!record.levelData) throw new Error("Expected levelData to be present")
+	set(levelAtom, new LevelData(record.levelData))
+	set(levelSetAtom, lset)
+	set(levelNAtom, lset.currentLevel)
+	const importantIdent = IMPORTANT_SETS.find(
+		iset => iset.setName === lset.scriptRunner.state.scriptTitle!
+	)?.setIdent
+	if (importantIdent) {
+		set(setRRRoutesAtomWrapped, getRRRoutes(importantIdent, true))
+	} else {
+		set(setRRRoutesAtomWrapped, null)
+	}
+	set(levelSetIdentAtom, ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
+	if (!get(pageAtom)?.isLevelPlayer) {
+		set(pageAtom, "play")
+	}
+}
+
+export function setIndividualLevelGs(
+	get: Getter,
+	set: Setter,
+	level: Promise<LevelData>
+) {
+	set(levelSetAtom, null)
+	set(levelSetIdentAtom, CUSTOM_LEVEL_SET_IDENT)
+	set(levelAtom, level)
+	set(levelNAtom, 1)
+	set(setRRRoutesAtomWrapped, null)
+	if (!get(pageAtom)?.isLevelPlayer) {
+		set(pageAtom, "play")
 	}
 }
 
@@ -195,44 +212,41 @@ export async function showFileLevelPrompt(): Promise<LevelData | null> {
 	)
 }
 
-export function useOpenFile(): () => Promise<{
+export async function promptFile(): Promise<{
 	level: LevelData
 	buffer: ArrayBuffer
 } | null> {
-	const { setLevel } = useSetLoaded()
-	return async () => {
-		const files = await showLoadPrompt("Load set or level file", {
-			filters: [
-				{ name: "CC2 level file", extensions: ["c2m"] },
-				// TODO: { name: "Set ZIP", extensions: ["zip"] },
-			],
-		})
-		const file = files?.[0]
-		if (!file) return null
-		const levelPromise = file
-			.arrayBuffer()
-			.then(buf => new LevelData(parseC2M(buf)))
-		setLevel(levelPromise)
-		return { level: await levelPromise, buffer: await file.arrayBuffer() }
-	}
+	const files = await showLoadPrompt("Load set or level file", {
+		filters: [
+			{ name: "CC2 level file", extensions: ["c2m"] },
+			// TODO: { name: "Set ZIP", extensions: ["zip"] },
+		],
+	})
+	const file = files?.[0]
+	if (!file) return null
+	const levelBuffer = await file.arrayBuffer()
+	const level = parseC2M(levelBuffer)
+	return { level: new LevelData(level), buffer: levelBuffer }
 }
 
-export async function showSetDirectoryPrompt(): Promise<LevelSetData | null> {
+export interface LevelSetDir {
+	setData: LevelSetData
+	setFiles: File[]
+	setIdent: string
+}
+
+export async function promptDir(): Promise<LevelSetDir | null> {
 	const files = await showDirectoryPrompt("Load set directory")
 	if (!files) return null
-	return await makeSetDataFromFiles(files)
-}
-
-export function useOpenDir(): () => Promise<{
-	setData: LevelSetData
-} | null> {
-	const { setSet } = useSetLoaded()
-	return async () => {
-		const setData = await showSetDirectoryPrompt()
-		if (!setData) return null
-		setSet(Promise.resolve(setData))
-		return { setData }
+	let setData: LevelSetData
+	try {
+		setData = await makeSetDataFromFiles(files)
+	} catch {
+		return null
 	}
+	const filePath = parse(files[0].webkitRelativePath)
+	const fileBase = filePath.base.split("/")[0]
+	return { setData, setFiles: files, setIdent: fileBase }
 }
 
 export const LoadLevelPrompt: PromptComponent<LevelData | null> = function ({
@@ -266,23 +280,83 @@ export const LoadLevelPrompt: PromptComponent<LevelData | null> = function ({
 	)
 }
 
-export const LoadSetPrompt: PromptComponent<void> = function ({ onResolve }) {
+const DownloadSetPrompt =
+	(set: ItemLevelSet): PromptComponent<"download" | "cancel"> =>
+	pProps => {
+		return (
+			<Dialog
+				header={`Download bb.club set "${set.setName}"?`}
+				buttons={[
+					["Download", () => pProps.onResolve("download")],
+					["Back to set selector", () => pProps.onResolve("cancel")],
+				]}
+			>
+				You're attempting to open a link to the set "{set.setName}", which was
+				not found locally, but is available on the bb.club online set
+				repository. Do you want to download the set? It will take{" "}
+				{formatBytes(set.bbClubSet!.set.file_size)} in storage space.
+			</Dialog>
+		)
+	}
+
+const LoadNonfreeSetPrompt =
+	(importantSet: ImportantSetInfo): PromptComponent<LevelSetDir | null> =>
+	pProps => {
+		const setPage = useSetAtom(pageAtom)
+		const showAlert = useJotaiFn(showAlertGs)
+		const askForNonfreeSet = useCallback(async () => {
+			const setStuff = await promptDir()
+			if (!setStuff) return
+			const setTitle = parseScriptMetadata(
+				(await setStuff.setData.loaderFunction(
+					setStuff.setData.scriptFile,
+					false
+				)) as string
+			).title
+			if (setTitle !== importantSet.setName) {
+				await showAlert(
+					`Invalid set name for non-free set. Expected "${importantSet.setName}", got "${setTitle}".`,
+					"Invalid set name"
+				)
+				return
+			}
+			pProps.onResolve(setStuff)
+		}, [])
+		return (
+			<Dialog
+				header="Nonfree set"
+				buttons={[
+					["Load set directory", askForNonfreeSet],
+					[
+						"Back to set selector",
+						() => {
+							setPage("")
+							pProps.onResolve(null)
+						},
+					],
+				]}
+			>
+				You're attempting to open a link to the set "{importantSet.setName}",
+				which is non-free, and thus cannot be downloaded from bb.club or
+				included as part of NotCC. You can{" "}
+				<a href={importantSet.acquireInfo!.url} target="_blank">
+					{importantSet.acquireInfo!.term} Steam here
+				</a>{" "}
+				and load the set into NotCC.
+			</Dialog>
+		)
+	}
+
+const UnnamedCustomSetPrompt: PromptComponent<void> = pProps => {
 	const setPage = useSetAtom(pageAtom)
 	return (
 		<Dialog
-			header="Level file needed"
-			buttons={[
-				[
-					"Back to set selector",
-					() => {
-						setPage("")
-					},
-				],
-			]}
-			onResolve={onResolve}
+			header="Unnamed set"
+			buttons={[["Back to set selector", () => setPage("")]]}
+			onResolve={pProps.onResolve}
 		>
-			The URL given does not specify a set name and thus cannot be loaded
-			automatically.
+			The link you're attempting to open specifies an unnamed custom set, and
+			cannot be resolved.
 		</Dialog>
 	)
 }
@@ -295,8 +369,10 @@ export async function resolveHashLevelGs(get: Getter, set: Setter) {
 	const levelN = get(levelNAtom)
 	const searchParams = get(searchParamsAtom)
 	hidePrompt(get, set, resolveHashLevelPromptIdent)
+	// Open the level encoded in ?level if we're given one
 	if (searchParams.level) {
 		let buf = decodeBase64(searchParams.level)
+		// Detect if we're given zlib-compressed data, since raw C2M can be kinda large sometimes
 		if (buf[0] == 0x78) {
 			buf = await unzlibAsync(buf)
 		}
@@ -310,29 +386,118 @@ export async function resolveHashLevelGs(get: Getter, set: Setter) {
 		}
 		set(preventImmediateHashUpdateAtom, false)
 	} else if (levelSetIdent === null || levelN === null) {
+		set(levelSetIdentAtom, null)
+		set(levelNAtom, null)
 	} else if (levelSetIdent === CUSTOM_LEVEL_SET_IDENT) {
-		showPrompt(get, set, LoadLevelPrompt, resolveHashLevelPromptIdent).then(
-			newLevel => {
-				if (!newLevel) return
-				set(levelAtom, Promise.resolve(newLevel))
-			}
-		)
-	} else if (levelSetIdent === CUSTOM_SET_SET_IDENT) {
-		showPrompt(get, set, LoadSetPrompt, resolveHashLevelPromptIdent)
-	} else {
-		showPrompt<void>(
+		const newLevel = await showPromptGs(
 			get,
 			set,
-			({ onResolve }) => (
-				<Dialog
-					header="TODO"
-					buttons={[["Back to set selector", () => set(pageAtom, "")]]}
-					onResolve={onResolve}
-				>
-					Sorry, this type of set isn't supported yet!
-				</Dialog>
-			),
+			LoadLevelPrompt,
 			resolveHashLevelPromptIdent
 		)
+		if (!newLevel) return
+		set(levelAtom, Promise.resolve(newLevel))
+	} else if (levelSetIdent === CUSTOM_SET_SET_IDENT) {
+		await showPromptGs(
+			get,
+			set,
+			UnnamedCustomSetPrompt,
+			resolveHashLevelPromptIdent
+		)
+	} else {
+		async function openSet(setData: LevelSetData, newSetIdent?: string) {
+			await setLevelSetGs(get, set, setData, newSetIdent ?? levelSetIdent!)
+			const lset = get(levelSetAtom)!
+			if (!lset.canGoToLevel(levelN!)) {
+				// FIXME: Split LevelSet LinearLevelSet and TuringLevelSet
+				while (lset.currentLevel !== levelN) {
+					lset.lastLevelResult = { type: "skip" }
+					await lset.getNextRecord()
+				}
+			}
+
+			await goToLevelNGs(get, set, levelN!)
+		}
+
+		// Local set
+		const localSet = await findLocalSet(levelSetIdent)
+		if (localSet) {
+			await openSet(await localSet.localSet!.loadData())
+			return
+		}
+		// bb.club set
+		const sets = await fetchBBClubSets(BB_CLUB_SETS_URL)
+		const bbClubSet = sets.find(set => set.setIdent === levelSetIdent)
+		if (bbClubSet) {
+			const promptRes = await showPromptGs(
+				get,
+				set,
+				DownloadSetPrompt(bbClubSet)
+			)
+			if (promptRes === "cancel") {
+				set(pageAtom, "")
+				return
+			}
+			const downloadProgressToast: Toast = { title: "Downloading set (0%)" }
+			addToastGs(get, set, downloadProgressToast)
+			const setDownloaded = await downloadBBClubSetGs(
+				get,
+				set,
+				bbClubSet,
+				progress => {
+					downloadProgressToast.title = `Downloading set (${Math.round(progress * 100)}%)`
+					adjustToastGs(get, set)
+				}
+			)
+			removeToastGs(get, set, downloadProgressToast)
+			if (!setDownloaded) return
+			const localSet = await findLocalSet(levelSetIdent)
+			if (!localSet)
+				throw new Error("Failed to find set right after downloading it")
+			await openSet(await localSet.localSet!.loadData())
+			return
+		}
+		// Non-free set
+		const importantSet = IMPORTANT_SETS.find(
+			set => set.setIdent === levelSetIdent
+		)
+
+		if (importantSet?.acquireInfo) {
+			const promptRes = await showPromptGs(
+				get,
+				set,
+				LoadNonfreeSetPrompt(importantSet)
+			)
+			if (promptRes === null) return
+			const saveRes = await saveFilesLocallyGs(
+				get,
+				set,
+				promptRes.setFiles,
+				importantSet.setName
+			)
+			if (!saveRes) {
+				set(pageAtom, "")
+				return
+			}
+			const localSetItem = await findLocalSet(importantSet.setIdent)
+			if (!localSetItem)
+				throw new Error("Failed to load set right after saving it")
+			// The set ident might have changed, since loading an important set always forces the "correct" set ident regardless of the dir name
+			await openSet(
+				await localSetItem.localSet!.loadData(),
+				localSetItem.setIdent
+			)
+			return
+		}
+		// TODO: Built-in set
+
+		// Give up
+		await showAlertGs(
+			get,
+			set,
+			`Set ident "${levelSetIdent}" is unrecognized and thus cannot be loaded. This may happen if there's a typo in the set ident, a bb.club set was removed, or your internet connection is down.`,
+			"Unrecognized set ident"
+		)
+		set(pageAtom, "")
 	}
 }

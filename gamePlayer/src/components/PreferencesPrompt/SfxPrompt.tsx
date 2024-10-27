@@ -13,7 +13,7 @@ import {
 } from "@/fs"
 import { suspend } from "suspend-react"
 import { useCallback, useState } from "preact/hooks"
-import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
+import { PromptComponent, showPromptGs } from "@/prompts"
 import { useJotaiFn, zipAsync } from "@/helpers"
 import { Dialog } from "../Dialog"
 import { PrefDisplayProps } from "."

@@ -1,5 +1,5 @@
 import { useJotaiFn } from "@/helpers"
-import { PromptComponent, showPrompt as showPromptGs } from "@/prompts"
+import { PromptComponent, showPromptGs } from "@/prompts"
 import { ComponentChildren } from "preact"
 import { HTMLAttributes } from "preact/compat"
 import { useState } from "preact/hooks"

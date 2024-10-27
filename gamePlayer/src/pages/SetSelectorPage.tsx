@@ -1,9 +1,17 @@
-import { useOpenDir, useOpenFile } from "../levelData"
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
-import { encodeBase64, isDesktop, zlibAsync } from "@/helpers"
+import { encodeBase64, isDesktop, useJotaiFn, zlibAsync } from "@/helpers"
 import prewriteIcon from "../prewrite.png"
 import { preferenceAtom } from "@/preferences"
+import { SetsGrid } from "@/components/SetsGrid"
+import { findScriptName } from "@notcc/logic"
+import {
+	promptFile,
+	promptDir,
+	setLevelSetGs,
+	setIndividualLevelGs,
+} from "@/levelData"
+import { saveFilesLocallyGs } from "@/setManagement"
 
 const altLogoAtom = atom(false)
 
@@ -30,11 +38,15 @@ function Header() {
 }
 
 export const embedLevelInfoAtom = preferenceAtom("embedLevelInfoInUrl", false)
+export const storeSetsLocallyAtom = preferenceAtom("storeSetsLocally", true)
 
 function UploadBox() {
-	const openFile = useOpenFile()
-	const openDir = useOpenDir()
 	const [embedLevelInfo, setEmbedLevelInfo] = useAtom(embedLevelInfoAtom)
+	const [storeSetsLocally, setStoreSetsLocally] = useAtom(storeSetsLocallyAtom)
+	const saveFilesLocally = useJotaiFn(saveFilesLocallyGs)
+	const setLevelSet = useJotaiFn(setLevelSetGs)
+	const setIndividualLevel = useJotaiFn(setIndividualLevelGs)
+
 	const setSearchParams = useSetAtom(searchParamsAtom)
 	return (
 		<div class="box mx-auto mt-2 w-4/5">
@@ -43,8 +55,9 @@ function UploadBox() {
 				<button
 					class="flex-1"
 					onClick={async () => {
-						const levelData = await openFile()
-						if (levelData && embedLevelInfo && isDesktop()) {
+						const levelData = await promptFile()
+						if (!levelData) return
+						if (embedLevelInfo && !isDesktop()) {
 							let buf = levelData.buffer
 							const compBuf = await zlibAsync(new Uint8Array(levelData.buffer))
 							if (compBuf.byteLength < buf.byteLength) {
@@ -54,6 +67,7 @@ function UploadBox() {
 								level: encodeBase64(buf),
 							})
 						}
+						setIndividualLevel(Promise.resolve(levelData.level))
 					}}
 				>
 					Load file
@@ -61,7 +75,26 @@ function UploadBox() {
 				<button
 					class="flex-1"
 					onClick={async () => {
-						openDir()
+						const setInfo = await promptDir()
+						if (!setInfo) return
+						// Set the ident only if we save the set locally, since otherwise this is just a random custom set
+						let setIdent = undefined
+						if (storeSetsLocally) {
+							const scriptName = findScriptName(
+								(await setInfo.setData.loaderFunction(
+									setInfo.setData.scriptFile,
+									false
+								)) as string
+							)
+							const saveRes = await saveFilesLocally(
+								setInfo.setFiles,
+								scriptName!
+							)
+							if (saveRes !== null) {
+								setIdent = saveRes.setIdent
+							}
+						}
+						await setLevelSet(setInfo.setData, setIdent)
 					}}
 				>
 					Load directory
@@ -73,15 +106,18 @@ function UploadBox() {
 						<input
 							type="checkbox"
 							checked={embedLevelInfo}
-							onInput={ev =>
-								setEmbedLevelInfo((ev.target as HTMLInputElement).checked)
-							}
+							onInput={ev => setEmbedLevelInfo(ev.currentTarget.checked)}
 						/>{" "}
 						Embed level info in URL
 					</label>
 				)}
 				<label>
-					<input type="checkbox" disabled /> Store sets locally
+					<input
+						type="checkbox"
+						checked={storeSetsLocally}
+						onInput={ev => setStoreSetsLocally(ev.currentTarget.checked)}
+					/>{" "}
+					Store sets locally
 				</label>
 			</div>
 		</div>
@@ -160,6 +196,7 @@ export function SetSelectorPage() {
 			{isDesktop() && <DesktopWipHeader />}
 			{!alphaHeaderClosed && <AlphaHeader />}
 			<UploadBox />
+			<SetsGrid />
 		</div>
 	)
 }

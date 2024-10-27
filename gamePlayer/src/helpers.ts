@@ -1,7 +1,7 @@
 import { AsyncZippable, unzip, unzlib, zip, zlib } from "fflate"
 import { Getter, Setter, useStore } from "jotai"
 import { Ref } from "preact"
-import { useEffect } from "preact/hooks"
+import { useCallback, useEffect, useState } from "preact/hooks"
 
 export type EffectFn = (get: Getter, set: Setter) => void | (() => void)
 type AnyFunction = (...args: any[]) => any
@@ -248,4 +248,116 @@ export function formatTicks(timeLeft: number) {
 
 export function isDesktop(): boolean {
 	return import.meta.env.VITE_BUILD_PLATFORM === "desktop"
+}
+
+// Semaphore to limit eg. concurrent requests to N at a time
+export class BasicSemaphore {
+	releaseQueue: (() => void)[] = []
+	locks: number = 0
+	constructor(public limit: number) {}
+	enter(): Promise<void> {
+		// If this semaphore has any capacity left, use one of the locks
+		if (this.locks < this.limit) {
+			this.locks += 1
+			return Promise.resolve()
+		}
+		// Otherwise, wait until another user has left
+		return new Promise(res => {
+			this.releaseQueue.push(res)
+		})
+	}
+	leave(): void {
+		if (this.locks <= 0)
+			throw new Error("Left a semaphore despite there being no locks left")
+		if (this.locks === this.limit) {
+			// We're making new capacity, let a waiting user through if there are any
+			const releaseFn = this.releaseQueue.shift()
+			if (releaseFn) {
+				releaseFn()
+				return
+			}
+		}
+		this.locks -= 1
+	}
+}
+
+export async function resErrorToString(res: Response): Promise<string> {
+	return `${res.status} ${res.statusText}: ${await res.text()}`
+}
+
+export function usePromise<T>(
+	maker: () => Promise<T>,
+	deps: unknown[]
+): {
+	value?: T
+	error?: Error
+	state: "working" | "done" | "error"
+	repeat: () => void
+} {
+	const [value, setValue] = useState<T | undefined>(undefined)
+	const [error, setError] = useState<Error | undefined>(undefined)
+	const doPromise = useCallback(() => {
+		setError(undefined)
+		setValue(undefined)
+		maker()
+			.then(val => {
+				setValue(val)
+			})
+			.catch(err => {
+				setError(err)
+			})
+	}, [maker])
+	useEffect(() => {
+		doPromise()
+	}, deps)
+	return {
+		value,
+		error,
+		state: value ? "done" : error ? "error" : "working",
+		repeat: doPromise,
+	}
+}
+
+export async function aiGather<T>(ai: AsyncIterable<T>): Promise<T[]> {
+	const items = []
+	for await (const item of ai) {
+		items.push(item)
+	}
+	return items
+}
+export async function aiFind<T>(
+	ai: AsyncIterable<T>,
+	func: (item: T, idx: number) => boolean
+): Promise<T | null> {
+	let idx = 0
+	for await (const item of ai) {
+		if (func(item, idx)) return item
+		idx += 1
+	}
+	return null
+}
+export async function* aiFilter<T>(
+	ai: AsyncIterable<T>,
+	func: (item: T, idx: number) => boolean
+): AsyncIterableIterator<T> {
+	let idx = 0
+	for await (const item of ai) {
+		if (func(item, idx)) yield item
+		idx += 1
+	}
+}
+export function formatBytes(bytes: number) {
+	let suffix: string = "bytes"
+	let suffixDiv: number = 1
+	if (bytes > 1024 ** 3) {
+		suffix = "gibibytes"
+		suffixDiv = 1024 ** 3
+	} else if (bytes > 1024 ** 2) {
+		suffix = "mebibytes"
+		suffixDiv = 1024 ** 2
+	} else if (bytes > 1024) {
+		suffix = "kibibytes"
+		suffixDiv = 1024
+	}
+	return `${(bytes / suffixDiv).toFixed(3)} ${suffix}`
 }
