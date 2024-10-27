@@ -23,6 +23,7 @@ import {
 	Direction,
 	SlidingState,
 	protoTimeToMs,
+	Inventory as InventoryT,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
@@ -197,6 +198,25 @@ const hoveredTileAtom = atom<null | [number, number]>(null)
 function getBasicTileDesc(tile: BasicTile) {
 	return `${tile.type.name} (${tile.customData.toString(16)})`
 }
+function getInventoryDesc(inv: InventoryT) {
+	const itemN = inv.item4
+		? 4
+		: inv.item3
+			? 3
+			: inv.item2
+				? 2
+				: inv.item1
+					? 1
+					: 0
+	let str = "["
+	if (itemN >= 1) str += `${inv.item1!.name}, `
+	if (itemN >= 2) str += `${inv.item2!.name}, `
+	if (itemN >= 3) str += `${inv.item3!.name}, `
+	if (itemN >= 4) str += `${inv.item4!.name}, `
+	str += "]"
+	str += ` r${inv.keysRed} b${inv.keysBlue} y${inv.keysYellow} g${inv.keysGreen}`
+	return str
+}
 function getActorDesc(actor: Actor) {
 	return `${actor.type.name} (${actor.customData}) ${Direction[actor.direction]}${
 		actor.pendingDecision !== Direction.NONE
@@ -212,7 +232,7 @@ function getActorDesc(actor: Actor) {
 		actor.bonked ? " bonked" : ""
 	}${actor.frozen ? " frozen" : ""}${actor.pulling ? " pulling" : ""}${
 		actor.pulled ? " pulled" : ""
-	}${actor.pushing ? " pushing" : ""}`
+	}${actor.pushing ? " pushing" : ""} INV ${getInventoryDesc(actor.inventory)}`
 }
 
 const TileInspector: PromptComponent<void> = pProps => {
@@ -233,7 +253,7 @@ const TileInspector: PromptComponent<void> = pProps => {
 					? "none"
 					: `(${hoveredTile[0]}, ${hoveredTile[1]}):`}
 			</div>
-			<div class="bg-theme-950 h-40 w-96 whitespace-pre-line rounded font-mono">
+			<div class="bg-theme-950 h-40 w-[30rem] whitespace-pre-line rounded font-mono">
 				{cell?.actor && `Actor: ${getActorDesc(cell.actor)}\n`}
 				{cell?.special && `Special: ${getBasicTileDesc(cell.special)}\n`}
 				{cell?.itemMod && `Item mod: ${getBasicTileDesc(cell.itemMod)}\n`}
