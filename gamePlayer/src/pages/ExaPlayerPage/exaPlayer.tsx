@@ -217,8 +217,8 @@ function getInventoryDesc(inv: InventoryT) {
 	str += ` r${inv.keysRed} b${inv.keysBlue} y${inv.keysYellow} g${inv.keysGreen}`
 	return str
 }
-function getActorDesc(actor: Actor) {
-	return `${actor.type.name} (${actor.customData}) ${Direction[actor.direction]}${
+function getActorDesc(level: Level, actor: Actor) {
+	return `${actor.type.name} (${actor.customData}) IDX ${actor.actorListIdx(level)} ${Direction[actor.direction]}${
 		actor.pendingDecision !== Direction.NONE
 			? ` pending ${
 					Direction[actor.pendingDecision]
@@ -254,7 +254,7 @@ const TileInspector: PromptComponent<void> = pProps => {
 					: `(${hoveredTile[0]}, ${hoveredTile[1]}):`}
 			</div>
 			<div class="bg-theme-950 h-40 w-[30rem] whitespace-pre-line rounded font-mono">
-				{cell?.actor && `Actor: ${getActorDesc(cell.actor)}\n`}
+				{cell?.actor && `Actor: ${getActorDesc(model!.level, cell.actor)}\n`}
 				{cell?.special && `Special: ${getBasicTileDesc(cell.special)}\n`}
 				{cell?.itemMod && `Item mod: ${getBasicTileDesc(cell.itemMod)}\n`}
 				{cell?.item && `Item: ${getBasicTileDesc(cell.item)}\n`}

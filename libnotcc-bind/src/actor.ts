@@ -1,4 +1,5 @@
 import { TileType } from "./cell.js"
+import { Level } from "./level.js"
 import { wasmFuncs } from "./module.js"
 import { Struct } from "./struct.js"
 
@@ -116,5 +117,8 @@ export class Actor extends Struct {
 	}
 	get pushing(): boolean {
 		return !!wasmFuncs.Actor_get_pushing(this._ptr)
+	}
+	actorListIdx(level: Level) {
+		return wasmFuncs.Actor_get_actor_list_idx(this._ptr, level._ptr)
 	}
 }
