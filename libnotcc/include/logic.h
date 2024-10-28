@@ -108,6 +108,7 @@ void Player_do_decision(Actor* self, Level* level);
 Direction Player_get_last_decision(Actor* self);
 void Actor_enter_tile(Actor* self, Level* level);
 PositionF Actor_get_visual_position(const Actor* self);
+uint32_t Actor_get_actor_list_idx(const Actor* self, const Level* level);
 
 #define _libnotcc_accessors_Actor                                  \
   _libnotcc_accessor(Actor, type, const ActorType*);               \
@@ -201,7 +202,8 @@ typedef struct ActorType {
   bool (*can_be_pushed)(Actor* self,
                         Level* level,
                         Actor* other,
-                        Direction direction);
+                        Direction direction,
+                        bool pulling);
   bool (*impedes)(Actor* self, Level* level, Actor* other, Direction direction);
   void (*on_redirect)(Actor* self, Level* level, uint8_t turn);
   uint64_t flags;

@@ -1090,6 +1090,12 @@ static void clone_machine_trigger(BasicTile* self,
   // Someone triggered an empty clone machine
   if (actor == NULL)
     return;
+  Cell* cell = BasicTile_get_cell(self, LAYER_TERRAIN);
+  Position pos = Level_pos_from_cell(level, cell);
+  /* if (pos.x == 43 && pos.y == 15 && actor->type ==
+   * &BOWLING_BALL_ROLLING_actor) { */
+  /* 	printf("gi %d %d\n", pos.x, pos.y); */
+  /* } */
   if (Actor_is_moving(actor))
     return;
   actor->frozen = false;
@@ -2289,7 +2295,11 @@ const ActorType ROVER_actor = {
 static bool DIRT_BLOCK_can_be_pushed(Actor* self,
                                      Level* level,
                                      Actor* other,
-                                     Direction dir) {
+                                     Direction dir,
+                                     bool pulling) {
+  // Dirt block can always be pulled
+  if (pulling)
+    return true;
   return !has_flag(other, ACTOR_FLAGS_BLOCK) ||
          other->type == &FRAME_BLOCK_actor;
 };
@@ -2304,7 +2314,11 @@ const ActorType DIRT_BLOCK_actor = {.name = "dirtBlock",
 static bool cc2_block_can_be_pushed(Actor* self,
                                     Level* level,
                                     Actor* other,
-                                    Direction _dir) {
+                                    Direction _dir,
+                                    bool is_being_pulled) {
+  // Can always be pulled
+  if (is_being_pulled)
+    return true;
   // Weird quirk: we can't be pushed by a block if we're sliding
   if (self->sliding_state && has_flag(other, ACTOR_FLAGS_BLOCK))
     return false;
@@ -2332,10 +2346,11 @@ const ActorType ICE_BLOCK_actor = {
 static bool FRAME_BLOCK_can_be_pushed(Actor* self,
                                       Level* level,
                                       Actor* other,
-                                      Direction dir) {
+                                      Direction dir,
+                                      bool is_being_pulled) {
   if (!(self->custom_data & get_dir_bit(dir)))
     return false;
-  return cc2_block_can_be_pushed(self, level, other, dir);
+  return cc2_block_can_be_pushed(self, level, other, dir, is_being_pulled);
 }
 static uint8_t rotate_arrows_right(uint8_t arrows) {
   return ((arrows & 0x7) << 1) | ((arrows & 0x8) ? 1 : 0);
@@ -2542,6 +2557,9 @@ const ActorType MIRROR_MELINDA_actor = {
 static void bowling_ball_kill_whatever(Actor* self,
                                        Level* level,
                                        Actor* other) {
+  // Don't die if we're bumped by an animation
+  if (has_flag(other, ACTOR_FLAGS_ANIMATION))
+    return;
   Actor_destroy(self, level, &EXPLOSION_actor);
   Actor_destroy(other, level, &EXPLOSION_actor);
 }

@@ -108,7 +108,7 @@ static crc32_t Actor_hash(const Actor* self,
   }
   if (!((settings & HASH_SETTINGS_IGNORE_BLOCK_ORDER) &&
         (self->type->flags & ACTOR_FLAGS_BLOCK))) {
-    feed_hash64((uintptr_t)self - (uintptr_t)level->actors);
+    feed_hash32(Actor_get_actor_list_idx(self, level));
   }
 
   return hash;
@@ -142,6 +142,8 @@ int32_t Level_hash(const Level* self, uint32_t settings) {
     feed_hash64(cell->item.custom_data);
     feed_hash64((uintptr_t)cell->terrain.type);
     feed_hash64(cell->terrain.custom_data);
+    feed_hash8(cell->was_powered);
+    feed_hash8(cell->powered_wires);
   }
   return ~hash;
 }

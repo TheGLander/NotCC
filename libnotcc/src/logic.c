@@ -990,7 +990,7 @@ bool Actor_check_collision(Actor* self, Level* level, Direction* direction) {
       self->type->on_bump_actor(self, level, other);
     if (self->type && other->type && has_flag(self, ACTOR_FLAGS_CAN_PUSH) &&
         other->type->can_be_pushed &&
-        other->type->can_be_pushed(other, level, self, *direction)) {
+        other->type->can_be_pushed(other, level, self, *direction, false)) {
       if (!Actor_push_to(other, level, *direction)) {
         return false;
       } else {
@@ -1026,7 +1026,7 @@ bool Actor_check_collision(Actor* self, Level* level, Direction* direction) {
       return false;
     if (!has_flag(pulled, ACTOR_FLAGS_BLOCK) ||
         (pulled->type->can_be_pushed &&
-         !pulled->type->can_be_pushed(pulled, level, self, *direction)))
+         !pulled->type->can_be_pushed(pulled, level, self, *direction, true)))
       return true;
     pulled->direction = *direction;
     if (pulled->frozen)
@@ -1102,6 +1102,15 @@ uint16_t Actor_get_position_xy(Actor* self) {
 
 Inventory* Actor_get_inventory_ptr(Actor* self) {
   return &self->inventory;
+}
+
+uint32_t Actor_get_actor_list_idx(const Actor* self, const Level* level) {
+  for (uint32_t idx = 0; idx < level->actors_allocated_n; idx += 1) {
+    if (level->actors[level->actors_allocated_n - idx - 1] == self)
+      return idx;
+  }
+  assert(!"Actor wasn't found in level's actor list");
+  return 0;
 }
 
 void Player_do_decision(Actor* self, Level* level) {
