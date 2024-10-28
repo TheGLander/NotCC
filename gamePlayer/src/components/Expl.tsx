@@ -11,7 +11,7 @@ interface ExplInlineProps {
 }
 interface ExplDialogProps {
 	children: ComponentChildren
-	title: string
+	title: ComponentChildren
 	mode: "dialog"
 }
 

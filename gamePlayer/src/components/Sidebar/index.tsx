@@ -34,6 +34,7 @@ import backfeedPruningImg from "./backfeedPruning.png"
 import {
 	InputProvider,
 	ReplayInputProvider,
+	Route,
 	RouteFileInputProvider,
 	SolutionInfoInputProvider,
 	calculateLevelPoints,
@@ -42,6 +43,7 @@ import {
 import { protobuf } from "@notcc/logic"
 import { RRLevel, RRRoute, getRRLevel, setRRRoutesAtom } from "@/railroad"
 import { Toast, addToastGs, removeToastGs } from "@/toast"
+import { showLoadPrompt } from "@/fs"
 
 export interface LevelControls {
 	restart?(): void
@@ -59,7 +61,7 @@ export interface LevelControls {
 export const levelControlsAtom = atom<LevelControls>({})
 
 interface SidebarAction {
-	label: string
+	label: ComponentChildren
 	expl?: ComponentChildren
 	shortcut?: string
 	disabled?: boolean
@@ -352,6 +354,24 @@ function getAttemptSolutions(
 	return sols
 }
 
+function ReplayableTooltipList(props: {
+	replayables: SidebarReplayable[]
+	controls: LevelControls
+}) {
+	return (
+		<>
+			{props.replayables.map(sol => (
+				<ChooserButton
+					label={`${sol.name} ${sol.metric}`}
+					onTrigger={() => {
+						props.controls.playInputs?.(sol)
+					}}
+				/>
+			))}
+		</>
+	)
+}
+
 function SolutionsTooltipList(props: { controls: LevelControls }) {
 	const lSet = useAtomValue(levelSetAtom)
 	const level = useSwrLevel()
@@ -373,18 +393,7 @@ function SolutionsTooltipList(props: { controls: LevelControls }) {
 		sols.push(...getAttemptSolutions(attempts, lSet.currentLevel))
 	}
 	if (sols.length === 0) return <div class="mx-2 my-1">None</div>
-	return (
-		<>
-			{sols.map(sol => (
-				<ChooserButton
-					label={`${sol.name} ${sol.metric}`}
-					onTrigger={() => {
-						props.controls.playInputs?.(sol)
-					}}
-				/>
-			))}
-		</>
-	)
+	return <ReplayableTooltipList controls={props.controls} replayables={sols} />
 }
 
 function getRRRoutes(
@@ -452,17 +461,26 @@ function RoutesTooltipList(props: { controls: LevelControls }) {
 		)
 	}
 	return (
-		<>
-			{routes.map(route => (
-				<ChooserButton
-					label={`${route.name} ${route.metric}`}
-					onTrigger={() => {
-						props.controls.playInputs?.(route)
-					}}
-				/>
-			))}
-		</>
+		<ReplayableTooltipList controls={props.controls} replayables={routes} />
 	)
+}
+
+async function importRoute(controls: LevelControls) {
+	const routeFiles = await showLoadPrompt("Load routefile", {
+		filters: [
+			{ name: "Routefile", extensions: ["route"] },
+			{ name: "MS/Lynx route to transcribe", extensions: ["json"] },
+		],
+	})
+	const routeFile = routeFiles?.[0]
+	if (!routeFile) return
+	const route: Route = JSON.parse(await routeFile.text())
+	if (!route.Rule) return
+	controls.playInputs?.({
+		name: "Imported route",
+		metric: "???",
+		ip: new RouteFileInputProvider(route),
+	})
 }
 
 export function Sidebar() {
@@ -536,6 +554,12 @@ export function Sidebar() {
 					<hr class="mx-2 my-1" />
 					<div class="mx-2">Routes:</div>
 					<RoutesTooltipList controls={levelControls} />
+					<ChooserButton
+						label="Import route..."
+						shortcut="Shift+I"
+						onTrigger={() => importRoute(levelControls)}
+						disabled={!hasLevel}
+					/>
 					<ChooserButton label="All routes" />
 				</SidebarButton>
 				<SidebarButton icon={clockIcon}>
