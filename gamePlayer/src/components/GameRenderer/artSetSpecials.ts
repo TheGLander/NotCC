@@ -452,8 +452,8 @@ registerSpecialFunction<BasicTile>("letters", function (ctx, _level, actor) {
 	this.tileBlit(ctx, [0.25, 0.25], frame, [0.5, 0.5])
 })
 //
-registerStateFunction<BasicTile>("greenBomb", actor =>
-	actor.customData ? "bomb" : "echip"
+registerStateFunction<BasicTile>("greenBomb", (actor, level) =>
+	!!actor.customData != level.toggleWallInverted ? "echip" : "bomb"
 )
 //
 // interface CounterSpecialArt extends SpecialArt {
