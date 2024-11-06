@@ -17,6 +17,7 @@ import { PromptComponent, showPromptGs } from "@/prompts"
 import { useJotaiFn, zipAsync } from "@/helpers"
 import { Dialog } from "../Dialog"
 import { PrefDisplayProps } from "."
+import { SfxBit } from "@notcc/logic"
 
 export const sfxAtom = atom<AudioSfxManager | null>(null)
 export const sfxIdAtom = preferenceAtom("sfxset", "defo")
@@ -53,7 +54,7 @@ function SfxPreview(props: { id: string }) {
 			ev.stopPropagation()
 			const availSfx = Object.keys(sfxSet.audioBuffers)
 			const chosenSfx = availSfx[Math.floor(Math.random() * availSfx.length)]
-			sfxSet.playOnce(chosenSfx)
+			sfxSet.playOnce(parseInt(chosenSfx) as SfxBit)
 		},
 		[sfxSet]
 	)

@@ -264,9 +264,10 @@ enum PlayerInputFlags {
 
 typedef uint8_t PlayerInputs;
 
-#define _libnotcc_accessors_PlayerSeat                  \
-  _libnotcc_accessor(PlayerSeat, actor, Actor*);        \
-  _libnotcc_accessor(PlayerSeat, inputs, PlayerInputs); \
+#define _libnotcc_accessors_PlayerSeat                   \
+  _libnotcc_accessor(PlayerSeat, actor, Actor*);         \
+  _libnotcc_accessor(PlayerSeat, displayed_hint, char*); \
+  _libnotcc_accessor(PlayerSeat, inputs, PlayerInputs);  \
   _libnotcc_accessor(PlayerSeat, released_inputs, PlayerInputs);
 
 void PlayerSeat_get_movement_directions(PlayerSeat* self, Direction dirs[2]);
@@ -352,6 +353,33 @@ void Level_do_wire_propagation(Level* self);
 void Level_do_wire_notification(Level* self);
 void Level_do_jetlife(Level* self);
 void Level_add_glitch(Level* self, Glitch glitch);
+enum SfxBit {
+  SFX_RECESSED_WALL = 1 << 0,
+  SFX_EXPLOSION = 1 << 1,
+  SFX_SPLASH = 1 << 2,
+  SFX_TELEPORT = 1 << 3,
+  SFX_THIEF = 1 << 4,
+  SFX_DIRT_CLEAR = 1 << 5,
+  SFX_BUTTON_PRESS = 1 << 6,
+  SFX_BLOCK_PUSH = 1 << 7,
+  SFX_FORCE_FLOOR_SLIDE = 1 << 8,
+  SFX_PLAYER_BONK = 1 << 9,
+  SFX_WATER_STEP = 1 << 10,
+  SFX_SLIDE_STEP = 1 << 11,
+  SFX_ICE_SLIDE = 1 << 12,
+  SFX_FIRE_STEP = 1 << 13,
+  SFX_ITEM_PICKUP = 1 << 14,
+  SFX_SOCKET_UNLOCK = 1 << 15,
+  SFX_DOOR_UNLOCK = 1 << 16,
+  SFX_CHIP_WIN = 1 << 17,
+  SFX_MELINDA_WIN = 1 << 18,
+  SFX_CHIP_DEATH = 1 << 19,
+  SFX_MELINDA_DEATH = 1 << 20,
+
+  SFX_CONTINUOUS = SFX_FORCE_FLOOR_SLIDE | SFX_ICE_SLIDE,
+};
+
+void Level_add_sfx(Level* self, uint64_t sfx);
 
 DECLARE_VECTOR(PlayerSeat);
 
@@ -393,7 +421,7 @@ Vector_Glitch* Level_get_glitches_ptr(Level* self);
   _libnotcc_accessor(Level, toggle_wall_inverted, bool);       \
   _libnotcc_accessor(Level, blue_button_pressed, bool);        \
   _libnotcc_accessor(Level, yellow_button_pressed, Direction); \
-  _libnotcc_accessor(Level, current_hint, char*);              \
+  _libnotcc_accessor(Level, sfx, uint64_t);                    \
   /* Wires */                                                  \
   _libnotcc_accessor(Level, wire_consumers, Vector_Position);  \
   _libnotcc_accessor(Level, wire_networks, Vector_WireNetwork);

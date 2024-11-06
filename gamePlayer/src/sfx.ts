@@ -1,26 +1,30 @@
-import { LevelSetLoaderFunction } from "@notcc/logic"
+import {
+	LevelSetLoaderFunction,
+	SFX_BITS_CONTINUOUS,
+	SfxBit,
+} from "@notcc/logic"
 export const SFX_FILENAME_MAP = {
-	"recessed wall": "newwall",
-	explosion: "burn",
-	splash: "splash",
-	teleport: "teleport",
-	robbed: "thief",
-	"dirt clear": "dirt",
-	"button press": "button",
-	"block push": "push",
-	"force floor": "force",
-	bump: "wall",
-	"water step": "water",
-	"slide step": "ice",
-	"ice slide": "slide",
-	"fire step": "fire",
-	"item get": "get",
-	"socket unlock": "socket",
-	"door unlock": "door",
-	"chip win": "teleport-male",
-	"melinda win": "teleport-female",
-	"chip death": "BummerM",
-	"melinda death": "BummerF",
+	[SfxBit.RECESSED_WALL]: "newwall",
+	[SfxBit.EXPLOSION]: "burn",
+	[SfxBit.SPLASH]: "splash",
+	[SfxBit.TELEPORT]: "teleport",
+	[SfxBit.THIEF]: "thief",
+	[SfxBit.DIRT_CLEAR]: "dirt",
+	[SfxBit.BUTTON_PRESS]: "button",
+	[SfxBit.BLOCK_PUSH]: "push",
+	[SfxBit.FORCE_FLOOR_SLIDE]: "force",
+	[SfxBit.PLAYER_BONK]: "wall",
+	[SfxBit.WATER_STEP]: "water",
+	[SfxBit.SLIDE_STEP]: "ice",
+	[SfxBit.ICE_SLIDE]: "slide",
+	[SfxBit.FIRE_STEP]: "fire",
+	[SfxBit.ITEM_PICKUP]: "get",
+	[SfxBit.SOCKET_UNLOCK]: "socket",
+	[SfxBit.DOOR_UNLOCK]: "door",
+	[SfxBit.CHIP_WIN]: "teleport-male",
+	[SfxBit.MELINDA_WIN]: "teleport-female",
+	[SfxBit.CHIP_DEATH]: "BummerM",
+	[SfxBit.MELINDA_DEATH]: "BummerF",
 }
 
 async function tryGetSfxFile(
@@ -39,8 +43,8 @@ async function tryGetSfxFile(
 
 export class AudioSfxManager {
 	ctx = new AudioContext()
-	audioBuffers: Record<string, AudioBuffer> = {}
-	playingNodes: Record<string, AudioBufferSourceNode> = {}
+	audioBuffers: Partial<Record<SfxBit, AudioBuffer>> = {}
+	playingNodes: Partial<Record<SfxBit, AudioBufferSourceNode>> = {}
 	async loadSfx(loader: LevelSetLoaderFunction): Promise<void> {
 		this.stopAllSfx()
 		this.audioBuffers = {}
@@ -49,14 +53,14 @@ export class AudioSfxManager {
 			const buffer = await tryGetSfxFile(loader, fileName)
 			if (!buffer) continue
 			const audioBuffer = await this.ctx.decodeAudioData(buffer)
-			this.audioBuffers[internalName] = audioBuffer
+			this.audioBuffers[parseInt(internalName) as SfxBit] = audioBuffer
 			anySfxLoaded = true
 		}
 		if (!anySfxLoaded) {
 			throw new Error("Couldn't load any sfx")
 		}
 	}
-	getSfxNode(sfx: string): AudioBufferSourceNode | null {
+	getSfxNode(sfx: SfxBit): AudioBufferSourceNode | null {
 		const audioBuffer = this.audioBuffers[sfx]
 		if (audioBuffer === undefined) {
 			return null
@@ -67,14 +71,14 @@ export class AudioSfxManager {
 		this.playingNodes[sfx] = node
 		return node
 	}
-	stopSfx(sfx: string): void {
+	stopSfx(sfx: SfxBit): void {
 		const node = this.playingNodes[sfx]
 		if (node === undefined) return
 		node.stop()
 		node.disconnect()
 		delete this.playingNodes[sfx]
 	}
-	playOnce(sfx: string): void {
+	playOnce(sfx: SfxBit): void {
 		this.stopSfx(sfx)
 		const node = this.getSfxNode(sfx)
 		if (node === null) return
@@ -85,33 +89,40 @@ export class AudioSfxManager {
 		})
 		node.start()
 	}
-	playOnceAsync(sfx: string): Promise<void> {
-		this.stopSfx(sfx)
-		const node = this.getSfxNode(sfx)
-		if (node === null) return Promise.reject()
-		return new Promise(res => {
-			node.addEventListener("ended", () => {
-				if (this.playingNodes[sfx] === node) {
-					res()
-					delete this.playingNodes[sfx]
-				}
-			})
-			node.start()
-		})
-	}
-	playContinuous(sfx: string): void {
+	playContinuous(sfx: SfxBit): void {
 		if (this.playingNodes[sfx] !== undefined) return
 		const node = this.getSfxNode(sfx)
 		if (node === null) return
 		node.loop = true
 		node.start()
 	}
-	stopContinuous(sfx: string): void {
-		this.stopSfx(sfx)
+	isSfxPlaying(sfx: SfxBit): boolean {
+		return sfx in this.playingNodes
 	}
-	stopAllSfx(): void {
-		for (const sfxName of Object.keys(this.playingNodes)) {
-			this.stopSfx(sfxName)
+	stopAllSfx() {
+		for (const node of Object.values(this.playingNodes)) {
+			node.stop()
+			node.disconnect()
 		}
+		this.playingNodes = {}
+	}
+	processSfxField(field: number): void {
+		for (let bit = SfxBit.FIRST; bit <= SfxBit.LAST; bit <<= 1) {
+			const runSfx = bit & field
+			const isContinuous = bit & SFX_BITS_CONTINUOUS
+			if (!isContinuous) {
+				if (runSfx) this.playOnce(bit)
+			} else {
+				const wasRunning = this.isSfxPlaying(bit)
+				if (wasRunning && !runSfx) this.stopSfx(bit)
+				else if (!wasRunning && runSfx) this.playContinuous(bit)
+			}
+		}
+	}
+	pause() {
+		return this.ctx.suspend()
+	}
+	unpause() {
+		return this.ctx.resume()
 	}
 }

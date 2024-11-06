@@ -711,7 +711,11 @@ void Level_tick(Level* self) {
   // Clear all previously-released inputs
   for_vector(PlayerSeat*, seat, &self->player_seats) {
     seat->released_inputs = 0;
+    seat->displayed_hint = NULL;
   }
+  // Clean out the SFX. The continuous SFX are re-set each subtick, so there's
+  // no point in keeping them
+  self->sfx = 0;
   self->current_subtick += 1;
   if (self->current_subtick == 3) {
     self->current_tick += 1;
@@ -797,12 +801,12 @@ void Actor_do_decision(Actor* self, Level* level) {
     Animation_do_decision(self, level);
     return;
   }
-  if (Actor_is_moving(self) || self->frozen)
-    return;
   if (has_flag(self, ACTOR_FLAGS_REAL_PLAYER)) {
     Player_do_decision(self, level);
     return;
   }
+  if (Actor_is_moving(self) || self->frozen)
+    return;
   if (self->pending_decision) {
     self->move_decision = self->pending_decision;
     self->pending_decision = DIRECTION_NONE;
@@ -995,6 +999,10 @@ bool Actor_check_collision(Actor* self, Level* level, Direction* direction) {
         return false;
       } else {
         self->pushing = true;
+        // Yes, player mimics emit push SFX too
+        if (has_flag(self, ACTOR_FLAGS_PLAYER)) {
+          Level_add_sfx(level, SFX_BLOCK_PUSH);
+        }
       }
     } else if (other->type)
       return false;
@@ -1048,6 +1056,7 @@ void Actor_destroy(Actor* self, Level* level, const ActorType* anim_type) {
     if (level->game_state != GAMESTATE_CRASH) {
       level->game_state = GAMESTATE_DEAD;
     }
+    Level_add_sfx(level, has_flag(self, ACTOR_FLAGS_MELINDA) ? SFX_MELINDA_DEATH : SFX_CHIP_DEATH);
     PlayerSeat* seat = Level_find_player_seat(level, self);
     if (seat) {
       seat->actor = NULL;
@@ -1113,8 +1122,35 @@ uint32_t Actor_get_actor_list_idx(const Actor* self, const Level* level) {
   return 0;
 }
 
+static void Player_calculate_sliding_sfx(Actor* self, Level* level) {
+  Cell* cell = Level_get_cell(level, self->position);
+  bool is_on_ff = has_flag(&cell->terrain, ACTOR_FLAGS_FORCE_FLOOR) &&
+                  !has_item_counter(self->inventory, ITEM_INDEX_FORCE_BOOTS);
+  bool is_on_ice = has_flag(&cell->terrain, ACTOR_FLAGS_ICE) &&
+                   !has_item_counter(self->inventory, ITEM_INDEX_ICE_BOOTS);
+  if (is_on_ff) {
+    Level_add_sfx(level, SFX_FORCE_FLOOR_SLIDE);
+  }
+
+  if (!Actor_is_moving(self) && !is_on_ice) {
+    self->custom_data &= ~PLAYER_WAS_ON_ICE;
+  }
+
+  if (self->custom_data & PLAYER_WAS_ON_ICE) {
+    Level_add_sfx(level, SFX_ICE_SLIDE);
+  }
+}
+
 void Player_do_decision(Actor* self, Level* level) {
   PlayerSeat* seat = Level_find_player_seat(level, self);
+  // It sucks having to do tile-related SFX stuff here, but SFX has to be
+  // recalculated each subtick (even when we're moving), so...
+  if (seat != NULL) {
+    Player_calculate_sliding_sfx(self, level);
+  }
+
+  if (Actor_is_moving(self) || self->frozen)
+    return;
 
   bool can_move = seat != NULL && Level_is_movement_subtick(level) &&
                   (self->sliding_state == SLIDING_NONE ||
@@ -1148,6 +1184,7 @@ void Player_do_decision(Actor* self, Level* level) {
     }
   }
   bool bonked = false;
+  bool was_bonking = self->custom_data & PLAYER_IS_VISUALLY_BONKING;
   if (Level_is_movement_subtick(level)) {
     self->custom_data &= ~PLAYER_IS_VISUALLY_BONKING;
   }
@@ -1211,15 +1248,16 @@ void Player_do_decision(Actor* self, Level* level) {
     self->custom_data &= ~PLAYER_HAS_OVERRIDE;
     self->custom_data |=
         bonked && self->sliding_state == SLIDING_WEAK ? PLAYER_HAS_OVERRIDE : 0;
-    Cell* cell = Level_get_cell(level, self->position);
 
     // Weird quirk: If you're on a force floor, you aren't visually bonking
-    if (has_flag(&cell->terrain, ACTOR_FLAGS_FORCE_FLOOR) &&
-        !has_item_counter(self->inventory, ITEM_INDEX_FORCE_BOOTS)) {
-      bonked = false;
-    }
+    Cell* cell = Level_get_cell(level, self->position);
+    bool is_on_ff = has_flag(&cell->terrain, ACTOR_FLAGS_FORCE_FLOOR) &&
+                    !has_item_counter(self->inventory, ITEM_INDEX_FORCE_BOOTS);
     self->custom_data |=
-        bonked || self->pushing ? PLAYER_IS_VISUALLY_BONKING : 0;
+        (bonked && !is_on_ff) || self->pushing ? PLAYER_IS_VISUALLY_BONKING : 0;
+    if (!was_bonking && bonked) {
+      Level_add_sfx(level, SFX_PLAYER_BONK);
+    }
   }
 #undef release_input
 }
@@ -1247,6 +1285,9 @@ bool Actor_pickup_item(Actor* self, Level* level, BasicTile* item) {
   BasicTile_erase(item);
   if (dropped_item != NULL) {
     Actor_place_item_on_tile(self, level, dropped_item);
+  }
+  if (has_flag(self, ACTOR_FLAGS_PLAYER)) {
+    Level_add_sfx(level, SFX_ITEM_PICKUP);
   }
   return true;
 }
@@ -1388,3 +1429,8 @@ bool Glitch_is_crashing(const Glitch* self) {
 Vector_Glitch* Level_get_glitches_ptr(Level* self) {
   return &self->glitches;
 }
+
+void Level_add_sfx(Level* self, uint64_t sfx) {
+  self->sfx |= sfx;
+}
+

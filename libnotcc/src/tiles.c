@@ -140,14 +140,30 @@ static void force_on_join(BasicTile* self,
   if (has_item_counter(other->inventory, ITEM_INDEX_FORCE_BOOTS))
     return;
   other->sliding_state = SLIDING_WEAK;
+  // Play the sfx if we're *an* active player
+  PlayerSeat* seat = Level_find_player_seat(level, other);
+  if (seat) {
+    Level_add_sfx(level, SFX_FORCE_FLOOR_SLIDE);
+  }
 }
 
 static void ice_on_complete_join(BasicTile* self, Level* level, Actor* other) {
   if (is_ghost(other))
     return;
   // Cancel the slidingstate if the actor has an ice boot now
-  if (has_item_counter(other->inventory, ITEM_INDEX_ICE_BOOTS)) {
+  if (has_item_counter(other->inventory, ITEM_INDEX_ICE_BOOTS) ||
+      has_flag(other, ACTOR_FLAGS_MELINDA)) {
     other->sliding_state = SLIDING_NONE;
+    if (has_flag(other, ACTOR_FLAGS_PLAYER)) {
+      Level_add_sfx(level, SFX_SLIDE_STEP);
+    }
+  } else {
+    // If we're a real player, start the sliding SFX and give the player the ice
+    // tag so that the SFX continues until the actor is on a non-ice tile
+    if (has_flag(other, ACTOR_FLAGS_REAL_PLAYER)) {
+      Level_add_sfx(level, SFX_ICE_SLIDE);
+      other->custom_data |= PLAYER_WAS_ON_ICE;
+    }
   }
 }
 
@@ -157,6 +173,9 @@ static void force_on_complete_join(BasicTile* self,
   // Cancel the slidingstate if the actor has an ice boot now
   if (has_item_counter(other->inventory, ITEM_INDEX_FORCE_BOOTS)) {
     other->sliding_state = SLIDING_NONE;
+    if (has_flag(other, ACTOR_FLAGS_PLAYER)) {
+      Level_add_sfx(level, SFX_SLIDE_STEP);
+    }
   }
 }
 
@@ -222,6 +241,7 @@ static bool ICE_CORNER_impedes(BasicTile* self,
 
 const TileType ICE_tile = {.name = "ice",
                            .layer = LAYER_TERRAIN,
+                           .flags = ACTOR_FLAGS_ICE,
                            .actor_joined = ice_on_join,
                            .on_idle = ICE_on_idle,
                            .modify_move_duration = ice_modify_move_duration,
@@ -231,6 +251,7 @@ const TileType ICE_CORNER_tile = {
 
     .name = "iceCorner",
     .layer = LAYER_TERRAIN,
+    .flags = ACTOR_FLAGS_ICE,
     .actor_joined = ice_on_join,
     .on_idle = ICE_CORNER_on_idle,
     .modify_move_duration = ice_modify_move_duration,
@@ -309,8 +330,12 @@ static void WATER_actor_completely_joined(BasicTile* self,
                                           Level* level,
                                           Actor* actor) {
   if (actor->type == &GLIDER_actor ||
-      has_item_counter(actor->inventory, ITEM_INDEX_WATER_BOOTS))
+      has_item_counter(actor->inventory, ITEM_INDEX_WATER_BOOTS)) {
+    if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+      Level_add_sfx(level, SFX_WATER_STEP);
+    }
     return;
+  }
   if (is_ghost(actor))
     return;
   if (actor->type == &DIRT_BLOCK_actor) {
@@ -350,11 +375,15 @@ static void FIRE_actor_completely_joined(BasicTile* self,
   }
   if (actor->type == &DIRT_BLOCK_actor || actor->type == &FIREBALL_actor)
     return;
-  if (has_item_counter(actor->inventory, ITEM_INDEX_FIRE_BOOTS))
+  if (has_item_counter(actor->inventory, ITEM_INDEX_FIRE_BOOTS)) {
+    if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+      Level_add_sfx(level, SFX_FIRE_STEP);
+    }
     return;
+  };
   if (actor->type == &ICE_BLOCK_actor) {
     BasicTile_transform_into(self, &WATER_tile);
-    Actor_destroy(actor, level, &SPLASH_actor);
+    Actor_destroy(actor, level, &EXPLOSION_actor);
     return;
   }
   Actor_destroy(actor, level, &EXPLOSION_actor);
@@ -445,6 +474,7 @@ static void teleport_set_just_joined(BasicTile* self,
                                      Level* level,
                                      Actor* actor) {
   self->custom_data |= TP_ACTOR_JUST_JOINED;
+  Level_add_sfx(level, SFX_TELEPORT);
 }
 
 static void teleport_red_do_teleport(BasicTile* self,
@@ -981,6 +1011,7 @@ static void DIRT_actor_completely_joined(BasicTile* self,
       !has_item_counter(other->inventory, ITEM_INDEX_DIRT_BOOTS))
     return;
   BasicTile_erase(self);
+  Level_add_sfx(level, SFX_DIRT_CLEAR);
 }
 
 const TileType DIRT_tile = {
@@ -1158,6 +1189,8 @@ static void EXIT_actor_completely_joined(BasicTile* self,
     seat->actor = Level_find_next_player(level, other);
   }
   Actor_erase(other, level);
+  Level_add_sfx(level, has_flag(other, ACTOR_FLAGS_MELINDA) ? SFX_MELINDA_WIN
+                                                            : SFX_CHIP_WIN);
 }
 const TileType EXIT_tile = {
     .name = "exit",
@@ -1181,6 +1214,9 @@ const TileType EXIT_tile = {
         other->inventory.keys_##simple > 0) {                                  \
       other->inventory.keys_##simple -= 1;                                     \
     }                                                                          \
+    if (has_flag(other, ACTOR_FLAGS_PLAYER)) {                                 \
+      Level_add_sfx(level, SFX_DOOR_UNLOCK);                                   \
+    }                                                                          \
   };                                                                           \
   const TileType var_name##_tile = {                                           \
                                                                                \
@@ -1199,6 +1235,7 @@ static void BUTTON_GREEN_actor_completely_joined(BasicTile* self,
                                                  Level* level,
                                                  Actor* actor) {
   level->green_button_pressed = !level->green_button_pressed;
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 
 const TileType BUTTON_GREEN_tile = {
@@ -1210,6 +1247,7 @@ static void BUTTON_BLUE_actor_completely_joined(BasicTile* self,
                                                 Level* level,
                                                 Actor* actor) {
   level->blue_button_pressed = !level->blue_button_pressed;
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 
 const TileType BUTTON_BLUE_tile = {
@@ -1221,6 +1259,7 @@ static void BUTTON_YELLOW_actor_completely_joined(BasicTile* self,
                                                   Level* level,
                                                   Actor* actor) {
   level->yellow_button_pressed = actor->direction;
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 
 const TileType BUTTON_YELLOW_tile = {
@@ -1279,6 +1318,7 @@ static void BUTTON_BROWN_actor_completely_joined(BasicTile* self,
   if (trap_cell == NULL)
     return;
   trap_increment_opens(&trap_cell->terrain, level, trap_cell);
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 static void button_brown_close_trap(BasicTile* self, Level* level) {
   Cell* trap_cell = get_connected_cell(self, level);
@@ -1313,6 +1353,7 @@ static void BUTTON_RED_actor_completely_joined(BasicTile* self,
   if (!clone_machine_cell)
     return;
   clone_machine_trigger(&clone_machine_cell->terrain, level, false);
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 
 const TileType BUTTON_RED_tile = {
@@ -1329,6 +1370,7 @@ static void button_orange_toggle(BasicTile* self, Level* level) {
   if (!jet_cell || jet_cell->terrain.type != &FLAME_JET_tile)
     return;
   jet_cell->terrain.custom_data = !jet_cell->terrain.custom_data;
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 static void BUTTON_ORANGE_actor_completely_joined(BasicTile* self,
                                                   Level* level,
@@ -1361,12 +1403,19 @@ static uint8_t BUTTON_PURPLE_give_power(BasicTile* self, Level* level) {
   self->custom_data &= ~BUTTON_PURPLE_SHOULD_POWER;
   return should_power ? 0xf : 0;
 }
+static void BUTTON_PURPLE_actor_completely_joined(BasicTile* self,
+                                                  Level* level,
+                                                  Actor* actor) {
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
+}
 
-const TileType BUTTON_PURPLE_tile = {.name = "buttonPurple",
-                                     .layer = LAYER_TERRAIN,
-                                     .wire_type = WIRES_UNCONNECTED,
-                                     .on_idle = BUTTON_PURPLE_on_idle,
-                                     .give_power = BUTTON_PURPLE_give_power};
+const TileType BUTTON_PURPLE_tile = {
+    .name = "buttonPurple",
+    .layer = LAYER_TERRAIN,
+    .wire_type = WIRES_UNCONNECTED,
+    .on_idle = BUTTON_PURPLE_on_idle,
+    .actor_completely_joined = BUTTON_PURPLE_actor_completely_joined,
+    .give_power = BUTTON_PURPLE_give_power};
 
 // BUTTON_BLACK, TOGGLE_SWITCH: Lowest 4 bits indicate wires, 5th indicates if
 // there should be pwoer (modulo the actor being destroyed), 6th indicates if
@@ -1396,11 +1445,14 @@ static void BUTTON_BLACK_actor_completely_joined(BasicTile* self,
                                                  Level* level,
                                                  Actor* actor) {
   self->custom_data &= ~POWER_BUTTON_SHOULD_BE_POWERED;
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 static void BUTTON_BLACK_actor_left(BasicTile* self,
                                     Level* level,
                                     Actor* actor,
                                     Direction _dir) {
+  // Yes, we play the sfx even if the button doesn't change
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
   // Hack: If a bowling ball was rolled from this tile, don't become unpressed
   // because an actor will be on us again in just a moment
   if (actor->type == &BOWLING_BALL_ROLLING_actor && actor->custom_data & 1)
@@ -1424,6 +1476,7 @@ static void TOGGLE_SWITCH_actor_completely_joined(BasicTile* self,
   } else {
     self->custom_data |= POWER_BUTTON_SHOULD_BE_POWERED;
   }
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 
 const TileType TOGGLE_SWITCH_tile = {
@@ -1452,6 +1505,7 @@ static void BUTTON_GRAY_actor_completely_joined(BasicTile* self,
       }
     }
   }
+  Level_add_sfx(level, SFX_BUTTON_PRESS);
 }
 
 const TileType BUTTON_GRAY_tile = {
@@ -1474,6 +1528,7 @@ static void ECHIP_GATE_actor_completely_joined(BasicTile* self,
   if (level->chips_left > 0)
     return;
   BasicTile_erase(self);
+  Level_add_sfx(level, SFX_SOCKET_UNLOCK);
 }
 
 const TileType ECHIP_GATE_tile = {
@@ -1485,9 +1540,29 @@ const TileType ECHIP_GATE_tile = {
     .actor_completely_joined = ECHIP_GATE_actor_completely_joined,
     .flags = ACTOR_FLAGS_DYNAMITE_IMMUNE};
 
+// HINT: `custom_data` is the hint index
+
+static char* hint_get_hint(BasicTile* self, Level* level) {
+  // If there is no hint for this hint tile, show the default hint
+  if (self->custom_data >= level->metadata.hints.length) {
+    return level->metadata.default_hint;
+  }
+  return level->metadata.hints.items[self->custom_data];
+}
+
+static void HINT_actor_idle(BasicTile* self, Level* level, Actor* actor) {
+  if (!has_flag(actor, ACTOR_FLAGS_REAL_PLAYER))
+    return;
+  PlayerSeat* seat = Level_find_player_seat(level, actor);
+  if (!seat)
+    return;
+  seat->displayed_hint = hint_get_hint(self, level);
+}
+
 const TileType HINT_tile = {.name = "hint",
                             .layer = LAYER_TERRAIN,
-                            .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER};
+                            .impedes_mask = ACTOR_FLAGS_BASIC_MONSTER,
+                            .on_idle = HINT_actor_idle};
 
 static void POPUP_WALL_actor_left(BasicTile* self,
                                   Level* level,
@@ -1496,6 +1571,7 @@ static void POPUP_WALL_actor_left(BasicTile* self,
   if (is_ghost(actor))
     return;
   BasicTile_transform_into(self, &WALL_tile);
+  Level_add_sfx(level, SFX_RECESSED_WALL);
 }
 
 const TileType POPUP_WALL_tile = {.name = "popupWall",
@@ -1510,6 +1586,9 @@ static void APPEARING_WALL_on_bumped_by(BasicTile* self,
   if (has_flag(actor, ACTOR_FLAGS_REVEALS_HIDDEN)) {
     BasicTile_transform_into(self, &WALL_tile);
   }
+ if(has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+ 	Level_add_sfx(level, SFX_PLAYER_BONK);
+ }
 }
 const TileType APPEARING_WALL_tile = {
     .name = "appearingWall",
@@ -1517,12 +1596,14 @@ const TileType APPEARING_WALL_tile = {
     .impedes = impedes_non_ghost,
     .on_bumped_by = APPEARING_WALL_on_bumped_by};
 
+// INVISIBLE_WALL: `custom_data` specifies until which tick to display the revealed wall sprite
+
 static void INVISIBLE_WALL_on_bumped_by(BasicTile* self,
                                         Level* level,
                                         Actor* actor,
                                         Direction direction) {
   if (has_flag(actor, ACTOR_FLAGS_REVEALS_HIDDEN)) {
-    self->custom_data = level->current_tick * 3 + level->current_subtick + 1;
+    self->custom_data = level->current_tick * 3 + level->current_subtick + 1 + 12;
   }
 }
 const TileType INVISIBLE_WALL_tile = {
@@ -1539,6 +1620,9 @@ static void BLUE_WALL_on_bumped_by(BasicTile* self,
     BasicTile_transform_into(
         self, self->custom_data & BLUE_WALL_REAL ? &WALL_tile : &FLOOR_tile);
   }
+ if(has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+ 	Level_add_sfx(level, SFX_PLAYER_BONK);
+ }
 }
 
 const TileType BLUE_WALL_tile = {.name = "blueWall",
@@ -1582,6 +1666,7 @@ static void THIEF_TOOL_actor_completely_joined(BasicTile* self,
     return;
   if (!has_flag(actor, ACTOR_FLAGS_REAL_PLAYER))
     return;
+  Level_add_sfx(level, SFX_THIEF);
   actor->inventory.item1 = NULL;
   actor->inventory.item2 = NULL;
   actor->inventory.item3 = NULL;
@@ -1602,6 +1687,7 @@ static void THIEF_KEY_actor_completely_joined(BasicTile* self,
     return;
   if (!has_flag(actor, ACTOR_FLAGS_REAL_PLAYER))
     return;
+  Level_add_sfx(level, SFX_THIEF);
   actor->inventory.keys_red = 0;
   actor->inventory.keys_green = 0;
   actor->inventory.keys_blue = 0;
@@ -1743,6 +1829,8 @@ static void TRANSMOGRIFIER_actor_completely_joined(BasicTile* self,
   // This keeps `custom_data`, important for eg. a yellow tank transforming into
   // a blue tank and doing a (weird) move
   Actor_transform_into(actor, new_type);
+  // Yeah, transmog plays the teleport sfx
+  Level_add_sfx(level, SFX_TELEPORT);
 }
 
 const TileType TRANSMOGRIFIER_tile = {
@@ -2423,6 +2511,8 @@ const ActorType YELLOW_TANK_actor = {
 
 static void animation_init(Actor* self, Level* level) {
   self->custom_data = 16;
+  Level_add_sfx(level,
+                self->type == &SPLASH_actor ? SFX_SPLASH : SFX_EXPLOSION);
 }
 static void animation_on_bumped_by(Actor* self, Level* level, Actor* other) {
   if (!has_flag(other, ACTOR_FLAGS_REAL_PLAYER)) {
@@ -2643,6 +2733,7 @@ static void ECHIP_actor_completely_joined(BasicTile* self,
   if (level->chips_left > 0) {
     level->chips_left -= 1;
   }
+  Level_add_sfx(level, SFX_ITEM_PICKUP);
   BasicTile_erase(self);
 }
 
@@ -2658,6 +2749,7 @@ static void TIME_BONUS_actor_completely_joined(BasicTile* self,
   if (!has_flag(actor, ACTOR_FLAGS_REAL_PLAYER))
     return;
   level->time_left += 600;
+  Level_add_sfx(level, SFX_ITEM_PICKUP);
   BasicTile_erase(self);
 }
 
@@ -2677,6 +2769,7 @@ static void TIME_PENALTY_actor_completely_joined(BasicTile* self,
   } else {
     level->time_left -= 600;
   }
+  Level_add_sfx(level, SFX_ITEM_PICKUP);
   BasicTile_erase(self);
 }
 
@@ -2691,6 +2784,7 @@ static void STOPWATCH_actor_completely_joined(BasicTile* self,
                                               Actor* actor) {
   if (!has_flag(actor, ACTOR_FLAGS_PLAYER))
     return;
+  Level_add_sfx(level, SFX_ITEM_PICKUP);
   level->time_stopped = !level->time_stopped;
 }
 
@@ -2793,6 +2887,9 @@ static void BONUS_FLAG_actor_completely_joined(BasicTile* self,
       level->bonus_points += self->custom_data;
     }
   }
+ if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+ 	Level_add_sfx(level, SFX_ITEM_PICKUP);
+ }
   BasicTile_erase(self);
 }
 

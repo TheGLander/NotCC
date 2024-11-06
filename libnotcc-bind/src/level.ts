@@ -22,6 +22,9 @@ export class PlayerSeat extends Struct {
 	set releasedInputs(val: KeyInputs) {
 		wasmFuncs.PlayerSeat_set_released_inputs(this._ptr, val)
 	}
+	get displayedHint() {
+		return getStringAt(wasmFuncs.PlayerSeat_get_displayed_hint(this._ptr))
+	}
 	hasPerspective(): boolean {
 		return !!wasmFuncs.PlayerSeat_has_perspective(this._ptr)
 	}
@@ -137,6 +140,34 @@ export class VectorGlitch extends CVector<Glitch> {
 	}
 }
 
+export enum SfxBit {
+	FIRST = 1,
+	RECESSED_WALL = 1 << 0,
+	EXPLOSION = 1 << 1,
+	SPLASH = 1 << 2,
+	TELEPORT = 1 << 3,
+	THIEF = 1 << 4,
+	DIRT_CLEAR = 1 << 5,
+	BUTTON_PRESS = 1 << 6,
+	BLOCK_PUSH = 1 << 7,
+	FORCE_FLOOR_SLIDE = 1 << 8,
+	PLAYER_BONK = 1 << 9,
+	WATER_STEP = 1 << 10,
+	SLIDE_STEP = 1 << 11,
+	ICE_SLIDE = 1 << 12,
+	FIRE_STEP = 1 << 13,
+	ITEM_PICKUP = 1 << 14,
+	SOCKET_UNLOCK = 1 << 15,
+	DOOR_UNLOCK = 1 << 16,
+	CHIP_WIN = 1 << 17,
+	MELINDA_WIN = 1 << 18,
+	CHIP_DEATH = 1 << 19,
+	MELINDA_DEATH = 1 << 20,
+	LAST = MELINDA_DEATH,
+}
+
+export const SFX_BITS_CONTINUOUS = SfxBit.FORCE_FLOOR_SLIDE | SfxBit.ICE_SLIDE
+
 export class Level extends Struct {
 	static unalloc(ptr: number) {
 		wasmFuncs.Level_uninit(ptr)
@@ -233,9 +264,6 @@ export class Level extends Struct {
 	clone() {
 		return new Level(wasmFuncs.Level_clone(this._ptr))
 	}
-	getHint() {
-		return null
-	}
 	subticksPassed() {
 		return this.currentTick * 3 + this.currentSubtick
 	}
@@ -247,6 +275,9 @@ export class Level extends Struct {
 	}
 	totalByteSize(): number {
 		return wasmFuncs.Level_total_size(this._ptr)
+	}
+	get sfx(): number {
+		return Number(wasmFuncs.Level_get_sfx(this._ptr))
 	}
 }
 

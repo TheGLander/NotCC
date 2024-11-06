@@ -24,6 +24,7 @@ enum ActorFlags {
   ACTOR_FLAGS_REVEALS_HIDDEN = 1 << 17,
   ACTOR_FLAGS_AVOIDS_TURTLE = 1 << 18,
   ACTOR_FLAGS_DECIDES_EVERY_SUBTICK = 1 << 19,
+  ACTOR_FLAGS_ICE = 1 << 20,
 };
 
 enum ItemIndex {
@@ -45,7 +46,11 @@ enum ItemIndex {
   ITEM_INDEX_HOOK = 16
 };
 
-enum { PLAYER_HAS_OVERRIDE = 1, PLAYER_IS_VISUALLY_BONKING = 2 };
+enum {
+  PLAYER_HAS_OVERRIDE = 1,
+  PLAYER_IS_VISUALLY_BONKING = 2,
+  PLAYER_WAS_ON_ICE = 4
+};
 
 extern const TileType FLOOR_tile;
 extern const TileType WALL_tile;

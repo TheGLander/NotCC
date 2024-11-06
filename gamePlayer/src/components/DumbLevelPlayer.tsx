@@ -447,13 +447,15 @@ export function DumbLevelPlayer(props: {
 	const sfx = useAtomValue(sfxAtom)
 	useEffect(() => {
 		return () => sfx?.stopAllSfx()
-	}, [])
-	useEffect(() => {
-		//TODO: level.sfxManager = sfx
 	}, [sfx])
 	// if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
 
 	const [playerState, setPlayerState] = useState("pregame" as PlayerState)
+
+	useEffect(() => {
+		if (playerState === "pause") sfx?.pause()
+		else sfx?.unpause()
+	}, [playerState, sfx])
 
 	// Inputs & LevelState
 
@@ -469,7 +471,6 @@ export function DumbLevelPlayer(props: {
 		// @ts-ignore
 		globalThis.NotCC.player = { level }
 		setLevel(level)
-		// level.sfxManager = sfx
 		setPlayerState("pregame")
 		return level
 	}, [sfx, props.level])
@@ -486,7 +487,7 @@ export function DumbLevelPlayer(props: {
 		chipsLeftRef.current!.innerText = level.chipsLeft.toString()
 		bonusPointsRef.current!.innerText = `${level.bonusPoints}pts`
 		if (hintRef.current) {
-			hintRef.current.innerText = level.getHint() ?? ""
+			hintRef.current.innerText = playerSeat.displayedHint ?? ""
 		}
 	}, [level])
 	useLayoutEffect(() => {
@@ -529,6 +530,7 @@ export function DumbLevelPlayer(props: {
 		}
 		level.tick()
 		inputMan.setReleasedInputs()
+		sfx?.processSfxField(level.sfx)
 		if (props.endOnNonlegalGlitch) {
 			for (const glitch of level.glitches) {
 				if (isGlitchKindNonlegal(glitch.glitchKind)) {
