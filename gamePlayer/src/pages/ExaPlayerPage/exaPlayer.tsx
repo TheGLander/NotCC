@@ -27,7 +27,7 @@ import {
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
-	IntervalTimer,
+	CompensatingIntervalTimer,
 	TimeoutTimer,
 	formatTimeLeft,
 	sleep,
@@ -540,7 +540,7 @@ export function RealExaPlayerPage() {
 	// Scrollbar, scrub and playback
 	const [playing, setPlaying] = useState(false)
 	const [speedIdx, setSpeedIdx] = useState(3)
-	const timerRef = useRef<IntervalTimer | null>(null)
+	const timerRef = useRef<CompensatingIntervalTimer | null>(null)
 	function stepLevel() {
 		if (model.isAtEnd()) {
 			if (model.level.currentSubtick !== 1) {
@@ -560,7 +560,7 @@ export function RealExaPlayerPage() {
 			timerRef.current = null
 			return
 		}
-		timerRef.current = new IntervalTimer(
+		timerRef.current = new CompensatingIntervalTimer(
 			stepLevel,
 			1 / (60 * TIMELINE_PLAYBACK_SPEEDS[speedIdx])
 		)

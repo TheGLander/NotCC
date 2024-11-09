@@ -20,7 +20,6 @@ import {
 } from "preact/hooks"
 import {
 	CompensatingIntervalTimer,
-	IntervalTimer,
 	applyRef,
 	sleep,
 	useJotaiFn,
@@ -630,7 +629,7 @@ export function DumbLevelPlayer(props: {
 	)
 	const autoTick =
 		playerState === "play" || playerState === "dead" || playerState === "win"
-	const tickTimer = useRef<IntervalTimer | null>(null)
+	const tickTimer = useRef<CompensatingIntervalTimer | null>(null)
 	const tickLevelRef = useRef(tickLevel)
 	const rescheduleTimer = useCallback(() => {
 		if (!autoTick || (replay && !solutionIsPlaying)) {

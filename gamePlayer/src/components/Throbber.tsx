@@ -9,7 +9,7 @@ import {
 	useRef,
 	useState,
 } from "preact/hooks"
-import { AnimationTimer, IntervalTimer } from "@/helpers"
+import { AnimationTimer, CompensatingIntervalTimer } from "@/helpers"
 import { Direction } from "@notcc/logic"
 import spinnerImg from "@/spinner.gif"
 
@@ -160,7 +160,7 @@ export function Throbber() {
 	const [chosenTile, setChosenTile] = useState<string>(getRandomActor)
 	useEffect(() => {
 		if (!tileset) return
-		const timer = new IntervalTimer(() => {
+		const timer = new CompensatingIntervalTimer(() => {
 			setChosenTile(getRandomActor())
 		}, 2)
 		return () => {
