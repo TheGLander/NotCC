@@ -13,11 +13,16 @@ export const KEY_INPUTS = {
 	switchPlayer: 1 << 6,
 }
 
-export interface InputProvider {
-	getInput(level: Level, seatIdx: number): KeyInputs
-	outOfInput(level: Level): boolean
-	setupLevel(level: Level): void
-	inputProgress(level: Level): KeyInputs
+export abstract class InputProvider {
+	abstract getInput(curSubtick: number, seatIdx: number): KeyInputs
+	abstract setupLevel(level: Level): void
+	abstract getLength(): number
+	outOfInput(curSubtick: number): boolean {
+		return curSubtick >= this.getLength()
+	}
+	inputProgress(curSubtick: number): number {
+		return Math.min(1, curSubtick / this.getLength())
+	}
 }
 
 export function makeSimpleInputs(comp: Uint8Array): Uint8Array {
@@ -38,16 +43,18 @@ export function makeSimpleInputs(comp: Uint8Array): Uint8Array {
 	return new Uint8Array(uncomp.filter((_, i) => i % 3 === 2))
 }
 
-export class SolutionInfoInputProvider implements InputProvider {
+function subtickToTick(subtick: number) {
+	return (subtick / 3) | 0
+}
+
+export class SolutionInfoInputProvider extends InputProvider {
 	inputs: Uint8Array[]
 	constructor(public solution: ISolutionInfo) {
+		super()
 		this.inputs = solution.steps!.map(buf => makeSimpleInputs(buf))
 	}
-	getInput(level: Level, seatIdx: number): KeyInputs {
-		return this.inputs[seatIdx][level.currentTick]
-	}
-	outOfInput(level: Level): boolean {
-		return level.currentTick >= this.inputs.length
+	getInput(curSubtick: number, seatIdx: number): KeyInputs {
+		return this.inputs[seatIdx][subtickToTick(curSubtick)]
 	}
 	setupLevel(level: Level): void {
 		const levelState = this.solution.levelState
@@ -61,8 +68,8 @@ export class SolutionInfoInputProvider implements InputProvider {
 			level.rngBlob = blobMod
 		}
 	}
-	inputProgress(level: Level): number {
-		return Math.min(1, level.subticksPassed() / (3 * this.inputs[0].length))
+	getLength(): number {
+		return this.inputs[0].length
 	}
 }
 
@@ -157,10 +164,11 @@ export function splitRouteCharString(charString: string): string[] {
 	return charString.split(/(?<![pcs])/)
 }
 
-export class RouteFileInputProvider implements InputProvider {
+export class RouteFileInputProvider extends InputProvider {
 	route?: Route
 	moves: string[]
 	constructor(route: Route | string[]) {
+		super()
 		if ("Moves" in route) {
 			this.moves = splitRouteCharString(route.Moves)
 			const initSlide = route["Initial Slide"]
@@ -185,14 +193,11 @@ export class RouteFileInputProvider implements InputProvider {
 			this.moves = route
 		}
 	}
-	getInput(level: Level, seatIdx: number): KeyInputs {
+	getInput(curSubtick: number, seatIdx: number): KeyInputs {
 		if (seatIdx !== 0)
 			throw new Error("Routefiles don't support multiseat levels")
-		if (level.currentTick >= this.moves.length) return 0
-		return charToKeyInput(this.moves[level.currentTick])
-	}
-	outOfInput(level: Level): boolean {
-		return level.currentTick >= this.moves.length
+		if (subtickToTick(curSubtick) >= this.moves.length) return 0
+		return charToKeyInput(this.moves[subtickToTick(curSubtick)])
 	}
 	setupLevel(level: Level): void {
 		if (!this.route) return
@@ -203,29 +208,30 @@ export class RouteFileInputProvider implements InputProvider {
 			level.rngBlob = this.route.Blobmod
 		}
 	}
-	inputProgress(level: Level): number {
-		return Math.min(1, level.subticksPassed() / (3 * this.moves.length))
+	getLength(): number {
+		return this.moves.length * 3
 	}
 }
 
-export class ReplayInputProvider implements InputProvider {
+export class ReplayInputProvider extends InputProvider {
 	bonusTicks = 3600
 	constructor(public replay: Replay) {
+		super()
 		replay._assert_live()
 	}
 	setupLevel(level: Level): void {
 		level.randomForceFloorDirection = this.replay.randomForceFloorDirection
 		level.rngBlob = this.replay.rngBlob
 	}
-	getInput(level: Level, seatIdx: number): number {
+	getInput(curSubtick: number, seatIdx: number): number {
 		if (seatIdx !== 0) throw new Error("C2M replays don't support multiseat")
-		let currentTick = Math.min(level.currentTick, this.replay.inputs.length - 1)
+		let currentTick = Math.min(
+			subtickToTick(curSubtick),
+			this.replay.inputs.length - 1
+		)
 		return this.replay.inputs[currentTick]
 	}
-	inputProgress(level: Level): number {
-		return Math.min(1, level.subticksPassed() / (3 * this.replay.inputs.length))
-	}
-	outOfInput(level: Level): boolean {
-		return level.currentTick >= this.replay.inputs.length + this.bonusTicks
+	getLength(): number {
+		return this.replay.inputs.length * 3
 	}
 }

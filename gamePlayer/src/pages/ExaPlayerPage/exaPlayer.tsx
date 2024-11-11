@@ -390,20 +390,25 @@ export function RealExaPlayerPage() {
 				// @ts-ignore Temporary
 				globalThis.NotCC.exa = { model }
 				setModel(model)
-				const UPDATE_PERIOD = 200
+				const UPDATE_PERIOD = 200 * 3
 				const toast: Toast = { title: "Importing route (0%)" }
 				addToast(toast)
-				while (!ip.outOfInput(model.level)) {
+				// Graph model might mess with the level's currentTick/Subtick if it detects a redundancy, so we need to maintain a separate linear currentSubtick
+				let linearCurrentSubtick = 0
+				while (!ip.outOfInput(linearCurrentSubtick)) {
 					if (model.level.gameState !== GameState.PLAYING) break
-					model.addInput(ip.getInput(model.level, 0))
-					if (model.level.currentTick % UPDATE_PERIOD === 0) {
+					const moveLength = model.addInput(
+						ip.getInput(linearCurrentSubtick, 0)
+					)
+					if (linearCurrentSubtick % UPDATE_PERIOD === 0) {
 						updateLevel()
 						toast.title = `Importing route (${Math.floor(
-							ip.inputProgress(model.level) * 100
+							ip.inputProgress(linearCurrentSubtick) * 100
 						)}%)`
 						adjustToast()
 						await sleep(0)
 					}
+					linearCurrentSubtick += moveLength
 				}
 				removeToast(toast)
 				updateLevel()

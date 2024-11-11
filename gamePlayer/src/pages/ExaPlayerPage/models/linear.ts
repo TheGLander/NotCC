@@ -57,7 +57,10 @@ export class MoveSequence {
 		seat.inputs = input
 		tickLevel(level)
 	}
-	add(input: KeyInputs, level: Level, seat: PlayerSeat) {
+	/**
+	 * @returns The amount of subticks passed between this input and the next time the player has agency
+	 * */
+	add(input: KeyInputs, level: Level, seat: PlayerSeat): number {
 		const ogInput = input
 		const inputsToPush: string[] = []
 		let char = keyInputToChar(input, false)
@@ -80,6 +83,7 @@ export class MoveSequence {
 		} else {
 			this.displayMoves.push(...inputsToPush)
 		}
+		return inputsToPush.length * 3
 	}
 	trim(interval: MoveSeqenceInterval) {
 		this.moves.splice(...interval)
@@ -126,11 +130,12 @@ export class LinearModel {
 		return this.level.playerSeats[0]
 	}
 	constructor(public level: Level) {}
-	addInput(inputs: KeyInputs): void {
+	addInput(inputs: KeyInputs): number {
+		let moveLength: number
 		if (this.offset !== this.moveSeq.tickLen) {
 			const newSeq = new MoveSequence()
 			newSeq.snapshotOffset = this.offset
-			newSeq.add(inputs, this.level, this.playerSeat)
+			moveLength = newSeq.add(inputs, this.level, this.playerSeat)
 			if (
 				newSeq.moves.every(
 					(m, idx) => m === this.moveSeq.moves[idx + this.offset]
@@ -143,9 +148,10 @@ export class LinearModel {
 				this.offset = this.moveSeq.tickLen
 			}
 		} else {
-			this.moveSeq.add(inputs, this.level, this.playerSeat)
+			moveLength = this.moveSeq.add(inputs, this.level, this.playerSeat)
 			this.offset = this.moveSeq.tickLen
 		}
+		return moveLength
 	}
 	undo() {
 		if (this.offset === 0) return

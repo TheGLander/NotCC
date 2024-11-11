@@ -322,3 +322,77 @@ export function formatBytes(bytes: number) {
 	}
 	return `${(bytes / suffixDiv).toFixed(3)} ${suffix}`
 }
+
+// Lol
+
+// Max-heap
+export class PriorityQueue<T> {
+	items: T[] = []
+	priorities: number[] = []
+	get size(): number {
+		return this.items.length
+	}
+	swap(aIdx: number, bIdx: number) {
+		const aItem = this.items[aIdx]
+		this.items[aIdx] = this.items[bIdx]
+		this.items[bIdx] = aItem
+		const aPriority = this.priorities[aIdx]
+		this.priorities[aIdx] = this.priorities[bIdx]
+		this.priorities[bIdx] = aPriority
+	}
+	push(item: T, priority: number): void {
+		const newLen = this.items.push(item)
+		this.priorities.push(priority)
+		this.siftUp(newLen - 1)
+	}
+	pop() {
+		if (this.size === 1) {
+			this.priorities.pop()
+			return this.items.pop()
+		}
+		const item = this.items[0]
+		this.items[0] = this.items.pop()!
+		this.priorities[0] = this.priorities.pop()!
+		this.siftDown(0)
+		return item
+	}
+	siftDown(idx: number) {
+		const thisPrio = this.priorities[idx]
+
+		const leftIdx = 2 * idx + 1
+		// No children to sift with
+		if (leftIdx >= this.size) return
+		const leftPrio = this.priorities[leftIdx]
+
+		const rightIdx = 2 * idx + 2
+		if (rightIdx >= this.size) {
+			// Only one child to sift with
+			if (thisPrio < leftPrio) {
+				this.swap(idx, leftIdx)
+				// And no further children, yay!
+			}
+			return
+		}
+		const rightPrio = this.priorities[rightIdx]
+
+		if (thisPrio >= leftPrio && thisPrio >= rightPrio) return
+
+		if (leftPrio > rightPrio) {
+			this.swap(idx, leftIdx)
+			this.siftDown(leftIdx)
+		} else {
+			this.swap(idx, rightIdx)
+			this.siftDown(rightIdx)
+		}
+	}
+	siftUp(idx: number) {
+		if (idx === 0) return
+		const thisPrio = this.priorities[idx]
+		const parentIdx = ((idx - 1) / 2) | 0
+		const parentPrio = this.priorities[parentIdx]
+		if (thisPrio > parentPrio) {
+			this.swap(idx, parentIdx)
+			this.siftUp(parentIdx)
+		}
+	}
+}

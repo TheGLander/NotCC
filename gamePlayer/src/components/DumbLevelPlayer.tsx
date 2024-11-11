@@ -542,7 +542,9 @@ export function DumbLevelPlayer(props: {
 		if (level.gameState === GameState.PLAYING) {
 			renderInventoryRef.current?.()
 			if (replay) {
-				setSolutionLevelProgress(replay.ip.inputProgress(level))
+				setSolutionLevelProgress(
+					replay.ip.inputProgress(level.subticksPassed())
+				)
 			}
 			updateLevelMetrics()
 		} else if (playerState === "play") {
@@ -606,20 +608,20 @@ export function DumbLevelPlayer(props: {
 			if (!replay) return
 			let lvl = level
 			setSolutionLevelProgress(progress)
-			if (progress < replay.ip.inputProgress(lvl)) {
+			if (progress < replay.ip.inputProgress(lvl.subticksPassed())) {
 				lvl = props.level.initLevel()
 				lvl.tick()
 				lvl.tick()
 				setLevel(lvl)
 			}
 			const WAIT_PERIOD = 20 * 40
-			while (replay.ip.inputProgress(lvl) < progress) {
+			while (replay.ip.inputProgress(lvl.subticksPassed()) < progress) {
 				lvl.tick()
 				lvl.tick()
 				lvl.setProviderInputs(replay.ip)
 				lvl.tick()
 				if (lvl.currentTick % WAIT_PERIOD === 0) {
-					setSolutionJumpProgress(replay.ip.inputProgress(lvl))
+					setSolutionJumpProgress(replay.ip.inputProgress(lvl.subticksPassed()))
 					await sleep(0)
 				}
 			}

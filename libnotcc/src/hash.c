@@ -83,7 +83,7 @@ static crc32_t Inventory_hash(const Inventory* self, crc32_t hash) {
 
 inline static bool Actor_should_direction_be_hashed(const Actor* self,
                                                     uint32_t settings) {
-  if (self->sliding_state != SLIDING_NONE)
+  if (self->sliding_state != SLIDING_NONE || Actor_is_moving(self))
     return true;
   if (has_flag(self, ACTOR_FLAGS_BLOCK))
     return false;
@@ -101,6 +101,11 @@ static crc32_t Actor_hash(const Actor* self,
     return hash;
   feed_hash64((uintptr_t)self->type);
   feed_hash64(self->custom_data);
+ feed_hash8(self->pulled);
+ feed_hash8(self->pulling);
+ feed_hash8(self->pushing);
+ feed_hash8(self->frozen);
+ feed_hash8(self->move_progress);
   hash = Inventory_hash(&self->inventory, hash);
   feed_hash8(self->pending_decision);
   if (Actor_should_direction_be_hashed(self, settings)) {

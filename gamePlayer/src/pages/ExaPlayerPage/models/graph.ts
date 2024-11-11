@@ -7,21 +7,28 @@ import {
 	HashSettings,
 } from "@notcc/logic"
 import { MoveSeqenceInterval, MoveSequence, Snapshot } from "./linear"
+import { PriorityQueue } from "@/helpers"
 
+// Welp. ExaCC graph mode. This is gonna be confusing.
+// In this mode, all routes stem from the root node, with nodes being specific level states, and edges (referred here as connections) being sequences of moves connecting them.
+// The model tries to minimize the number of nodes for readability and performance reasons, so not all level states are automatically made into nodes. More details in the actual model class
+
+// Same as `MoveSequence`, but additionally tracks hashes for each player move
 export class GraphMoveSequence extends MoveSequence {
 	hashes: (number | null)[] = []
 	snapshotOffset = 1
 	constructor(public hashSettings: HashSettings) {
 		super()
 	}
-	add(input: KeyInputs, level: Level, seat: PlayerSeat): void {
+	add(input: KeyInputs, level: Level, seat: PlayerSeat): number {
 		const lastTickLen = this.tickLen
-		super.add(input, level, seat)
+		const moveLength = super.add(input, level, seat)
 		const nullsN = this.tickLen - lastTickLen - 1
 		for (let i = 0; i < nullsN; i += 1) {
 			this.hashes.push(null)
 		}
 		this.hashes.push(level.hash(this.hashSettings))
+		return moveLength
 	}
 	get lastHash() {
 		return this.hashes[this.tickLen - 1]!
@@ -36,16 +43,22 @@ export class GraphMoveSequence extends MoveSequence {
 	}
 }
 
+// The Node class represents a single level state achievable from the root node by following a sequence of moves. It tracks its inputs, outputs, and distance to the closest win and root nodes
 export class Node {
 	level: Level
+	// Ehh who cares about multiseat
 	get playerSeat() {
 		return this.level.playerSeats[0]
 	}
 	hash: number
+	// XXX: Do we need to have this on every node?
 	hashSettings: HashSettings
+	// Distance to closest win node. Tracked by using incremental Dijkstra's
 	winDistance?: number
+	// XXX: Replace with `ConnPtr`?
 	winTargetNode?: Node
 	winTargetSeq?: GraphMoveSequence
+	// Same as above, but for the closest root node
 	rootDistance: number = 0
 	rootTargetNode?: Node
 	rootTargetSeq?: GraphMoveSequence
@@ -62,8 +75,11 @@ export class Node {
 			this.level = level
 		}
 	}
+	// If there are multiple moveSeqs from a single node to this one, that node appears here multiple times
 	inNodes: Node[] = []
+	// A node may be connected to another node with multiple move sequences at once, the shortes moveSeq is typically considered when checkign win/root dists and the like.
 	outConns: Map<Node, GraphMoveSequence[]> = new Map()
+	// Like with `inNodes`, if there are multiple sequences connecting two nodes, the connected child node appears multiple times here
 	get outNodes(): Node[] {
 		const nodes: Node[] = []
 		for (const [node, seqs] of Array.from(this.outConns.entries())) {
@@ -73,6 +89,9 @@ export class Node {
 		}
 		return nodes
 	}
+	// A node is "loose" if it only has one parent and no children, meaning it was made by adding a new input onto a node.
+	// This is important when adding new inputs onto this note, since then we can just append the new input onto the
+	// sequence connecting this node and its parent, instead of making a new child node from this node and then dissolving this node.
 	get loose(): boolean {
 		return (
 			this.inNodes.length === 1 &&
@@ -80,10 +99,14 @@ export class Node {
 			this.level.gameState !== GameState.WON
 		)
 	}
+	// A node is dissolvable if it only has one in and one out node, in which case this node is redundant and should probably
+	// be "dissolved" into the two sequences its in between, making one larger sequence instead with connects this node's parent directly to its grandchild
 	get dissolvable(): boolean {
 		return this.inNodes.length === 1 && this.outNodes.length === 1
 	}
 
+	// Uugh. Most of graph mode assumes we're always aligned to x:1 subticks on nodes and snapshots, but it's possible to win on any subtick,
+	// so if we win on a non-:1 subtick, we must apply this offset to all distances from/to this node.
 	getWinSubtickOffset() {
 		if (this.level.gameState !== GameState.WON) return 0
 		return this.level.currentSubtick - 1
@@ -99,16 +122,19 @@ export class Node {
 		return child
 	}
 	findShortestParentConns(): ConnPtr[] {
-		return Array.from(this.inNodes)
-			.filter((node, i, arr) => arr.indexOf(node) === i)
-			.map<ConnPtr>(node => {
-				const connArr = node.outConns.get(this)!
-				const shortestSeq = connArr.reduce(
-					(acc, val) => (val.tickLen < acc.tickLen ? val : acc),
-					connArr[0]
-				)
-				return { n: node, m: shortestSeq }
-			})
+		return (
+			Array.from(this.inNodes)
+				// Remove multiple copies of the parent node, which will happen if we have multiple connections
+				.filter((node, i, arr) => arr.indexOf(node) === i)
+				.map<ConnPtr>(node => {
+					const connArr = node.outConns.get(this)!
+					const shortestSeq = connArr.reduce(
+						(acc, val) => (val.tickLen < acc.tickLen ? val : acc),
+						connArr[0]
+					)
+					return { n: node, m: shortestSeq }
+				})
+		)
 	}
 	findShortestChildConns(): ConnPtr[] {
 		return Array.from(this.outConns).map<ConnPtr>(([node, seqs]) => {
@@ -121,13 +147,10 @@ export class Node {
 	}
 	cascadeWinDist() {
 		if (this.winDistance === undefined) return
-		const toCascade: Node[] = [this]
-		while (toCascade.length > 0) {
-			const node = toCascade.reduce(
-				(acc, val) => (val.winDistance! < acc.winDistance! ? val : acc),
-				toCascade[0]
-			)
-			toCascade.splice(toCascade.indexOf(node), 1)
+		const toCascade = new PriorityQueue<Node>()
+		toCascade.push(this, -this.winDistance)
+		while (toCascade.size > 0) {
+			const node = toCascade.pop()!
 			const conns = node.findShortestParentConns()
 			for (const conn of conns) {
 				const newDist =
@@ -138,18 +161,15 @@ export class Node {
 				conn.n.winDistance = newDist
 				conn.n.winTargetNode = node
 				conn.n.winTargetSeq = conn.m
-				toCascade.push(conn.n)
+				toCascade.push(conn.n, -newDist)
 			}
 		}
 	}
 	cascadeRootDist() {
-		const toCascade: Node[] = [this]
-		while (toCascade.length > 0) {
-			const node = toCascade.reduce(
-				(acc, val) => (val.rootDistance! < acc.rootDistance! ? val : acc),
-				toCascade[0]
-			)
-			toCascade.splice(toCascade.indexOf(node), 1)
+		const toCascade = new PriorityQueue<Node>()
+		toCascade.push(this, -this.rootDistance)
+		while (toCascade.size > 0) {
+			const node = toCascade.pop()!
 			const conns = node.findShortestChildConns()
 			for (const conn of conns) {
 				const newDist =
@@ -160,11 +180,13 @@ export class Node {
 				conn.n.rootDistance = newDist
 				conn.n.rootTargetNode = node
 				conn.n.rootTargetSeq = conn.m
-				toCascade.push(conn.n)
+				toCascade.push(conn.n, -newDist)
 			}
 		}
 	}
 
+	// Moves all connections from this node to `oldNode` to `newNode`. Generally only used  when
+	//  `oldNode` and `newNode` represent the same state, and `oldNode` is a loose node and should be the one to go
 	moveConnections(newNode: Node, oldNode: Node) {
 		if (newNode === oldNode) return
 		let newSeqs = this.outConns.get(newNode)
@@ -197,6 +219,7 @@ export class Node {
 		}
 		endNode.inNodes.splice(endNode.inNodes.indexOf(this), 1)
 	}
+	// For a `seq` that's on this node, split it into two sequences `seq1` and `seq2` at the tick offset `offset`, with a new node `node` in the middle. This operation is the opposite of dissolving a node
 	insertNodeOnSeq(
 		seq: GraphMoveSequence,
 		offset: number
@@ -206,11 +229,12 @@ export class Node {
 		)!
 		this.removeConnection(seq)
 		const seq2 = seq.clone()
+		// `trim` removes the moves in the interval, so `seq` will become the sequence between `this` and `midNode`
 		seq.trim([offset, seq.tickLen])
 		seq2.trim([0, offset])
-		const midHash = seq.lastHash
 		let midNode: Node
-		if (midHash === endNode.hash) {
+		// XXX: Is this edge case useful?
+		if (seq.lastHash === endNode.hash) {
 			midNode = endNode
 			const conns = this.outConns.get(endNode) ?? []
 			conns.push(seq)
@@ -255,15 +279,17 @@ export class Node {
 	}
 }
 
+// A small thing describing a specific move sequence
 export interface ConnPtr {
-	// `i`nput node
+	// the parent `n`ode
 	n: Node
-	// co`n`nection
+	// the `m`ove sequence
 	m: GraphMoveSequence
 }
 
+// A small thing describing a specific move index on a move sequence on a node
 export interface MovePtr extends ConnPtr {
-	// o`f`fset
+	// `o`ffset
 	o: number
 }
 
@@ -286,11 +312,11 @@ export class GraphModel {
 		this.rootNode = this.current = new Node(level, hashSettings)
 		this.nodeHashMap.set(this.rootNode.hash, this.rootNode)
 	}
-	addInput(input: KeyInputs): void {
-		let node: Node, moveSeq: GraphMoveSequence, parent: Node
+	addInput(input: KeyInputs): number {
+		let node: Node, moveSeq: GraphMoveSequence, parent: Node, moveLength: number
 		if (!(this.current instanceof Node)) {
 			moveSeq = new GraphMoveSequence(this.hashSettings)
-			moveSeq.add(input, this.level, this.playerSeat)
+			moveLength = moveSeq.add(input, this.level, this.playerSeat)
 			const curMoveSeq = this.current.m.moves.slice(this.current.o)
 			if (moveSeq.moves.every((move, i) => curMoveSeq[i] === move)) {
 				if (this.current.o + moveSeq.tickLen === this.current.m.tickLen) {
@@ -300,7 +326,7 @@ export class GraphModel {
 					this.current.o += moveSeq.tickLen
 				}
 				this.cleanConstruction()
-				return
+				return moveLength
 			}
 			const constrIdx = this.constructedRoute.findIndex(
 				conn => conn.n === (this.current as MovePtr).n
@@ -331,7 +357,7 @@ export class GraphModel {
 		} else if (!this.current.loose || this.current === this.rootNode) {
 			moveSeq = new GraphMoveSequence(this.hashSettings)
 			this.level = this.level.clone()
-			moveSeq.add(input, this.level, this.playerSeat)
+			moveLength = moveSeq.add(input, this.level, this.playerSeat)
 			const constrIdx = this.getConstructionIdx()
 			for (const [node, conns] of this.current.outConns) {
 				for (const conn of conns) {
@@ -348,7 +374,7 @@ export class GraphModel {
 							this.current = { n: this.current, m: conn, o: moveSeq.tickLen }
 							this.constructionAutoComplete(node)
 						}
-						return
+						return moveLength
 					}
 				}
 			}
@@ -368,7 +394,7 @@ export class GraphModel {
 				m: moveSeq,
 				o: moveSeq.tickLen,
 			})
-			moveSeq.add(input, this.level, this.playerSeat)
+			moveLength = moveSeq.add(input, this.level, this.playerSeat)
 			node.hash = moveSeq.lastHash
 			node.rootDistance = parent.rootDistance + moveSeq.tickLen * 3
 		}
@@ -406,6 +432,7 @@ export class GraphModel {
 			}
 		}
 		this.cleanConstruction()
+		return moveLength
 	}
 	cleanConstruction() {
 		const lastNode = this.constructionLastNode()

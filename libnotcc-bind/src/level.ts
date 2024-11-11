@@ -199,7 +199,7 @@ export class Level extends Struct {
 	setProviderInputs(ip: InputProvider) {
 		const seats = this.playerSeats
 		for (let idx = 0; idx < seats.length; idx += 1) {
-			seats[idx].inputs = ip.getInput(this, idx)
+			seats[idx].inputs = ip.getInput(this.subticksPassed(), idx)
 		}
 	}
 	tick() {
