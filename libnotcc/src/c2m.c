@@ -49,11 +49,11 @@ static Result_SectionData unpack_section(SectionData section) {
     data_left -= 1;
     if (len < 0x80) {
       if (len > data_left) {
-        free(new_data);
+        free(new_section.data);
         res_throws("Non-reference block spans beyond end of packed data");
       }
       if (len > new_data_left) {
-        free(new_data);
+        free(new_section.data);
         res_throws("Compressed data larger than specified");
       }
       uint8_t bytes_to_copy = len;
@@ -65,15 +65,19 @@ static Result_SectionData unpack_section(SectionData section) {
     } else {
       len -= 0x80;
       if (new_data_left == 0) {
-        free(new_data);
+        free(new_section.data);
         res_throws("Reference block spans beyond end of packed data");
       }
 
       if (len > new_data_left) {
-        free(new_data);
+        free(new_section.data);
         res_throws("Compressed data larger than specified");
       }
       uint8_t offset = *data;
+      if (offset > (new_length - new_data_left)) {
+        free(new_section.data);
+        res_throws("Reference block refers to data before beginning of buffer");
+      }
       // XXX: What if `offset` is 0?
       for (uint8_t pos = 0; pos < len; pos += 1) {
         new_data[pos] = new_data[pos - offset];
