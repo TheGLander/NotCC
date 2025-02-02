@@ -931,6 +931,10 @@ void Actor_do_cooldown(Actor* self, Level* level) {
 }
 
 bool Actor_push_to(Actor* self, Level* level, Direction direction) {
+  // Anti-recursion check
+  if (self->is_being_pushed) {
+    return false;
+  }
   if (self->frozen)
     return false;
   if (self->pending_move_locked_in)
@@ -939,12 +943,15 @@ bool Actor_push_to(Actor* self, Level* level, Direction direction) {
     self->pending_decision = self->move_decision = direction;
     return false;
   }
+  self->is_being_pushed = true;
   // I don't think it matters if the `direction` is redirected here
   if (Actor_is_moving(self) ||
       !Actor_check_collision(self, level, &direction)) {
+    self->is_being_pushed = false;
     return false;
   }
   Actor_move_to(self, level, direction);
+  self->is_being_pushed = false;
   return true;
 }
 
@@ -1056,7 +1063,8 @@ void Actor_destroy(Actor* self, Level* level, const ActorType* anim_type) {
     if (level->game_state != GAMESTATE_CRASH) {
       level->game_state = GAMESTATE_DEAD;
     }
-    Level_add_sfx(level, has_flag(self, ACTOR_FLAGS_MELINDA) ? SFX_MELINDA_DEATH : SFX_CHIP_DEATH);
+    Level_add_sfx(level, has_flag(self, ACTOR_FLAGS_MELINDA) ? SFX_MELINDA_DEATH
+                                                             : SFX_CHIP_DEATH);
     PlayerSeat* seat = Level_find_player_seat(level, self);
     if (seat) {
       seat->actor = NULL;
@@ -1433,4 +1441,3 @@ Vector_Glitch* Level_get_glitches_ptr(Level* self) {
 void Level_add_sfx(Level* self, uint64_t sfx) {
   self->sfx |= sfx;
 }
-

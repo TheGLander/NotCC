@@ -126,7 +126,8 @@ uint32_t Actor_get_actor_list_idx(const Actor* self, const Level* level);
   _libnotcc_accessor_bits(Actor, frozen, bool, 1);                 \
   _libnotcc_accessor_bits(Actor, pulled, bool, 1);                 \
   _libnotcc_accessor_bits(Actor, pulling, bool, 1);                \
-  _libnotcc_accessor_bits(Actor, pushing, bool, 1);
+  _libnotcc_accessor_bits(Actor, pushing, bool, 1);                \
+  _libnotcc_accessor_bits(Actor, is_being_pushed, bool, 1);
 
 _libnotcc_accessors_Actor;
 
