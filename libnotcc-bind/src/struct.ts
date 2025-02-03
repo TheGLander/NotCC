@@ -58,7 +58,7 @@ export class Struct {
 		this._assert_live()
 		if (this._owned) throw new Error("Trying to reown owned object")
 		this._owned = true
-		const proto: typeof Struct = Object.getPrototypeOf(this)
+		const proto = Object.getPrototypeOf(this).constructor
 		Struct.finReg.register(this, [this._ptr, proto.unalloc], this)
 	}
 	static unalloc(ptr: number): void {}
@@ -67,7 +67,7 @@ export class Struct {
 		if (!this._owned) throw new Error("Trying to free borrowed object")
 		this._live = false
 		Struct.finReg.unregister(this)
-		const proto: typeof Struct = Object.getPrototypeOf(this)
+		const proto = Object.getPrototypeOf(this).constructor
 		proto.unalloc?.(this._ptr)
 		wasmFuncs.free(this._ptr)
 	}

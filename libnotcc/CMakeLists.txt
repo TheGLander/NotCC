@@ -15,7 +15,7 @@ list(APPEND notcc_src
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WebAssembly")
   add_compile_definitions(PAGE_SIZE=4096)
   list(APPEND notcc_src
-    wasm-std/src/emmalloc.c
+    wasm-std/src/dlmalloc.c
     wasm-std/src/std.c
     wasm-std/src/printf.c
   )
