@@ -1586,9 +1586,9 @@ static void APPEARING_WALL_on_bumped_by(BasicTile* self,
   if (has_flag(actor, ACTOR_FLAGS_REVEALS_HIDDEN)) {
     BasicTile_transform_into(self, &WALL_tile);
   }
- if(has_flag(actor, ACTOR_FLAGS_PLAYER)) {
- 	Level_add_sfx(level, SFX_PLAYER_BONK);
- }
+  if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+    Level_add_sfx(level, SFX_PLAYER_BONK);
+  }
 }
 const TileType APPEARING_WALL_tile = {
     .name = "appearingWall",
@@ -1596,14 +1596,16 @@ const TileType APPEARING_WALL_tile = {
     .impedes = impedes_non_ghost,
     .on_bumped_by = APPEARING_WALL_on_bumped_by};
 
-// INVISIBLE_WALL: `custom_data` specifies until which tick to display the revealed wall sprite
+// INVISIBLE_WALL: `custom_data` specifies until which tick to display the
+// revealed wall sprite
 
 static void INVISIBLE_WALL_on_bumped_by(BasicTile* self,
                                         Level* level,
                                         Actor* actor,
                                         Direction direction) {
   if (has_flag(actor, ACTOR_FLAGS_REVEALS_HIDDEN)) {
-    self->custom_data = level->current_tick * 3 + level->current_subtick + 1 + 12;
+    self->custom_data =
+        level->current_tick * 3 + level->current_subtick + 1 + 12;
   }
 }
 const TileType INVISIBLE_WALL_tile = {
@@ -1620,9 +1622,9 @@ static void BLUE_WALL_on_bumped_by(BasicTile* self,
     BasicTile_transform_into(
         self, self->custom_data & BLUE_WALL_REAL ? &WALL_tile : &FLOOR_tile);
   }
- if(has_flag(actor, ACTOR_FLAGS_PLAYER)) {
- 	Level_add_sfx(level, SFX_PLAYER_BONK);
- }
+  if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+    Level_add_sfx(level, SFX_PLAYER_BONK);
+  }
 }
 
 const TileType BLUE_WALL_tile = {.name = "blueWall",
@@ -1743,6 +1745,7 @@ static void SWIVEL_actor_left(BasicTile* self,
                               Direction dir) {
   if (is_ghost(actor))
     return;
+  Level_add_sfx(level, SFX_DOOR_UNLOCK);
   Direction self_dir = (Direction)self->custom_data;
   if (dir == self_dir)
     self->custom_data = right(self->custom_data);
@@ -2693,6 +2696,7 @@ const ActorType GHOST_actor = {
     if (!(collect_condition))                                                  \
       return;                                                                  \
     BasicTile_erase(self);                                                     \
+    Level_add_sfx(level, SFX_ITEM_PICKUP);                                     \
     if (other->inventory.keys_##simple == 255) {                               \
       other->inventory.keys_##simple = 0;                                      \
     } else {                                                                   \
@@ -2887,9 +2891,9 @@ static void BONUS_FLAG_actor_completely_joined(BasicTile* self,
       level->bonus_points += self->custom_data;
     }
   }
- if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
- 	Level_add_sfx(level, SFX_ITEM_PICKUP);
- }
+  if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+    Level_add_sfx(level, SFX_ITEM_PICKUP);
+  }
   BasicTile_erase(self);
 }
 
