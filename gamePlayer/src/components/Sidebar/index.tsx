@@ -88,7 +88,11 @@ function ChooserButton(props: SidebarAction) {
 					"hover:bg-theme-950 focus-visible:bg-theme-950 cursor-pointer"
 			)}
 			tabIndex={isDisabled ? undefined : 0}
-			onClick={() => props.onTrigger?.(get, set)}
+			onClick={() => {
+				if (!isDisabled) {
+					props.onTrigger?.(get, set)
+				}
+			}}
 		>
 			<div
 				class={twJoin(
