@@ -97,6 +97,7 @@ export function App() {
 	}, [])
 	return (
 		<div
+			id="app-root"
 			style={makeThemeCssVars(colorScheme)}
 			class={twJoin(
 				"relative h-full w-full font-sans text-neutral-100",

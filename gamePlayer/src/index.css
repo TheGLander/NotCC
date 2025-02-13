@@ -17,6 +17,13 @@
 }
 
 @layer components {
+	::backdrop {
+		background: #0008;
+	}
+	#app-root {
+		accent-color: theme(colors.theme.600);
+		scrollbar-color: theme(colors.theme.600) transparent;
+	}
 	a {
 		@apply underline;
 	}
@@ -25,7 +32,7 @@
 	}
 	button,
 	button[type="submit"] {
-		@apply cursor-auto appearance-none border-2 border-b-[--low-color] border-l-[--high-color] border-r-[--low-color] border-t-[--high-color] bg-gradient-to-b from-[--high-color] to-[--low-color] px-2;
+		@apply cursor-auto select-none appearance-none border-2 border-b-[--low-color] border-l-[--high-color] border-r-[--low-color] border-t-[--high-color] bg-gradient-to-b from-[--high-color] to-[--low-color] px-2;
 		--high-color: theme(colors.theme.600);
 		--low-color: theme(colors.theme.700);
 	}
