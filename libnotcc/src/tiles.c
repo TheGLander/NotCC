@@ -1745,12 +1745,14 @@ static void SWIVEL_actor_left(BasicTile* self,
                               Direction dir) {
   if (is_ghost(actor))
     return;
-  Level_add_sfx(level, SFX_DOOR_UNLOCK);
   Direction self_dir = (Direction)self->custom_data;
-  if (dir == self_dir)
+  if (dir == self_dir) {
     self->custom_data = right(self->custom_data);
-  else if (dir == right(self_dir))
+    Level_add_sfx(level, SFX_DOOR_UNLOCK);
+  } else if (dir == right(self_dir)) {
     self->custom_data = left(self->custom_data);
+    Level_add_sfx(level, SFX_DOOR_UNLOCK);
+  }
 }
 static void SWIVEL_on_wire_high(BasicTile* self, Level* level, bool _real) {
   self->custom_data = right(self->custom_data);
