@@ -1,5 +1,5 @@
 import { Getter, Setter, atom, useAtomValue } from "jotai"
-import { ComponentType } from "preact"
+import { ComponentChildren, ComponentType } from "preact"
 import { ReactNode } from "preact/compat"
 import { Dialog } from "./components/Dialog"
 
@@ -64,7 +64,7 @@ export function showPromptGs<T>(
 export async function showAlertGs(
 	get: Getter,
 	set: Setter,
-	body: string,
+	body: ComponentChildren,
 	title?: string
 ): Promise<void> {
 	await showPromptGs<void>(get, set, pProps => (

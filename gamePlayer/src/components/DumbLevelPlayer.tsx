@@ -171,8 +171,7 @@ function PregameCover(props: {
 		>
 			{props.set && (
 				<span class="mb-1 mt-6 text-xl">
-					{props.set?.scriptRunner.state.gameTitle} #
-					{props.set.scriptRunner.state.variables?.level}:
+					{props.set.gameTitle()} #{props.set.currentLevel}:
 				</span>
 			)}
 			<h2 class={twJoin(!props.set && "mt-6", "text-5xl [line-height:1]")}>
@@ -510,9 +509,7 @@ export function DumbLevelPlayer(props: {
 		if (embedMode || !attempt) return
 		const att = attempt.endAttempt(level)
 		borrowLevelSet(lSet => {
-			const lInfo = lSet.seenLevels[lSet.currentLevel].levelInfo
-			lInfo.attempts ??= []
-			lInfo.attempts.push(att)
+			lSet.logAttemptInfo(att)
 			setAttempt(null)
 		})
 	}, [attempt, borrowLevelSet])

@@ -77,6 +77,7 @@ interface Page {
 	component: FunctionComponent
 	requiresLevel?: boolean
 	isLevelPlayer?: boolean
+	showsIntermissions?: boolean
 }
 
 const pages: Partial<Record<string, Page>> = {
@@ -85,6 +86,7 @@ const pages: Partial<Record<string, Page>> = {
 		component: LevelPlayerPage,
 		requiresLevel: true,
 		isLevelPlayer: true,
+		showsIntermissions: true,
 	},
 	exa: {
 		component: ExaPlayerPage,

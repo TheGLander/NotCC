@@ -15,6 +15,7 @@ message SetInfo {
   string set_name = 3;
   repeated LevelInfo levels = 4;
   int32 current_level = 5;
+  bool has_reached_postgame = 16;
 }
 
 message LevelInfo {
@@ -27,6 +28,7 @@ message LevelInfo {
 
   string prologue_text = 16;
   string epilogue_text = 17;
+  bool saw_epilogue = 18;
 }
 
 message ScriptState {

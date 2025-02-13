@@ -388,7 +388,7 @@ function SolutionsTooltipList(props: { controls: LevelControls }) {
 			ip: new ReplayInputProvider(level.replay),
 		})
 	}
-	const attempts = lSet?.seenLevels[lSet.currentLevel].levelInfo.attempts
+	const attempts = lSet?.currentLevelRecord().levelInfo.attempts
 	if (attempts) {
 		sols.push(...getAttemptSolutions(attempts, lSet.currentLevel))
 	}

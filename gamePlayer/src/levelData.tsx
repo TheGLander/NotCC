@@ -2,11 +2,14 @@ import { Getter, Setter, atom, useAtomValue, useSetAtom } from "jotai"
 import {
 	Level,
 	LevelSet,
+	LevelSetData,
+	constructSimplestLevelSet,
 	findScriptName,
 	parseC2M,
 	parseNCCS,
 	parseScriptMetadata,
 	writeNCCS,
+	protobuf,
 } from "@notcc/logic"
 import {
 	CUSTOM_LEVEL_SET_IDENT,
@@ -31,7 +34,6 @@ import { decodeBase64, formatBytes, unzlibAsync, useJotaiFn } from "./helpers"
 import {
 	IMPORTANT_SETS,
 	ImportantSetInfo,
-	LevelSetData,
 	makeLoaderWithPrefix,
 	makeSetDataFromFiles,
 } from "./setLoading"
@@ -39,7 +41,7 @@ import { basename, dirname } from "path-browserify"
 import { readFile, writeFile, showLoadPrompt, showDirectoryPrompt } from "./fs"
 import { atomEffect } from "jotai-effect"
 import { getRRRoutes, setRRRoutesAtomWrapped } from "./railroad"
-import { preloadFinishedAtom } from "./preferences"
+import { preferenceAtom, preloadFinishedAtom } from "./preferences"
 import { parse } from "path"
 import {
 	ItemLevelSet,
@@ -89,6 +91,7 @@ export async function borrowLevelSetGs(
 	if (!lset) return
 	await func(lset)
 	set(levelSetAtom, lset)
+	set(levelNAtom, lset.currentLevel)
 	set(levelSetChangedAtom, Symbol())
 }
 
@@ -96,37 +99,81 @@ export async function goToLevelNGs(get: Getter, set: Setter, levelN: number) {
 	set(levelNAtom, levelN)
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.goToLevel(levelN)
-		await lSet.verifyLevelDataAvailability(levelN)
-		set(levelAtom, new LevelData(rec.levelData!))
+		set(
+			levelAtom,
+			rec && new LevelData((await lSet.loadLevelData(rec)).levelData)
+		)
 	})
+}
+
+export type ShowEpilogueMode = "never" | "unseen" | "always"
+
+export const showEpilogueAtom = preferenceAtom<ShowEpilogueMode>(
+	"showEpilogue",
+	"unseen"
+)
+export function shouldShowEpilogueGs(
+	get: Getter,
+	_set: Setter,
+	level: protobuf.ILevelInfo
+) {
+	const mode = get(showEpilogueAtom)
+	if (mode === "never") return false
+	if (mode === "always") return true
+	return !level.sawEpilogue
+}
+
+export function showSetIntermission(
+	get: Getter,
+	set: Setter,
+	intermission: string
+) {
+	showAlertGs(
+		get,
+		set,
+		<div class="whitespace-pre-line">{intermission.trim()}</div>,
+		"Levelset story"
+	)
 }
 
 export async function goToNextLevelGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
-		lSet.lastLevelResult = { type: "skip" }
-		const rec = await lSet.getNextRecord()
+		const currentRec = lSet.currentLevelRecord()
+		if (
+			currentRec.levelInfo.epilogueText &&
+			shouldShowEpilogueGs(get, set, currentRec.levelInfo)
+		) {
+			showSetIntermission(get, set, currentRec.levelInfo.epilogueText)
+			currentRec.levelInfo.sawEpilogue = true
+		}
+		const rec = await lSet.nextLevel({ type: "skip" })
 		if (lSet.inPostGame) {
 			// TODO display this somehow, like in classic NotCC or LL
-			await lSet.getPreviousRecord()
+			await lSet.previousLevel()
 			return
 		}
 		if (!rec) return
-		await lSet.verifyLevelDataAvailability(rec.levelInfo.levelNumber!)
-		set(levelAtom, new LevelData(rec.levelData!))
-		set(levelNAtom, rec.levelInfo.levelNumber!)
+		set(
+			levelAtom,
+			rec && new LevelData((await lSet.loadLevelData(rec)).levelData)
+		)
 	})
 }
 
 export async function goToPreviousLevelGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
-		const rec = await lSet.getPreviousRecord()
+		const rec = await lSet.previousLevel()
 		if (!rec) return
-		set(levelAtom, new LevelData(rec.levelData!))
-		set(levelNAtom, rec?.levelInfo.levelNumber!)
+		set(
+			levelAtom,
+			rec && new LevelData((await lSet.loadLevelData(rec)).levelData)
+		)
 	})
 }
 
-export async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
+export async function loadSetSave(
+	setData: LevelSetData
+): Promise<{ set: LevelSet; firstLoad: boolean }> {
 	let { loaderFunction, scriptFile } = setData
 	const filePrefix = dirname(scriptFile)
 	// If the zip file has the entry script in a subdirectory instead of the zip
@@ -143,10 +190,15 @@ export async function loadSetSave(setData: LevelSetData): Promise<LevelSet> {
 		.then(buf => parseNCCS(buf))
 		.catch(() => null)
 
-	if (setInfo !== null) {
-		return await LevelSet.constructAsync(setInfo, loaderFunction)
-	} else {
-		return await LevelSet.constructAsync(scriptFile, loaderFunction)
+	return {
+		set: await constructSimplestLevelSet(
+			{
+				scriptFile,
+				loaderFunction,
+			},
+			setInfo ?? undefined
+		),
+		firstLoad: setInfo === null,
 	}
 }
 
@@ -155,7 +207,7 @@ export const levelSetAutosaveAtom = atomEffect((get, _set) => {
 	get(levelSetChangedAtom)
 	if (!lSet) return
 	void writeFile(
-		`./solutions/default/${lSet.scriptRunner.state.scriptTitle!}.nccs`,
+		`./solutions/default/${lSet.scriptTitle()}.nccs`,
 		writeNCCS(lSet.toSetInfo()).buffer
 	)
 })
@@ -166,15 +218,13 @@ export async function setLevelSetGs(
 	setData: LevelSetData,
 	ident?: string
 ) {
-	const lset = await loadSetSave(setData)
-	const record = await lset.getCurrentRecord()
-	await lset.verifyLevelDataAvailability(record.levelInfo.levelNumber!)
-	if (!record.levelData) throw new Error("Expected levelData to be present")
+	const { set: lset, firstLoad } = await loadSetSave(setData)
+	const record = await lset.loadLevelData(await lset.initialLevel())
 	set(levelAtom, new LevelData(record.levelData))
 	set(levelSetAtom, lset)
 	set(levelNAtom, lset.currentLevel)
 	const importantIdent = IMPORTANT_SETS.find(
-		iset => iset.setName === lset.scriptRunner.state.scriptTitle!
+		iset => iset.setName === lset.gameTitle()
 	)?.setIdent
 	if (importantIdent) {
 		set(setRRRoutesAtomWrapped, getRRRoutes(importantIdent, true))
@@ -184,6 +234,15 @@ export async function setLevelSetGs(
 	set(levelSetIdentAtom, ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
 	if (!get(pageAtom)?.isLevelPlayer) {
 		set(pageAtom, "play")
+	}
+	if (get(pageAtom)?.showsIntermissions ?? false) {
+		if (
+			record.levelInfo.prologueText &&
+			get(showEpilogueAtom) !== "never" &&
+			firstLoad
+		) {
+			showSetIntermission(get, set, record.levelInfo.prologueText)
+		}
 	}
 }
 
@@ -409,14 +468,20 @@ export async function resolveHashLevelGs(get: Getter, set: Setter) {
 			await setLevelSetGs(get, set, setData, newSetIdent ?? levelSetIdent!)
 			const lset = get(levelSetAtom)!
 			if (!lset.canGoToLevel(levelN!)) {
-				// FIXME: Split LevelSet LinearLevelSet and TuringLevelSet
-				while (lset.currentLevel !== levelN) {
-					lset.lastLevelResult = { type: "skip" }
-					await lset.getNextRecord()
-				}
+				await showAlertGs(
+					get,
+					set,
+					<>
+						The level URL provides a level number, but this set could not be
+						reduced to a simple level list, and could not be automatically
+						navigated to the specified level. This might mean this set uses
+						advanced scripting and the level numbers might be non-linear.
+					</>,
+					"Couldn't load level from level number"
+				)
+			} else {
+				await goToLevelNGs(get, set, levelN!)
 			}
-
-			await goToLevelNGs(get, set, levelN!)
 		}
 
 		// Local set

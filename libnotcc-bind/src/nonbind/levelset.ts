@@ -1,6 +1,11 @@
 import clone from "clone"
 import { protoTimeToMs } from "./attemptTracker.js"
-import { ScriptRunner, MapInterruptResponse, ScriptInterrupt } from "./c2g.js"
+import {
+	ScriptRunner,
+	MapInterruptResponse,
+	ScriptInterrupt,
+	makeLinearLevels,
+} from "./c2g.js"
 import { Level, LevelMetadata, parseC2M, parseC2MMeta } from "../level.js"
 import {
 	IAttemptInfo,
@@ -13,6 +18,8 @@ export interface LevelSetRecord {
 	levelData?: Level
 	levelInfo: ILevelInfo
 }
+
+export type LevelSetRecordFull = Required<LevelSetRecord>
 
 export function calculateLevelPoints(
 	levelN: number,
@@ -77,16 +84,61 @@ export function findBestMetrics(info: ILevelInfo): Partial<SolutionMetrics> {
 	return metrics
 }
 
-export type LevelSetLoaderFunction = (
+export type LevelSetLoaderFunction = ((
 	path: string,
-	binary: boolean
-) => Promise<string | ArrayBuffer>
+	binary: false
+) => Promise<string>) &
+	((path: string, binary: true) => Promise<ArrayBuffer>) &
+	((path: string, binary: boolean) => Promise<string | ArrayBuffer>)
 
-export class LevelSet {
+export interface LevelSetData {
+	loaderFunction: LevelSetLoaderFunction
+	scriptFile: string
+}
+
+export abstract class LevelSet {
+	currentLevel: number = 1
+	inPostGame = false
+	// Why do abstract classes need constructors, again?
+	constructor(public loaderFunction: LevelSetLoaderFunction) {}
+	abstract gameTitle(): string
+	abstract scriptTitle(): string
+	abstract initialLevel(): Promise<LevelSetRecord>
+	abstract currentLevelRecord(): LevelSetRecord
+	abstract previousLevel(): Promise<LevelSetRecord | null>
+	abstract nextLevel(type: MapInterruptResponse): Promise<LevelSetRecord | null>
+	abstract toSetInfo(): ISetInfo
+	logAttemptInfo(attempt: IAttemptInfo): void {
+		const level = this.currentLevelRecord()
+		if (!level)
+			throw new Error("This set appears to be on a non-existent level.")
+		level.levelInfo.attempts ??= []
+		level.levelInfo.attempts.push(attempt)
+	}
+	abstract goToLevel(n: number): Promise<LevelSetRecord | null>
+	abstract canGoToLevel(n: number): boolean
+	abstract listLevels(): LevelSetRecord[]
+	async loadLevelData(record: LevelSetRecord): Promise<LevelSetRecordFull> {
+		if (record.levelData) return record as LevelSetRecordFull
+
+		const levelPath = record.levelInfo.levelFilePath
+		if (!levelPath) throw new Error("The level does not have a path specified.")
+
+		const levelBuffer = await this.loaderFunction(levelPath, true)
+		record.levelData = parseC2M(levelBuffer)
+		// Emulate CC1 Steam having CC1 boots always enabled
+		if (this.gameTitle() === "Chips Challenge") {
+			record.levelData.metadata.cc1Boots = true
+		}
+		return record as LevelSetRecordFull
+	}
+}
+
+export class FullC2GLevelSet extends LevelSet {
 	seenLevels: Record<number, LevelSetRecord>
 	scriptRunner: ScriptRunner
 	currentLevel: number
-	inPostGame = false
+	hasReahedPostgame = false
 	constructor(
 		mainScriptPath: string,
 		scriptData: string,
@@ -100,8 +152,10 @@ export class LevelSet {
 	constructor(
 		setDataOrMainScriptPath: ISetInfo | string,
 		scriptData: string,
-		public loaderFunction: LevelSetLoaderFunction
+		loaderFunction: LevelSetLoaderFunction
 	) {
+		super(loaderFunction)
+		this.loaderFunction = loaderFunction
 		if (typeof setDataOrMainScriptPath === "string") {
 			// This is a new level set
 			const mainScriptPath = setDataOrMainScriptPath
@@ -122,6 +176,7 @@ export class LevelSet {
 				throw new Error("Given set data is missing essential properties.")
 
 			this.currentLevel = setData.currentLevel
+			this.hasReahedPostgame = !!setData.hasReachedPostgame
 			this.seenLevels = Object.fromEntries(
 				setData.levels.map<[number, LevelSetRecord]>(lvl => {
 					if (typeof lvl.levelNumber !== "number")
@@ -151,7 +206,11 @@ export class LevelSet {
 		}
 	}
 	static async constructAsync(
-		setData: ISetInfo,
+		saveDataOrMainScriptPath: string | ISetInfo,
+		loaderFunction: LevelSetLoaderFunction
+	): Promise<LevelSet>
+	static async constructAsync(
+		saveData: ISetInfo,
 		loaderFunction: LevelSetLoaderFunction
 	): Promise<LevelSet>
 	static async constructAsync(
@@ -159,17 +218,17 @@ export class LevelSet {
 		loaderFunction: LevelSetLoaderFunction
 	): Promise<LevelSet>
 	static async constructAsync(
-		setDataOrMainScriptPath: string | ISetInfo,
+		saveDataOrMainScriptPath: string | ISetInfo,
 		loaderFunction: LevelSetLoaderFunction
 	): Promise<LevelSet> {
 		let scriptPath: string
-		if (typeof setDataOrMainScriptPath === "string") {
-			scriptPath = setDataOrMainScriptPath
+		if (typeof saveDataOrMainScriptPath === "string") {
+			scriptPath = saveDataOrMainScriptPath
 		} else {
-			const levelN = setDataOrMainScriptPath.currentLevel
+			const levelN = saveDataOrMainScriptPath.currentLevel
 			if (typeof levelN !== "number")
 				throw new Error("The set data must have a current level set.")
-			const levelData = setDataOrMainScriptPath.levels?.find(
+			const levelData = saveDataOrMainScriptPath.levels?.find(
 				lvl => typeof lvl.levelNumber === "number" && lvl.levelNumber === levelN
 			)
 			const setScriptPath = levelData?.scriptState?.scriptPath
@@ -178,27 +237,24 @@ export class LevelSet {
 
 			scriptPath = setScriptPath
 		}
-		const scriptData = (await loaderFunction(scriptPath, false)) as string
+		const scriptData = await loaderFunction(scriptPath, false)
 		return new this(
 			// This is false, but Typescript for some reason doesn't like passing a
 			// union here?
-			setDataOrMainScriptPath as string,
+			scriptPath,
 			scriptData,
 			loaderFunction
 		)
 	}
-	lastLevelResult?: MapInterruptResponse
-	async getNextRecord(): Promise<LevelSetRecord | null> {
+	async nextLevel(res: MapInterruptResponse): Promise<LevelSetRecord | null> {
 		if (this.inPostGame) return null
 
 		if (this.scriptRunner.scriptInterrupt) {
-			if (!this.lastLevelResult)
-				throw new Error("An action for the current map must be set.")
-			this.scriptRunner.handleMapInterrupt(this.lastLevelResult)
+			this.scriptRunner.handleMapInterrupt(res)
 		}
 		const lastLevel = this.seenLevels[this.currentLevel]?.levelInfo
-		let prologue: string | undefined = ""
-		let lastEpilogue: string | undefined = ""
+		let prologue: string = ""
+		let lastEpilogue: string = ""
 
 		let interrupt: ScriptInterrupt | null
 
@@ -214,10 +270,7 @@ export class LevelSet {
 				this.scriptRunner.scriptInterrupt = null
 			} else if (interrupt?.type === "chain") {
 				// Chain interrupt
-				const newFile = (await this.loaderFunction(
-					interrupt.path,
-					false
-				)) as string
+				const newFile = await this.loaderFunction(interrupt.path, false)
 				this.scriptRunner.handleChainInterrupt(newFile)
 			}
 		} while (interrupt && interrupt.type !== "map")
@@ -227,6 +280,7 @@ export class LevelSet {
 			| null
 		if (recordInterrupt === null) {
 			this.inPostGame = true
+			this.hasReahedPostgame = true
 			return null
 		}
 
@@ -236,12 +290,12 @@ export class LevelSet {
 		const existingRecord = this.seenLevels[levelN]
 
 		if (lastLevel) {
-			lastLevel.epilogueText = lastEpilogue
+			lastLevel.epilogueText = lastEpilogue || undefined
 		}
 
 		const record: LevelSetRecord = {
 			levelInfo: {
-				prologueText: prologue,
+				prologueText: prologue || undefined,
 				scriptState: clone(this.scriptRunner.state),
 				levelNumber: levelN,
 				attempts: existingRecord?.levelInfo.attempts,
@@ -261,38 +315,10 @@ export class LevelSet {
 		const levelPath = levelRecord.levelInfo.levelFilePath
 		if (!levelPath) throw new Error("The level does not have a path specified.")
 
-		const levelBuffer = (await this.loaderFunction(
-			levelPath,
-			true
-		)) as ArrayBuffer
+		const levelBuffer = await this.loaderFunction(levelPath, true)
 		return parseC2MMeta(levelBuffer)
 	}
-	async verifyLevelDataAvailability(
-		levelN: number,
-		levelData?: Level
-	): Promise<void> {
-		const levelRecord = this.seenLevels[levelN]
-		if (!levelRecord) throw new Error(`No level ${levelN} exists.`)
-		if (levelRecord.levelData) return
-		if (levelData) {
-			levelRecord.levelData = levelData
-			return
-		}
 
-		const levelPath = levelRecord.levelInfo.levelFilePath
-
-		if (!levelPath) throw new Error("The level does not have a path specified.")
-
-		const levelBuffer = (await this.loaderFunction(
-			levelPath,
-			true
-		)) as ArrayBuffer
-		levelRecord.levelData = parseC2M(levelBuffer)
-		// Emulate CC1 Steam having CC1 boots always enabled
-		if (this.scriptRunner.state.scriptTitle === "Chips Challenge") {
-			levelRecord.levelData.metadata.cc1Boots = true
-		}
-	}
 	toSetInfo(): ISetInfo {
 		const currentScriptState =
 			this.seenLevels[this.currentLevel].levelInfo.scriptState
@@ -302,13 +328,14 @@ export class LevelSet {
 			setName: currentScriptState?.scriptTitle,
 			levels: Object.values(this.seenLevels).map(lvl => lvl.levelInfo),
 			currentLevel: this.currentLevel,
+			hasReachedPostgame: this.hasReahedPostgame,
 		}
 	}
 	/**
 	 * Backtracks to the last level number before the current one.
 	 * @returns `null` is returned if there's no previous level
 	 */
-	async getPreviousRecord(): Promise<LevelSetRecord | null> {
+	async previousLevel(): Promise<LevelSetRecord | null> {
 		let newLevelN: number
 		if (this.inPostGame) {
 			// If we're in postgame, return to the last level (technically, the
@@ -360,10 +387,7 @@ export class LevelSet {
 		// Reload the script file if it has changed
 
 		if (oldScriptPath !== scriptPath) {
-			const scriptData = (await this.loaderFunction(
-				scriptPath,
-				false
-			)) as string
+			const scriptData = await this.loaderFunction(scriptPath, false)
 			this.scriptRunner.loadScript(scriptData, scriptPath)
 		}
 
@@ -373,26 +397,25 @@ export class LevelSet {
 			path: filePath,
 		}
 
-		await this.verifyLevelDataAvailability(newLevelN)
-
-		return newRecord
+		return this.loadLevelData(newRecord)
 	}
 	/**
 	 * Figures out the level record this levelset is currently at and returns it.
 	 * Should only be used right after constructing this set. Reloading the
 	 * current record after restarting should be done by passing the retry
-	 * `map` interrupt to `getNextLevel` instead.
+	 * `map` interrupt to `nextLevel` instead.
 	 */
-	async getCurrentRecord(): Promise<LevelSetRecord> {
+	async initialLevel(): Promise<LevelSetRecord> {
 		if (Object.keys(this.seenLevels).length === 0) {
 			// If we have seen no levels, this must be a new set, so just open the
 			// first level
-			const record = await this.getNextRecord()
+			// (the map resolution type doesn't matter because we actually didn't have a map
+			// to respond to)
+			const record = await this.nextLevel({ type: "skip" })
 			if (record === null) {
 				throw new Error("This set appears to have no levels.")
 			}
-			await this.verifyLevelDataAvailability(this.currentLevel)
-			return record
+			return this.loadLevelData(record)
 		} else {
 			// This set already has data. Just verify that the level data exists and
 			// return the `currentLevel` level record.
@@ -401,17 +424,117 @@ export class LevelSet {
 				// Try loading the level before this one. This may be an incorrectly
 				// written save in postgame. (Have to get the next record first, to
 				// detect if we're in postgame)
-				const nextRecord = await this.getNextRecord()
+				const nextRecord = await this.nextLevel({ type: "skip" })
 				if (nextRecord === null && this.inPostGame) {
-					record = await this.getPreviousRecord()
+					record = await this.previousLevel()
 				}
 				if (record === null)
 					throw new Error(
 						"This set appears to currently be on an non-existent level."
 					)
 			}
-			await this.verifyLevelDataAvailability(this.currentLevel)
-			return record
+			return this.loadLevelData(record)
 		}
 	}
+	gameTitle(): string {
+		return this.scriptRunner.state.gameTitle!
+	}
+	scriptTitle(): string {
+		return this.scriptRunner.state.scriptTitle!
+	}
+	listLevels(): LevelSetRecord[] {
+		return Object.entries(this.seenLevels)
+			.sort(([a], [b]) => parseInt(a) - parseInt(b))
+			.map(([, rec]) => rec)
+	}
+	currentLevelRecord() {
+		return this.seenLevels[this.currentLevel]
+	}
+}
+
+export class LinearLevelSet extends LevelSet {
+	constructor(
+		public levels: ILevelInfo[],
+		loaderFunction: LevelSetLoaderFunction,
+		setData?: ISetInfo
+	) {
+		super(loaderFunction)
+		if (setData) {
+			if (setData.ruleset !== "Steam" || setData.setType !== "C2G")
+				throw new Error("LevelSet only represents sets based on C2G scripts.")
+			if (
+				typeof setData.currentLevel !== "number" ||
+				setData.levels == undefined
+			)
+				throw new Error("Given set data is missing essential properties.")
+			this.currentLevel = setData.currentLevel
+			for (const loadedLevel of setData.levels) {
+				const localLevel = this.levels.find(
+					lvl =>
+						lvl.levelFilePath === loadedLevel.levelFilePath ||
+						(lvl.levelNumber == loadedLevel.levelNumber &&
+							lvl.title === loadedLevel.title)
+				)
+				if (!localLevel) continue
+				localLevel.attempts = loadedLevel.attempts
+			}
+		}
+	}
+	findLevelForLevelN(n: number): ILevelInfo | undefined {
+		return this.levels.find(level => level.levelNumber === n)
+	}
+	canGoToLevel(n: number) {
+		return !!this.findLevelForLevelN(n)
+	}
+	currentLevelRecord() {
+		return { levelInfo: this.findLevelForLevelN(this.currentLevel)! }
+	}
+	gameTitle() {
+		return this.levels[0]!.scriptState!.gameTitle!
+	}
+	scriptTitle() {
+		return this.levels[0]!.scriptState!.scriptTitle!
+	}
+	goToLevel(n: number) {
+		if (!this.canGoToLevel(n)) throw new Error(`No level #${n} exists`)
+		this.currentLevel = n
+		return Promise.resolve(this.currentLevelRecord())
+	}
+	initialLevel() {
+		return Promise.resolve(this.currentLevelRecord())
+	}
+	listLevels() {
+		return this.levels.map<LevelSetRecord>(level => ({ levelInfo: level }))
+	}
+	nextLevel() {
+		if (!this.canGoToLevel(this.currentLevel + 1)) return Promise.resolve(null)
+		return this.goToLevel(this.currentLevel + 1)
+	}
+	previousLevel() {
+		if (!this.canGoToLevel(this.currentLevel - 1)) return Promise.resolve(null)
+		return this.goToLevel(this.currentLevel - 1)
+	}
+	toSetInfo(): ISetInfo {
+		return {
+			ruleset: "Steam",
+			setType: "C2G",
+			setName: this.gameTitle(),
+			currentLevel: this.currentLevel,
+			levels: this.levels,
+		}
+	}
+}
+
+export async function constructSimplestLevelSet(
+	setData: LevelSetData,
+	save?: ISetInfo
+): Promise<LevelSet> {
+	const linearLevels = await makeLinearLevels(setData)
+	if (linearLevels) {
+		return new LinearLevelSet(linearLevels, setData.loaderFunction, save)
+	}
+	return await FullC2GLevelSet.constructAsync(
+		save ? save : setData.scriptFile,
+		setData.loaderFunction
+	)
 }

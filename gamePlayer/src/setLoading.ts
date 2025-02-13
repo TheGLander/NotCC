@@ -1,7 +1,11 @@
-import { LevelSetLoaderFunction, findScriptName } from "@notcc/logic"
+import {
+	LevelSetData,
+	LevelSetLoaderFunction,
+	findScriptName,
+} from "@notcc/logic"
 import { AsyncUnzipOptions, Unzipped, unzip, unzipSync } from "fflate"
 import { join, normalize } from "path-browserify"
-import { findAllFiles, readFile } from "./fs"
+import { CaseResolver, findAllFiles, readFile } from "./fs"
 
 function getFilePath(file: File): string {
 	return file.webkitRelativePath ?? file.name
@@ -53,11 +57,11 @@ export function makeZipFileLoader(
 ): LevelSetLoaderFunction {
 	// This is Latin-1
 	const decoder = new TextDecoder("iso-8859-1")
-	return async (path: string, binary: boolean) => {
+	return (async (path: string, binary: boolean) => {
 		const fileData = await unzipFileAsync(zipData, path.toLowerCase())
 		if (binary) return fileData.buffer
 		return decoder.decode(fileData)
-	}
+	}) as LevelSetLoaderFunction
 }
 export function makeSetDataFromZip(
 	zipData: ArrayBuffer
@@ -76,25 +80,24 @@ export function makeFileListFileLoader(
 	for (const file of fileList) {
 		files[getFilePath(file).toLowerCase()] = file
 	}
-	return async (path: string, binary: boolean) => {
+	return (async (path: string, binary: boolean) => {
 		const fileData = await files[path.toLowerCase()].arrayBuffer()
 		if (binary) return fileData
 		return decoder.decode(fileData)
-	}
+	}) as LevelSetLoaderFunction
 }
 
 export function makeHttpFileLoader(url: string): LevelSetLoaderFunction {
-	return async (path: string, binary: boolean) => {
+	return (async (path: string, binary: boolean) => {
 		const fileData = await fetch(`${url}${path}`)
 		if (!fileData.ok)
 			throw new Error(
-				`Could not load ${path}: ${fileData.status} ${
-					fileData.statusText
+				`Could not load ${path}: ${fileData.status} ${fileData.statusText
 				}, ${await fileData.text()}`
 			)
 		if (binary) return await fileData.arrayBuffer()
 		return await fileData.text()
-	}
+	}) as LevelSetLoaderFunction
 }
 
 export function buildFileListIndex(fileList: File[]): string[] {
@@ -105,15 +108,10 @@ export function makeLoaderWithPrefix(
 	prefix: string,
 	loader: LevelSetLoaderFunction
 ): LevelSetLoaderFunction {
-	return (path: string, binary: boolean) => {
+	return ((path: string, binary: boolean) => {
 		const joinedPath = normalize(join(prefix, path))
 		return loader(joinedPath, binary)
-	}
-}
-
-export interface LevelSetData {
-	loaderFunction: LevelSetLoaderFunction
-	scriptFile: string
+	}) as LevelSetLoaderFunction
 }
 
 interface DirEntry {
@@ -162,8 +160,9 @@ export function makeFsFileLoader(basePath: string): LevelSetLoaderFunction {
 	const decoder = new TextDecoder("utf-8")
 	return async (path: string, binary: boolean) => {
 		const data = await readFile(join(basePath, normalize("/" + path)))
+	return (async (path: string, binary: boolean) => {
 		return binary ? data : decoder.decode(data)
-	}
+	}) as LevelSetLoaderFunction
 }
 
 export async function makeSetDataFromFsPath(

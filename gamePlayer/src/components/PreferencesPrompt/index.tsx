@@ -17,6 +17,8 @@ import { SfxPrefDisplay, sfxIdAtom } from "./SfxPrompt"
 import { Expl } from "../Expl"
 import { exaComplainAboutNonlegalGlitches } from "@/pages/ExaPlayerPage"
 import { endOnNonlegalGlitchAtom } from "@/pages/LevelPlayerPage"
+import { ShowEpilogueMode, showEpilogueAtom } from "@/levelData"
+import { showDecimalsInLevelListAtom } from "../LevelList"
 
 export type PrefDisplayProps<T, P = {}> = P & {
 	set: (val: T) => void
@@ -61,6 +63,25 @@ function BinaryDisplayPref({ value, set, inputId }: PrefDisplayProps<boolean>) {
 		</span>
 	)
 }
+function EpiloguePref({
+	value,
+	set,
+	inputId,
+}: PrefDisplayProps<ShowEpilogueMode>) {
+	return (
+		<select
+			id={inputId}
+			value={value}
+			onInput={ev => {
+				set(ev.currentTarget.value as ShowEpilogueMode)
+			}}
+		>
+			<option value="never">Never</option>
+			<option value="unseen">Unseen only</option>
+			<option value="always">Always</option>
+		</select>
+	)
+}
 
 interface PrefProps<T, P = {}> {
 	Display: FC<PrefDisplayProps<T> & P>
@@ -72,7 +93,7 @@ interface PrefProps<T, P = {}> {
 
 export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 	const { get, set } = useStore()
-	const prefAtoms: [PrimitiveAtom<any>, PrimitiveAtom<any>][] = []
+	const prefAtoms = new Map<PrimitiveAtom<any>, PrimitiveAtom<any>>()
 	function Pref<T>(props: PrefProps<T>) {
 		const trueAtom = useMemo(
 			() => getTruePreferenceAtom(props.atom),
@@ -81,7 +102,7 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 		const defaultValue = useAtomValue(trueAtom!) as T
 		const defaultedDefaultValue = useAtomValue(props.atom)
 		const fauxAtom = useMemo(() => atom(defaultValue), [defaultValue])
-		prefAtoms.push([trueAtom!, fauxAtom])
+		prefAtoms.set(trueAtom!, fauxAtom)
 		const [val, setVal] = useAtom(fauxAtom)
 		const inputId = useId()
 		return (
@@ -144,6 +165,18 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 					atom={exaComplainAboutNonlegalGlitches}
 					label="Warn about nonlegal glitches"
 					expl="When on, trying to perform a glitch that is not scoreboard-legal will generate a warning message. Keep enabled unless you know what you are doing."
+					Display={BinaryDisplayPref}
+				/>
+				<h3 class="col-span-2 text-xl">Miscellaneous</h3>
+				<Pref
+					atom={showEpilogueAtom}
+					label="Show story epilogues"
+					expl="Whether to show post-level text embedded in the levelset."
+					Display={EpiloguePref}
+				/>
+				<Pref
+					atom={showDecimalsInLevelListAtom}
+					label="Show time decimals in level list"
 					Display={BinaryDisplayPref}
 				/>
 			</div>

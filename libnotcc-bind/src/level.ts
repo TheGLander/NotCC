@@ -57,6 +57,9 @@ export class LevelMetadata extends Struct {
 	set wiresHidden(val: boolean) {
 		wasmFuncs.LevelMetadata_set_wires_hidden(this._ptr, val)
 	}
+	get c2gCommand() {
+		return getStringAt(wasmFuncs.LevelMetadata_get_c2g_command(this._ptr))
+	}
 }
 
 export class VectorUint8 extends CVector<number> {

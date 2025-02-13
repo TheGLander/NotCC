@@ -1,6 +1,9 @@
 import { printf } from "fast-printf"
 import { join } from "path"
-import { IScriptState } from "./nccs.pb.js"
+import { ILevelInfo, IScriptState } from "./nccs.pb.js"
+import type { LevelSetData } from "./levelset.js"
+import { parseC2MMeta } from "../index.js"
+import clone from "clone"
 
 export const C2G_NOTCC_VERSION = "1.0-NotCC"
 
@@ -292,7 +295,9 @@ const scriptDirectiveFunctions: Record<
 			if (this.state.currentLine >= this.scriptLines.length) {
 				break
 			}
-			const line = this.tokenizeLine(this.state.currentLine)
+			const line = Array.from(
+				tokenizeLine(this.scriptLines[this.state.currentLine])
+			)
 			if (finalString === "" && line[0]?.type !== "string") {
 				// If the first line after the `script` is empty, return prematery
 				console.warn("The first line of a script must be a string.")
@@ -461,6 +466,83 @@ function stringToValue(str: string): number {
 
 export const MAX_LINES_UNTIL_TERMINATION = 1_000_000_000
 
+export function* tokenizeLine(line: string): Generator<Token, void, undefined> {
+	let linePos = 0
+	while (line[linePos] !== undefined) {
+		// Strings
+		if (line[linePos] === '"') {
+			let stringValue = ""
+			linePos++
+			const leakyValue = line.slice(linePos, linePos + 4)
+			// Lines are not only terminated by closing "'s, but also by newlines.
+			while (line[linePos] !== '"' && line[linePos] !== undefined) {
+				stringValue += line[linePos]
+				linePos++
+			}
+			yield {
+				type: "string",
+				closed: line[linePos] === '"',
+				value: stringValue,
+				leakyValue,
+			}
+			// Consume the closing "
+			if (line[linePos] === '"') linePos++
+			continue
+		}
+		// Comments
+		if (line[linePos] === ";") {
+			yield { type: "comment", value: line.slice(linePos + 1) }
+			break
+		}
+		// Labels
+		if (line[linePos] === "#") {
+			let labelValue = ""
+			linePos++
+			const leakyValue = line.slice(linePos, linePos + 4)
+			while (line[linePos] !== undefined && line[linePos] !== " ") {
+				labelValue += line[linePos]
+				linePos++
+			}
+			yield { type: "label", value: labelValue, leakyValue }
+			continue
+		}
+		// Integer
+		if (!isNaN(parseInt(line[linePos], 10))) {
+			// Vanilla `parseInt` works in this case
+			const intValue = parseInt(line.slice(linePos), 10)
+			yield { type: "number", value: intValue }
+			linePos += intValue.toString().length
+			continue
+		}
+		// Operator
+		{
+			const operator = scriptOperators.find(val =>
+				line.slice(linePos).startsWith(val)
+			)
+			if (operator !== undefined) {
+				const leakyValue = line.slice(linePos, linePos + 4)
+				yield { type: "operator", value: operator, leakyValue }
+				linePos += operator.length
+				continue
+			}
+		}
+		// Keyword
+		{
+			const keyword = scriptKeywords.find(val =>
+				line.slice(linePos).toLowerCase().startsWith(val)
+			)
+			if (keyword !== undefined) {
+				const leakyValue = line.slice(linePos, linePos + 4)
+				yield { type: "keyword", value: keyword, leakyValue }
+				linePos += keyword.length
+				continue
+			}
+		}
+		// Nothing matched, just move on.
+		linePos++
+	}
+}
+
 export class ScriptRunner {
 	labels: Record<string, number> = {}
 	// The current filesystem position, changed by `chdir`.
@@ -495,9 +577,9 @@ export class ScriptRunner {
 	loadScript(script: string, scriptPath?: string, requireTitle = false): void {
 		this.scriptLines = script.split(/\n\r?/g)
 		if (requireTitle) {
-			const scriptTitleToken = this.tokenizeLine(0).find(
-				(token): token is StringToken => token.type === "string"
-			)
+			const scriptTitleToken = Array.from(
+				tokenizeLine(this.scriptLines[0])
+			).find((token): token is StringToken => token.type === "string")
 			if (!scriptTitleToken || !scriptTitleToken.closed)
 				throw new Error(
 					"The first line of the script must contain a closed string describing the title."
@@ -510,93 +592,14 @@ export class ScriptRunner {
 		this.generateLabels()
 	}
 	generateLabels(): void {
-		for (let lineN = 0; lineN < this.scriptLines.length; lineN++) {
-			const tokens = this.tokenizeLine(lineN)
-			const labelToken = tokens[0]
+		for (let lineN = 0; lineN < this.scriptLines.length; lineN += 1) {
+			const tokens = tokenizeLine(this.scriptLines[lineN])
+			const labelToken = tokens.next().value
 			if (labelToken?.type !== "label") continue
 			// The first label in the script is the canonical one
 			if (this.labels[labelToken.value]) continue
 			this.labels[labelToken.value] = lineN
 		}
-	}
-	tokenizeLine(lineN: number): Token[] {
-		const line = this.scriptLines[lineN]
-		const tokens: Token[] = []
-		let linePos = 0
-		while (line[linePos] !== undefined) {
-			// Strings
-			if (line[linePos] === '"') {
-				let stringValue = ""
-				linePos++
-				const leakyValue = line.slice(linePos, linePos + 4)
-				// Lines are not only terminated by closing "'s, but also by newlines.
-				while (line[linePos] !== '"' && line[linePos] !== undefined) {
-					stringValue += line[linePos]
-					linePos++
-				}
-				tokens.push({
-					type: "string",
-					closed: line[linePos] === '"',
-					value: stringValue,
-					leakyValue,
-				})
-				// Consume the closing "
-				if (line[linePos] === '"') linePos++
-				continue
-			}
-			// Comments
-			if (line[linePos] === ";") {
-				tokens.push({ type: "comment", value: line.slice(linePos + 1) })
-				break
-			}
-			// Labels
-			if (line[linePos] === "#") {
-				let labelValue = ""
-				linePos++
-				const leakyValue = line.slice(linePos, linePos + 4)
-				while (line[linePos] !== undefined && line[linePos] !== " ") {
-					labelValue += line[linePos]
-					linePos++
-				}
-				tokens.push({ type: "label", value: labelValue, leakyValue })
-				continue
-			}
-			// Integer
-			if (!isNaN(parseInt(line[linePos], 10))) {
-				// Vanilla `parseInt` works in this case
-				const intValue = parseInt(line.slice(linePos), 10)
-				tokens.push({ type: "number", value: intValue })
-				linePos += intValue.toString().length
-				continue
-			}
-			// Operator
-			{
-				const operator = scriptOperators.find(val =>
-					line.slice(linePos).startsWith(val)
-				)
-				if (operator !== undefined) {
-					const leakyValue = line.slice(linePos, linePos + 4)
-					tokens.push({ type: "operator", value: operator, leakyValue })
-					linePos += operator.length
-					continue
-				}
-			}
-			// Keyword
-			{
-				const keyword = scriptKeywords.find(val =>
-					line.slice(linePos).toLowerCase().startsWith(val)
-				)
-				if (keyword !== undefined) {
-					const leakyValue = line.slice(linePos, linePos + 4)
-					tokens.push({ type: "keyword", value: keyword, leakyValue })
-					linePos += keyword.length
-					continue
-				}
-			}
-			// Nothing matched, just move on.
-			linePos++
-		}
-		return tokens
 	}
 	getTokenValue(token: Token): number {
 		// Comments have explicitly the integer value 0. This is demonstrated by the following code:
@@ -693,8 +696,8 @@ export class ScriptRunner {
 		if (this.state.currentLine >= this.scriptLines.length)
 			throw new Error("The end of the script has already been reached.")
 
-		const line = this.tokenizeLine(this.state.currentLine)
-		this.executeTokens(line, true)
+		const line = tokenizeLine(this.scriptLines[this.state.currentLine])
+		this.executeTokens(Array.from(line), true)
 
 		this.state.currentLine += 1
 	}
@@ -896,4 +899,118 @@ export function parseScriptMetadata(text: string): ScriptMetadata {
 		difficulty,
 		anyMetadataSpecified: Object.keys(rawScriptMeta).length > 0,
 	}
+}
+
+export const scriptInnatelyNonLinearTokens: string[] = [
+	"rand",
+	"goto",
+	"chain",
+	"do",
+	"line",
+]
+
+export const scriptUserControlledVariables: string[] = [
+	"exit",
+	"gender",
+	"score",
+	"keys",
+	"tools",
+	"tleft",
+]
+
+// Lol
+function arrayBinarySearch<T>(
+	arr: T[],
+	item: T,
+	valueMap: (v: T) => number
+): { idx: number; found: boolean } {
+	const itemValue = valueMap(item)
+	let lowIdx = 0
+	let highIdx = arr.length
+	while (lowIdx !== highIdx) {
+		let compIdx = Math.floor((lowIdx + highIdx) / 2)
+		const compValue = valueMap(arr[compIdx])
+		if (itemValue > compValue) {
+			lowIdx = compIdx + 1
+		} else if (itemValue < compValue) {
+			highIdx = compIdx
+		} else {
+			return { idx: compIdx, found: true }
+		}
+	}
+	return { idx: lowIdx, found: false }
+}
+
+export async function makeLinearLevels(
+	setData: LevelSetData
+): Promise<ILevelInfo[] | null> {
+	let inPrelude = true
+	const levels: ILevelInfo[] = []
+	let lastLevel: ILevelInfo | undefined
+	let initialPrologue = ""
+	const script = new ScriptRunner(
+		await setData.loaderFunction(setData.scriptFile, false)
+	)
+	while ((script.state.currentLine ?? 0) < script.scriptLines.length) {
+		let tokens = tokenizeLine(script.scriptLines[script.state.currentLine ?? 0])
+		let lineHasAssignment = false
+		for (const token of tokens) {
+			if (
+				token.type === "keyword" &&
+				(scriptInnatelyNonLinearTokens.includes(token.value) ||
+					(!inPrelude && scriptUserControlledVariables.includes(token.value)))
+			)
+				return null
+			if (token.type === "operator" && token.value === "=") {
+				lineHasAssignment = true
+			}
+			if (
+				lineHasAssignment &&
+				token.type === "keyword" &&
+				token.value === "map"
+			) {
+				return null
+			}
+		}
+		script.executeLine()
+		const interrupt = script.scriptInterrupt
+		if (interrupt?.type === "chain")
+			throw new Error(
+				"Script shouldn't be able to chain, chain keyword should've caused linearization to fail"
+			)
+		else if (interrupt?.type === "script") {
+			if (lastLevel) {
+				lastLevel.epilogueText ??= ""
+				lastLevel.epilogueText += interrupt.text
+			} else {
+				initialPrologue += interrupt.text
+			}
+		} else if (interrupt?.type === "map") {
+			inPrelude = false
+			const levelMeta = parseC2MMeta(
+				await setData.loaderFunction(interrupt.path, true)
+			)
+			if (levelMeta.c2gCommand) return null
+			const level: ILevelInfo = {
+				title: levelMeta.title,
+				prologueText: initialPrologue !== "" ? initialPrologue : undefined,
+				attempts: [],
+				levelNumber: script.state.variables?.level ?? 1,
+				scriptState: clone(script.state),
+				levelFilePath: interrupt.path,
+			}
+			initialPrologue = ""
+			lastLevel = level
+			const { idx: levelIdx, found: levelExists } = arrayBinarySearch(
+				levels,
+				level,
+				lvl => lvl.levelNumber!
+			)
+			if (levelExists) return null
+			levels.splice(levelIdx, 0, level)
+			script.handleMapInterrupt({ type: "skip" })
+		}
+		script.scriptInterrupt = null
+	}
+	return levels
 }
