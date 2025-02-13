@@ -161,9 +161,10 @@ static void parse_note(LevelMetadata* meta, SectionData* section) {
         str += 1;
       }
       size_t clue_size = str - clue_start + 1;
-      char* clue_str = xmalloc(clue_size);
-      memcpy(clue_str, clue_start, clue_size - 1);
-      clue_str[clue_size - 1] = 0;
+      // Too lazy to write `strndupz_latin1_to_utf8`
+      char* clue_str_latin1 = strndupz(clue_start, clue_size);
+      char* clue_str = strdupz_latin1_to_utf8(clue_str_latin1);
+      free(clue_str_latin1);
       Vector_CharPtr_push(&meta->hints, clue_str);
     } else if (str_left() > 5 && !memcmp(str, "[COM]", 5)) {
       str += 5;
@@ -171,7 +172,7 @@ static void parse_note(LevelMetadata* meta, SectionData* section) {
       // will execute everything after the first [COM]
       if (meta->c2g_command != NULL)
         continue;
-      meta->c2g_command = strdupz(str);
+      meta->c2g_command = strdupz_latin1_to_utf8(str);
     } else if (str_left() > 9 && !memcmp(str, "[JETLIFE]", 9)) {
       str += 9;
       meta->jetlife_interval = atol(str);
@@ -643,11 +644,20 @@ static Result_void parse_c2m_internal(uint8_t* data,
       res_throwr(section_res.error);
 #define match_section(str) !memcmp(section.name, str, 4)
     if (match_section("TITL")) {
-      meta->title = strndupz(section.data, section.len);
+      char* title_latin1 = strndupz(section.data, section.len);
+      char* title = strdupz_latin1_to_utf8(title_latin1);
+      free(title_latin1);
+      meta->title = title;
     } else if (match_section("AUTH")) {
-      meta->author = strndupz(section.data, section.len);
+      char* author_latin1 = strndupz(section.data, section.len);
+      char* author = strdupz_latin1_to_utf8(author_latin1);
+      free(author_latin1);
+      meta->author = author;
     } else if (match_section("CLUE")) {
-      meta->default_hint = strndupz(section.data, section.len);
+      char* clue_latin1 = strndupz(section.data, section.len);
+      char* clue = strdupz_latin1_to_utf8(clue_latin1);
+      free(clue_latin1);
+      meta->default_hint = clue;
     } else if (match_section("NOTE")) {
       parse_note(meta, &section);
     } else if (match_section("OPTN")) {

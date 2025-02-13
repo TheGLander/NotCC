@@ -34,6 +34,35 @@ char* strndupz(const char* str, size_t max_size) {
   new_str[len] = 0;
   return new_str;
 }
+
+// `strdupz` but interprets the input as Latin-1 and outputs UTF-8
+char* strdupz_latin1_to_utf8(char const* str) {
+  if (str == NULL)
+    return NULL;
+  size_t new_len = 0;
+  // UTF-8 uses 1 byte to encode codepoints <=127 and 2 for >127
+  for (char const* cur_char = str; *cur_char != '\0'; cur_char += 1) {
+    new_len += (unsigned char)*cur_char > 127 ? 2 : 1;
+  }
+  char* new_str = xmalloc(new_len + 1);
+  size_t new_idx = 0;
+  for (char const* cur_char = str; *cur_char != '\0'; cur_char += 1) {
+    unsigned char the_char = (unsigned char)*cur_char;
+    if (the_char > 127) {
+      // UTF-8 2-byte encoding: 110abcde 10fghiij
+      new_str[new_idx] = 0b11000000 | (the_char >> 6);
+      new_str[new_idx + 1] = 0b10000000 | (the_char & 0b00111111);
+      new_idx += 2;
+    } else {
+      // UTF-8 1-byte encoding: 0abcdefg
+      new_str[new_idx] = the_char;
+      new_idx += 1;
+    }
+  }
+  new_str[new_idx] = '\0';
+  return new_str;
+}
+
 // `malloc`, but aborts on failure
 void* xmalloc(size_t size) {
   void* ptr = malloc(size);

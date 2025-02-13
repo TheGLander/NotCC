@@ -28,6 +28,9 @@
 
 char* strdupz(const char* str) attr_malloc;
 char* strndupz(const char* str, size_t max_size) attr_malloc;
+
+char* strdupz_latin1_to_utf8(const char* str) attr_malloc;
+
 void* xmalloc(size_t size) attr_malloc attr_alloc_size((1));
 void* xrealloc(void* old_ptr, size_t size) attr_alloc_size((2));
 
