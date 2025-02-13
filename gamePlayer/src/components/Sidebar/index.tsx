@@ -490,15 +490,12 @@ export function Sidebar() {
 	const hasSet = !!get(levelSetAtom)
 	useEffect(() => {
 		const listener = (ev: KeyboardEvent) => {
-			if (
-				document.querySelector("dialog.modal[open]") ||
-				(ev.target as HTMLElement).tagName === "INPUT"
-			)
-				return
+			if (keypressIsFocused(ev)) return
 			for (const action of sidebarActions) {
 				if (!action.shortcut) continue
 				if (!isHotkey(action.shortcut)(ev)) continue
 				if (action.disabled || !action.onTrigger) continue
+				ev.preventDefault()
 				action.onTrigger(get, set)
 			}
 		}

@@ -396,3 +396,10 @@ export class PriorityQueue<T> {
 		}
 	}
 }
+
+export function keypressIsFocused(ev: KeyboardEvent) {
+	return (
+		!!document.querySelector("dialog.modal[open]") ||
+		(ev.target as HTMLElement).tagName === "INPUT"
+	)
+}

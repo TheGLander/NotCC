@@ -1,5 +1,5 @@
 import { KEY_INPUTS, KeyInputs, Level } from "@notcc/logic"
-import { TimeoutTimer } from "./helpers"
+import { TimeoutTimer, keypressIsFocused } from "./helpers"
 import { useCallback, useLayoutEffect, useMemo, useRef } from "preact/hooks"
 
 type RepeatKeyType = "released" | "held" | "repeated"
@@ -102,6 +102,7 @@ export function keyboardEventSource(
 		const onHandler = (ev: KeyboardEvent) => {
 			if (ev.repeat || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey)
 				return
+			if (keypressIsFocused(ev)) return
 			const inputType = keys[ev.code]
 			if (inputType === undefined) return
 			on(inputType, player)
@@ -109,6 +110,7 @@ export function keyboardEventSource(
 		const offHandler = (ev: KeyboardEvent) => {
 			if (ev.repeat || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey)
 				return
+			if (keypressIsFocused(ev)) return
 			const inputType = keys[ev.code]
 			if (inputType === undefined) return
 			off(inputType, player)
