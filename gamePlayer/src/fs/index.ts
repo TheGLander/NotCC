@@ -101,3 +101,37 @@ export async function initNotCCFs(): Promise<void> {
 	await makeDir("sets")
 	await makeDir("cache")
 }
+
+export interface CaseResolverNode {
+	value: string
+	children?: Record<string, CaseResolverNode>
+}
+
+export class CaseResolver implements CaseResolverNode {
+	value = "/"
+	children?: Record<string, CaseResolverNode>
+	async resolve(path: string): Promise<string> {
+		let node: CaseResolverNode = this
+		let realPath = ""
+		for (const item of normalize("/" + path)
+			.slice(1)
+			.split("/")) {
+			if (!node.children) {
+				if (!(await isDir(realPath)))
+					throw new Error(`"${realPath}" is not a directory`)
+				node.children = Object.fromEntries(
+					(await readDir(realPath)).map(dir => [
+						dir.toLowerCase(),
+						{ value: dir },
+					])
+				)
+			}
+			const canonicalItem = item.toLowerCase()
+			if (!(canonicalItem in node.children))
+				throw new Error(`"${realPath}" doesn't contain "${item}"`)
+			node = node.children[canonicalItem]
+			realPath = join(realPath, node.value)
+		}
+		return realPath
+	}
+}

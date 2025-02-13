@@ -158,9 +158,11 @@ export async function makeSetDataFromFiles(
 }
 export function makeFsFileLoader(basePath: string): LevelSetLoaderFunction {
 	const decoder = new TextDecoder("utf-8")
-	return async (path: string, binary: boolean) => {
-		const data = await readFile(join(basePath, normalize("/" + path)))
+	const caseResolver = new CaseResolver()
 	return (async (path: string, binary: boolean) => {
+		const data = await readFile(
+			await caseResolver.resolve(join(basePath, normalize("/" + path)))
+		)
 		return binary ? data : decoder.decode(data)
 	}) as LevelSetLoaderFunction
 }
