@@ -19,7 +19,7 @@ import { Getter, Setter, atom, useAtomValue, useStore } from "jotai"
 import { levelSetIdentAtom, pageAtom } from "@/routing"
 import { showPromptGs } from "@/prompts"
 import { AboutPrompt } from "../AboutDialog"
-import { applyRef, formatTimeLeft } from "@/helpers"
+import { applyRef, formatTimeLeft, keypressIsFocused } from "@/helpers"
 import { PreferencesPrompt } from "../PreferencesPrompt"
 import isHotkey from "is-hotkey"
 import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
@@ -44,6 +44,7 @@ import { protobuf } from "@notcc/logic"
 import { RRLevel, RRRoute, getRRLevel, setRRRoutesAtom } from "@/railroad"
 import { Toast, addToastGs, removeToastGs } from "@/toast"
 import { showLoadPrompt } from "@/fs"
+import { LevelListPrompt } from "../LevelList"
 
 export interface LevelControls {
 	restart?(): void
@@ -546,7 +547,12 @@ export function Sidebar() {
 						disabled={!hasSet}
 						onTrigger={goToPreviousLevelGs}
 					/>
-					<ChooserButton label="Level list" shortcut="Shift+S" />
+					<ChooserButton
+						label="Level list"
+						shortcut="Shift+S"
+						disabled={!hasSet}
+						onTrigger={() => showPromptGs(get, set, LevelListPrompt)}
+					/>
 				</SidebarButton>
 				<SidebarButton icon={floppyIcon}>
 					<div class="mx-2">Solutions:</div>
