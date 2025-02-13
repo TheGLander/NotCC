@@ -97,7 +97,7 @@ function ChooserButton(props: SidebarAction) {
 			<div
 				class={twJoin(
 					"closes-tooltip w-max ",
-					isDisabled && "text-neutral-500"
+					isDisabled && "text-neutral-400"
 				)}
 			>
 				{props.label}
