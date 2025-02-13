@@ -805,7 +805,7 @@ export function DumbLevelPlayer(props: {
 				<div
 					class={twJoin(
 						"grid w-auto items-center justify-items-end gap-x-2 [grid-template-columns:repeat(2,auto);]",
-						"h-[calc(var(--tile-size)_*_2)]",
+						"gap-y-1 lg:gap-y-4",
 						verticalLayout && "flex-1",
 						!verticalLayout && "ml-1 "
 					)}
