@@ -151,112 +151,112 @@ const RemoveSetPrompt: PromptComponent<
 
 const SetInfoPrompt =
 	(set: ItemLevelSet, setMeta: ScriptMetadata | null): PromptComponent<void> =>
-		pProps => {
-			const announceLocalSetsChanged = useJotaiFn(announceLocalSetsChangedGs)
-			const showPrompt = useJotaiFn(showPromptGs)
-			const deleteSet = useCallback(async () => {
-				const promptRes = await showPrompt(RemoveSetPrompt)
-				if (promptRes === "cancel") return
-				// TODO: Remove solutions
-				await removeLocalSet(set, true)
-				announceLocalSetsChanged()
-				pProps.onResolve()
-			}, [])
-			const bbClubSet = set.bbClubSet?.set
-			return (
-				<Dialog
-					header={`Set info: ${set.setName}`}
-					buttons={[["Close", pProps.onResolve]]}
-					onResolve={pProps.onResolve}
-				>
-					<div class="flex flex-row gap-2">
-						<div>
-							<ErrorBoundary fallbackRender={SetItemPreviewError}>
-								<Suspense fallback={<div class="bg-theme-800 h-full w-full" />}>
-									<SetItemPreview set={set} />
-								</Suspense>
-							</ErrorBoundary>
-						</div>
+	pProps => {
+		const announceLocalSetsChanged = useJotaiFn(announceLocalSetsChangedGs)
+		const showPrompt = useJotaiFn(showPromptGs)
+		const deleteSet = useCallback(async () => {
+			const promptRes = await showPrompt(RemoveSetPrompt)
+			if (promptRes === "cancel") return
+			// TODO: Remove solutions
+			await removeLocalSet(set, true)
+			announceLocalSetsChanged()
+			pProps.onResolve()
+		}, [])
+		const bbClubSet = set.bbClubSet?.set
+		return (
+			<Dialog
+				header={`Set info: ${set.setName}`}
+				buttons={[["Close", pProps.onResolve]]}
+				onResolve={pProps.onResolve}
+			>
+				<div class="flex flex-row gap-2">
+					<div>
+						<ErrorBoundary fallbackRender={SetItemPreviewError}>
+							<Suspense fallback={<div class="bg-theme-800 h-full w-full" />}>
+								<SetItemPreview set={set} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
 
-						<div class="grid h-fit flex-1 grid-cols-2 gap-2">
-							<span>
-								Set name{" "}
-								<Expl mode="dialog" title="Set name">
-									The set name, as specified in the main C2G script
-								</Expl>
-							</span>
-							<span>{set.setName}</span>
-							<span>
-								Set ident <SetIdentExpl />
-							</span>
-							<span>{set.setIdent}</span>
-							<span>
-								Set has metadata{" "}
-								<Expl mode="dialog" title="Set metadata">
-									Sets may have additional metadata, as specified by the author.{" "}
-									<a
-										href="https://github.com/TheGLander/NotCC/blob/prewrite/scriptMetadata.md"
-										target="_blank"
-									>
-										See more about script metadata
-									</a>
-								</Expl>
-							</span>
-							<span>
-								{set.localSet
-									? setMeta?.anyMetadataSpecified
-										? "Yes"
-										: "No"
-									: "Unknown"}
-							</span>
-							{setMeta?.by && (
-								<>
-									<span>By</span>
-									<span>{setMeta.by}</span>
-								</>
-							)}
-							{setMeta?.description && (
-								<>
-									<span>Description</span>
-									<span class="whitespace-pre-line">{setMeta.description}</span>
-								</>
-							)}
-							{setMeta?.difficulty && (
-								<>
-									<span>Difficulty</span>
-									<span>{setMeta.difficulty}/5</span>
-								</>
-							)}
-							{bbClubSet && (
-								<>
-									<span>Set uploaded to bb.club</span>
-									<span>{getBBClubSetReleased(bbClubSet).toLocaleString()}</span>
-									<span>Set last updated on bb.club</span>
-									<span>{getBBClubSetUpdated(bbClubSet).toLocaleString()}</span>
-									<span>bb.club set ID</span>
-									<span>{bbClubSet.id}</span>
-									<span>Level count (from bb.club)</span>
-									<span>{bbClubSet.level_count}</span>
-									{bbClubSet.description && (
-										<>
-											<span>bb.club description</span>
-											<span>{bbClubSet.description}</span>
-										</>
-									)}
-								</>
-							)}
-							<div class="col-span-2 flex">
-								{set.localSet && (
-									<button class="flex-1" onClick={deleteSet}>
-										Delete
-									</button>
+					<div class="grid h-fit flex-1 grid-cols-2 gap-2">
+						<span>
+							Set name{" "}
+							<Expl mode="dialog" title="Set name">
+								The set name, as specified in the main C2G script
+							</Expl>
+						</span>
+						<span>{set.setName}</span>
+						<span>
+							Set ident <SetIdentExpl />
+						</span>
+						<span>{set.setIdent}</span>
+						<span>
+							Set has metadata{" "}
+							<Expl mode="dialog" title="Set metadata">
+								Sets may have additional metadata, as specified by the author.{" "}
+								<a
+									href="https://github.com/TheGLander/NotCC/blob/prewrite/scriptMetadata.md"
+									target="_blank"
+								>
+									See more about script metadata
+								</a>
+							</Expl>
+						</span>
+						<span>
+							{set.localSet
+								? setMeta?.anyMetadataSpecified
+									? "Yes"
+									: "No"
+								: "Unknown"}
+						</span>
+						{setMeta?.by && (
+							<>
+								<span>By</span>
+								<span>{setMeta.by}</span>
+							</>
+						)}
+						{setMeta?.description && (
+							<>
+								<span>Description</span>
+								<span class="whitespace-pre-line">{setMeta.description}</span>
+							</>
+						)}
+						{setMeta?.difficulty && (
+							<>
+								<span>Difficulty</span>
+								<span>{setMeta.difficulty}/5</span>
+							</>
+						)}
+						{bbClubSet && (
+							<>
+								<span>Set uploaded to bb.club</span>
+								<span>{getBBClubSetReleased(bbClubSet).toLocaleString()}</span>
+								<span>Set last updated on bb.club</span>
+								<span>{getBBClubSetUpdated(bbClubSet).toLocaleString()}</span>
+								<span>bb.club set ID</span>
+								<span>{bbClubSet.id}</span>
+								<span>Level count (from bb.club)</span>
+								<span>{bbClubSet.level_count}</span>
+								{bbClubSet.description && (
+									<>
+										<span>bb.club description</span>
+										<span>{bbClubSet.description}</span>
+									</>
 								)}
-							</div>
+							</>
+						)}
+						<div class="col-span-2 flex">
+							{set.localSet && (
+								<button class="flex-1" onClick={deleteSet}>
+									Delete
+								</button>
+							)}
 						</div>
 					</div>
-				</Dialog>
-			)
-		}
+				</div>
+			</Dialog>
+		)
+	}
 
 async function getSetPreviewLevel(set: ItemLevelSet): Promise<LevelData> {
 	// If this is a local set, show the last played level!
@@ -321,7 +321,7 @@ const SetItem = memo(
 				bbClubSet &&
 				localBBClubSet &&
 				getBBClubSetUpdated(bbClubSet.set).getTime() >
-				localBBClubSet.lastUpdated,
+					localBBClubSet.lastUpdated,
 			[bbClubSet, localBBClubSet]
 		)
 		const showPrompt = useJotaiFn(showPromptGs)
@@ -481,7 +481,12 @@ export function SetsGrid() {
 	const allDoneLoading =
 		bbClubSetsRes.state !== "working" && localSetsRes.state !== "working"
 	return (
-		<div class="m-2 grid w-full justify-center gap-1 [grid:auto-flow/repeat(auto-fit,calc(320px_+_1.5em))]">
+		<div
+			class="m-2 grid w-full justify-center gap-1"
+			style={{
+				grid: `auto-flow / repeat(auto-fit, calc(${PREVIEW_FULL_SIZE}px + 1.5em))`,
+			}}
+		>
 			<div class="box col-span-full flex flex-wrap gap-2">
 				<input
 					type="text"
