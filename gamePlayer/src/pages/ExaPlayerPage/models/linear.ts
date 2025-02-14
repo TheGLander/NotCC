@@ -89,9 +89,15 @@ export class MoveSequence {
 		this.moves.splice(...interval)
 		this.displayMoves.splice(...interval)
 		this.userMoves.splice(...interval)
-		this.snapshots = this.snapshots.filter(
-			snap => !(snap.tick >= interval[0] && snap.tick < interval[1])
-		)
+		this.snapshots = this.snapshots
+			.filter(snap => !(snap.tick >= interval[0] && snap.tick < interval[1]))
+			.map(snap => ({
+				...snap,
+				tick:
+					snap.tick >= interval[1]
+						? snap.tick - (interval[1] - interval[0])
+						: snap.tick,
+			}))
 	}
 	clone(): this {
 		const thisSnapshots = this.snapshots
@@ -114,12 +120,10 @@ export class MoveSequence {
 			this.snapshots.push({ ...oSnapshot, tick: oSnapshot.tick + otherOffset })
 		}
 	}
-	findSnapshot(tick: number): Snapshot {
-		let idx = this.snapshots.length - 1
-		while (idx > 0 && this.snapshots[idx].tick > tick) {
-			idx -= 1
-		}
-		return this.snapshots[idx]
+	findSnapshot(tickFromStartOfSeq: number): Snapshot | undefined {
+		return this.snapshots.findLast(
+			snapshot => snapshot.tick <= tickFromStartOfSeq
+		)
 	}
 }
 
@@ -176,7 +180,8 @@ export class LinearModel {
 	goTo(pos: number): void {
 		if (this.moveSeq.tickLen === 0) return
 		this.offset = pos
-		const snapshot = this.moveSeq.findSnapshot(pos)
+		// since `snapshotOffset` here will be 0, there'll always be a matching snapshot for any requested tick
+		const snapshot = this.moveSeq.findSnapshot(pos)!
 
 		this.level = snapshot.level.clone()
 		this.moveSeq.applyToLevel(this.level, this.playerSeat, [snapshot.tick, pos])

@@ -76,8 +76,6 @@ export function openExaCCReal(
 ) {
 	if (openEv.type !== "new") return
 	const model = makeModel(levelData, openEv)
-	// @ts-ignore Temporary
-	globalThis.NotCC.exa = { model }
 	set(modelConfigAtom, openEv)
 	set(pageAtom, "exa")
 	set(modelAtom, model)
@@ -339,6 +337,10 @@ export function RealExaPlayerPage() {
 		setModel(makeModel(aLevel, modelConfig))
 	}, [aLevel])
 	const model = modelM!
+	useEffect(() => {
+		// @ts-ignore
+		globalThis.NotCC.exa = { model }
+	}, [model])
 	const playerSeat = model.level.playerSeats[0]
 	const levelN = useAtomValue(levelNAtom)
 	const setControls = useSetAtom(levelControlsAtom)
