@@ -142,11 +142,16 @@ export interface ArtContext {
 	ctx: CanvasRenderingContext2D
 	ticks: number
 	offset: Position
+	tilePos: Position
 }
 
 type DirectionString = "UP" | "RIGHT" | "DOWN" | "LEFT"
 export function actorToDir(actor: Actor): DirectionString {
 	return Direction[actor.direction] as "UP"
+}
+
+function pseudoRandom(a: number, b: number) {
+	return (1 + ((Math.sin(a * 12.9898 + b * 78.233) * 43758.6453) % 1)) % 1
 }
 
 export class Renderer {
@@ -262,21 +267,26 @@ export class Renderer {
 		const frames =
 			art.type === "animated" ? art.frames : art[actorToDir(actor as Actor)]
 		const duration = art.duration
-		let frameN: number
+		let framesProgress: number
 
 		if (typeof duration === "number") {
-			frameN = Math.floor(frames.length * ((ctx.ticks / duration) % 1))
+			framesProgress = (ctx.ticks / duration) % 1
 		} else if (!(actor instanceof Actor)) {
 			throw new Error(`"steps" frame length used w/ BasicTile`)
 		} else if (actor.moveProgress !== 0) {
-			frameN = Math.floor(
-				frames.length * (actor.moveProgress / actor.moveLength)
-			)
+			framesProgress = actor.moveProgress / actor.moveLength
 		} else {
-			frameN = art.baseFrame || 0
+			framesProgress = (art.baseFrame ?? 0) / frames.length
 		}
-		// TODO `art.randomizedFrame`
-		this.drawStatic(ctx, actor, frames[frameN])
+		if (art.randomizedFrame) {
+			framesProgress += pseudoRandom(ctx.tilePos[0], ctx.tilePos[1])
+			framesProgress %= 1
+		}
+		this.drawStatic(
+			ctx,
+			actor,
+			frames[Math.floor(framesProgress * frames.length)]
+		)
 	}
 	drawOverlay(
 		ctx: ArtContext,
@@ -399,9 +409,10 @@ export class Renderer {
 		if (!this.level || !this.cameraSize) return
 		this.updateCameraPosition()
 		const session: ArtContext = {
-			ctx: ctx,
+			ctx,
 			offset: [0, 0],
 			ticks: Math.max(0, this.level.subticksPassed()),
+			tilePos: [0, 0],
 		}
 		for (let layer = Layer.TERRAIN; layer >= Layer.SPECIAL; layer -= 1) {
 			for (let xi = -1; xi <= this.cameraSize.width + 1; xi++) {
@@ -414,6 +425,7 @@ export class Renderer {
 						this.cameraPosition[0] + x,
 						this.cameraPosition[1] + y,
 					]
+					session.tilePos = [x, y]
 					const cell = this.level.getCell(x, y)
 					if (cell.terrain && layer === Layer.TERRAIN)
 						this.drawTile(session, cell.terrain)
