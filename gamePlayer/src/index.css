@@ -55,7 +55,10 @@
 	select,
 	input[type="number"],
 	input[type="text"] {
-		@apply bg-theme-950;
+		@apply bg-theme-950 px-[2px] py-[1px];
+	}
+	.disable-select-appearance select {
+		appearance: none;
 	}
 	input[type="text"]::placeholder {
 		@apply text-neutral-400;

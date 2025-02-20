@@ -102,7 +102,8 @@ export function App() {
 			class={twJoin(
 				"relative h-full w-full font-sans text-neutral-100",
 				!embedMode &&
-					"from-theme-500 to-theme-800 flex flex-col-reverse bg-gradient-to-br"
+					"from-theme-500 to-theme-800 flex flex-col-reverse bg-gradient-to-br",
+				isDesktop() && "disable-select-appearance"
 			)}
 		>
 			<Prompts />

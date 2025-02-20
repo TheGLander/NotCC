@@ -1,10 +1,12 @@
-import { Suspense, lazy } from "preact/compat"
+import { Suspense, lazy, useEffect, useRef } from "preact/compat"
 import type { LinearModel } from "./models/linear"
 import type { GraphModel } from "./models/graph"
-import { atom, useAtomValue } from "jotai"
+import { atom, useAtomValue, useSetAtom } from "jotai"
 import { useJotaiFn } from "@/helpers"
 import { openExaCC as openExaCCgs } from "./OpenExaPrompt"
 import { preferenceAtom } from "@/preferences"
+import { useSwrLevel } from "@/levelData"
+import { pageAtom } from "@/routing"
 
 export const modelAtom = atom<LinearModel | GraphModel | null>(null)
 export const exaComplainAboutNonlegalGlitches = preferenceAtom(
@@ -15,12 +17,31 @@ const RealExaPlayerPage = lazy(() =>
 	import("./exaPlayer").then(mod => mod.RealExaPlayerPage)
 )
 
+function ExaPromptShower() {
+	const levelData = useSwrLevel()
+	const promptShown = useRef<boolean>(false)
+	const openExaCC = useJotaiFn(openExaCCgs)
+	const setPage = useSetAtom(pageAtom)
+	useEffect(() => {
+		if (promptShown.current) return
+		if (!levelData) return
+		promptShown.current = true
+		// Need to do this because you can't use `async` in `useEffect` lol
+		async function showExaCC() {
+			const exaCCStarted = await openExaCC(levelData!)
+			if (!exaCCStarted) {
+				setPage("")
+			}
+		}
+		showExaCC()
+	}, [levelData])
+	return <></>
+}
+
 export function ExaPlayerPage() {
 	const model = useAtomValue(modelAtom)
-	const openExaCC = useJotaiFn(openExaCCgs)
 	if (model === null) {
-		openExaCC()
-		return <></>
+		return <ExaPromptShower />
 	}
 	return (
 		<Suspense fallback={<div class="box m-auto">Loading™...</div>}>

@@ -3,7 +3,13 @@ import { Cell } from "./cell.js"
 import { InputProvider, KeyInputs, msToProtoTime } from "./index.js"
 import { getModuleInstance, wasmFuncs } from "./module.js"
 import { GlitchInfo, IGlitchInfo } from "./nonbind/nccs.pb.js"
-import { CVector, getStringAt, getWasmReader, Struct } from "./struct.js"
+import {
+	CVector,
+	getStringAt,
+	getWasmReader,
+	makeAccessorClassObj,
+	Struct,
+} from "./struct.js"
 export class PlayerSeat extends Struct {
 	get actor() {
 		const ptr = wasmFuncs.PlayerSeat_get_actor(this._ptr)
@@ -60,10 +66,16 @@ export class LevelMetadata extends Struct {
 	get c2gCommand() {
 		return getStringAt(wasmFuncs.LevelMetadata_get_c2g_command(this._ptr))
 	}
+	get rngBlob4Pat() {
+		return !!wasmFuncs.LevelMetadata_get_rng_blob_4pat(this._ptr)
+	}
+	get rngBlobDeterministic() {
+		return !!wasmFuncs.LevelMetadata_get_rng_blob_deterministic(this._ptr)
+	}
 }
 
 export class VectorUint8 extends CVector<number> {
-	getSize(): number {
+	getItemSize(): number {
 		return 1
 	}
 	instantiateItem(ptr: number): number {
@@ -98,7 +110,7 @@ export enum HashSettings {
 }
 
 export class VectorPlayerSeat extends CVector<PlayerSeat> {
-	getSize(): number {
+	getItemSize(): number {
 		return wasmFuncs._libnotcc_bind_PlayerSeat_size()
 	}
 	instantiateItem(ptr: number): PlayerSeat {
@@ -135,11 +147,36 @@ export class Glitch extends Struct {
 }
 
 export class VectorGlitch extends CVector<Glitch> {
-	getSize(): number {
+	getItemSize(): number {
 		return wasmFuncs._libnotcc_bind_Glitch_size()
 	}
 	instantiateItem(ptr: number): Glitch {
 		return new Glitch(ptr)
+	}
+}
+
+export class ActorList {
+	get length(): number {
+		return this.level.actor_n
+	}
+	[idx: number]: Actor
+	*[Symbol.iterator]() {
+		const length = this.length
+		for (let idx = 0; idx < length; idx += 1) {
+			yield this[idx]
+		}
+	}
+	getItem(idx: number): Actor {
+		return new Actor(getWasmReader().getUint32(this.level.actors_ptr + idx * 4))
+	}
+	constructor(public level: Level) {
+		return makeAccessorClassObj(this)
+	}
+	getItemSize(): number {
+		return wasmFuncs._libnotcc_bind_Actor_size()
+	}
+	instantiateItem(ptr: number): Actor {
+		return new Actor(ptr)
 	}
 }
 
@@ -198,6 +235,15 @@ export class Level extends Struct {
 		const ptr = wasmFuncs.Level_get_builtin_replay(this._ptr)
 		if (ptr === 0) return null
 		return new Replay(ptr)
+	}
+	get actors_ptr(): number {
+		return wasmFuncs.Level_get_actors(this._ptr)
+	}
+	get actor_n(): number {
+		return wasmFuncs.Level_get_actors_n(this._ptr)
+	}
+	get actors(): ActorList {
+		return new ActorList(this)
 	}
 	setProviderInputs(ip: InputProvider) {
 		const seats = this.playerSeats
@@ -281,6 +327,9 @@ export class Level extends Struct {
 	}
 	get sfx(): number {
 		return Number(wasmFuncs.Level_get_sfx(this._ptr))
+	}
+	erase(actor: Actor) {
+		wasmFuncs.Actor_erase(actor._ptr, this._ptr)
 	}
 }
 

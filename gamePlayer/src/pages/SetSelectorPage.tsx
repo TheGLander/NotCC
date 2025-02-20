@@ -2,7 +2,7 @@ import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
 import { encodeBase64, isDesktop, useJotaiFn, zlibAsync } from "@/helpers"
 import prewriteIcon from "../prewrite.png"
-import { preferenceAtom } from "@/preferences"
+import { dismissablePreferenceAtom, preferenceAtom } from "@/preferences"
 import { SetsGrid } from "@/components/SetsGrid"
 import { findScriptName } from "@notcc/logic"
 import {
@@ -124,7 +124,7 @@ function UploadBox() {
 	)
 }
 
-const alphaHeaderClosedAtom = preferenceAtom("alphaHeaderClosed", false)
+const alphaHeaderClosedAtom = dismissablePreferenceAtom("alphaHeaderClosed")
 
 function AlphaHeader() {
 	const setAlphaHeaderClosed = useSetAtom(alphaHeaderClosedAtom)

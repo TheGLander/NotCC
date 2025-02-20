@@ -124,26 +124,40 @@ export class Struct {
 	}
 }
 
+export function makeAccessorClassObj<
+	V,
+	T extends {
+		[idx: number]: V
+		getItem(idx: number): V
+		length: number
+	},
+>(inst: T): typeof inst {
+	return new Proxy(inst, {
+		get(target, p, receiver) {
+			if (typeof p === "symbol") return Reflect.get(target, p, receiver)
+			const pInt = parseInt(p)
+			if (isNaN(pInt) || pInt < 0 || pInt >= target.length)
+				return Reflect.get(target, p, receiver)
+			return target.getItem(pInt)
+		},
+	})
+}
+
 export abstract class CVector<T> extends Struct {
 	get length(): number {
 		return wasmFuncs.Vector_any_get_length(this._ptr)
 	}
+	getItem(idx: number): T {
+		return this.instantiateItem(
+			wasmFuncs.Vector_any_get_ptr(this._ptr, this.getItemSize(), idx)
+		)
+	}
 	[idx: number]: T
 	constructor(_ptr: number) {
 		super(_ptr)
-		return new Proxy(this, {
-			get(target, p, receiver) {
-				if (typeof p === "symbol") return Reflect.get(target, p, receiver)
-				const pInt = parseInt(p)
-				if (isNaN(pInt) || pInt < 0 || pInt >= target.length)
-					return Reflect.get(target, p, receiver)
-				return target.instantiateItem(
-					wasmFuncs.Vector_any_get_ptr(target._ptr, target.getSize(), pInt)
-				)
-			},
-		})
+		return makeAccessorClassObj(this)
 	}
-	abstract getSize(): number
+	abstract getItemSize(): number
 	abstract instantiateItem(ptr: number): T
 	*[Symbol.iterator]() {
 		for (let idx = 0; idx < this.length; idx += 1) {

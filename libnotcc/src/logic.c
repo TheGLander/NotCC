@@ -81,6 +81,42 @@ const TileType** Inventory_get_item_by_idx(Inventory* self, uint8_t idx) {
   return NULL;
 }
 
+static TileType const* const CANONICAL_ITEMS[] = {
+    NULL,
+    &FORCE_BOOTS_tile,
+    &ICE_BOOTS_tile,
+    &FIRE_BOOTS_tile,
+    &WATER_BOOTS_tile,
+    &DYNAMITE_tile,
+    &HELMET_tile,
+    &DIRT_BOOTS_tile,
+    &LIGHTNING_BOLT_tile,
+    &BOWLING_BALL_tile,
+    &TELEPORT_YELLOW_tile,
+    &RR_SIGN_tile,
+    &STEEL_FOIL_tile,
+    &SECRET_EYE_tile,
+    &BRIBE_tile,
+    &SPEED_BOOTS_tile,
+    &HOOK_tile,
+};
+
+void Inventory_set_items(Inventory* self,
+                         ItemIndex item1,
+                         ItemIndex item2,
+                         ItemIndex item3,
+                         ItemIndex item4) {
+  self->counters = (Uint8_16){};
+  ItemIndex items_to_set[] = {item1, item2, item3, item4};
+  for (size_t idx = 0; idx < lengthof(items_to_set); idx += 1) {
+    ItemIndex item = items_to_set[idx];
+    *Inventory_get_item_by_idx(self, idx) = CANONICAL_ITEMS[item];
+    if (item != 0) {
+      Inventory_increment_counter(self, item);
+    }
+  }
+};
+
 size_t Position_to_offset(Position pos, size_t pitch) {
   return pos.x + pos.y * pitch;
 }

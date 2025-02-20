@@ -160,7 +160,7 @@ static void parse_note(LevelMetadata* meta, SectionData* section) {
         assert_not_at_end();
         str += 1;
       }
-      size_t clue_size = str - clue_start + 1;
+      size_t clue_size = str - clue_start;
       // Too lazy to write `strndupz_latin1_to_utf8`
       char* clue_str_latin1 = strndupz(clue_start, clue_size);
       char* clue_str = strdupz_latin1_to_utf8(clue_str_latin1);

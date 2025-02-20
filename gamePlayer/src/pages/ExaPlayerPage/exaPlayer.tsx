@@ -1,7 +1,7 @@
 import { CameraType, GameRenderer } from "@/components/GameRenderer"
 import { Getter, Setter, atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { LinearModel } from "./models/linear"
-import { GraphModel, Node } from "./models/graph"
+import { GraphModel } from "./models/graph"
 import {
 	useCallback,
 	useEffect,
@@ -12,7 +12,6 @@ import {
 } from "preact/hooks"
 import {
 	GameState,
-	InputProvider,
 	KeyInputs,
 	calculateLevelPoints,
 	protobuf,
@@ -24,29 +23,34 @@ import {
 	SlidingState,
 	protoTimeToMs,
 	Inventory as InventoryT,
+	LevelModifiers,
+	Route,
+	RouteDirection,
+	ItemIndex,
+	InputProvider,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
 	CompensatingIntervalTimer,
 	TimeoutTimer,
 	formatTimeLeft,
-	sleep,
 	useJotaiFn,
 } from "@/helpers"
 import { DEFAULT_KEY_MAP } from "@/inputs"
-import {
-	DEFAULT_HASH_SETTINGS,
-	ExaNewEvent,
-	ExaOpenEvent,
-} from "./OpenExaPrompt"
+import { ExaNewEvent, ExaInitEvent } from "./OpenExaPrompt"
 import { Inventory } from "@/components/Inventory"
 import {
 	GraphScrollBar as GraphTimelineView,
 	GraphView,
 	MovesList,
 } from "./GraphView"
-import { levelNAtom, pageAtom } from "@/routing"
-import { LevelData, useSwrLevel } from "@/levelData"
+import { levelNAtom, levelSetIdentAtom, pageAtom } from "@/routing"
+import {
+	LevelData,
+	getGlobalLevelModifiersGs,
+	levelSetAtom,
+	useSwrLevel,
+} from "@/levelData"
 import { exaComplainAboutNonlegalGlitches, modelAtom } from "."
 import { calcScale } from "@/components/DumbLevelPlayer"
 import { PromptComponent, showPromptGs } from "@/prompts"
@@ -64,42 +68,54 @@ import {
 	NonlegalMessage,
 	isGlitchKindNonlegal,
 } from "@/components/NonLegalMessage"
+import {
+	RouteLocation,
+	findModelSavePath,
+	makeModel,
+	makeModelSave,
+	modelFromSave,
+} from "./exaProj"
+import { makeDirP, showSavePrompt, writeJson } from "@/fs"
+import { basename, join } from "path"
+import { Expl } from "@/components/Expl"
+import { dismissablePreferenceAtom } from "@/preferences"
 
 const modelConfigAtom = atom<ExaNewEvent | null>(null)
 type Model = LinearModel | GraphModel
 
-export function openExaCCReal(
-	_get: Getter,
-	set: Setter,
-	openEv: ExaOpenEvent,
-	levelData: LevelData
-) {
-	if (openEv.type !== "new") return
-	const model = makeModel(levelData, openEv)
-	set(modelConfigAtom, openEv)
-	set(pageAtom, "exa")
-	set(modelAtom, model)
+function getDefaultLevelModifiersGs(get: Getter, set: Setter): LevelModifiers {
+	return {
+		...getGlobalLevelModifiersGs(get, set),
+		blobMod: 0x55,
+		randomForceFloorDirection: Direction.UP,
+	}
 }
 
-function makeModel(
-	levelData: LevelData,
-	conf: ExaNewEvent,
-	init?: InputProvider
-): Model {
-	const level = levelData.initLevel()
-	init?.setupLevel(level)
-	level.tick()
-	level.tick()
-
+export function openExaCCReal(
+	get: Getter,
+	set: Setter,
+	openEv: ExaInitEvent,
+	levelData: LevelData
+) {
+	let modifiers: LevelModifiers
 	let model: Model
-	if (conf.model === "linear") {
-		model = new LinearModel(level)
-	} else if (conf.model === "graph") {
-		model = new GraphModel(level, conf.hashSettings ?? DEFAULT_HASH_SETTINGS)
+	let config: ExaNewEvent
+	if (openEv.type === "open") {
+		const loadRes = modelFromSave(levelData, openEv.save)
+		modifiers = loadRes.modifiers
+		model = loadRes.model
+		config = loadRes.config
+		set(projectSavePathAtom, openEv.path ?? null)
 	} else {
-		throw new Error("Unsupported model :(")
+		modifiers = getDefaultLevelModifiersGs(get, set)
+		model = makeModel(levelData, openEv, modifiers)
+		config = openEv
+		set(projectSavePathAtom, null)
 	}
-	return model
+	set(exaLevelModifiersAtom, modifiers)
+	set(modelConfigAtom, config)
+	set(pageAtom, "exa")
+	set(modelAtom, model)
 }
 
 // function useModel() {
@@ -271,7 +287,7 @@ function computeDefaultCamera(
 		height: Math.min(32, level.height),
 	}
 	let scale = calcScale({
-		tileSize: tileset!.tileSize,
+		tileSize: tileset.tileSize,
 		cameraType: camera,
 		twPadding: [1 + 2 + 2 + 2 + 2 + 16 + 30 + 2 + 1, 1 + 2 + 2 + 1 + 2 + 6],
 		tilePadding: [4, 0],
@@ -306,7 +322,6 @@ function LinearTimelineView(props: {
 	)
 }
 
-// @ts-ignore Temporary!
 const NonlegalPrompt =
 	(props: {
 		glitch: protobuf.IGlitchInfo
@@ -328,21 +343,262 @@ const NonlegalPrompt =
 		)
 	}
 
+function getLevelStats(levelN: number, model: Model) {
+	const timeLeft = model.timeLeft()
+	return {
+		timeLeft,
+		chipsLeft: model.level.chipsLeft,
+		bonusPoints: model.level.bonusPoints,
+		totalPoints: calculateLevelPoints(
+			levelN,
+			Math.ceil(timeLeft / 60),
+			model.level.bonusPoints
+		),
+	}
+}
+
+const confirmNewExaModifiersPromptDismissedAtom = dismissablePreferenceAtom(
+	"confirmNewExaModifiersPromptDismissed"
+)
+
+const ConfirmNewModifiersPrompt: PromptComponent<boolean> = pProps => {
+	const setPromptDismissed = useSetAtom(
+		confirmNewExaModifiersPromptDismissedAtom
+	)
+	return (
+		<Dialog
+			header="Reset level to apply modifiers?"
+			buttons={[
+				["Cancel", () => pProps.onResolve(false)],
+				["Apply", () => pProps.onResolve(true)],
+			]}
+			onClose={() => pProps.onResolve(false)}
+		>
+			<div>
+				Warning: to apply the new level modifiers, the level will be reset and
+				the current project will be re-imported on the new level. If any
+				sequence of moves in the project prematurely wins or loses the level,
+				some of the moves might be lost.
+			</div>
+			<div>
+				<label>
+					<input
+						type="checkbox"
+						onChange={ev => setPromptDismissed(ev.currentTarget.checked)}
+					/>{" "}
+					Don't show this warning again
+				</label>
+			</div>
+		</Dialog>
+	)
+}
+
+const IncompatibleReplayModifiersPrompt: PromptComponent<
+	"cancel" | "reset" | "overlay"
+> = pProps => (
+	<Dialog
+		header="Incompatible level modifiers in replay"
+		buttons={[
+			["Cancel", () => pProps.onResolve("cancel")],
+			["Reset project", () => pProps.onResolve("reset")],
+			["Overlay over project anyway", () => pProps.onResolve("overlay")],
+		]}
+		onClose={() => pProps.onResolve("cancel")}
+	>
+		The replay you attempted to load has incompatible level modifiers with the
+		current project. To load the replay, the current project must be reset.
+		Otherwise, the replay may fail if it depends on the specific modifiers.
+	</Dialog>
+)
+
+const exaLevelModifiersAtom = atom<LevelModifiers | null>(null)
+
+const DIRECTION_PRETTY_NAMES: Record<Direction, string> = {
+	[Direction.NONE]: "None",
+	[Direction.UP]: "Up",
+	[Direction.RIGHT]: "Right",
+	[Direction.DOWN]: "Down",
+	[Direction.LEFT]: "Left",
+}
+
+const ModifiersControl: PromptComponent<void> = pProps => {
+	const [model, setModel] = useAtom(modelAtom)
+	const level = model?.level
+	const blobLimit = !level?.metadata
+		? 0
+		: level.metadata.rngBlobDeterministic
+			? 1
+			: level.metadata.rngBlob4Pat
+				? 4
+				: 256
+
+	const [levelModifiers, setLevelModifiers] = useAtom(exaLevelModifiersAtom)
+
+	const [rffDirection, setRffDirection] = useState(
+		levelModifiers?.randomForceFloorDirection ?? Direction.UP
+	)
+	const [blobMod, setBlobMod] = useState(levelModifiers?.blobMod ?? 0x55)
+	const bypassConfirmDialog = useAtomValue(
+		confirmNewExaModifiersPromptDismissedAtom
+	)
+	const showPrompt = useJotaiFn(showPromptGs)
+
+	const levelData = useSwrLevel()
+	const modelConfig = useAtomValue(modelConfigAtom)
+	const applyNewModifiers = useCallback(async () => {
+		if (!modelConfig || !levelData) return
+		if (!bypassConfirmDialog) {
+			const agreedToContinue = await showPrompt(ConfirmNewModifiersPrompt)
+			if (!agreedToContinue) return
+		}
+		const newModifiers: LevelModifiers = {
+			...levelModifiers,
+			randomForceFloorDirection: rffDirection,
+			blobMod,
+		}
+		const newModel = makeModel(levelData, modelConfig, newModifiers)
+		// @ts-ignore
+		newModel.transcribeFromOther(model)
+		setLevelModifiers(newModifiers)
+		setModel(newModel)
+	}, [model, levelModifiers, rffDirection, blobMod, bypassConfirmDialog])
+
+	return (
+		<Dialog
+			notModal
+			header="Level modifiers"
+			onClose={() => pProps.onResolve()}
+			buttons={[
+				["Close", () => pProps.onResolve()],
+				["Apply", () => applyNewModifiers()],
+			]}
+		>
+			<div class="m-2 grid grid-rows-3 gap-2 [grid-template-columns:repeat(3,auto)]">
+				<div></div>
+				<div>
+					RFF direction<Expl>the initial random force floor direction</Expl>
+				</div>
+				<div>
+					Blob mod<Expl>the initial randomness value for blobs</Expl>
+				</div>
+				<div>Current</div>
+				<div>
+					{level &&
+						levelModifiers &&
+						DIRECTION_PRETTY_NAMES[
+							levelModifiers.randomForceFloorDirection ?? Direction.UP
+						]}
+				</div>
+				<div>
+					{level &&
+						levelModifiers &&
+						(blobLimit === 1
+							? "N/A (one seed)"
+							: levelModifiers.blobMod !== undefined &&
+								levelModifiers.blobMod % blobLimit)}
+				</div>
+				<div>New</div>
+				<div>
+					<select
+						disabled={!level || !levelModifiers}
+						value={Direction[rffDirection]}
+						onInput={ev => {
+							setRffDirection(
+								Direction[ev.currentTarget.value as RouteDirection]
+							)
+						}}
+					>
+						<option value="UP">Up</option>
+						<option value="RIGHT">Right</option>
+						<option value="DOWN">Down</option>
+						<option value="LEFT">Left</option>
+					</select>
+				</div>
+				<div>
+					{blobLimit === 1 ? (
+						"N/A (one seed)"
+					) : (
+						<input
+							type="number"
+							disabled={!level || !levelModifiers}
+							min="0"
+							max={blobLimit === 0 ? 0 : blobLimit - 1}
+							value={blobMod % blobLimit}
+							onInput={ev => {
+								setBlobMod(parseInt(ev.currentTarget.value))
+							}}
+						/>
+					)}
+				</div>
+			</div>
+		</Dialog>
+	)
+}
+
+function areLevelModifiersEqual(a: LevelModifiers, b: LevelModifiers) {
+	if ((a.blobMod ?? 0x55) !== (b.blobMod ?? 0x55)) return false
+	if (
+		(a.randomForceFloorDirection ?? Direction.UP) !==
+		(b.randomForceFloorDirection ?? Direction.UP)
+	)
+		return false
+	if (a.timeLeft !== b.timeLeft) return false
+	if (
+		(a.inventoryKeys?.red ?? 0) !== (b.inventoryKeys?.red ?? 0) ||
+		(a.inventoryKeys?.green ?? 0) !== (b.inventoryKeys?.green ?? 0) ||
+		(a.inventoryKeys?.blue ?? 0) !== (b.inventoryKeys?.blue ?? 0) ||
+		(a.inventoryKeys?.yellow ?? 0) !== (b.inventoryKeys?.yellow ?? 0)
+	)
+		return false
+	if ((a.playableEnterN ?? 0) !== (b.playableEnterN ?? 0)) return false
+	const aTools = a.inventoryTools ?? [
+		ItemIndex.Nothing,
+		ItemIndex.Nothing,
+		ItemIndex.Nothing,
+		ItemIndex.Nothing,
+	]
+	const bTools = b.inventoryTools ?? [
+		ItemIndex.Nothing,
+		ItemIndex.Nothing,
+		ItemIndex.Nothing,
+		ItemIndex.Nothing,
+	]
+	if (aTools.some((aItem, idx) => aItem !== bTools[idx])) return false
+	return true
+}
+
+function importInputsToModel(
+	model: Model,
+	ip: InputProvider,
+	reportProgress?: (progress: number) => void
+) {
+	const UPDATE_PERIOD = 600
+	// Graph model might mess with the level's currentTick/Subtick if it detects a redundancy, so we need to maintain a separate linear currentSubtick
+	let linearCurrentSubtick = 0
+	while (!ip.outOfInput(linearCurrentSubtick)) {
+		if (model.level.gameState !== GameState.PLAYING) break
+		const moveLength = model.addInput(ip.getInput(linearCurrentSubtick, 0))
+		if (linearCurrentSubtick % UPDATE_PERIOD === 0) {
+			reportProgress?.(ip.inputProgress(linearCurrentSubtick))
+		}
+		linearCurrentSubtick += moveLength
+	}
+}
+
+const projectSavePathAtom = atom<string | null>(null)
+
 export function RealExaPlayerPage() {
 	const [modelM, setModel] = useAtom(modelAtom)
 	const aLevel = useSwrLevel()
-	const modelConfig = useAtomValue(modelConfigAtom)
-	useEffect(() => {
-		if (!aLevel || !modelConfig) return
-		setModel(makeModel(aLevel, modelConfig))
-	}, [aLevel])
+	const [modelConfig, setModelConfig] = useAtom(modelConfigAtom)
+
 	const model = modelM!
 	useEffect(() => {
 		// @ts-ignore
 		globalThis.NotCC.exa = { model }
 	}, [model])
 	const playerSeat = model.level.playerSeats[0]
-	const levelN = useAtomValue(levelNAtom)
+	const levelN = useAtomValue(levelNAtom)!
 	const setControls = useSetAtom(levelControlsAtom)
 	// Sidebar and router comms, level state
 	function purgeBackfeed() {
@@ -376,42 +632,66 @@ export function RealExaPlayerPage() {
 		},
 		[model, complainAboutNonlegal]
 	)
+	const [levelModifiers, setLevelModifiers] = useAtom(exaLevelModifiersAtom)
+	const levelSet = useAtomValue(levelSetAtom)
+	const levelSetIdent = useAtomValue(levelSetIdentAtom)
+	const [projectSavePath, setProjectSavePath] = useAtom(projectSavePathAtom)
+	const getDefaultLevelModifiers = useJotaiFn(getDefaultLevelModifiersGs)
+
+	const lastLevelRef = useRef(aLevel)
+
+	useEffect(() => {
+		if (!aLevel || !modelConfig || !levelModifiers) return
+		if (aLevel === lastLevelRef.current) {
+			lastLevelRef.current = aLevel
+			return
+		}
+		lastLevelRef.current = aLevel
+		const modifiers = getDefaultLevelModifiers()
+		const model = makeModel(aLevel, modelConfig, modifiers)
+		setLevelModifiers(modifiers)
+		setModel(model)
+	}, [aLevel, modelConfig])
+
 	const showPrompt = useJotaiFn(showPromptGs)
 	const addToast = useJotaiFn(addToastGs)
 	const removeToast = useJotaiFn(removeToastGs)
 	const adjustToast = useJotaiFn(adjustToastGs)
 	useEffect(() => {
 		setControls({
-			restart: () => {
+			restart() {
 				model.resetLevel()
 				updateLevel()
 			},
-			playInputs: async repl => {
+			async playInputs(repl) {
+				if (!aLevel || !modelConfig) return
+				let thisModel = model
 				const ip = typeof repl.ip === "function" ? await repl.ip() : repl.ip
-				const model = makeModel(aLevel!, modelConfig!, ip)
-				// @ts-ignore Temporary
-				globalThis.NotCC.exa = { model }
-				setModel(model)
-				const UPDATE_PERIOD = 200 * 3
+				const ipModifiers = ip.levelModifiers()
+				if (!areLevelModifiersEqual(levelModifiers ?? {}, ipModifiers)) {
+					let actuallyResetModel = true
+					if (!model.isBlank()) {
+						const userAgreedToReset = await showPrompt(
+							IncompatibleReplayModifiersPrompt
+						)
+						if (userAgreedToReset === "cancel") return
+						actuallyResetModel = userAgreedToReset === "reset"
+					}
+					if (actuallyResetModel) {
+						thisModel = makeModel(aLevel, modelConfig, ipModifiers)
+						setModel(thisModel)
+						setLevelModifiers(ipModifiers)
+						updateLevel()
+					}
+				}
 				const toast: Toast = { title: "Importing route (0%)" }
 				addToast(toast)
-				// Graph model might mess with the level's currentTick/Subtick if it detects a redundancy, so we need to maintain a separate linear currentSubtick
-				let linearCurrentSubtick = 0
-				while (!ip.outOfInput(linearCurrentSubtick)) {
-					if (model.level.gameState !== GameState.PLAYING) break
-					const moveLength = model.addInput(
-						ip.getInput(linearCurrentSubtick, 0)
-					)
-					if (linearCurrentSubtick % UPDATE_PERIOD === 0) {
-						updateLevel()
-						toast.title = `Importing route (${Math.floor(
-							ip.inputProgress(linearCurrentSubtick) * 100
-						)}%)`
-						adjustToast()
-						await sleep(0)
-					}
-					linearCurrentSubtick += moveLength
-				}
+				thisModel.resetLevel()
+				importInputsToModel(thisModel, ip, progress => {
+					updateLevel()
+					toast.title = `Importing route (${Math.floor(progress * 100)}%)`
+					adjustToast()
+				})
 				removeToast(toast)
 				updateLevel()
 			},
@@ -433,11 +713,74 @@ export function RealExaPlayerPage() {
 				tileInspector() {
 					showPrompt(TileInspector)
 				},
+				levelModifiersControls() {
+					showPrompt(ModifiersControl)
+				},
+				save:
+					(levelSet ?? undefined) &&
+					(async () => {
+						const routeLocation: RouteLocation = {
+							levelN,
+							setIdent: levelSetIdent!,
+							setName: levelSet!.gameTitle(),
+							path: projectSavePath ?? undefined,
+						}
+
+						const savePath = await findModelSavePath(
+							model.level.metadata.title ?? "UNKNOWN",
+							model instanceof LinearModel,
+							routeLocation
+						)
+						await makeDirP(join(savePath, ".."))
+						await writeJson(
+							savePath,
+							makeModelSave(model, levelModifiers ?? {}, routeLocation)
+						)
+						addToast({
+							title: !projectSavePath
+								? `Saved as ${basename(savePath)}`
+								: "Saved",
+							autoHideAfter: 2,
+						})
+						setProjectSavePath(savePath)
+					}),
+				async export() {
+					const moves = model.getSelectedMoveSequence()
+					const levelStats = getLevelStats(levelN, model)
+					const route: Route = {
+						Moves: moves.join(""),
+						Blobmod: levelModifiers?.blobMod,
+						"Initial Slide":
+							levelModifiers?.randomForceFloorDirection === undefined
+								? undefined
+								: (Direction[
+										levelModifiers.randomForceFloorDirection
+									] as RouteDirection),
+						Rule: "Steam",
+						ExportApp: "ExaCC v2.0",
+						For: {
+							Set: levelSet?.gameTitle(),
+							LevelName: model.level.metadata.title ?? undefined,
+							LevelNumber: levelSet ? levelN : undefined,
+						},
+					}
+					showSavePrompt(
+						new TextEncoder().encode(JSON.stringify(route)),
+						"Save route export",
+						{
+							defaultPath: `./${route.For!.LevelName?.replace("/", " ") ?? "Unknown"} ${formatTimeLeft(levelStats.timeLeft, false)}s ${levelStats.totalPoints}pts.route`,
+						}
+					)
+				},
 			},
 		})
-	}, [model, checkForNonlegalGlitches])
+	}, [model, levelModifiers, checkForNonlegalGlitches, projectSavePath])
 	useEffect(() => {
 		return () => {
+			setModel(null)
+			setProjectSavePath(null)
+			setLevelModifiers(null)
+			setModelConfig(null)
 			setControls({})
 		}
 	}, [])
@@ -448,6 +791,10 @@ export function RealExaPlayerPage() {
 		renderRef1.current?.()
 		renderRef2.current?.()
 	}
+	useLayoutEffect(() => {
+		if (!model) return
+		render()
+	}, [model])
 	const levelRef = useMemo(
 		() => ({
 			get current() {
@@ -470,11 +817,12 @@ export function RealExaPlayerPage() {
 	const [tileScale, setTileScale] = useAtom(tileScaleAtom)
 
 	useLayoutEffect(() => {
+		if (!tileset) return
 		// Guess a good default tile scale, and let the user adjust
-		const [camera, scale] = computeDefaultCamera(model.level, tileset!)
+		const [camera, scale] = computeDefaultCamera(model.level, tileset)
 		setCameraType(camera)
 		setTileScale(scale)
-	}, [aLevel, tileset])
+	}, [model, tileset])
 
 	// Inputs
 	const [inputs, setInputs] = useState<KeyInputs>(0)
@@ -528,22 +876,6 @@ export function RealExaPlayerPage() {
 			timer?.cancel()
 		}
 	}, [model, checkForNonlegalGlitches])
-	// Time left
-	let rootTimeLeft: number | undefined
-	if (model instanceof GraphModel) {
-		let distFromRoot: number
-		if (model.current instanceof Node) {
-			distFromRoot = model.current.rootDistance
-			if (model.current.level.gameState === GameState.WON) {
-				// This doesn't correctly emulate cases where a playable dies on a winning node,
-				// since in those cases you actually *don't* lose a subtick, but it doesn't matter too much
-				distFromRoot += 1
-			}
-		} else {
-			distFromRoot = model.current.n.rootDistance + model.current.o * 3
-		}
-		rootTimeLeft = Math.max(0, model.initialTimeLeft - distFromRoot)
-	}
 	// Scrollbar, scrub and playback
 	const [playing, setPlaying] = useState(false)
 	const [speedIdx, setSpeedIdx] = useState(3)
@@ -601,6 +933,7 @@ export function RealExaPlayerPage() {
 		[tileScale]
 	)
 	const setHoveredTile = useSetAtom(hoveredTileAtom)
+	const levelStats = getLevelStats(levelN, model)
 	return (
 		<div class="flex h-full w-full">
 			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr_auto/auto_min-content]">
@@ -649,20 +982,14 @@ export function RealExaPlayerPage() {
 					<div class="grid items-center justify-items-end gap-2 gap-x-2 whitespace-nowrap text-end [grid-template-columns:repeat(2,auto);]">
 						<div>Time left:</div>
 						<div class="font-mono">
-							{formatTimeLeft(rootTimeLeft ?? model.level.timeLeft, true)}s
+							{formatTimeLeft(levelStats.timeLeft, true)}s
 						</div>
 						<div>Chips left:</div>
-						<div>{model.level.chipsLeft}</div>
+						<div>{levelStats.chipsLeft}</div>
 						<div>Bonus points:</div>
-						<div>{model.level.bonusPoints}</div>
+						<div>{levelStats.bonusPoints}</div>
 						<div>Total points:</div>
-						<div>
-							{calculateLevelPoints(
-								levelN!,
-								Math.ceil((rootTimeLeft ?? model.level.timeLeft) / 60),
-								model.level.bonusPoints
-							)}
-						</div>
+						<div>{levelStats.totalPoints}</div>
 					</div>
 				</div>
 				<div class="box col-start-2 row-span-2 h-full">

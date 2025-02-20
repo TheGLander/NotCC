@@ -280,7 +280,7 @@ export function MovesList(props: {
 	}
 	return (
 		<span class="font-mono [line-break:anywhere] [overflow-wrap:anywhere]">
-			{moves.slice(0, offset).join("")}
+			{offset !== -1 && moves.slice(0, offset).join("")}
 			<span class="text-zinc-400">{futureMoves}</span>
 		</span>
 	)
@@ -463,34 +463,31 @@ function ConstrPart(
 		props.updateLevel()
 	}, [props.model, props.ptr, props.updateLevel])
 	return (
-		<>
-			<span class="relative ml-2">
+		<span
+			class={twJoin("relative z-20 ml-2", props.inFuture && "text-zinc-400")}
+		>
+			<span
+				class={twJoin("mr-2", props.inFuture && "text-zinc-300")}
+				onClick={goToNode}
+			>
+				{props.ptr.m.displayMoves[0]}
 				<ConstructionNode
 					onClick={goToNode}
 					node={props.ptr.n}
+					class="-z-10"
 					model={props.model}
 				/>
-				<span
-					class={twJoin("relative z-20", props.inFuture && "text-zinc-400")}
-				>
-					<span
-						class={twJoin("mr-2", props.inFuture && "text-zinc-300")}
-						onClick={goToNode}
-					>
-						{props.ptr.m.displayMoves[0]}
-					</span>
-					{props.inPast || props.inFuture ? (
-						props.ptr.m.displayMoves.slice(1)
-					) : (
-						<MovesList
-							moves={props.ptr.m.displayMoves.slice(1)}
-							offset={props.offset === 0 ? 0 : props.offset - 1}
-							composeOverlay={props.inputs}
-						/>
-					)}
-				</span>
 			</span>
-		</>
+			{props.inPast || props.inFuture ? (
+				props.ptr.m.displayMoves.slice(1)
+			) : (
+				<MovesList
+					moves={props.ptr.m.displayMoves.slice(1)}
+					offset={props.offset - 1}
+					composeOverlay={props.inputs}
+				/>
+			)}
+		</span>
 	)
 }
 

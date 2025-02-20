@@ -3,6 +3,26 @@ import { Level } from "./level.js"
 import { wasmFuncs } from "./module.js"
 import { Struct } from "./struct.js"
 
+export enum ItemIndex {
+	Nothing = 0,
+	ForceBoots = 1,
+	IceBoots = 2,
+	FireBoots = 3,
+	WaterBoots = 4,
+	Dynamite = 5,
+	Helmet = 6,
+	DirtBoots = 7,
+	LightningBolt = 8,
+	BowlingBall = 9,
+	YellowTeleport = 10,
+	RailroadSign = 11,
+	SteelFoil = 12,
+	SecretEye = 13,
+	Bribe = 14,
+	SpeedBoots = 15,
+	Hook = 16,
+}
+
 export class Inventory extends Struct {
 	get item1() {
 		const ptr = wasmFuncs.Inventory_get_item1(this._ptr)
@@ -24,17 +44,38 @@ export class Inventory extends Struct {
 		if (ptr === 0) return null
 		return new TileType(ptr)
 	}
+	setItems(items: [ItemIndex, ItemIndex, ItemIndex, ItemIndex]) {
+		wasmFuncs.Inventory_set_items(
+			this._ptr,
+			items[0],
+			items[1],
+			items[2],
+			items[3]
+		)
+	}
 	get keysRed(): number {
 		return wasmFuncs.Inventory_get_keys_red(this._ptr)
+	}
+	set keysRed(val: number) {
+		wasmFuncs.Inventory_set_keys_red(val)
 	}
 	get keysGreen(): number {
 		return wasmFuncs.Inventory_get_keys_green(this._ptr)
 	}
+	set keysGreen(val: number) {
+		wasmFuncs.Inventory_set_keys_green(val)
+	}
 	get keysBlue(): number {
 		return wasmFuncs.Inventory_get_keys_blue(this._ptr)
 	}
+	set keysBlue(val: number) {
+		wasmFuncs.Inventory_set_keys_blue(val)
+	}
 	get keysYellow(): number {
 		return wasmFuncs.Inventory_get_keys_yellow(this._ptr)
+	}
+	set keysYellow(val: number) {
+		wasmFuncs.Inventory_set_keys_yellow(val)
 	}
 }
 

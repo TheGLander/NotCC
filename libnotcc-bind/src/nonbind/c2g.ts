@@ -2,7 +2,7 @@ import { printf } from "fast-printf"
 import { join } from "path"
 import { ILevelInfo, IScriptState } from "./nccs.pb.js"
 import type { LevelSetData } from "./levelset.js"
-import { parseC2MMeta } from "../index.js"
+import { ItemIndex, parseC2MMeta } from "../index.js"
 import clone from "clone"
 
 export const C2G_NOTCC_VERSION = "1.0-NotCC"
@@ -407,29 +407,6 @@ export interface ScriptMusic {
 	repeating: boolean
 }
 
-export const scriptLegalInventoryTools = [
-	null,
-	"bootForceFloor",
-	"bootIce",
-	"bootFire",
-	"bootWater",
-	"tnt",
-	"helmet",
-	"bootDirt",
-	"lightningBolt",
-	"bowlingBall",
-	"teleportYellow",
-	"railroadSign",
-	"foil",
-	"secretEye",
-	"bribe",
-	"bootSpeed",
-	"hook",
-] as const
-
-export type ScriptLegalInventoryTool =
-	(typeof scriptLegalInventoryTools)[number]
-
 export type InventoryKeys = Record<"red" | "green" | "blue" | "yellow", number>
 
 export type MapInterruptResponse =
@@ -438,18 +415,21 @@ export type MapInterruptResponse =
 			totalScore: number
 			lastExitGender: "male" | "female"
 			lastExitN: number
-			inventoryTools: ScriptLegalInventoryTool[]
+			inventoryTools: [ItemIndex, ItemIndex, ItemIndex, ItemIndex]
 			inventoryKeys: InventoryKeys
 			timeLeft: number
 	  }
 	| { type: "retry" }
 	| { type: "skip" }
 
-export interface MapInitState {
+export interface C2GLevelModifiers {
 	playableEnterN?: number
-	inventoryTools?: ScriptLegalInventoryTool[]
+	inventoryTools?: [ItemIndex, ItemIndex, ItemIndex, ItemIndex]
 	inventoryKeys?: InventoryKeys
 	timeLeft?: number
+}
+
+export interface C2GGameModifiers extends C2GLevelModifiers {
 	autoNext: boolean
 	noBonusCollection: boolean
 	autoPlayReplay: boolean
@@ -762,14 +742,8 @@ export class ScriptRunner {
 			keys.green * 0x1000000
 
 		const tools = interruptData.inventoryTools
-		function getToolId(id: ScriptLegalInventoryTool): number {
-			return scriptLegalInventoryTools.indexOf(id)
-		}
 		this.state.variables.tools =
-			getToolId(tools[0]) +
-			getToolId(tools[1]) * 0x100 +
-			getToolId(tools[2]) * 0x10000 +
-			getToolId(tools[3]) * 0x1000000
+			tools[0] + tools[1] * 0x100 + tools[2] * 0x10000 + tools[3] * 0x1000000
 		this.state.variables.gender = scriptConstants[interruptData.lastExitGender]
 		this.state.variables.exit = interruptData.lastExitN
 		this.state.variables.tleft = Math.imul(interruptData.timeLeft / 60, 1)
@@ -784,49 +758,47 @@ export class ScriptRunner {
 		this.loadScript(fileData, this.scriptInterrupt.path)
 		this.scriptInterrupt = null
 	}
-	getMapInitState(): MapInitState {
-		const state: MapInitState = {
-			autoNext: false,
-			autoPlayReplay: false,
-			noBonusCollection: false,
-			noPopups: false,
-		}
-		const vars = this.state.variables
-		if (!vars) return state
-		if (vars.enter && vars.enter > 0) {
-			state.playableEnterN = vars.enter - 1
-		}
-		if (!vars.flags) return state
-		state.autoNext = (vars.flags & scriptConstants.continue) !== 0
-		state.autoPlayReplay = (vars.flags & scriptConstants.replay) !== 0
-		state.noBonusCollection = (vars.flags & scriptConstants.no_bonus) !== 0
-		state.noPopups = (vars.flags & scriptConstants.silent) !== 0
-		if (vars.flags & scriptConstants.ktime) {
-			state.timeLeft = vars.tleft ?? 0
-		}
-		if (vars.flags & scriptConstants.ktools) {
-			const keys = vars.keys ?? 0
-			state.inventoryKeys = {
-				red: keys & 0xff,
-				blue: (keys >>> 8) & 0xff,
-				yellow: (keys >>> 16) & 0xff,
-				green: (keys >>> 24) & 0xff,
-			}
-			const tools = vars.tools ?? 0
-			const toolIdx = [
-				tools & 0xff,
-				(tools >>> 8) & 0xff,
-				(tools >>> 16) & 0xff,
-				(tools >>> 24) & 0xff,
-			]
-				.map(item => item % 0x11)
-				.filter(item => item !== 0)
-			state.inventoryTools = toolIdx.map(
-				item => scriptLegalInventoryTools[item]
-			)
-		}
-		return state
+}
+
+export function getC2GGameModifiers(
+	scriptState: IScriptState
+): C2GGameModifiers {
+	const state: C2GGameModifiers = {
+		autoNext: false,
+		autoPlayReplay: false,
+		noBonusCollection: false,
+		noPopups: false,
 	}
+	const vars = scriptState.variables
+	if (!vars) return state
+	if (vars.enter && vars.enter > 0) {
+		state.playableEnterN = vars.enter - 1
+	}
+	if (!vars.flags) return state
+	state.autoNext = (vars.flags & scriptConstants.continue) !== 0
+	state.autoPlayReplay = (vars.flags & scriptConstants.replay) !== 0
+	state.noBonusCollection = (vars.flags & scriptConstants.no_bonus) !== 0
+	state.noPopups = (vars.flags & scriptConstants.silent) !== 0
+	if (vars.flags & scriptConstants.ktime) {
+		state.timeLeft = vars.tleft ?? 0
+	}
+	if (vars.flags & scriptConstants.ktools) {
+		const keys = vars.keys ?? 0
+		state.inventoryKeys = {
+			red: keys & 0xff,
+			blue: (keys >>> 8) & 0xff,
+			yellow: (keys >>> 16) & 0xff,
+			green: (keys >>> 24) & 0xff,
+		}
+		const tools = vars.tools ?? 0
+		state.inventoryTools = [
+			(tools & 0xff) % 0x11,
+			((tools >>> 8) & 0xff) % 0x11,
+			((tools >>> 16) & 0xff) % 0x11,
+			((tools >>> 24) & 0xff) % 0x11,
+		]
+	}
+	return state
 }
 
 /**

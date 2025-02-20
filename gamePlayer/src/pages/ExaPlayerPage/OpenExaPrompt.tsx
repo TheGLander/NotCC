@@ -1,12 +1,21 @@
 import { Dialog } from "@/components/Dialog"
-import { PromptComponent, showPromptGs } from "@/prompts"
-import { HashSettings, Route as RouteFile } from "@notcc/logic"
-import { Getter, Setter } from "jotai"
-import { useState } from "preact/hooks"
-import { levelAtom } from "@/levelData"
-import { pageAtom, pageNameAtom } from "@/routing"
+import { PromptComponent, showAlertGs, showPromptGs } from "@/prompts"
+import { HashSettings, Route } from "@notcc/logic"
+import { Getter, Setter, useAtomValue } from "jotai"
+import { useCallback, useEffect, useState } from "preact/hooks"
+import { LevelData, levelAtom, levelSetAtom } from "@/levelData"
+import {
+	levelNAtom,
+	levelSetIdentAtom,
+	pageAtom,
+	pageNameAtom,
+} from "@/routing"
 import { preferenceAtom } from "@/preferences"
 import { Expl } from "@/components/Expl"
+import type { AnyProjectSave, ExaProj, RouteLocation } from "./exaProj"
+import { useJotaiFn, usePromise } from "@/helpers"
+import { basename, join } from "path"
+import { exists, readDir, readJson, showLoadPrompt } from "@/fs"
 
 export type ExaNewEvent = {
 	type: "new"
@@ -14,9 +23,40 @@ export type ExaNewEvent = {
 	hashSettings?: HashSettings
 }
 
-export type ExaOpenEvent = ExaNewEvent | { type: "open"; file: RouteFile }
+export type ExaOpenEvent = { type: "open"; save: AnyProjectSave; path?: string }
+
+export type ExaInitEvent = ExaNewEvent | ExaOpenEvent
 
 export type MoveModel = "linear" | "tree" | "graph"
+
+export type FoundProjectFile = {
+	path: string
+} & ({ isRoute: true; contents: Route } | { isRoute: false; contents: ExaProj })
+
+export async function findRouteFiles(
+	location: RouteLocation
+): Promise<FoundProjectFile[]> {
+	if (!(await exists(join("/routes", location.setIdent)))) return []
+	const files: FoundProjectFile[] = []
+	for (const file of await readDir(join("/routes", location.setIdent))) {
+		const filePath = join("/routes", location.setIdent, file)
+		if (!file.startsWith(location.levelN.toString())) continue
+		if (location.path && filePath !== location.path) continue
+		// @ts-ignore
+		const routeFile: FoundProjectFile = {
+			path: filePath,
+			isRoute: file.endsWith(".route"),
+			contents: await readJson(filePath),
+		}
+		files.push(routeFile)
+	}
+	return files
+}
+
+export function getModelTypeFromSave(save: AnyProjectSave) {
+	if ("Moves" in save) return "route"
+	return "graph"
+}
 
 function HashSettingsInput(props: {
 	settings: HashSettings
@@ -120,7 +160,7 @@ export const DEFAULT_HASH_SETTINGS: HashSettings =
 	HashSettings.IGNORE_BLOCK_ORDER
 
 function NewProject(props: {
-	onSubmit: (ev: ExaOpenEvent & { byDefault: boolean }) => void
+	onSubmit: (ev: ExaNewEvent & { byDefault: boolean }) => void
 	toggleMode?: boolean
 }) {
 	const [moveModel, setMoveModel] = useState<MoveModel>("linear")
@@ -215,29 +255,124 @@ function NewProject(props: {
 		</form>
 	)
 }
+function OpenProject(props: {
+	onSubmit: (ev: ExaOpenEvent) => void
+	setLocation?: RouteLocation
+}) {
+	const loadedProjectsRes = usePromise(
+		() =>
+			props.setLocation
+				? findRouteFiles(props.setLocation)
+				: Promise.resolve(null),
+		[props.setLocation]
+	)
+	useEffect(() => {
+		if (loadedProjectsRes.error) {
+			console.error(loadedProjectsRes.error)
+		}
+	}, [loadedProjectsRes.error])
+	const showAlert = useJotaiFn(showAlertGs)
+	const importProject = useCallback(async () => {
+		const res = await showLoadPrompt("Load project", {
+			filters: [
+				{ name: "ExaCC project", extensions: ["exaproj"] },
+				{ name: "Routefile", extensions: ["route"] },
+			],
+		})
+		if (!res) return
+		const importedFile: AnyProjectSave = JSON.parse(await res[0].text())
+		if (!("Moves" in importedFile) && !("Model" in importedFile)) {
+			showAlert(
+				<>
+					Loaded file doesn't appear to be a Routefile or ExaProject, are you
+					sure you loaded the correct file?
+				</>,
+				"Invalid file"
+			)
+			return
+		}
+		props.onSubmit({ type: "open", save: importedFile })
+	}, [])
+	return (
+		<div class="flex w-[20rem] flex-col gap-1">
+			<h3 class="text-xl">Open</h3>
+			{props.setLocation ? (
+				<div>
+					Existing projects for {props.setLocation.setName} #
+					{props.setLocation.levelN}:
+				</div>
+			) : (
+				<div>No saved projects for level outside of a set</div>
+			)}
+			<div class="bg-theme-950 flex flex-1 flex-col gap-1 rounded p-1">
+				{!loadedProjectsRes.value || loadedProjectsRes.value.length === 0 ? (
+					<div class="m-auto">
+						{loadedProjectsRes.error
+							? "Failed to load local project files"
+							: loadedProjectsRes.state === "working"
+								? "Loading..."
+								: "No project files found"}
+					</div>
+				) : (
+					<>
+						{loadedProjectsRes.value.map(proj => (
+							<div
+								key={proj.path}
+								class="hover:bg-theme-900 cursor-pointer rounded p-0.5"
+								onClick={() =>
+									props.onSubmit({
+										type: "open",
+										save: proj.contents,
+										path: proj.path,
+									})
+								}
+							>
+								{getModelTypeFromSave(proj.contents) === "route"
+									? "Route"
+									: "Graph"}{" "}
+								- {basename(proj.path)}
+							</div>
+						))}
+					</>
+				)}
+			</div>
+			<div>
+				<button onClick={() => importProject()}>Import project</button>
+			</div>
+		</div>
+	)
+}
 
 export const OpenExaPrompt: (props: {
 	toggleMode: boolean
-}) => PromptComponent<(ExaOpenEvent & { byDefault?: boolean }) | null> =
+}) => PromptComponent<(ExaInitEvent & { byDefault?: boolean }) | null> =
 	({ toggleMode }) =>
 	props => {
+		const levelSet = useAtomValue(levelSetAtom)
+		const levelN = useAtomValue(levelNAtom)
+		const setIdent = useAtomValue(levelSetIdentAtom)
 		return (
 			<Dialog
 				header="ExaCC Studio"
 				buttons={[["Cancel", () => props.onResolve(null)]]}
 				onClose={() => props.onResolve(null)}
 			>
-				{" "}
-				<div class="flex w-[40vw] flex-row">
+				<div class="flex flex-row">
 					<NewProject onSubmit={props.onResolve} toggleMode={toggleMode} />
-					{/* <NewProject onSubmit={props.onResolve} /> */}
-					{/* <OpenProject /> */}
+					<OpenProject
+						onSubmit={props.onResolve}
+						setLocation={
+							levelSet && levelN !== null && setIdent
+								? { setName: levelSet.gameTitle(), setIdent, levelN }
+								: undefined
+						}
+					/>
 				</div>
 			</Dialog>
 		)
 	}
 
-export const exaToggleConfig = preferenceAtom<ExaOpenEvent | null>(
+export const exaToggleConfig = preferenceAtom<ExaNewEvent | null>(
 	"exaToggleConfig",
 	null
 )
@@ -249,14 +384,14 @@ export async function toggleExaCC(get: Getter, set: Setter) {
 	} else {
 		const levelData = await get(levelAtom)
 		if (!levelData) return
-		let config = get(exaToggleConfig)
+		let config: ExaInitEvent | null = get(exaToggleConfig)
 		if (!config) {
 			const openEv = await showPromptGs(
 				get,
 				set,
 				OpenExaPrompt({ toggleMode: true })
 			)
-			if (openEv?.byDefault) {
+			if (openEv?.byDefault && openEv.type === "new") {
 				set(exaToggleConfig, openEv)
 			}
 			config = openEv
@@ -267,15 +402,18 @@ export async function toggleExaCC(get: Getter, set: Setter) {
 	}
 }
 
-export async function openExaCC(get: Getter, set: Setter) {
-	const levelData = await get(levelAtom)
-	if (!levelData) return
+export async function openExaCC(
+	get: Getter,
+	set: Setter,
+	levelData: LevelData
+): Promise<boolean> {
 	const openEv = await showPromptGs(
 		get,
 		set,
 		OpenExaPrompt({ toggleMode: false })
 	)
-	if (!openEv) return
+	if (!openEv) return false
 	const realIndex = await import("./exaPlayer")
 	realIndex.openExaCCReal(get, set, openEv, levelData)
+	return true
 }

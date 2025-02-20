@@ -135,6 +135,7 @@ export class LinearModel {
 	}
 	constructor(public level: Level) {}
 	addInput(inputs: KeyInputs): number {
+		if (this.level.gameState !== GameState.PLAYING) return 0
 		let moveLength: number
 		if (this.offset !== this.moveSeq.tickLen) {
 			const newSeq = new MoveSequence()
@@ -156,6 +157,20 @@ export class LinearModel {
 			this.offset = this.moveSeq.tickLen
 		}
 		return moveLength
+	}
+	loadMoves(moves: string[], reportProgress?: (progress: number) => void) {
+		this.resetLevel()
+		let lastReport = 0
+		while (
+			this.offset < moves.length &&
+			this.level.gameState === GameState.PLAYING
+		) {
+			this.addInput(charToKeyInput(moves[this.offset]))
+			if (this.offset - lastReport > 100) {
+				reportProgress?.(this.offset / moves.length)
+				lastReport = this.offset
+			}
+		}
 	}
 	undo() {
 		if (this.offset === 0) return
@@ -207,5 +222,17 @@ export class LinearModel {
 		this.playerSeat.inputs = charToKeyInput(this.moveSeq.moves[this.offset])
 		this.offset += 1
 		this.level.tick()
+	}
+	getSelectedMoveSequence(): string[] {
+		return this.moveSeq.moves
+	}
+	timeLeft() {
+		return this.level.timeLeft
+	}
+	transcribeFromOther(old: this, reportProgress?: (progress: number) => void) {
+		this.loadMoves(old.moveSeq.moves, reportProgress)
+	}
+	isBlank() {
+		return this.moveSeq.tickLen === 0
 	}
 }

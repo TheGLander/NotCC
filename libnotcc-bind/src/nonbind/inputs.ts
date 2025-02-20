@@ -1,5 +1,6 @@
 import { Direction } from "../actor.js"
 import { Level, Replay } from "../level.js"
+import { C2GLevelModifiers, getC2GGameModifiers } from "./c2g.js"
 import { ISolutionInfo } from "./nccs.pb.js"
 
 export type KeyInputs = number
@@ -13,9 +14,14 @@ export const KEY_INPUTS = {
 	switchPlayer: 1 << 6,
 }
 
+export interface LevelModifiers extends C2GLevelModifiers {
+	randomForceFloorDirection?: Direction
+	blobMod?: number
+}
+
 export abstract class InputProvider {
 	abstract getInput(curSubtick: number, seatIdx: number): KeyInputs
-	abstract setupLevel(level: Level): void
+	abstract levelModifiers(): LevelModifiers
 	abstract getLength(): number
 	outOfInput(curSubtick: number): boolean {
 		return curSubtick >= this.getLength()
@@ -56,17 +62,23 @@ export class SolutionInfoInputProvider extends InputProvider {
 	getInput(curSubtick: number, seatIdx: number): KeyInputs {
 		return this.inputs[seatIdx][subtickToTick(curSubtick)]
 	}
-	setupLevel(level: Level): void {
+	levelModifiers(): LevelModifiers {
 		const levelState = this.solution.levelState
-		if (!levelState) return
+		if (!levelState) return {}
+
+		const levelInit: LevelModifiers = levelState.cc2Data?.scriptState
+			? getC2GGameModifiers(levelState.cc2Data.scriptState)
+			: {}
+
 		if (typeof levelState.randomForceFloorDirection === "number") {
-			level.randomForceFloorDirection =
+			levelInit.randomForceFloorDirection =
 				levelState.randomForceFloorDirection as unknown as Direction
 		}
 		const blobMod = levelState.cc2Data?.blobModifier
 		if (typeof blobMod === "number") {
-			level.rngBlob = blobMod
+			levelInit.blobMod = blobMod
 		}
+		return levelInit
 	}
 	getLength(): number {
 		return this.inputs[0].length
@@ -79,11 +91,13 @@ export interface RouteFor {
 	LevelNumber?: number
 }
 
+export type RouteDirection = "UP" | "RIGHT" | "DOWN" | "LEFT"
+
 export interface Route {
 	Moves: string
 	Rule: string
 	Encode?: "UTF-8"
-	"Initial Slide"?: Direction
+	"Initial Slide"?: RouteDirection
 	/**
 	 * Not the same as "Seed", as Blobmod only affects blobs and nothing else, unlilke the seed in TW, which affects all randomness
 	 */
@@ -175,18 +189,17 @@ export class RouteFileInputProvider extends InputProvider {
 			// Some old versions of ExaCC wrote "Initial Slide" as a number enum value, which is now incorrect due to libnotcc changing how directions work
 			if (typeof initSlide === "number") {
 				const dirMap = {
-					"0": Direction.UP,
-					"1": Direction.RIGHT,
-					"2": Direction.DOWN,
-					"3": Direction.LEFT,
-				}
+					"0": "UP",
+					"1": "RIGHT",
+					"2": "DOWN",
+					"3": "LEFT",
+				} as const
 				if (!(initSlide in dirMap))
 					throw new Error("Invalid RFF direction numeric value")
-				route["Initial Slide"] = dirMap[initSlide as unknown as "0"]
+				route["Initial Slide"] = dirMap[initSlide]
 			} else if (typeof initSlide === "string") {
 				if (!(initSlide in Direction))
 					throw new Error("Invalid RFF direction name")
-				route["Initial Slide"] = Direction[initSlide as unknown as "UP"]
 			}
 			this.route = route
 		} else {
@@ -199,14 +212,18 @@ export class RouteFileInputProvider extends InputProvider {
 		if (subtickToTick(curSubtick) >= this.moves.length) return 0
 		return charToKeyInput(this.moves[subtickToTick(curSubtick)])
 	}
-	setupLevel(level: Level): void {
-		if (!this.route) return
+	levelModifiers(): LevelModifiers {
+		const levelMods: LevelModifiers = {}
+		if (!this.route) return levelMods
+
 		if (this.route["Initial Slide"] !== undefined) {
-			level.randomForceFloorDirection = this.route["Initial Slide"]
+			levelMods.randomForceFloorDirection =
+				Direction[this.route["Initial Slide"]]
 		}
 		if (this.route.Blobmod !== undefined) {
-			level.rngBlob = this.route.Blobmod
+			levelMods.blobMod = this.route.Blobmod
 		}
+		return levelMods
 	}
 	getLength(): number {
 		return this.moves.length * 3
@@ -219,9 +236,12 @@ export class ReplayInputProvider extends InputProvider {
 		super()
 		replay._assert_live()
 	}
-	setupLevel(level: Level): void {
-		level.randomForceFloorDirection = this.replay.randomForceFloorDirection
-		level.rngBlob = this.replay.rngBlob
+	levelModifiers(): LevelModifiers {
+		return {
+			randomForceFloorDirection: this.replay
+				.randomForceFloorDirection as Direction,
+			blobMod: this.replay.rngBlob,
+		}
 	}
 	getInput(curSubtick: number, seatIdx: number): number {
 		if (seatIdx !== 0) throw new Error("C2M replays don't support multiseat")
@@ -233,5 +253,46 @@ export class ReplayInputProvider extends InputProvider {
 	}
 	getLength(): number {
 		return this.replay.inputs.length * 3
+	}
+	outOfInput(curSubtick: number): boolean {
+		return curSubtick > this.getLength() + this.bonusTicks
+	}
+}
+
+export function applyLevelModifiers(level: Level, modifiers: LevelModifiers) {
+	if (modifiers.randomForceFloorDirection !== undefined) {
+		level.randomForceFloorDirection = modifiers.randomForceFloorDirection
+	}
+	if (modifiers.blobMod !== undefined) {
+		level.rngBlob = modifiers.blobMod
+	}
+	if (modifiers.timeLeft !== undefined) {
+		level.timeLeft = modifiers.timeLeft * 60
+	}
+	let playerIdx = 0
+	// Have to go in reading order
+	for (let y = 0; y < level.height; y += 1) {
+		for (let x = 0; x < level.width; x += 1) {
+			const actor = level.getCell(x, y).actor
+			if (
+				!actor ||
+				!(actor.type.name === "chip" || actor.type.name === "melinda")
+			)
+				continue
+			// Yes, we start the actual player indexing at `1`, `0` means we don't use `enter` at all
+			playerIdx += 1
+			if (modifiers.inventoryTools) {
+				actor.inventory.setItems(modifiers.inventoryTools)
+			}
+			if (modifiers.inventoryKeys) {
+				actor.inventory.keysRed = modifiers.inventoryKeys.red
+				actor.inventory.keysGreen = modifiers.inventoryKeys.green
+				actor.inventory.keysBlue = modifiers.inventoryKeys.blue
+				actor.inventory.keysYellow = modifiers.inventoryKeys.yellow
+			}
+			if (modifiers.playableEnterN && modifiers.playableEnterN !== playerIdx) {
+				level.erase(actor)
+			}
+		}
 	}
 }

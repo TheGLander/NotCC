@@ -11,7 +11,11 @@ import {
 	useStore,
 } from "jotai"
 import { FC } from "preact/compat"
-import { DEFAULT_VALUE, getTruePreferenceAtom } from "@/preferences"
+import {
+	DEFAULT_VALUE,
+	getTruePreferenceAtom,
+	resetDissmissablePreferencesGs as resetDismissablePreferencesGs,
+} from "@/preferences"
 import { TilesetPrefDisplay, tilesetIdAtom } from "./TilesetsPrompt"
 import { SfxPrefDisplay, sfxIdAtom } from "./SfxPrompt"
 import { Expl } from "../Expl"
@@ -19,6 +23,7 @@ import { exaComplainAboutNonlegalGlitches } from "@/pages/ExaPlayerPage"
 import { endOnNonlegalGlitchAtom } from "@/pages/LevelPlayerPage"
 import { ShowEpilogueMode, showEpilogueAtom } from "@/levelData"
 import { showDecimalsInLevelListAtom } from "../LevelList"
+import { useJotaiFn } from "@/helpers"
 
 export type PrefDisplayProps<T, P = {}> = P & {
 	set: (val: T) => void
@@ -129,6 +134,7 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 			set(trueAtom, get(fauxAtom))
 		}
 	}
+	const resetDismissablePreferences = useJotaiFn(resetDismissablePreferencesGs)
 
 	return (
 		<Dialog
@@ -179,6 +185,11 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 					label="Show time decimals in level list"
 					Display={BinaryDisplayPref}
 				/>
+				<div class="col-span-2">
+					<button onClick={() => resetDismissablePreferences()}>
+						Reset dismissed dialogs
+					</button>
+				</div>
 			</div>
 		</Dialog>
 	)

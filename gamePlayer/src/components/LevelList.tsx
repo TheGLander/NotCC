@@ -2,7 +2,6 @@ import { goToLevelNGs, levelSetAtom, levelSetChangedAtom } from "@/levelData"
 import { PromptComponent } from "@/prompts"
 import {
 	FullC2GLevelSet,
-	LinearLevelSet,
 	SolutionMetrics,
 	metricsFromAttempt,
 	protobuf,
@@ -80,14 +79,14 @@ export const LevelListPrompt: PromptComponent<void> = props => {
 		() => levels.reduce((acc, val) => acc + (val.metrics?.points ?? 0), 0),
 		[]
 	)
-	const setIsLinear = levelSet instanceof LinearLevelSet
+	// const _setIsLinear = levelSet instanceof LinearLevelSet
 	const setIsIncomplete =
 		levelSet instanceof FullC2GLevelSet && !levelSet.hasReahedPostgame
 	const goToLevelN = useJotaiFn(goToLevelNGs)
 	const showDecimals = useAtomValue(showDecimalsInLevelListAtom)
 
 	const GRID_ROW = "bg-theme-900 col-span-full grid grid-cols-subgrid px-4"
-	function ScriptPseudoLevel(props: {
+	function ScriptPseudoLevel(_props: {
 		type: "prologue" | "epilogue"
 		levelN: number
 	}) {

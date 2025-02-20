@@ -62,6 +62,25 @@ typedef struct Uint8_16 {
   uint8_t val[16];
 } Uint8_16;
 
+typedef enum ItemIndex {
+  ITEM_INDEX_FORCE_BOOTS = 1,
+  ITEM_INDEX_ICE_BOOTS = 2,
+  ITEM_INDEX_FIRE_BOOTS = 3,
+  ITEM_INDEX_WATER_BOOTS = 4,
+  ITEM_INDEX_DYNAMITE = 5,
+  ITEM_INDEX_HELMET = 6,
+  ITEM_INDEX_DIRT_BOOTS = 7,
+  ITEM_INDEX_LIGHTNING_BOLT = 8,
+  ITEM_INDEX_BOWLING_BALL = 9,
+  ITEM_INDEX_YELLOW_TP = 10,
+  ITEM_INDEX_RR_SIGN = 11,
+  ITEM_INDEX_STEEL_FOIL = 12,
+  ITEM_INDEX_SECRET_EYE = 13,
+  ITEM_INDEX_BRIBE = 14,
+  ITEM_INDEX_SPEED_BOOTS = 15,
+  ITEM_INDEX_HOOK = 16
+} ItemIndex;
+
 #define _libnotcc_accessors_Inventory                    \
   _libnotcc_accessor(Inventory, counters, Uint8_16);     \
   _libnotcc_accessor(Inventory, item1, const TileType*); \
@@ -78,6 +97,11 @@ const TileType* Inventory_shift_right(Inventory* self);
 const TileType* Inventory_remove_item(Inventory* self, uint8_t idx);
 void Inventory_decrement_counter(Inventory* self, uint8_t iidx);
 void Inventory_increment_counter(Inventory* self, uint8_t iidx);
+void Inventory_set_items(Inventory* self,
+                         ItemIndex item1,
+                         ItemIndex item2,
+                         ItemIndex item3,
+                         ItemIndex item4);
 _libnotcc_accessors_Inventory;
 
 Actor* Actor_new(Level* level,

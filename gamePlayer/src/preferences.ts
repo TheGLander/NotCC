@@ -1,4 +1,4 @@
-import { Getter, PrimitiveAtom, WritableAtom, atom } from "jotai"
+import { Getter, PrimitiveAtom, Setter, WritableAtom, atom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { writeJson } from "@/fs"
 
@@ -32,6 +32,20 @@ export function preferenceAtom<T>(
 	)
 	preferenceAtoms[key] = [prefAtom, defaultPrefAtom]
 	return defaultPrefAtom as PrimitiveAtom<T>
+}
+
+const dismissablePreferenceAtoms: PrimitiveAtom<boolean>[] = []
+
+export function dismissablePreferenceAtom(key: string): PrimitiveAtom<boolean> {
+	const atom = preferenceAtom<boolean>(key, false)
+	dismissablePreferenceAtoms.push(atom)
+	return atom
+}
+
+export function resetDissmissablePreferencesGs(_get: Getter, set: Setter) {
+	for (const atom of dismissablePreferenceAtoms) {
+		set(getTruePreferenceAtom(atom)!, DEFAULT_VALUE)
+	}
 }
 
 export const allPreferencesAtom = atom(

@@ -10,6 +10,8 @@ import {
 	parseScriptMetadata,
 	writeNCCS,
 	protobuf,
+	LevelModifiers,
+	getC2GGameModifiers,
 } from "@notcc/logic"
 import {
 	CUSTOM_LEVEL_SET_IDENT,
@@ -564,5 +566,16 @@ export async function resolveHashLevelGs(get: Getter, set: Setter) {
 			"Unrecognized set ident"
 		)
 		set(pageAtom, "")
+	}
+}
+
+export function getGlobalLevelModifiersGs(
+	get: Getter,
+	_set: Setter
+): LevelModifiers {
+	const levelSet = get(levelSetAtom)
+	const levelScriptState = levelSet?.currentLevelRecord().levelInfo.scriptState
+	return {
+		...(levelScriptState ? getC2GGameModifiers(levelScriptState) : {}),
 	}
 }

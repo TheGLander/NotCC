@@ -5,9 +5,32 @@ import {
 	PlayerSeat,
 	charToKeyInput,
 	HashSettings,
+	RouteFileInputProvider,
+	splitRouteCharString,
 } from "@notcc/logic"
 import { MoveSeqenceInterval, MoveSequence, Snapshot } from "./linear"
 import { PriorityQueue } from "@/helpers"
+
+export interface SerializedConnection {
+	moves: string
+	target: number
+}
+
+export interface SerializedNode {
+	connections: Record<number, SerializedConnection>
+}
+
+export interface SerializedConstrutionPath {
+	from: number
+	conn: number
+}
+
+export interface SerializedGraph {
+	rootNode: number
+	hashSettings: HashSettings
+	construction: SerializedConstrutionPath[]
+	nodes: Record<number, SerializedNode>
+}
 
 // Welp. ExaCC graph mode. This is gonna be confusing.
 // In this mode, all routes stem from the root node, with nodes being specific level states, and edges (referred here as connections) being sequences of moves connecting them.
@@ -277,6 +300,13 @@ export class Node {
 	getHashName(): string {
 		return (this.hash >>> 0).toString(16)
 	}
+	*outConnsAsPtr(): IterableIterator<ConnPtr> {
+		for (const [node, conns] of this.outConns) {
+			for (const conn of conns) {
+				yield { n: node, m: conn }
+			}
+		}
+	}
 }
 
 // A small thing describing a specific move sequence
@@ -291,6 +321,18 @@ export interface ConnPtr {
 export interface MovePtr extends ConnPtr {
 	// `o`ffset
 	o: number
+}
+
+function uniqueNumberMapper<T>() {
+	const map = new Map<T, number>()
+	return (val: T) => {
+		let num = map.get(val)
+		if (num === undefined) {
+			num = map.size
+			map.set(val, num)
+		}
+		return num
+	}
 }
 
 export class GraphModel {
@@ -312,7 +354,8 @@ export class GraphModel {
 		this.rootNode = this.current = new Node(level, hashSettings)
 		this.nodeHashMap.set(this.rootNode.hash, this.rootNode)
 	}
-	addInput(input: KeyInputs): number {
+	addInput(input: KeyInputs, forceNewNode?: boolean): number {
+		if (this.level.gameState !== GameState.PLAYING) return 0
 		let node: Node, moveSeq: GraphMoveSequence, parent: Node, moveLength: number
 		if (!(this.current instanceof Node)) {
 			moveSeq = new GraphMoveSequence(this.hashSettings)
@@ -331,30 +374,19 @@ export class GraphModel {
 			const constrIdx = this.constructedRoute.findIndex(
 				conn => conn.n === (this.current as MovePtr).n
 			)
-			const {
-				node: parent2,
-				seq1,
-				seq2,
-			} = this.current.n.insertNodeOnSeq(this.current.m, this.current.o)
+			const { node: parent2, seq1 } = this.insertNodeOnSeq(this.current)
 			this.constructedRoute.splice(constrIdx)
 			this.constructedRoute.push({ n: this.current.n, m: seq1 })
 			this.constructedRoute.push({ n: parent2, m: moveSeq })
 			parent = parent2
-			// Promote implied, mid-seq node to explicit
-			this.hashMap.delete(parent.hash)
-			this.nodeHashMap.set(parent.hash, parent)
-			for (const hash of seq2.hashes) {
-				if (hash === null) continue
-				const ent = this.hashMap.get(hash)
-				if (!ent) continue
-				ent.n = parent
-				ent.m = seq2
-				ent.o -= seq1.tickLen
-			}
 			node = parent.newChild(moveSeq)
 			node.level = this.level
 			this.current = node
-		} else if (!this.current.loose || this.current === this.rootNode) {
+		} else if (
+			!this.current.loose ||
+			this.current === this.rootNode ||
+			forceNewNode
+		) {
 			moveSeq = new GraphMoveSequence(this.hashSettings)
 			this.level = this.level.clone()
 			moveLength = moveSeq.add(input, this.level, this.playerSeat)
@@ -405,24 +437,9 @@ export class GraphModel {
 			parent.moveConnections(nodeMergee, node)
 			this.current = nodeMergee
 		} else if (moveMergee) {
-			const {
-				node: midNode,
-				seq1,
-				seq2,
-			} = moveMergee.n.insertNodeOnSeq(moveMergee.m, moveMergee.o)
-			this.nodeHashMap.set(midNode.hash, midNode)
-			this.hashMap.delete(midNode.hash)
+			const { node: midNode } = this.insertNodeOnSeq(moveMergee)
 			parent.moveConnections(midNode, node)
 			this.current = midNode
-
-			for (const hash of seq2.hashes) {
-				if (hash === null) continue
-				const ent = this.hashMap.get(hash)
-				if (!ent) continue
-				ent.n = midNode
-				ent.m = seq2
-				ent.o -= seq1.tickLen
-			}
 		} else {
 			this.nodeHashMap.set(node.hash, node)
 			if (node.level.gameState === GameState.WON) {
@@ -433,6 +450,23 @@ export class GraphModel {
 		}
 		this.cleanConstruction()
 		return moveLength
+	}
+	// Like the `Node` method, but corrects `nodeHashMap`/`hashMap`/sequence state
+	insertNodeOnSeq(pos: MovePtr) {
+		const res = pos.n.insertNodeOnSeq(pos.m, pos.o)
+		const { node: midNode, seq1, seq2 } = res
+		this.nodeHashMap.set(midNode.hash, midNode)
+		this.hashMap.delete(midNode.hash)
+
+		for (const hash of seq2.hashes) {
+			if (hash === null) continue
+			const ent = this.hashMap.get(hash)
+			if (!ent) continue
+			ent.n = midNode
+			ent.m = seq2
+			ent.o -= seq1.tickLen
+		}
+		return res
 	}
 	cleanConstruction() {
 		const lastNode = this.constructionLastNode()
@@ -649,7 +683,7 @@ export class GraphModel {
 		while (nodesToVisit.length > 0) {
 			const [node, parents] = nodesToVisit.shift()!
 			for (const [tNode, conns] of node.outConns.entries()) {
-				if (parents.includes(tNode)) {
+				if (parents.includes(tNode) || node === tNode) {
 					for (const conn of conns) {
 						backConns.push({ n: node, m: conn })
 					}
@@ -699,5 +733,153 @@ export class GraphModel {
 			this.current =
 				this.constructedRoute[constrIdx + 1]?.n ?? this.constructionLastNode()
 		}
+	}
+	serialize(): SerializedGraph {
+		const nodeNum = uniqueNumberMapper<Node>()
+		const connNum = uniqueNumberMapper<GraphMoveSequence>()
+		return {
+			rootNode: nodeNum(this.rootNode),
+			hashSettings: this.hashSettings,
+			nodes: Object.fromEntries(
+				[...this.nodeHashMap.entries()].map<[number, SerializedNode]>(
+					([, node]) => [
+						nodeNum(node),
+						{
+							connections: Object.fromEntries(
+								[...node.outConnsAsPtr()].map<[number, SerializedConnection]>(
+									val => [
+										connNum(val.m),
+										{ moves: val.m.moves.join(""), target: nodeNum(val.n) },
+									]
+								)
+							),
+						},
+					]
+				)
+			),
+			construction: this.constructedRoute.map(val => ({
+				from: nodeNum(val.n),
+				conn: connNum(val.m),
+			})),
+		}
+	}
+	loadSerialized(
+		graph: SerializedGraph,
+		reportProgress?: (progress: number) => void
+	) {
+		const totalTicks = Object.values(graph.nodes).reduce(
+			(acc, node) =>
+				acc +
+				Object.values(node.connections).reduce(
+					// Technically inaccurate because of p/c/s, but good enough
+					(acc, conn) => acc + conn.moves.length,
+					0
+				),
+			0
+		)
+		let processedTicks = 0
+
+		const nodesToLoad = [graph.rootNode]
+		const nodeNumMap: Record<number, Node> = {
+			[graph.rootNode]: this.rootNode,
+		}
+		const loadedNodes = new Set<number>()
+		// Try to map each serialized connection into a moveseq (for construction),
+		// but we can null it out if we fail
+		let connNumMap: Record<number, ConnPtr> | null = {}
+		function findConnectingSequence(
+			srcPos: Node | MovePtr,
+			destPos: Node | MovePtr,
+			ip: RouteFileInputProvider
+		): ConnPtr | null {
+			// Quite conservative here, technically we could map *any* state of `destPos`
+			// (even when it results in partial or multiple seqs, or a loop) but who cares,
+			// most loads will be from a blank graph where it'll always perfectly match
+			if (!(destPos instanceof Node)) return null
+			if (!(srcPos instanceof Node)) return null
+			if (!destPos.inNodes.includes(srcPos)) return null
+			const seq = srcPos.outConns
+				.get(destPos)!
+				.find(seq => seq.moves[0] === ip.moves[0])!
+			return { n: srcPos, m: seq }
+		}
+
+		while (nodesToLoad.length > 0) {
+			const nodeNum = nodesToLoad.pop()!
+			loadedNodes.add(nodeNum)
+
+			const serializedNode = graph.nodes[nodeNum]
+			const pos = nodeNumMap[nodeNum]
+			for (const [connNum, conn] of Object.entries(
+				serializedNode.connections
+			)) {
+				this.goTo(pos)
+				const ip = new RouteFileInputProvider(splitRouteCharString(conn.moves))
+				let tick = 0
+				while (!ip.outOfInput(tick * 3)) {
+					const ticksAfterThisInput =
+						this.addInput(ip.getInput(tick * 3, 0), tick === 0) / 3
+					// This can only happen then node is prematurely won or lost, either way, no reason to add
+					// more inputs
+					if (ticksAfterThisInput === 0) break
+					tick += ticksAfterThisInput
+					processedTicks += ticksAfterThisInput
+					if (processedTicks % 100 === 0) {
+						reportProgress?.(processedTicks / totalTicks)
+					}
+				}
+				// Adjust to account for p/c/s being counted as separate ticks in `totalTicks`
+				processedTicks += conn.moves.length - tick
+
+				if (connNumMap !== null) {
+					const conn = findConnectingSequence(pos, this.current, ip)
+					if (!conn) {
+						connNumMap = null
+					} else {
+						connNumMap[connNum as any as number] = conn
+					}
+				}
+
+				if (!(this.current instanceof Node)) {
+					this.current = this.insertNodeOnSeq(this.current).node
+				}
+				nodeNumMap[conn.target] = this.current
+				if (!loadedNodes.has(conn.target)) {
+					nodesToLoad.push(conn.target)
+				}
+			}
+		}
+		if (connNumMap) {
+			this.constructedRoute = graph.construction.map(
+				conn => connNumMap![conn.conn]
+			)
+			this.cleanConstruction()
+		}
+	}
+	getSelectedMoveSequence(): string[] {
+		return this.constructedRoute.reduce<string[]>(
+			(acc, val) => acc.concat(val.m.moves),
+			[]
+		)
+	}
+	timeLeft(): number {
+		let distFromRoot: number
+		if (this.current instanceof Node) {
+			distFromRoot = this.current.rootDistance
+			if (this.current.level.gameState === GameState.WON) {
+				// This doesn't correctly emulate cases where a playable dies on a winning node,
+				// since in those cases you actually *don't* lose a subtick, but it doesn't matter too much
+				distFromRoot += 1
+			}
+		} else {
+			distFromRoot = this.current.n.rootDistance + this.current.o * 3
+		}
+		return Math.max(0, this.initialTimeLeft - distFromRoot)
+	}
+	transcribeFromOther(old: this, reportProgress?: (progress: number) => void) {
+		this.loadSerialized(old.serialize(), reportProgress)
+	}
+	isBlank(): boolean {
+		return this.nodeHashMap.size === 1
 	}
 }

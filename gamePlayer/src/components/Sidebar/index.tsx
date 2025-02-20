@@ -26,6 +26,7 @@ import { openExaCC, toggleExaCC } from "@/pages/ExaPlayerPage/OpenExaPrompt"
 import {
 	goToNextLevelGs,
 	goToPreviousLevelGs,
+	levelAtom,
 	levelSetAtom,
 	useSwrLevel,
 } from "@/levelData"
@@ -45,17 +46,21 @@ import { RRLevel, RRRoute, getRRLevel, setRRRoutesAtom } from "@/railroad"
 import { Toast, addToastGs, removeToastGs } from "@/toast"
 import { showLoadPrompt } from "@/fs"
 import { LevelListPrompt } from "../LevelList"
+import { unwrap } from "jotai/utils"
 
 export interface LevelControls {
 	restart?(): void
 	pause?(): void
 	playInputs?(ip: SidebarReplayable): void
 	exa?: {
-		undo?(): void
-		redo?(): void
+		undo(): void
+		redo(): void
+		save?(): void
+		export(): void
 		purgeBackfeed?(): void
-		cameraControls?(): void
-		tileInspector?(): void
+		cameraControls(): void
+		tileInspector(): void
+		levelModifiersControls(): void
 	}
 }
 
@@ -181,7 +186,7 @@ const SidebarTooltip = forwardRef<
 				open={props.open || shouldRender}
 				tabIndex={0}
 				ref={fref}
-				class="box static border-none"
+				class="box static border-none shadow-2xl"
 			/>
 		</div>
 	)
@@ -488,6 +493,8 @@ async function importRoute(controls: LevelControls) {
 	})
 }
 
+const wrappedLevelAtom = unwrap(levelAtom)
+
 export function Sidebar() {
 	const sidebarActions: SidebarAction[] = useRef([]).current
 	const levelControls = useAtomValue(levelControlsAtom)
@@ -582,41 +589,67 @@ export function Sidebar() {
 						}
 					/>
 					<ChooserButton
-						label="New ExaCC route"
+						label="New or Open ExaCC project"
 						shortcut="Ctrl+Shift+X"
 						disabled={!hasLevel}
-						onTrigger={openExaCC}
+						onTrigger={(get, set) => {
+							const level = get(wrappedLevelAtom)
+							if (!level) return
+							openExaCC(get, set, level)
+						}}
 					/>
+					<ChooserButton
+						label="Save project"
+						shortcut="Ctrl+S"
+						disabled={!levelControls.exa?.save}
+						onTrigger={() => levelControls.exa!.save!()}
+					/>
+					<ChooserButton
+						label="Export current route"
+						shortcut="Shift+E"
+						disabled={!levelControls.exa}
+						onTrigger={() => levelControls.exa!.export()}
+					/>
+					<hr />
 					<ChooserButton
 						label="Undo"
 						shortcut="Backspace"
 						onTrigger={() => {
-							levelControls.exa!.undo!()
+							levelControls.exa!.undo()
 						}}
-						disabled={!levelControls.exa?.undo}
+						disabled={!levelControls.exa}
 					/>
 					<ChooserButton
 						label="Redo"
 						shortcut="Enter"
 						onTrigger={() => {
-							levelControls.exa!.redo!()
+							levelControls.exa!.redo()
 						}}
-						disabled={!levelControls.exa?.redo}
+						disabled={!levelControls.exa}
 					/>
+					<hr />
 					<ChooserButton
 						label="Camera control"
 						onTrigger={() => {
-							levelControls.exa!.cameraControls!()
+							levelControls.exa!.cameraControls()
 						}}
-						disabled={!levelControls.exa?.cameraControls}
+						disabled={!levelControls.exa}
 					/>
 					<ChooserButton
 						label="Tile inspector"
 						onTrigger={() => {
-							levelControls.exa!.tileInspector!()
+							levelControls.exa!.tileInspector()
 						}}
-						disabled={!levelControls.exa?.tileInspector}
+						disabled={!levelControls.exa}
 					/>
+					<ChooserButton
+						label="Level modifiers control"
+						onTrigger={() => {
+							levelControls.exa!.levelModifiersControls()
+						}}
+						disabled={!levelControls.exa}
+					/>
+					<hr />
 					<ChooserButton
 						label="Prune backfeed"
 						onTrigger={() => {

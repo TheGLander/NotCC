@@ -246,6 +246,8 @@ export async function resErrorToString(res: Response): Promise<string> {
 	return `${res.status} ${res.statusText}: ${await res.text()}`
 }
 
+const NO_PROMISE_VALUE = Symbol()
+
 export function usePromise<T>(
 	maker: () => Promise<T>,
 	deps: unknown[]
@@ -255,11 +257,13 @@ export function usePromise<T>(
 	state: "working" | "done" | "error"
 	repeat: () => void
 } {
-	const [value, setValue] = useState<T | undefined>(undefined)
+	const [value, setValue] = useState<T | typeof NO_PROMISE_VALUE>(
+		NO_PROMISE_VALUE
+	)
 	const [error, setError] = useState<Error | undefined>(undefined)
 	const doPromise = useCallback(() => {
 		setError(undefined)
-		setValue(undefined)
+		setValue(NO_PROMISE_VALUE)
 		maker()
 			.then(val => {
 				setValue(val)
@@ -272,9 +276,9 @@ export function usePromise<T>(
 		doPromise()
 	}, deps)
 	return {
-		value,
+		value: value === NO_PROMISE_VALUE ? undefined : value,
 		error,
-		state: value ? "done" : error ? "error" : "working",
+		state: value !== NO_PROMISE_VALUE ? "done" : error ? "error" : "working",
 		repeat: doPromise,
 	}
 }

@@ -6,6 +6,7 @@ import {
 	LevelSet,
 	Level,
 	GameState,
+	applyLevelModifiers,
 } from "@notcc/logic"
 import { CameraType, GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -496,13 +497,14 @@ export function DumbLevelPlayer(props: {
 	const [attempt, setAttempt] = useState<null | AttemptTracker>(null)
 	function beginLevelAttempt() {
 		setPlayerState("play")
-		// setAttempt(
-		// 	new AttemptTracker(
-		// 		level.blobPrngValue,
-		// 		level.randomForceFloorDirection,
-		// 		props.levelSet?.scriptRunner.state
-		// 	)
-		// )
+		setAttempt(
+			new AttemptTracker(
+				1,
+				level.rngBlob,
+				level.randomForceFloorDirection,
+				props.levelSet?.currentLevelRecord().levelInfo.scriptState ?? undefined
+			)
+		)
 	}
 	const borrowLevelSet = useJotaiFn(borrowLevelSetGs)
 	const submitLevelAttempt = useCallback(() => {
@@ -735,7 +737,7 @@ export function DumbLevelPlayer(props: {
 					repl.ip = await repl.ip()
 				}
 				const level = resetLevel()
-				repl.ip.setupLevel(level)
+				applyLevelModifiers(level, repl.ip.levelModifiers())
 				setReplay(repl as SimpleSidebarReplayable)
 				setPlayerState("play")
 			},
