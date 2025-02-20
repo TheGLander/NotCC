@@ -79,7 +79,8 @@ export function GameRenderer(props: GameRendererProps) {
 		if ("current" in props.level) {
 			renderer.level = props.level.current
 		}
-		renderer.frame(ctx!)
+		if (!ctx) return
+		renderer.frame(ctx)
 	}, [ctx, renderer, props.level])
 
 	useLayoutEffect(() => {
