@@ -12,7 +12,7 @@
 		"os.showSaveDialog",
 		"os.showFolderDialog",
 		"filesystem.*",
-		"computer.getKernelInfo",
+		"os.execCommand",
 		"debug.log"
 	],
 	"modes": {

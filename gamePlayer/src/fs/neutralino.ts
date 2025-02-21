@@ -1,6 +1,7 @@
 import { filesystem, init as neuInit, os } from "@neutralinojs/lib"
-import { basename, join, parse } from "path"
+import { basename, dirname, join, parse } from "path"
 import { applicationConfigPath } from "./configPath"
+import { desktopPlatform } from "@/helpers"
 
 /**
  * Uuugh, Neutralino depends on a couple of global variables prefixed with NL_
@@ -36,7 +37,8 @@ async function dirExists(path: string): Promise<boolean> {
 }
 
 async function getPath(pathName: string) {
-	return join(await applicationConfigPath("NotCC"), pathName)
+	let path = join(await applicationConfigPath("NotCC"), pathName)
+	return path
 }
 
 export async function initFilesystem(): Promise<void> {
@@ -62,7 +64,15 @@ export async function remove(path: string): Promise<void> {
 export async function makeDir(path: string): Promise<void> {
 	const truePath = await getPath(path)
 	if (!(await dirExists(truePath))) {
-		await filesystem.createDirectory(truePath)
+		// Dumbest hack on the planet, native `createDirectory` doesn't work on Windows for some reason
+		if (desktopPlatform() === "windows") {
+			await os.execCommand(
+				`mkdir "${basename(truePath).replaceAll(/["^]/g, " ")}"`,
+				{ cwd: dirname(truePath) }
+			)
+		} else {
+			await filesystem.createDirectory(truePath)
+		}
 	}
 }
 
@@ -100,6 +110,8 @@ export async function showLoadPrompt(
 	options?: os.OpenDialogOptions
 ): Promise<File[] | null> {
 	const fileNames = await os.showOpenDialog(title, options)
+	// Have to re-focus on the document because the native prompts apparently remove all focus?
+	document.body.focus()
 	if (fileNames.length === 0) return null
 	const files: File[] = []
 	for (const fileName of fileNames) {
@@ -141,6 +153,7 @@ export async function showDirectoryPrompt(
 	options?: os.FolderDialogOptions
 ): Promise<File[] | null> {
 	const dirName = await os.showFolderDialog(title, options)
+	document.body.focus()
 	if (dirName === "") return null
 	return await scanDirectory(dirName, parse(dirName).base)
 }
@@ -151,6 +164,7 @@ export async function showSavePrompt(
 	options?: os.SaveDialogOptions
 ): Promise<boolean> {
 	const savePath = await os.showSaveDialog(title, options)
+	document.body.focus()
 	if (savePath === "") return false
 	await filesystem.writeBinaryFile(savePath, fileData)
 	return true

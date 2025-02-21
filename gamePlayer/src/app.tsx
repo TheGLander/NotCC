@@ -6,7 +6,7 @@ import { PromptComponent, Prompts, showPromptGs } from "./prompts"
 import { useAtomValue } from "jotai"
 import { useEffect } from "preact/hooks"
 import { twJoin } from "tailwind-merge"
-import { isDesktop, useJotaiFn } from "./helpers"
+import { desktopPlatform, isDesktop, useJotaiFn } from "./helpers"
 import { Dialog } from "./components/Dialog"
 import * as pwaRegister from "virtual:pwa-register"
 import { ToastDisplay } from "./toast"
@@ -103,7 +103,9 @@ export function App() {
 				"relative h-full w-full font-sans text-neutral-100",
 				!embedMode &&
 					"from-theme-500 to-theme-800 flex flex-col-reverse bg-gradient-to-br",
-				isDesktop() && "disable-select-appearance"
+				isDesktop() &&
+					desktopPlatform() !== "windows" &&
+					"disable-select-appearance"
 			)}
 		>
 			<Prompts />

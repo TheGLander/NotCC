@@ -211,6 +211,10 @@ export function isDesktop(): boolean {
 	return import.meta.env.VITE_BUILD_PLATFORM === "desktop"
 }
 
+export function desktopPlatform(): null | "windows" | "linux" | "darwin" {
+	return isDesktop() ? (globalThis as any).NL_OS?.toLowerCase() ?? null : null
+}
+
 // Semaphore to limit eg. concurrent requests to N at a time
 export class BasicSemaphore {
 	releaseQueue: (() => void)[] = []
