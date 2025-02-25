@@ -21,7 +21,11 @@ import { SfxPrefDisplay, sfxIdAtom } from "./SfxPrompt"
 import { Expl } from "../Expl"
 import { exaComplainAboutNonlegalGlitches } from "@/pages/ExaPlayerPage"
 import { endOnNonlegalGlitchAtom } from "@/pages/LevelPlayerPage"
-import { ShowEpilogueMode, showEpilogueAtom } from "@/levelData"
+import {
+	ShowEpilogueMode,
+	preloadFilesFromDirectoryPromptAtom,
+	showEpilogueAtom,
+} from "@/levelData"
 import { showDecimalsInLevelListAtom } from "../LevelList"
 import { useJotaiFn } from "@/helpers"
 
@@ -183,6 +187,11 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 				<Pref
 					atom={showDecimalsInLevelListAtom}
 					label="Show time decimals in level list"
+					Display={BinaryDisplayPref}
+				/>
+				<Pref
+					atom={preloadFilesFromDirectoryPromptAtom}
+					label="Preload all files when loading from files from the directory prompt"
 					Display={BinaryDisplayPref}
 				/>
 				<div class="col-span-2">

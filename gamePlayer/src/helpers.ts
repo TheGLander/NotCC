@@ -1,4 +1,12 @@
-import { AsyncZippable, unzip, unzlib, zip, zlib } from "fflate"
+import {
+	AsyncUnzipOptions,
+	AsyncZippable,
+	Unzipped,
+	unzip,
+	unzlib,
+	zip,
+	zlib,
+} from "fflate"
 import { Getter, Setter, useStore } from "jotai"
 import { Ref } from "preact"
 import { useCallback, useEffect, useState } from "preact/hooks"
@@ -410,4 +418,19 @@ export function keypressIsFocused(ev: KeyboardEvent) {
 		!!document.querySelector("dialog.modal[open]") ||
 		(ev.target as HTMLElement).tagName === "INPUT"
 	)
+}
+
+export function unzipAsync(
+	zipData: ArrayBuffer,
+	options?: AsyncUnzipOptions
+): Promise<Unzipped> {
+	return new Promise((res, rej) => {
+		unzip(new Uint8Array(zipData), options ?? {}, (err, data) => {
+			if (err) {
+				rej(err)
+			} else {
+				res(data)
+			}
+		})
+	})
 }

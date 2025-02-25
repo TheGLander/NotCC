@@ -23,6 +23,8 @@ export enum ItemIndex {
 	Hook = 16,
 }
 
+export type InventoryTools = [ItemIndex, ItemIndex, ItemIndex, ItemIndex]
+
 export class Inventory extends Struct {
 	get item1() {
 		const ptr = wasmFuncs.Inventory_get_item1(this._ptr)
@@ -44,7 +46,7 @@ export class Inventory extends Struct {
 		if (ptr === 0) return null
 		return new TileType(ptr)
 	}
-	setItems(items: [ItemIndex, ItemIndex, ItemIndex, ItemIndex]) {
+	setItems(items: InventoryTools) {
 		wasmFuncs.Inventory_set_items(
 			this._ptr,
 			items[0],
@@ -52,6 +54,14 @@ export class Inventory extends Struct {
 			items[2],
 			items[3]
 		)
+	}
+	getItems(): InventoryTools {
+		return [
+			this.item1?.itemIndex ?? ItemIndex.Nothing,
+			this.item2?.itemIndex ?? ItemIndex.Nothing,
+			this.item3?.itemIndex ?? ItemIndex.Nothing,
+			this.item4?.itemIndex ?? ItemIndex.Nothing,
+		]
 	}
 	get keysRed(): number {
 		return wasmFuncs.Inventory_get_keys_red(this._ptr)

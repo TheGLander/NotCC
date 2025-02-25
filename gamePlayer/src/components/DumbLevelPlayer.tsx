@@ -7,6 +7,9 @@ import {
 	Level,
 	GameState,
 	applyLevelModifiers,
+	winInterruptResponseFromLevel,
+	LevelModifiers,
+	DETERMINISTIC_BLOB_MOD,
 } from "@notcc/logic"
 import { CameraType, GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -32,11 +35,17 @@ import { twJoin, twMerge } from "tailwind-merge"
 import { ComponentChildren, Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
 import { Inventory } from "./Inventory"
-import { LevelData, borrowLevelSetGs } from "@/levelData"
+import {
+	LevelData,
+	borrowLevelSetGs,
+	getGlobalLevelModifiersGs,
+	levelWinInterruptResponseAtom,
+} from "@/levelData"
 import { goToNextLevelGs } from "@/levelData"
 import { trivia } from "@/trivia"
-import { LevelControls, SidebarReplayable } from "./Sidebar"
+import { LevelControls } from "./Sidebar"
 import {
+	TIMELINE_DEFAULT_IDX,
 	TIMELINE_PLAYBACK_SPEEDS,
 	Timeline,
 	TimelineBox,
@@ -431,16 +440,15 @@ function WinCover(props: {
 	)
 }
 
-type SimpleSidebarReplayable = Omit<SidebarReplayable, "ip"> & {
-	ip: InputProvider
-}
-
 export function DumbLevelPlayer(props: {
 	level: LevelData
 	levelSet?: LevelSet
 	controlsRef?: Ref<LevelControls | null>
 	preventSimultaneousMovement?: boolean
 	endOnNonlegalGlitch?: boolean
+	speedMult?: number
+	levelFinished?: () => void
+	ignoreBonusFlags?: boolean
 }) {
 	const tileset = useAtomValue(tilesetAtom)!
 	const sfx = useAtomValue(sfxAtom)
@@ -462,17 +470,31 @@ export function DumbLevelPlayer(props: {
 	const inputMan = useGameInputs(level)
 	const playerSeat = useMemo(() => level.playerSeats[0], [level])
 
-	const resetLevel = useCallback(() => {
-		sfx?.stopAllSfx()
-		setAttempt(null)
-		setReplay(null)
-		const level = props.level.initLevel()
-		// @ts-ignore
-		globalThis.NotCC.player = { level }
-		setLevel(level)
-		setPlayerState("pregame")
-		return level
-	}, [sfx, props.level])
+	const getGlobalLevelModifiers = useJotaiFn(getGlobalLevelModifiersGs)
+	const resetLevel = useCallback(
+		(modifiers?: LevelModifiers) => {
+			sfx?.stopAllSfx()
+			setWinInterruptResponse(null)
+			setAttempt(null)
+			setReplay(null)
+			const level = props.level.initLevel()
+			applyLevelModifiers(
+				level,
+				modifiers ?? {
+					...(getGlobalLevelModifiers() ?? {}),
+					blobMod: level.metadata.rngBlobDeterministic
+						? DETERMINISTIC_BLOB_MOD
+						: Math.floor(Math.random() * 0x100),
+				}
+			)
+			// @ts-ignore
+			globalThis.NotCC.player = { level }
+			setLevel(level)
+			setPlayerState("pregame")
+			return level
+		},
+		[sfx, props.level]
+	)
 	useLayoutEffect(() => void resetLevel(), [props.level])
 
 	const renderInventoryRef = useRef<() => void>(null)
@@ -515,11 +537,12 @@ export function DumbLevelPlayer(props: {
 			setAttempt(null)
 		})
 	}, [attempt, borrowLevelSet])
+	const setWinInterruptResponse = useSetAtom(levelWinInterruptResponseAtom)
 
 	// Ticking
 	const tickLevel = useCallback(() => {
 		if (replay) {
-			level.setProviderInputs(replay.ip)
+			level.setProviderInputs(replay)
 		} else {
 			inputMan.setLevelInputs()
 		}
@@ -541,15 +564,18 @@ export function DumbLevelPlayer(props: {
 		if (level.gameState === GameState.PLAYING) {
 			renderInventoryRef.current?.()
 			if (replay) {
-				setSolutionLevelProgress(
-					replay.ip.inputProgress(level.subticksPassed())
-				)
+				setSolutionLevelProgress(replay.inputProgress(level.subticksPassed()))
 			}
 			updateLevelMetrics()
 		} else if (playerState === "play") {
 			submitLevelAttempt()
+			if (level.gameState !== GameState.CRASH) {
+				props.levelFinished?.()
+			}
+
 			if (level.gameState === GameState.WON) {
 				setPlayerState("win")
+				setWinInterruptResponse(winInterruptResponseFromLevel(level))
 			} else if (level.gameState === GameState.DEATH) {
 				setPlayerState("dead")
 			} else if (level.gameState === GameState.TIMEOUT) {
@@ -569,6 +595,7 @@ export function DumbLevelPlayer(props: {
 		playerState,
 		attempt,
 		props.endOnNonlegalGlitch,
+		props.levelFinished,
 	])
 
 	// Report embed ready
@@ -594,10 +621,15 @@ export function DumbLevelPlayer(props: {
 			inputMan.anyInputRef.current = undefined
 		}
 	}, [playerState, inputMan])
+	useEffect(() => {
+		return () => {
+			setWinInterruptResponse(null)
+		}
+	}, [])
 	// Replay
-	const [replay, setReplay] = useState<SimpleSidebarReplayable | null>(null)
+	const [replay, setReplay] = useState<InputProvider | null>(null)
 	const [solutionIsPlaying, setSolutionIsPlaying] = useState(true)
-	const [solutionSpeedIdx, setSolutionSpeedIdx] = useState(3)
+	const [solutionSpeedIdx, setSolutionSpeedIdx] = useState(TIMELINE_DEFAULT_IDX)
 	const [solutionLevelProgress, setSolutionLevelProgress] = useState(0)
 	const [solutionJumpProgress, setSolutionJumpProgress] = useState<
 		number | null
@@ -607,20 +639,20 @@ export function DumbLevelPlayer(props: {
 			if (!replay) return
 			let lvl = level
 			setSolutionLevelProgress(progress)
-			if (progress < replay.ip.inputProgress(lvl.subticksPassed())) {
+			if (progress < replay.inputProgress(lvl.subticksPassed())) {
 				lvl = props.level.initLevel()
 				lvl.tick()
 				lvl.tick()
 				setLevel(lvl)
 			}
 			const WAIT_PERIOD = 20 * 40
-			while (replay.ip.inputProgress(lvl.subticksPassed()) < progress) {
+			while (replay.inputProgress(lvl.subticksPassed()) < progress) {
 				lvl.tick()
 				lvl.tick()
-				lvl.setProviderInputs(replay.ip)
+				lvl.setProviderInputs(replay)
 				lvl.tick()
 				if (lvl.currentTick % WAIT_PERIOD === 0) {
-					setSolutionJumpProgress(replay.ip.inputProgress(lvl.subticksPassed()))
+					setSolutionJumpProgress(replay.inputProgress(lvl.subticksPassed()))
 					await sleep(0)
 				}
 			}
@@ -643,6 +675,9 @@ export function DumbLevelPlayer(props: {
 		if (replay) {
 			timePeriod /= TIMELINE_PLAYBACK_SPEEDS[solutionSpeedIdx]
 		}
+		if (props.speedMult) {
+			timePeriod /= props.speedMult
+		}
 		if (tickTimer.current) {
 			tickTimer.current.adjust(timePeriod)
 		} else {
@@ -651,7 +686,14 @@ export function DumbLevelPlayer(props: {
 				timePeriod
 			)
 		}
-	}, [autoTick, replay, solutionIsPlaying, solutionSpeedIdx, tickLevel])
+	}, [
+		autoTick,
+		replay,
+		solutionIsPlaying,
+		solutionSpeedIdx,
+		tickLevel,
+		props.speedMult,
+	])
 
 	useLayoutEffect(() => {
 		rescheduleTimer()
@@ -732,13 +774,11 @@ export function DumbLevelPlayer(props: {
 			restart() {
 				resetLevel()
 			},
-			async playInputs(repl) {
-				if (typeof repl.ip === "function") {
-					repl.ip = await repl.ip()
-				}
+			async playInputs(ip) {
 				const level = resetLevel()
-				applyLevelModifiers(level, repl.ip.levelModifiers())
-				setReplay(repl as SimpleSidebarReplayable)
+				applyLevelModifiers(level, ip.levelModifiers())
+				setSolutionSpeedIdx(TIMELINE_DEFAULT_IDX)
+				setReplay(ip)
 				setPlayerState("play")
 			},
 

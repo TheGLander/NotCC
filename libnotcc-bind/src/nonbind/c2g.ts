@@ -2,7 +2,7 @@ import { printf } from "fast-printf"
 import { join } from "path"
 import { ILevelInfo, IScriptState } from "./nccs.pb.js"
 import type { LevelSetData } from "./levelset.js"
-import { ItemIndex, parseC2MMeta } from "../index.js"
+import { InventoryTools, ItemIndex, Level, parseC2MMeta } from "../index.js"
 import clone from "clone"
 
 export const C2G_NOTCC_VERSION = "1.0-NotCC"
@@ -409,31 +409,34 @@ export interface ScriptMusic {
 
 export type InventoryKeys = Record<"red" | "green" | "blue" | "yellow", number>
 
+export type MapInterruptWinResponse = {
+	type: "win"
+	totalScore: number
+	lastExitGender: "male" | "female"
+	lastExitN: number
+	inventoryTools: InventoryTools
+	inventoryKeys: InventoryKeys
+	timeLeft: number
+}
+
 export type MapInterruptResponse =
-	| {
-			type: "win"
-			totalScore: number
-			lastExitGender: "male" | "female"
-			lastExitN: number
-			inventoryTools: [ItemIndex, ItemIndex, ItemIndex, ItemIndex]
-			inventoryKeys: InventoryKeys
-			timeLeft: number
-	  }
+	| MapInterruptWinResponse
 	| { type: "retry" }
 	| { type: "skip" }
 
 export interface C2GLevelModifiers {
 	playableEnterN?: number
-	inventoryTools?: [ItemIndex, ItemIndex, ItemIndex, ItemIndex]
+	inventoryTools?: InventoryTools
 	inventoryKeys?: InventoryKeys
 	timeLeft?: number
+	noBonusCollection?: boolean
 }
 
 export interface C2GGameModifiers extends C2GLevelModifiers {
 	autoNext: boolean
-	noBonusCollection: boolean
 	autoPlayReplay: boolean
 	noPopups: boolean
+	speedMultiplier?: number
 }
 
 function stringToValue(str: string): number {
@@ -774,6 +777,9 @@ export function getC2GGameModifiers(
 	if (vars.enter && vars.enter > 0) {
 		state.playableEnterN = vars.enter - 1
 	}
+	if (vars.speed && vars.speed > 0) {
+		state.speedMultiplier = vars.speed
+	}
 	if (!vars.flags) return state
 	state.autoNext = (vars.flags & scriptConstants.continue) !== 0
 	state.autoPlayReplay = (vars.flags & scriptConstants.replay) !== 0
@@ -799,6 +805,26 @@ export function getC2GGameModifiers(
 		]
 	}
 	return state
+}
+
+export function winInterruptResponseFromLevel(
+	level: Level
+): Omit<MapInterruptWinResponse, "totalScore"> {
+	const lastPlayerInfo = level.lastWonPlayerInfo
+	const inventory = lastPlayerInfo.inventory
+	return {
+		type: "win",
+		timeLeft: Math.ceil(level.timeLeft / 60),
+		inventoryKeys: {
+			red: inventory.keysRed,
+			green: inventory.keysGreen,
+			blue: inventory.keysBlue,
+			yellow: inventory.keysYellow,
+		},
+		inventoryTools: inventory.getItems(),
+		lastExitGender: lastPlayerInfo.isMale ? "male" : "female",
+		lastExitN: lastPlayerInfo.exitN,
+	}
 }
 
 /**

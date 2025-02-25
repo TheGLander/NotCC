@@ -10,8 +10,9 @@ import {
 	parseScriptMetadata,
 	writeNCCS,
 	protobuf,
-	LevelModifiers,
 	getC2GGameModifiers,
+	C2GGameModifiers,
+	MapInterruptWinResponse,
 } from "@notcc/logic"
 import {
 	CUSTOM_LEVEL_SET_IDENT,
@@ -36,8 +37,12 @@ import { decodeBase64, formatBytes, unzlibAsync, useJotaiFn } from "./helpers"
 import {
 	IMPORTANT_SETS,
 	ImportantSetInfo,
+	buildFileListIndex,
+	findEntryFilePath,
+	makeBufferMapFileLoader,
+	makeBufferMapFromFileList,
+	makeFileListFileLoader,
 	makeLoaderWithPrefix,
-	makeSetDataFromFiles,
 } from "./setLoading"
 import { basename, dirname } from "path-browserify"
 import { readFile, writeFile, showLoadPrompt, showDirectoryPrompt } from "./fs"
@@ -101,12 +106,18 @@ export async function goToLevelNGs(get: Getter, set: Setter, levelN: number) {
 	set(levelNAtom, levelN)
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.goToLevel(levelN)
+		set(levelWinInterruptResponseAtom, null)
 		set(
 			levelAtom,
 			rec && new LevelData((await lSet.loadLevelData(rec)).levelData)
 		)
 	})
 }
+
+export const levelWinInterruptResponseAtom = atom<Omit<
+	MapInterruptWinResponse,
+	"totalScore"
+> | null>(null)
 
 export type ShowEpilogueMode = "never" | "unseen" | "always"
 
@@ -141,14 +152,24 @@ export function showSetIntermission(
 export async function goToNextLevelGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
 		const currentRec = lSet.currentLevelRecord()
+		const modifiers = getC2GGameModifiers(
+			currentRec.levelInfo.scriptState ?? {}
+		)
 		if (
+			!modifiers.autoPlayReplay &&
 			currentRec.levelInfo.epilogueText &&
 			shouldShowEpilogueGs(get, set, currentRec.levelInfo)
 		) {
 			showSetIntermission(get, set, currentRec.levelInfo.epilogueText)
 			currentRec.levelInfo.sawEpilogue = true
 		}
-		const rec = await lSet.nextLevel({ type: "skip" })
+		const winResponse = get(levelWinInterruptResponseAtom)
+		const rec = await lSet.nextLevel(
+			winResponse
+				? { ...winResponse, totalScore: lSet.totalScore() }
+				: { type: "skip" }
+		)
+		set(levelWinInterruptResponseAtom, null)
 		if (lSet.inPostGame) {
 			// TODO display this somehow, like in classic NotCC or LL
 			await lSet.previousLevel()
@@ -166,6 +187,7 @@ export async function goToPreviousLevelGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.previousLevel()
 		if (!rec) return
+		set(levelWinInterruptResponseAtom, null)
 		set(
 			levelAtom,
 			rec && new LevelData((await lSet.loadLevelData(rec)).levelData)
@@ -296,12 +318,23 @@ export interface LevelSetDir {
 	setIdent: string
 }
 
-export async function promptDir(): Promise<LevelSetDir | null> {
+export const preloadFilesFromDirectoryPromptAtom = preferenceAtom(
+	"preloadFilesFromDirectoryPrompt",
+	false
+)
+
+export async function promptDir(
+	preloadFiles: boolean
+): Promise<LevelSetDir | null> {
 	const files = await showDirectoryPrompt("Load set directory")
 	if (!files) return null
 	let setData: LevelSetData
 	try {
-		setData = await makeSetDataFromFiles(files)
+		const fileIndex = buildFileListIndex(files)
+		const loader = preloadFiles
+			? makeBufferMapFileLoader(await makeBufferMapFromFileList(files))
+			: makeFileListFileLoader(files)
+		setData = await findEntryFilePath(loader, fileIndex)
 	} catch {
 		return null
 	}
@@ -365,8 +398,11 @@ const LoadNonfreeSetPrompt =
 	pProps => {
 		const setPage = useSetAtom(pageAtom)
 		const showAlert = useJotaiFn(showAlertGs)
+		const preloadFilesFromDirectoryPrompt = useAtomValue(
+			preloadFilesFromDirectoryPromptAtom
+		)
 		const askForNonfreeSet = useCallback(async () => {
-			const setStuff = await promptDir()
+			const setStuff = await promptDir(preloadFilesFromDirectoryPrompt)
 			if (!setStuff) return
 			const setTitle = parseScriptMetadata(
 				(await setStuff.setData.loaderFunction(
@@ -571,11 +607,21 @@ export async function resolveHashLevelGs(get: Getter, set: Setter) {
 
 export function getGlobalLevelModifiersGs(
 	get: Getter,
-	_set: Setter
-): LevelModifiers {
+	_set?: Setter
+): C2GGameModifiers {
+	get(levelSetChangedAtom)
 	const levelSet = get(levelSetAtom)
 	const levelScriptState = levelSet?.currentLevelRecord().levelInfo.scriptState
 	return {
+		autoPlayReplay: false,
+		autoNext: false,
+		noPopups: false,
+		noBonusCollection: false,
 		...(levelScriptState ? getC2GGameModifiers(levelScriptState) : {}),
 	}
 }
+
+export const globalC2GGameModifiersAtom = atom(
+	(get: Getter) => getGlobalLevelModifiersGs(get),
+	() => {}
+)

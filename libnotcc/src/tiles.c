@@ -1191,6 +1191,23 @@ static void EXIT_actor_completely_joined(BasicTile* self,
   Actor_erase(other, level);
   Level_add_sfx(level, has_flag(other, ACTOR_FLAGS_MELINDA) ? SFX_MELINDA_WIN
                                                             : SFX_CHIP_WIN);
+
+  Position this_pos = other->position;
+
+  uint32_t exit_n = 1;
+  uint32_t exit_tile_offset = Position_to_offset(this_pos, level->width);
+
+  for (uint32_t offset = 0; offset < exit_tile_offset; offset += 1) {
+    Cell const* cell = &level->map[offset];
+    if (cell->terrain.type == self->type) {
+      exit_n += 1;
+    }
+  }
+
+  level->last_won_player_info =
+      (LastPlayerInfo){.exit_n = exit_n,
+                       .inventory = other->inventory,
+                       .is_male = has_flag(other, ACTOR_FLAGS_CHIP)};
 }
 const TileType EXIT_tile = {
     .name = "exit",
@@ -2884,7 +2901,8 @@ const TileType DYNAMITE_tile = {
 static void BONUS_FLAG_actor_completely_joined(BasicTile* self,
                                                Level* level,
                                                Actor* actor) {
-  if (is_ghost(actor) || has_flag(actor, ACTOR_FLAGS_IGNORES_ITEMS))
+  if (is_ghost(actor) || has_flag(actor, ACTOR_FLAGS_IGNORES_ITEMS) ||
+      level->ignore_bonus_flags)
     return;
   if (has_flag(actor, ACTOR_FLAGS_REAL_PLAYER)) {
     if (self->custom_data & 0x8000) {

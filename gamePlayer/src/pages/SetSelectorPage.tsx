@@ -10,6 +10,7 @@ import {
 	promptDir,
 	setLevelSetGs,
 	setIndividualLevelGs,
+	preloadFilesFromDirectoryPromptAtom,
 } from "@/levelData"
 import { saveFilesLocallyGs } from "@/setManagement"
 
@@ -46,6 +47,9 @@ function UploadBox() {
 	const saveFilesLocally = useJotaiFn(saveFilesLocallyGs)
 	const setLevelSet = useJotaiFn(setLevelSetGs)
 	const setIndividualLevel = useJotaiFn(setIndividualLevelGs)
+	const preloadFilesFromDirectoryPrompt = useAtomValue(
+		preloadFilesFromDirectoryPromptAtom
+	)
 
 	const setSearchParams = useSetAtom(searchParamsAtom)
 	return (
@@ -75,7 +79,7 @@ function UploadBox() {
 				<button
 					class="flex-1"
 					onClick={async () => {
-						const setInfo = await promptDir()
+						const setInfo = await promptDir(preloadFilesFromDirectoryPrompt)
 						if (!setInfo) return
 						// Set the ident only if we save the set locally, since otherwise this is just a random custom set
 						let setIdent = undefined

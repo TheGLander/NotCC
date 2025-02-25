@@ -1,5 +1,5 @@
 import { isPreloading, preferenceAtom } from "@/preferences"
-import { makeHttpFileLoader, makeZipFileLoader } from "@/setLoading"
+import { makeHttpFileLoader, makeBufferMapFileLoader } from "@/setLoading"
 import { AudioSfxManager } from "@/sfx"
 import { atom, useAtom } from "jotai"
 import { atomEffect } from "jotai-effect"
@@ -14,7 +14,7 @@ import {
 import { suspend } from "suspend-react"
 import { useCallback, useState } from "preact/hooks"
 import { PromptComponent, showPromptGs } from "@/prompts"
-import { useJotaiFn, zipAsync } from "@/helpers"
+import { unzipAsync, useJotaiFn, zipAsync } from "@/helpers"
 import { Dialog } from "../Dialog"
 import { PrefDisplayProps } from "."
 import { SfxBit } from "@notcc/logic"
@@ -34,7 +34,7 @@ export async function getSfxSet(id: string) {
 		await sfxMan.loadSfx(makeHttpFileLoader(`./sfx/${id}/`))
 	} else {
 		const sfxZip = await readFile(`/sfx/${id}.zip`)
-		await sfxMan.loadSfx(makeZipFileLoader(sfxZip))
+		await sfxMan.loadSfx(makeBufferMapFileLoader(await unzipAsync(sfxZip)))
 	}
 	return sfxMan
 }

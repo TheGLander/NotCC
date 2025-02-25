@@ -28,6 +28,7 @@ import {
 	RouteDirection,
 	ItemIndex,
 	InputProvider,
+	DETERMINISTIC_BLOB_MOD,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
@@ -57,6 +58,7 @@ import { PromptComponent, showPromptGs } from "@/prompts"
 import { Dialog } from "@/components/Dialog"
 import { levelControlsAtom } from "@/components/Sidebar"
 import {
+	TIMELINE_DEFAULT_IDX,
 	TIMELINE_PLAYBACK_SPEEDS,
 	Timeline,
 	TimelineBox,
@@ -86,7 +88,7 @@ type Model = LinearModel | GraphModel
 function getDefaultLevelModifiersGs(get: Getter, set: Setter): LevelModifiers {
 	return {
 		...getGlobalLevelModifiersGs(get, set),
-		blobMod: 0x55,
+		blobMod: DETERMINISTIC_BLOB_MOD,
 		randomForceFloorDirection: Direction.UP,
 	}
 }
@@ -437,7 +439,9 @@ const ModifiersControl: PromptComponent<void> = pProps => {
 	const [rffDirection, setRffDirection] = useState(
 		levelModifiers?.randomForceFloorDirection ?? Direction.UP
 	)
-	const [blobMod, setBlobMod] = useState(levelModifiers?.blobMod ?? 0x55)
+	const [blobMod, setBlobMod] = useState(
+		levelModifiers?.blobMod ?? DETERMINISTIC_BLOB_MOD
+	)
 	const bypassConfirmDialog = useAtomValue(
 		confirmNewExaModifiersPromptDismissedAtom
 	)
@@ -536,7 +540,11 @@ const ModifiersControl: PromptComponent<void> = pProps => {
 }
 
 function areLevelModifiersEqual(a: LevelModifiers, b: LevelModifiers) {
-	if ((a.blobMod ?? 0x55) !== (b.blobMod ?? 0x55)) return false
+	if (
+		(a.blobMod ?? DETERMINISTIC_BLOB_MOD) !==
+		(b.blobMod ?? DETERMINISTIC_BLOB_MOD)
+	)
+		return false
 	if (
 		(a.randomForceFloorDirection ?? Direction.UP) !==
 		(b.randomForceFloorDirection ?? Direction.UP)
@@ -663,10 +671,9 @@ export function RealExaPlayerPage() {
 				model.resetLevel()
 				updateLevel()
 			},
-			async playInputs(repl) {
+			async playInputs(ip) {
 				if (!aLevel || !modelConfig) return
 				let thisModel = model
-				const ip = typeof repl.ip === "function" ? await repl.ip() : repl.ip
 				const ipModifiers = ip.levelModifiers()
 				if (!areLevelModifiersEqual(levelModifiers ?? {}, ipModifiers)) {
 					let actuallyResetModel = true
@@ -878,7 +885,7 @@ export function RealExaPlayerPage() {
 	}, [model, checkForNonlegalGlitches])
 	// Scrollbar, scrub and playback
 	const [playing, setPlaying] = useState(false)
-	const [speedIdx, setSpeedIdx] = useState(3)
+	const [speedIdx, setSpeedIdx] = useState(TIMELINE_DEFAULT_IDX)
 	const timerRef = useRef<CompensatingIntervalTimer | null>(null)
 	function stepLevel() {
 		if (model.isAtEnd()) {

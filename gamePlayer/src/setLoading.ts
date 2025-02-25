@@ -3,72 +3,38 @@ import {
 	LevelSetLoaderFunction,
 	findScriptName,
 } from "@notcc/logic"
-import { AsyncUnzipOptions, Unzipped, unzip, unzipSync } from "fflate"
+import { Unzipped } from "fflate"
 import { join, normalize } from "path-browserify"
 import { CaseResolver, findAllFiles, readFile } from "./fs"
+import { unzipAsync } from "./helpers"
 
 function getFilePath(file: File): string {
 	return file.webkitRelativePath ?? file.name
 }
 
-function unzipAsync(
-	zipData: ArrayBuffer,
-	options?: AsyncUnzipOptions
-): Promise<Unzipped> {
-	return new Promise((res, rej) => {
-		unzip(new Uint8Array(zipData), options ?? {}, (err, data) => {
-			if (err) {
-				rej(err)
-			} else {
-				res(data)
-			}
-		})
-	})
-}
-
-async function unzipFileAsync(
-	zipData: ArrayBuffer,
-	fileName: string
-): Promise<Uint8Array> {
-	const unzipped = await unzipAsync(zipData, {
-		filter: zipInfo => zipInfo.name.toLowerCase() === fileName.toLowerCase(),
-	})
-	const unzippedData = Object.values(unzipped)
-	if (unzippedData.length < 1)
-		throw new Error(`No such file ${fileName} in the zip archive.`)
-	return unzippedData[0]
-}
-
-export function buildZipIndex(zipData: ArrayBuffer): string[] {
-	const filePaths: string[] = []
-	// Use the filter property to collect info about the files, but we don't care
-	// about the contents, for now
-	unzipSync(new Uint8Array(zipData), {
-		filter: zipInfo => {
-			filePaths.push(zipInfo.name.toLowerCase())
-			return false
-		},
-	})
-	return filePaths
-}
-
-export function makeZipFileLoader(
-	zipData: ArrayBuffer
+export function makeBufferMapFileLoader(
+	zipFiles: Unzipped
 ): LevelSetLoaderFunction {
+	const zipFilesLowercase = Object.fromEntries(
+		Object.entries(zipFiles).map(([path, data]) => [path.toLowerCase(), data])
+	)
+
 	// This is Latin-1
 	const decoder = new TextDecoder("iso-8859-1")
 	return (async (path: string, binary: boolean) => {
-		const fileData = await unzipFileAsync(zipData, path.toLowerCase())
+		const fileData = zipFilesLowercase[path.toLowerCase()]
+		if (!fileData) throw new Error(`File ${path} not found`)
 		if (binary) return fileData.buffer
 		return decoder.decode(fileData)
 	}) as LevelSetLoaderFunction
 }
-export function makeSetDataFromZip(
+
+export async function makeSetDataFromZip(
 	zipData: ArrayBuffer
 ): Promise<LevelSetData> {
-	const loaderFunction = makeZipFileLoader(zipData)
-	const filePaths = buildZipIndex(zipData)
-	return findEntryFilePath(loaderFunction, filePaths)
+	const zipFiles = await unzipAsync(zipData)
+	const loaderFunction = makeBufferMapFileLoader(zipFiles)
+	return findEntryFilePath(loaderFunction, Object.keys(zipFiles))
 }
 
 export function makeFileListFileLoader(
@@ -87,12 +53,26 @@ export function makeFileListFileLoader(
 	}) as LevelSetLoaderFunction
 }
 
+export async function makeBufferMapFromFileList(
+	fileList: File[]
+): Promise<Unzipped> {
+	return Object.fromEntries(
+		await Promise.all(
+			fileList.map<Promise<[string, Uint8Array]>>(async file => [
+				getFilePath(file).toLowerCase(),
+				new Uint8Array(await file.arrayBuffer()),
+			])
+		)
+	)
+}
+
 export function makeHttpFileLoader(url: string): LevelSetLoaderFunction {
 	return (async (path: string, binary: boolean) => {
 		const fileData = await fetch(`${url}${path}`)
 		if (!fileData.ok)
 			throw new Error(
-				`Could not load ${path}: ${fileData.status} ${fileData.statusText
+				`Could not load ${path}: ${fileData.status} ${
+					fileData.statusText
 				}, ${await fileData.text()}`
 			)
 		if (binary) return await fileData.arrayBuffer()
@@ -149,13 +129,6 @@ export async function findEntryFilePath(
 	return { loaderFunction, scriptFile: c2gFiles[0].path }
 }
 
-export async function makeSetDataFromFiles(
-	files: File[]
-): Promise<LevelSetData> {
-	const loaderFunction = makeFileListFileLoader(files)
-	const fileIndex = buildFileListIndex(files)
-	return findEntryFilePath(loaderFunction, fileIndex)
-}
 export function makeFsFileLoader(basePath: string): LevelSetLoaderFunction {
 	const decoder = new TextDecoder("utf-8")
 	const caseResolver = new CaseResolver()

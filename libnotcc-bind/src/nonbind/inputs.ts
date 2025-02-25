@@ -269,6 +269,9 @@ export function applyLevelModifiers(level: Level, modifiers: LevelModifiers) {
 	if (modifiers.timeLeft !== undefined) {
 		level.timeLeft = modifiers.timeLeft * 60
 	}
+	if (modifiers.noBonusCollection) {
+		level.ignoreBonusFlags = true
+	}
 	let playerIdx = 0
 	// Have to go in reading order
 	for (let y = 0; y < level.height; y += 1) {

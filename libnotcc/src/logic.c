@@ -117,11 +117,25 @@ void Inventory_set_items(Inventory* self,
   }
 };
 
+ItemIndex TileType_get_item_index(TileType const* tile) {
+  return tile == NULL ? 0 : tile->item_index;
+};
+
 size_t Position_to_offset(Position pos, size_t pitch) {
   return pos.x + pos.y * pitch;
 }
 Position Position_from_offset(size_t offset, size_t pitch) {
   return (Position){offset % pitch, offset / pitch};
+}
+
+_libnotcc_accessors_LastPlayerInfo;
+
+LastPlayerInfo* Level_get_last_won_player_info_ptr(Level* self) {
+  return &self->last_won_player_info;
+}
+
+Inventory* LastPlayerInfo_get_inventory_ptr(LastPlayerInfo* self) {
+  return &self->inventory;
 }
 
 _libnotcc_accessors_LevelMetadata;

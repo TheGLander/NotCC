@@ -132,6 +132,25 @@ export abstract class LevelSet {
 		}
 		return record as LevelSetRecordFull
 	}
+	totalScore(): number {
+		return this.listLevels()
+			.map<number>(
+				rec =>
+					rec.levelInfo.attempts?.reduce((acc, val) => {
+						const outcome = val.solution?.outcome
+						if (!outcome) return acc
+						const score = calculateLevelPoints(
+							rec.levelInfo.levelNumber ?? 0,
+							outcome.timeLeft
+								? Math.ceil(protoTimeToMs(outcome.timeLeft) / 1000)
+								: 0,
+							outcome.bonusScore ?? 0
+						)
+						return Math.max(acc, score)
+					}, 0) ?? 0
+			)
+			.reduce((acc, val) => acc + val)
+	}
 }
 
 export class FullC2GLevelSet extends LevelSet {

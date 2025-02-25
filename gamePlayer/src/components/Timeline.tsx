@@ -48,6 +48,8 @@ export function TimelineHead(
 	)
 }
 
+export const TIMELINE_DEFAULT_IDX = 3
+
 export function TimelineBox(props: {
 	children?: ComponentChildren
 	playing: boolean
@@ -67,7 +69,7 @@ export function TimelineBox(props: {
 				class="w-16"
 				type="range"
 				min="0"
-				defaultValue="3"
+				defaultValue={TIMELINE_DEFAULT_IDX.toString()}
 				max="6"
 				step="1"
 				onInput={ev => props.onSetSpeed(parseInt(ev.currentTarget.value))}

@@ -45,6 +45,10 @@ typedef struct LevelMetadata {
   _libnotcc_accessors_LevelMetadata
 } LevelMetadata;
 
+typedef struct LastPlayerInfo {
+  _libnotcc_accessors_LastPlayerInfo
+} LastPlayerInfo;
+
 enum {
   POWERED_WIRE_UP = 0x1,
   POWERED_WIRE_RIGHT = 0x2,

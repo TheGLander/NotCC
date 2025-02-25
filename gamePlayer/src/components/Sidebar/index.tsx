@@ -51,7 +51,7 @@ import { unwrap } from "jotai/utils"
 export interface LevelControls {
 	restart?(): void
 	pause?(): void
-	playInputs?(ip: SidebarReplayable): void
+	playInputs?(ip: InputProvider): void
 	exa?: {
 		undo(): void
 		redo(): void
@@ -282,11 +282,15 @@ function SidebarButton(props: {
 	)
 }
 
-export interface SidebarReplayable {
+interface SidebarReplayable {
 	name: string
 	metric: string
-	ip: InputProvider | (() => Promise<InputProvider>)
+	ip: LoadableInputProvider
 }
+
+export type LoadableInputProvider =
+	| InputProvider
+	| (() => Promise<InputProvider>)
 
 function getAttemptSolutions(
 	attempts: protobuf.IAttemptInfo[],
@@ -373,8 +377,10 @@ function ReplayableTooltipList(props: {
 			{props.replayables.map(sol => (
 				<ChooserButton
 					label={`${sol.name} ${sol.metric}`}
-					onTrigger={() => {
-						props.controls.playInputs?.(sol)
+					onTrigger={async () => {
+						props.controls.playInputs?.(
+							typeof sol.ip === "function" ? await sol.ip() : sol.ip
+						)
 					}}
 				/>
 			))}
@@ -486,11 +492,7 @@ async function importRoute(controls: LevelControls) {
 	if (!routeFile) return
 	const route: Route = JSON.parse(await routeFile.text())
 	if (!route.Rule) return
-	controls.playInputs?.({
-		name: "Imported route",
-		metric: "???",
-		ip: new RouteFileInputProvider(route),
-	})
+	controls.playInputs?.(new RouteFileInputProvider(route))
 }
 
 const wrappedLevelAtom = unwrap(levelAtom)

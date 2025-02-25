@@ -1,6 +1,6 @@
 import { Actor, Direction } from "./actor.js"
 import { Cell } from "./cell.js"
-import { InputProvider, KeyInputs, msToProtoTime } from "./index.js"
+import { InputProvider, Inventory, KeyInputs, msToProtoTime } from "./index.js"
 import { getModuleInstance, wasmFuncs } from "./module.js"
 import { GlitchInfo, IGlitchInfo } from "./nonbind/nccs.pb.js"
 import {
@@ -208,6 +208,20 @@ export enum SfxBit {
 
 export const SFX_BITS_CONTINUOUS = SfxBit.FORCE_FLOOR_SLIDE | SfxBit.ICE_SLIDE
 
+export class LastPlayerInfo extends Struct {
+	get inventory() {
+		return new Inventory(wasmFuncs.LastPlayerInfo_get_inventory_ptr(this._ptr))
+	}
+	get exitN(): number {
+		return wasmFuncs.LastPlayerInfo_get_exit_n(this._ptr)
+	}
+	get isMale(): boolean {
+		return wasmFuncs.LastPlayerInfo_get_is_male(this._ptr)
+	}
+}
+
+export const DETERMINISTIC_BLOB_MOD = 0x55
+
 export class Level extends Struct {
 	static unalloc(ptr: number) {
 		wasmFuncs.Level_uninit(ptr)
@@ -244,6 +258,17 @@ export class Level extends Struct {
 	}
 	get actors(): ActorList {
 		return new ActorList(this)
+	}
+	get lastWonPlayerInfo() {
+		return new LastPlayerInfo(
+			wasmFuncs.Level_get_last_won_player_info_ptr(this._ptr)
+		)
+	}
+	get ignoreBonusFlags(): boolean {
+		return !!wasmFuncs.Level_get_ignore_bonus_flags(this._ptr)
+	}
+	set ignoreBonusFlags(val: boolean) {
+		wasmFuncs.Level_set_ignore_bonus_flags(this._ptr, val)
 	}
 	setProviderInputs(ip: InputProvider) {
 		const seats = this.playerSeats
