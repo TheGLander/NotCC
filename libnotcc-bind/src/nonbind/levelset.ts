@@ -272,8 +272,7 @@ export class FullC2GLevelSet extends LevelSet {
 			this.scriptRunner.handleMapInterrupt(res)
 		}
 		const lastLevel = this.seenLevels[this.currentLevel]?.levelInfo
-		let prologue: string = ""
-		let lastEpilogue: string = ""
+		const accumulatedIntermisssionText: string[] = []
 
 		let interrupt: ScriptInterrupt | null
 
@@ -281,11 +280,7 @@ export class FullC2GLevelSet extends LevelSet {
 			interrupt = this.scriptRunner.executeUntilInterrupt()
 			// Handle interrupts
 			if (interrupt?.type === "script") {
-				if (!lastLevel) {
-					prologue += interrupt.text
-				} else {
-					lastEpilogue += interrupt.text
-				}
+				accumulatedIntermisssionText.push(interrupt.text)
 				this.scriptRunner.scriptInterrupt = null
 			} else if (interrupt?.type === "chain") {
 				// Chain interrupt
@@ -309,12 +304,12 @@ export class FullC2GLevelSet extends LevelSet {
 		const existingRecord = this.seenLevels[levelN]
 
 		if (lastLevel) {
-			lastLevel.epilogueText = lastEpilogue || undefined
+			lastLevel.epilogueText = accumulatedIntermisssionText
 		}
 
 		const record: LevelSetRecord = {
 			levelInfo: {
-				prologueText: prologue || undefined,
+				prologueText: lastLevel ? undefined : accumulatedIntermisssionText,
 				scriptState: clone(this.scriptRunner.state),
 				levelNumber: levelN,
 				attempts: existingRecord?.levelInfo.attempts,

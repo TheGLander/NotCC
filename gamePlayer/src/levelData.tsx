@@ -104,6 +104,7 @@ export async function borrowLevelSetGs(
 
 export async function goToLevelNGs(get: Getter, set: Setter, levelN: number) {
 	set(levelNAtom, levelN)
+	set(setIntermissionAtom, null)
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.goToLevel(levelN)
 		set(levelWinInterruptResponseAtom, null)
@@ -136,20 +137,37 @@ export function shouldShowEpilogueGs(
 	return !level.sawEpilogue
 }
 
-export function showSetIntermission(
+export interface SetIntermission {
+	type: "prologue" | "epilogue"
+	text: string[]
+}
+
+export const setIntermissionAtom = atom<SetIntermission | null>(null)
+
+export const setIntermissionRemoveAtom = atomEffect((get, set) => {
+	const page = get(pageAtom)
+	if (!page?.showsIntermissions) {
+		set(setIntermissionAtom, null)
+	}
+})
+
+export function showSetIntermissionGs(
 	get: Getter,
 	set: Setter,
-	intermission: string
+	intermission: SetIntermission
 ) {
-	showAlertGs(
-		get,
-		set,
-		<div class="whitespace-pre-line">{intermission.trim()}</div>,
-		"Levelset story"
-	)
+	const page = get(pageAtom)
+	if (page?.showsIntermissions) {
+		set(setIntermissionAtom, intermission)
+	}
 }
 
 export async function goToNextLevelGs(get: Getter, set: Setter) {
+	const intermission = get(setIntermissionAtom)
+	if (intermission) {
+		set(setIntermissionAtom, null)
+		return
+	}
 	await borrowLevelSetGs(get, set, async lSet => {
 		const currentRec = lSet.currentLevelRecord()
 		const modifiers = getC2GGameModifiers(
@@ -160,7 +178,10 @@ export async function goToNextLevelGs(get: Getter, set: Setter) {
 			currentRec.levelInfo.epilogueText &&
 			shouldShowEpilogueGs(get, set, currentRec.levelInfo)
 		) {
-			showSetIntermission(get, set, currentRec.levelInfo.epilogueText)
+			showSetIntermissionGs(get, set, {
+				type: "epilogue",
+				text: currentRec.levelInfo.epilogueText,
+			})
 			currentRec.levelInfo.sawEpilogue = true
 		}
 		const winResponse = get(levelWinInterruptResponseAtom)
@@ -187,6 +208,7 @@ export async function goToPreviousLevelGs(get: Getter, set: Setter) {
 	await borrowLevelSetGs(get, set, async lSet => {
 		const rec = await lSet.previousLevel()
 		if (!rec) return
+		set(setIntermissionAtom, null)
 		set(levelWinInterruptResponseAtom, null)
 		set(
 			levelAtom,
@@ -265,7 +287,10 @@ export async function setLevelSetGs(
 			get(showEpilogueAtom) !== "never" &&
 			firstLoad
 		) {
-			showSetIntermission(get, set, record.levelInfo.prologueText)
+			showSetIntermissionGs(get, set, {
+				type: "prologue",
+				text: record.levelInfo.prologueText,
+			})
 		}
 	}
 }

@@ -9,6 +9,7 @@ import {
 	levelSetAtom,
 	levelSetAutosaveAtom,
 	resolveHashLevelGs,
+	setIntermissionRemoveAtom,
 } from "./levelData"
 import { EffectFn, ignorantAtomEffectHook } from "./helpers"
 import { preferenceWritingAtom } from "./preferences"
@@ -209,6 +210,7 @@ export function Router() {
 	useAtom(levelSetAutosaveAtom)
 	useAtom(tilesetSyncAtom)
 	useAtom(sfxSyncAtom)
+	useAtom(setIntermissionRemoveAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />
 

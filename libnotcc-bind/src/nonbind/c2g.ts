@@ -945,7 +945,7 @@ export async function makeLinearLevels(
 	let inPrelude = true
 	const levels: ILevelInfo[] = []
 	let lastLevel: ILevelInfo | undefined
-	let initialPrologue = ""
+	let initialPrologue: string[] = []
 	const script = new ScriptRunner(
 		await setData.loaderFunction(setData.scriptFile, false)
 	)
@@ -978,10 +978,10 @@ export async function makeLinearLevels(
 			)
 		else if (interrupt?.type === "script") {
 			if (lastLevel) {
-				lastLevel.epilogueText ??= ""
-				lastLevel.epilogueText += interrupt.text
+				lastLevel.epilogueText ??= []
+				lastLevel.epilogueText.push(interrupt.text)
 			} else {
-				initialPrologue += interrupt.text
+				initialPrologue.push(interrupt.text)
 			}
 		} else if (interrupt?.type === "map") {
 			inPrelude = false
@@ -991,13 +991,14 @@ export async function makeLinearLevels(
 			if (levelMeta.c2gCommand) return null
 			const level: ILevelInfo = {
 				title: levelMeta.title,
-				prologueText: initialPrologue !== "" ? initialPrologue : undefined,
+				prologueText:
+					initialPrologue.length !== 0 ? initialPrologue : undefined,
 				attempts: [],
 				levelNumber: script.state.variables?.level ?? 1,
 				scriptState: clone(script.state),
 				levelFilePath: interrupt.path,
 			}
-			initialPrologue = ""
+			initialPrologue = []
 			lastLevel = level
 			const { idx: levelIdx, found: levelExists } = arrayBinarySearch(
 				levels,

@@ -1,4 +1,10 @@
-import { goToLevelNGs, levelSetAtom, levelSetChangedAtom } from "@/levelData"
+import {
+	goToLevelNGs,
+	goToNextLevelGs,
+	levelSetAtom,
+	levelSetChangedAtom,
+	setIntermissionAtom,
+} from "@/levelData"
 import { PromptComponent } from "@/prompts"
 import {
 	FullC2GLevelSet,
@@ -6,9 +12,9 @@ import {
 	metricsFromAttempt,
 	protobuf,
 } from "@notcc/logic"
-import { useAtomValue } from "jotai"
+import { useAtomValue, useSetAtom } from "jotai"
 import { Dialog } from "./Dialog"
-import { useMemo } from "preact/hooks"
+import { useCallback, useMemo } from "preact/hooks"
 import { formatTimeLeft, useJotaiFn } from "@/helpers"
 import { twJoin } from "tailwind-merge"
 import { preferenceAtom } from "@/preferences"
@@ -48,7 +54,7 @@ interface LevelListLevel {
 	info: protobuf.ILevelInfo
 }
 
-export const LevelListPrompt: PromptComponent<void> = props => {
+export const LevelListPrompt: PromptComponent<void> = pProps => {
 	const levelSet = useAtomValue(levelSetAtom)
 	useAtomValue(levelSetChangedAtom)
 	const levels = useMemo<LevelListLevel[]>(() => {
@@ -83,19 +89,49 @@ export const LevelListPrompt: PromptComponent<void> = props => {
 	const setIsIncomplete =
 		levelSet instanceof FullC2GLevelSet && !levelSet.hasReahedPostgame
 	const goToLevelN = useJotaiFn(goToLevelNGs)
+	const goToNextLevel = useJotaiFn(goToNextLevelGs)
 	const showDecimals = useAtomValue(showDecimalsInLevelListAtom)
 
-	const GRID_ROW = "bg-theme-900 col-span-full grid grid-cols-subgrid px-4"
-	function ScriptPseudoLevel(_props: {
+	interface SetPseudoLevelProps {
 		type: "prologue" | "epilogue"
-		levelN: number
-	}) {
+		levelInfo: protobuf.ILevelInfo
+		// Need to pass idx so that we can open the level *after* this one for epilogue intermissions
+		levelIdx: number
+	}
+	const setSetIntermission = useSetAtom(setIntermissionAtom)
+
+	const GRID_ROW = "bg-theme-900 col-span-full grid grid-cols-subgrid px-4"
+	function ScriptPseudoLevel(props: SetPseudoLevelProps) {
+		const showIntermission = useCallback(async () => {
+			if (props.type === "epilogue") {
+				const nextLevel = levels[props.levelIdx + 1]
+				if (nextLevel === undefined) {
+					// FIXME: hack: go to the last level and force the intermission to get the post-level state
+					await goToLevelN(props.levelInfo.levelNumber!)
+					await goToNextLevel()
+				} else {
+					await goToLevelN(nextLevel.info.levelNumber!)
+				}
+			} else {
+				await goToLevelN(props.levelInfo.levelNumber!)
+			}
+
+			setSetIntermission({
+				type: props.type,
+				text: (props.type === "prologue"
+					? props.levelInfo.prologueText
+					: props.levelInfo.epilogueText)!,
+			})
+			pProps.onResolve()
+		}, [props])
+
 		return (
 			<div
 				class={twJoin(
 					GRID_ROW,
 					"hover:bg-theme-950 my-[calc(-1_*_theme(spacing.1))] cursor-pointer rounded-md py-0.5 text-sm"
 				)}
+				onClick={showIntermission}
 			>
 				<div class="text-right">📜︎</div>
 				<div>Intermission</div>
@@ -106,7 +142,7 @@ export const LevelListPrompt: PromptComponent<void> = props => {
 		<Dialog
 			header="Level list"
 			buttons={[["Close", () => {}]]}
-			onResolve={props.onResolve}
+			onResolve={pProps.onResolve}
 		>
 			{/* 	<h3 class="text-xl">{levelSet?.gameTitle()}</h3> */}
 			{/* <div></div> */}
@@ -122,10 +158,14 @@ export const LevelListPrompt: PromptComponent<void> = props => {
 					<div class="text-center">Best time</div>
 					<div class="text-center">Best score</div>
 				</div>
-				{levels.map(({ info, metrics }) => (
+				{levels.map(({ info, metrics }, idx) => (
 					<>
 						{info.prologueText && (
-							<ScriptPseudoLevel type="prologue" levelN={info.levelNumber!} />
+							<ScriptPseudoLevel
+								type="prologue"
+								levelInfo={info}
+								levelIdx={idx}
+							/>
 						)}
 						<div
 							class={twJoin(
@@ -135,7 +175,7 @@ export const LevelListPrompt: PromptComponent<void> = props => {
 							)}
 							onClick={async () => {
 								await goToLevelN(info.levelNumber!)
-								props.onResolve()
+								pProps.onResolve()
 							}}
 						>
 							<div class="text-right">{info.levelNumber}</div>
@@ -152,7 +192,11 @@ export const LevelListPrompt: PromptComponent<void> = props => {
 							</div>
 						</div>
 						{info.epilogueText && (
-							<ScriptPseudoLevel type="epilogue" levelN={info.levelNumber!} />
+							<ScriptPseudoLevel
+								type="epilogue"
+								levelInfo={info}
+								levelIdx={idx}
+							/>
 						)}
 					</>
 				))}
