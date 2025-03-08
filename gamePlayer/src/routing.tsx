@@ -18,7 +18,8 @@ import { ExaPlayerPage } from "./pages/ExaPlayerPage"
 import { tilesetSyncAtom } from "./components/PreferencesPrompt/TilesetsPrompt"
 import { levelControlsAtom } from "./components/Sidebar"
 import { sfxSyncAtom } from "./components/PreferencesPrompt/SfxPrompt"
-import { setRRRoutesAtomWrapped } from "./railroad"
+import { rrRoutesSyncAtom } from "./railroad"
+import { setScoresSyncAtom } from "./scoresApi"
 
 function searchParamsToObj(query: string): SearchParams {
 	return Object.fromEntries(new URLSearchParams(query))
@@ -174,7 +175,6 @@ const discardUselessLevelDataEffect: EffectFn = (get, set) => {
 		set(levelNAtom, null)
 		set(levelAtom, null)
 		set(levelSetAtom, null)
-		set(setRRRoutesAtomWrapped, null)
 		set(levelControlsAtom, {})
 		const searchParams = get(searchParamsAtom)
 		delete searchParams.level
@@ -210,7 +210,9 @@ export function Router() {
 	useAtom(levelSetAutosaveAtom)
 	useAtom(tilesetSyncAtom)
 	useAtom(sfxSyncAtom)
+	useAtom(rrRoutesSyncAtom)
 	useAtom(setIntermissionRemoveAtom)
+	useAtom(setScoresSyncAtom)
 	if (!preloadComplete)
 		return <Preloader preloadComplete={() => setPreloadComplete(true)} />
 

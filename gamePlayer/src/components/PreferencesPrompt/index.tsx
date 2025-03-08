@@ -26,8 +26,10 @@ import {
 	preloadFilesFromDirectoryPromptAtom,
 	showEpilogueAtom,
 } from "@/levelData"
-import { showDecimalsInLevelListAtom } from "../LevelList"
-import { useJotaiFn } from "@/helpers"
+import { showTimeFractionInMetricsAtom } from "../LevelList"
+import { useJotaiFn, usePromise } from "@/helpers"
+import { getPlayerSummary, optimizerIdAtom } from "@/scoresApi"
+import { VNode } from "preact"
 
 export type PrefDisplayProps<T, P = {}> = P & {
 	set: (val: T) => void
@@ -92,11 +94,46 @@ function EpiloguePref({
 	)
 }
 
+function OptimizerIdPref({
+	value,
+	set,
+	inputId,
+}: PrefDisplayProps<number | null>) {
+	const playerInfoRes = usePromise(
+		() => (value === null ? Promise.resolve(null) : getPlayerSummary(value)),
+		[value]
+	)
+	return (
+		<div>
+			<input
+				type="number"
+				min="1"
+				value={value ?? ""}
+				id={inputId}
+				onInput={ev => {
+					set(
+						ev.currentTarget.value === ""
+							? null
+							: parseInt(ev.currentTarget.value)
+					)
+				}}
+			/>{" "}
+			<span>
+				{playerInfoRes.state === "working"
+					? "Loading..."
+					: playerInfoRes.error
+						? "Failed to load"
+						: playerInfoRes.value?.player}
+			</span>
+		</div>
+	)
+}
+
 interface PrefProps<T, P = {}> {
 	Display: FC<PrefDisplayProps<T> & P>
 	atom: WritableAtom<T, [T], void>
 	label: string
-	expl?: string
+	expl?: VNode | string
 	props?: P
 }
 
@@ -185,9 +222,29 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 					Display={EpiloguePref}
 				/>
 				<Pref
-					atom={showDecimalsInLevelListAtom}
-					label="Show time decimals in level list"
+					atom={showTimeFractionInMetricsAtom}
+					label="Show time fraction in metric reports"
 					Display={BinaryDisplayPref}
+				/>
+				<Pref
+					atom={optimizerIdAtom}
+					label="Optimizer ID"
+					Display={OptimizerIdPref}
+					expl={
+						<>
+							The{" "}
+							<a target="_blank" href="https://scores.bitbusters.club">
+								https://scores.bitbusters.club
+							</a>{" "}
+							user ID. Required for score report generation.
+							<p>
+								How to obtain: Look for the number in your player page URL. For
+								example, If your user page is at
+								https://scores.bitbusters.club/players/75, your optimizer ID is
+								75.
+							</p>
+						</>
+					}
 				/>
 				<Pref
 					atom={preloadFilesFromDirectoryPromptAtom}

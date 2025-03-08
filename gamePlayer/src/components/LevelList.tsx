@@ -9,7 +9,7 @@ import { PromptComponent } from "@/prompts"
 import {
 	FullC2GLevelSet,
 	SolutionMetrics,
-	metricsFromAttempt,
+	findBestMetrics,
 	protobuf,
 } from "@notcc/logic"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -18,36 +18,18 @@ import { useCallback, useMemo } from "preact/hooks"
 import { formatTimeLeft, useJotaiFn } from "@/helpers"
 import { twJoin } from "tailwind-merge"
 import { preferenceAtom } from "@/preferences"
+import {
+	ReportGrade,
+	getReportGradesForMetrics,
+	setPlayerScoresAtom,
+	setScoresAtom,
+} from "@/scoresApi"
+import { Grade } from "./Grade"
 
-export const showDecimalsInLevelListAtom = preferenceAtom(
-	"showDecimalsInLevelList",
+export const showTimeFractionInMetricsAtom = preferenceAtom(
+	"showTimeFractionInMetrics",
 	false
 )
-
-function findBestMetrics(
-	levelN: number,
-	attempts: protobuf.IAttemptInfo[]
-): SolutionMetrics | null {
-	let metrics: SolutionMetrics | null = null
-	for (const attempt of attempts) {
-		if (!attempt.solution?.outcome) continue
-		const attMetrics = metricsFromAttempt(levelN, attempt.solution.outcome)
-		if (!metrics) {
-			metrics = attMetrics
-			continue
-		}
-		if (attMetrics.timeLeft > metrics.timeLeft) {
-			metrics.timeLeft = attMetrics.timeLeft
-		}
-		if (attMetrics.realTime < metrics.realTime) {
-			metrics.realTime = attMetrics.realTime
-		}
-		if (attMetrics.points > metrics.points) {
-			metrics.points = attMetrics.points
-		}
-	}
-	return metrics
-}
 
 interface LevelListLevel {
 	metrics: SolutionMetrics | null
@@ -61,10 +43,7 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 		return (
 			levelSet?.listLevels().map(lvl => ({
 				info: lvl.levelInfo,
-				metrics: findBestMetrics(
-					lvl.levelInfo.levelNumber!,
-					lvl.levelInfo.attempts ?? []
-				),
+				metrics: findBestMetrics(lvl.levelInfo),
 			})) ?? []
 		)
 	}, [levelSet])
@@ -76,21 +55,28 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 		() =>
 			levels.reduce(
 				(acc, val) =>
-					acc + (val.metrics?.timeLeft ? Math.ceil(val.metrics.timeLeft) : 0),
+					acc +
+					(val.metrics?.timeLeft ? Math.ceil(val.metrics.timeLeft / 60) : 0),
 				0
 			),
 		[]
 	)
 	const totalScore = useMemo(
-		() => levels.reduce((acc, val) => acc + (val.metrics?.points ?? 0), 0),
+		() => levels.reduce((acc, val) => acc + (val.metrics?.score ?? 0), 0),
 		[]
 	)
+
+	const setScores = useAtomValue(setScoresAtom)
+	const setPlayerScores = useAtomValue(setPlayerScoresAtom)
+
+	const showGrades = setScores && setPlayerScores
+
 	// const _setIsLinear = levelSet instanceof LinearLevelSet
 	const setIsIncomplete =
 		levelSet instanceof FullC2GLevelSet && !levelSet.hasReahedPostgame
 	const goToLevelN = useJotaiFn(goToLevelNGs)
 	const goToNextLevel = useJotaiFn(goToNextLevelGs)
-	const showDecimals = useAtomValue(showDecimalsInLevelListAtom)
+	const showFraction = useAtomValue(showTimeFractionInMetricsAtom)
 
 	interface SetPseudoLevelProps {
 		type: "prologue" | "epilogue"
@@ -127,6 +113,7 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 
 		return (
 			<div
+				tabindex={0}
 				class={twJoin(
 					GRID_ROW,
 					"hover:bg-theme-950 my-[calc(-1_*_theme(spacing.1))] cursor-pointer rounded-md py-0.5 text-sm"
@@ -146,11 +133,16 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 		>
 			{/* 	<h3 class="text-xl">{levelSet?.gameTitle()}</h3> */}
 			{/* <div></div> */}
-			<div class="grid gap-x-4 gap-y-2 [grid:auto-flow/auto_1fr_auto_auto]">
+			<div
+				class={twJoin(
+					"grid gap-x-4 gap-y-2",
+					"[grid:auto-flow/auto_1fr_auto_auto]"
+				)}
+			>
 				<div
 					class={twJoin(
 						GRID_ROW,
-						"border-b-theme-800 sticky top-0 rounded-b-md border-b-2 px-4 pb-0.5 shadow"
+						"border-b-theme-700 sticky top-0 rounded-b-md border-b-2 px-4 pb-0.5 shadow"
 					)}
 				>
 					<div class="text-right">#</div>
@@ -158,48 +150,63 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 					<div class="text-center">Best time</div>
 					<div class="text-center">Best score</div>
 				</div>
-				{levels.map(({ info, metrics }, idx) => (
-					<>
-						{info.prologueText && (
-							<ScriptPseudoLevel
-								type="prologue"
-								levelInfo={info}
-								levelIdx={idx}
-							/>
-						)}
-						<div
-							class={twJoin(
-								GRID_ROW,
-								"hover:bg-theme-950 cursor-pointer rounded-md px-4 py-0.5",
-								levelSet?.currentLevel === info.levelNumber && "bg-theme-950"
+				{levels.map(({ info, metrics }, idx) => {
+					const scoresLevel = setScores?.find(
+						lvl => lvl.level === info.levelNumber
+					)
+					const grades =
+						metrics && scoresLevel
+							? getReportGradesForMetrics(metrics, scoresLevel)
+							: {
+									time: "unsolved" as ReportGrade,
+									score: "unsolved" as ReportGrade,
+								}
+					return (
+						<>
+							{info.prologueText && (
+								<ScriptPseudoLevel
+									type="prologue"
+									levelInfo={info}
+									levelIdx={idx}
+								/>
 							)}
-							onClick={async () => {
-								await goToLevelN(info.levelNumber!)
-								pProps.onResolve()
-							}}
-						>
-							<div class="text-right">{info.levelNumber}</div>
-							<div>{info.title}</div>
-							<div class="text-right">
-								{metrics?.timeLeft != null
-									? showDecimals
-										? formatTimeLeft(metrics.timeLeft * 60, false)
-										: Math.ceil(metrics.timeLeft)
-									: "—"}
+							<div
+								class={twJoin(
+									GRID_ROW,
+									"hover:bg-theme-950 cursor-pointer rounded-md px-4 py-0.5",
+									levelSet?.currentLevel === info.levelNumber && "bg-theme-950"
+								)}
+								tabindex={0}
+								onClick={async () => {
+									await goToLevelN(info.levelNumber!)
+									pProps.onResolve()
+								}}
+							>
+								<div class="text-right">{info.levelNumber}</div>
+								<div>{info.title}</div>
+								<div class="flex items-baseline justify-end gap-2">
+									{metrics?.timeLeft != null
+										? showFraction
+											? formatTimeLeft(metrics.timeLeft, false)
+											: Math.ceil(metrics.timeLeft / 60)
+										: "—"}
+									{showGrades && <Grade grade={grades.time} short />}
+								</div>
+								<div class="flex items-baseline justify-end gap-2">
+									{metrics?.score != null ? metrics.score : "—"}
+									{showGrades && <Grade grade={grades.score} short />}
+								</div>
 							</div>
-							<div class="text-right">
-								{metrics?.points != null ? metrics.points : "—"}
-							</div>
-						</div>
-						{info.epilogueText && (
-							<ScriptPseudoLevel
-								type="epilogue"
-								levelInfo={info}
-								levelIdx={idx}
-							/>
-						)}
-					</>
-				))}
+							{info.epilogueText && (
+								<ScriptPseudoLevel
+									type="epilogue"
+									levelInfo={info}
+									levelIdx={idx}
+								/>
+							)}
+						</>
+					)
+				})}
 				{setIsIncomplete && (
 					<div class="col-span-full self-center px-2 text-sm">
 						Set list is incomplete; try going forwards from the last level
@@ -208,7 +215,7 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 				<div
 					class={twJoin(
 						GRID_ROW,
-						"border-t-theme-800 sticky bottom-0 z-10 rounded-t-md border-t-2 pt-0.5"
+						"border-t-theme-700 sticky bottom-0 z-10 rounded-t-md border-t-2 pt-0.5"
 					)}
 				>
 					<div class="col-span-2">

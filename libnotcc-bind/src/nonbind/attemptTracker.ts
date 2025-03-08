@@ -23,6 +23,17 @@ export function protoTimeToMs(
 	return (protoTime.seconds ?? 0) * 1000 + (protoTime.nanos ?? 0) / 1000
 }
 
+export function protoTimeToSubticks(
+	protoTime:
+		| protobuf.google.protobuf.ITimestamp
+		| protobuf.google.protobuf.IDuration
+): number {
+	return (
+		(protoTime.seconds ?? 0) * 60 +
+		Math.round((protoTime.nanos ?? 0) / 1000 / (1000 / 60))
+	)
+}
+
 export class StepRecorder {
 	currentStep = -1
 

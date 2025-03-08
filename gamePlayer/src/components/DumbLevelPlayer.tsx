@@ -10,6 +10,9 @@ import {
 	winInterruptResponseFromLevel,
 	LevelModifiers,
 	DETERMINISTIC_BLOB_MOD,
+	SolutionMetrics,
+	calculateLevelPoints,
+	findBestMetrics,
 } from "@notcc/logic"
 import { CameraType, GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -25,10 +28,11 @@ import {
 import {
 	CompensatingIntervalTimer,
 	applyRef,
+	formatTimeLeft,
 	sleep,
 	useJotaiFn,
 } from "@/helpers"
-import { embedReadyAtom, embedModeAtom, pageAtom } from "@/routing"
+import { embedReadyAtom, embedModeAtom, pageAtom, levelNAtom } from "@/routing"
 import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
 import { useGameInputs } from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
@@ -39,6 +43,7 @@ import {
 	LevelData,
 	borrowLevelSetGs,
 	getGlobalLevelModifiersGs,
+	importantSetAtom,
 	levelWinInterruptResponseAtom,
 } from "@/levelData"
 import { goToNextLevelGs } from "@/levelData"
@@ -58,7 +63,14 @@ import {
 	NonlegalMessage,
 	isGlitchKindNonlegal,
 } from "./NonLegalMessage"
-import { Expl } from "./Expl"
+import { ExplGrade, Grade } from "./Grade"
+import {
+	ReportGrade,
+	getReportGradesForMetrics,
+	setScoresAtom,
+} from "@/scoresApi"
+import { LevelListPrompt, showTimeFractionInMetricsAtom } from "./LevelList"
+import { showPromptGs } from "@/prompts"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -274,107 +286,94 @@ function CrashCover(props: {
 	)
 }
 
-type ReportGrade = "b+" | "bc" | "pc" | "b" | "p+" | "p" | "s" | "u"
+interface LevelStatsBoxProps {
+	metrics: SolutionMetrics
+	bestMetrics?: SolutionMetrics
+	grades?: Record<"time" | "score", ReportGrade>
+	levelN: number
+	totalMetrics?: SolutionMetrics
+	showFraction: boolean
+	showScore: boolean
+}
 
-function Bi(props: { children?: ComponentChildren }) {
+function LevelStatsBox(props: LevelStatsBoxProps) {
+	const formatTime: (val: number) => string = props.showFraction
+		? time => formatTimeLeft(time, false)
+		: time => Math.ceil(time / 60).toString()
+	const bonusPoints =
+		props.metrics.score -
+		calculateLevelPoints(props.levelN, Math.ceil(props.metrics.timeLeft / 60))
 	return (
-		<strong>
-			<em>{props.children}</em>
-		</strong>
-	)
-}
-function Sm(props: { children?: ComponentChildren }) {
-	return <span class="text-sm">{props.children}</span>
-}
-
-const gradeMap: Record<ReportGrade, VNode> = {
-	"b+": (
-		<Bi>
-			B<Sm>old</Sm>+
-		</Bi>
-	),
-	bc: (
-		<Bi>
-			B<Sm>old</Sm>C<Sm>onf</Sm>
-		</Bi>
-	),
-	pc: (
-		<Bi>
-			P<Sm>art</Sm>C<Sm>onf</Sm>
-		</Bi>
-	),
-	b: (
-		<strong>
-			B<Sm>old</Sm>
-		</strong>
-	),
-	"p+": (
-		<>
-			P<Sm>ublic</Sm>+
-		</>
-	),
-	p: (
-		<>
-			P<Sm>ublic</Sm>
-		</>
-	),
-	s: (
-		<>
-			S<Sm>olved</Sm>
-		</>
-	),
-	u: (
-		<>
-			U<Sm>nsolved</Sm>
-		</>
-	),
-}
-
-export function ExplGrade() {
-	return (
-		<Expl title="Score grade" mode="dialog">
-			<div class="grid gap-2 [grid-template-columns:repeat(2,auto);]">
-				<div>Grade</div>
-				<div>Meaning</div>
-				<Grade grade="b+" />
+		<div class="box my-auto rounded p-2 text-left [text-shadow:initial]">
+			<div
+				class={twJoin(
+					"grid w-auto items-end justify-items-end gap-4",
+					props.grades
+						? "[grid-template-columns:repeat(4,auto);]"
+						: "[grid-template-columns:repeat(3,auto);]"
+				)}
+			>
+				<div>Metric</div>
+				<div>This run</div>
+				<div>Best run</div>
+				{props.grades && (
+					<div>
+						Grade
+						<ExplGrade />
+					</div>
+				)}
+				<div>Time</div>
+				<div>{formatTime(props.metrics.timeLeft)}s</div>
 				<div>
-					Better than bold. You've achieved a higher score than what is on the
-					scoreboards! Report it and be part of Chips history!
+					{props.bestMetrics
+						? `${formatTime(props.bestMetrics.timeLeft)}s`
+						: "—"}
 				</div>
-				<Grade grade="bc" />
-				<div>
-					Bold Confirm. You're the second person to achieve this score, thus{" "}
-					<i>confirming</i> the <i>unconfirmed</i> score.
-				</div>
-				<Grade grade="pc" />
-				<div>
-					Partial Confirm. You've achieved a score higher than the highest
-					confirmed score, but lower than the unconfirmed score, thus confirming
-					that the unconfirmed score is at least <i>partially</i> real.
-				</div>
-				<Grade grade="b" />
-				<div>Bold. Same as highest known/reported score for this level.</div>
-				<Grade grade="p+" />
-				<div>
-					Better than public. This score is better than the score of the public
-					route, but is less than bold.
-				</div>
-				<Grade grade="p" />
-				<div>Public. This score matches the public route score.</div>
-				<Grade grade="s" />
-				<div>Solved. This score is worse than the public route score.</div>
-				<Grade grade="u" />
-				<div>Unsolved. This level has not been solved yet.</div>
+				{props.grades && (
+					<div>
+						<Grade grade={props.grades.time} />
+					</div>
+				)}
+				{props.showScore && (
+					<>
+						<div>Score</div>
+						<div class="flex flex-col">
+							<div class="border-b-theme-800 grid gap-1 rounded rounded-b-md border-b-2 text-xs [grid:auto-flow/auto_auto]">
+								<div>base score</div>
+								<div class="justify-self-end">{props.levelN * 500}pts</div>
+								<div>time score</div>
+								<div class="justify-self-end">
+									{Math.ceil(props.metrics.timeLeft / 60) * 10}pts
+								</div>
+								{bonusPoints !== 0 && (
+									<>
+										<div>bonus score</div>
+										<div class="justify-self-end">{bonusPoints}pts</div>
+									</>
+								)}
+							</div>
+							<div class="self-end">{props.metrics.score}pts</div>
+						</div>
+						<div>
+							{props.bestMetrics ? `${props.bestMetrics.score}pts` : "—"}
+						</div>
+						{props.grades && (
+							<div>
+								<Grade grade={props.grades.score} />
+							</div>
+						)}
+					</>
+				)}
 			</div>
-		</Expl>
-	)
-}
-
-function Grade(props: { grade: ReportGrade }) {
-	return (
-		<span>
-			<span class="text-lg">{gradeMap[props.grade]}</span>
-		</span>
+			{props.totalMetrics && (
+				<div class="mt-2">
+					<div>
+						Total set time: {Math.ceil(props.totalMetrics.timeLeft / 60)}s
+					</div>
+					<div>Total set score: {props.totalMetrics.score}pts</div>
+				</div>
+			)}
+		</div>
 	)
 }
 
@@ -382,7 +381,10 @@ function WinCover(props: {
 	onNextLevel: () => void
 	onRestart: () => void
 	onSetSelector: () => void
+	onLevelList: () => void
 	singleLevel: boolean
+
+	levelStats: LevelStatsBoxProps
 }) {
 	const buttons: CoverButton[] = props.singleLevel
 		? [
@@ -391,7 +393,7 @@ function WinCover(props: {
 				["Explode Jupiter", null],
 			]
 		: [
-				["Level list", null],
+				["Level list", props.onLevelList],
 				["Next level", props.onNextLevel],
 				["Explode Jupiter", null],
 			]
@@ -403,38 +405,7 @@ function WinCover(props: {
 		>
 			<div class="flex w-full flex-1 flex-col items-center">
 				<h2 class="mt-6 text-4xl">You won!</h2>
-				{/* <div class="box my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]"> */}
-				{/* 	<div class="grid w-auto items-center justify-items-end gap-x-2 [grid-template-columns:repeat(4,auto);]"> */}
-				{/* 		<div>Metric</div> */}
-				{/* 		<div>This run</div> */}
-				{/* 		<div>Best run</div> */}
-				{/* 		<div> */}
-				{/* 			Grade */}
-				{/* 			<ExplGrade /> */}
-				{/* 		</div> */}
-				{/* 		<div>Time</div> */}
-				{/* 		<div>123s</div> */}
-				{/* 		<div>125s</div> */}
-				{/* 		<div> */}
-				{/* 			<Grade grade="pc" /> */}
-				{/* 		</div> */}
-				{/* 		<div>Score</div> */}
-				{/* 		<div>4000pts</div> */}
-				{/* 		<div>3900pts</div> */}
-				{/* 		<div> */}
-				{/* 			<Grade grade="p+" /> */}
-				{/* 		</div> */}
-				{/* 	</div> */}
-				{/* 	<div class="mt-4"> */}
-				{/* 		<div> */}
-				{/* 			Total set time: 1000s / 10.7 ABC (unreported: 12s / 0.4 ABC) */}
-				{/* 		</div> */}
-				{/* 		<div> */}
-				{/* 			Total set score: 100000pts / 12.3 ABC (unreported: 1200pts / 1.6 */}
-				{/* 			ABC) */}
-				{/* 		</div> */}
-				{/* 	</div> */}
-				{/* </div> */}
+				<LevelStatsBox {...props.levelStats} />
 			</div>
 		</Cover>
 	)
@@ -491,9 +462,15 @@ export function DumbLevelPlayer(props: {
 			globalThis.NotCC.player = { level }
 			setLevel(level)
 			setPlayerState("pregame")
+			processedPostLevelStuffRef.current = false
+			if (props.levelSet) {
+				setBestMetricsBeforeAttempt(
+					findBestMetrics(props.levelSet.currentLevelRecord().levelInfo)
+				)
+			}
 			return level
 		},
-		[sfx, props.level]
+		[sfx, props.level, props.levelSet]
 	)
 	useLayoutEffect(() => void resetLevel(), [props.level])
 
@@ -517,7 +494,7 @@ export function DumbLevelPlayer(props: {
 
 	// Attempt tracking
 	const [attempt, setAttempt] = useState<null | AttemptTracker>(null)
-	function beginLevelAttempt() {
+	const beginLevelAttempt = useCallback(() => {
 		setPlayerState("play")
 		setAttempt(
 			new AttemptTracker(
@@ -527,7 +504,7 @@ export function DumbLevelPlayer(props: {
 				props.levelSet?.currentLevelRecord().levelInfo.scriptState ?? undefined
 			)
 		)
-	}
+	}, [props.levelSet, level])
 	const borrowLevelSet = useJotaiFn(borrowLevelSetGs)
 	const submitLevelAttempt = useCallback(() => {
 		if (embedMode || !attempt) return
@@ -540,6 +517,9 @@ export function DumbLevelPlayer(props: {
 	const setWinInterruptResponse = useSetAtom(levelWinInterruptResponseAtom)
 
 	// Ticking
+	const levelN = useAtomValue(levelNAtom)
+	// Ughh React's inability to immediately noticed changed state is very annoying
+	const processedPostLevelStuffRef = useRef<boolean>(false)
 	const tickLevel = useCallback(() => {
 		if (replay) {
 			level.setProviderInputs(replay)
@@ -552,22 +532,23 @@ export function DumbLevelPlayer(props: {
 		level.tick()
 		inputMan.setReleasedInputs()
 		sfx?.processSfxField(level.sfx)
-		if (props.endOnNonlegalGlitch) {
-			for (const glitch of level.glitches) {
-				if (isGlitchKindNonlegal(glitch.glitchKind)) {
-					setCaughtGlitch(glitch.toGlitchInfo())
-					setPlayerState("nonlegal")
-					return
-				}
-			}
-		}
 		if (level.gameState === GameState.PLAYING) {
 			renderInventoryRef.current?.()
 			if (replay) {
 				setSolutionLevelProgress(replay.inputProgress(level.subticksPassed()))
 			}
 			updateLevelMetrics()
+			if (props.endOnNonlegalGlitch) {
+				for (const glitch of level.glitches) {
+					if (isGlitchKindNonlegal(glitch.glitchKind)) {
+						setCaughtGlitch(glitch.toGlitchInfo())
+						setPlayerState("nonlegal")
+					}
+				}
+			}
 		} else if (playerState === "play") {
+			if (processedPostLevelStuffRef.current) return
+			processedPostLevelStuffRef.current = true
 			submitLevelAttempt()
 			if (level.gameState !== GameState.CRASH) {
 				props.levelFinished?.()
@@ -576,6 +557,16 @@ export function DumbLevelPlayer(props: {
 			if (level.gameState === GameState.WON) {
 				setPlayerState("win")
 				setWinInterruptResponse(winInterruptResponseFromLevel(level))
+				setSolutionMetrics({
+					// FIXME: Wrong but idc rn
+					realTime: 0,
+					score: calculateLevelPoints(
+						levelN!,
+						Math.ceil(level.timeLeft / 60),
+						level.bonusPoints
+					),
+					timeLeft: level.timeLeft,
+				})
 			} else if (level.gameState === GameState.DEATH) {
 				setPlayerState("dead")
 			} else if (level.gameState === GameState.TIMEOUT) {
@@ -596,6 +587,7 @@ export function DumbLevelPlayer(props: {
 		attempt,
 		props.endOnNonlegalGlitch,
 		props.levelFinished,
+		levelN,
 	])
 
 	// Report embed ready
@@ -641,8 +633,6 @@ export function DumbLevelPlayer(props: {
 			setSolutionLevelProgress(progress)
 			if (progress < replay.inputProgress(lvl.subticksPassed())) {
 				lvl = props.level.initLevel()
-				lvl.tick()
-				lvl.tick()
 				setLevel(lvl)
 			}
 			const WAIT_PERIOD = 20 * 40
@@ -727,6 +717,54 @@ export function DumbLevelPlayer(props: {
 		[cameraType, tileset, verticalLayout, replay]
 	)
 
+	// Level stats
+
+	const setScores = useAtomValue(setScoresAtom)
+	const importantSet = useAtomValue(importantSetAtom)
+	const levelScores = useMemo(
+		() => setScores?.find(lvl => lvl.level === props.levelSet?.currentLevel),
+		[props.levelSet?.currentLevel]
+	)
+	const [solutionMetrics, setSolutionMetrics] =
+		useState<SolutionMetrics | null>(null)
+	const [bestMetricsBeforeAttempt, setBestMetricsBeforeAttempt] =
+		useState<SolutionMetrics | null>(null)
+
+	const showTimeFraction = useAtomValue(showTimeFractionInMetricsAtom)
+
+	const winStats = useMemo(() => {
+		if (!solutionMetrics) return null
+		const stats: LevelStatsBoxProps = {
+			metrics: solutionMetrics,
+			levelN: levelN!,
+			showFraction: showTimeFraction,
+			showScore: importantSet?.scoreboardHasScores ?? true,
+		}
+		if (bestMetricsBeforeAttempt) {
+			stats.bestMetrics = bestMetricsBeforeAttempt
+		}
+		if (props.levelSet) {
+			stats.totalMetrics = props.levelSet.totalMetrics()
+		}
+		if (levelScores) {
+			stats.grades = getReportGradesForMetrics(
+				{
+					score: Math.max(stats.bestMetrics?.score ?? 0, solutionMetrics.score),
+					timeLeft: Math.max(
+						stats.bestMetrics?.timeLeft ?? 0,
+						solutionMetrics.timeLeft
+					),
+					realTime: Math.min(
+						stats.bestMetrics?.realTime ?? Infinity,
+						solutionMetrics.realTime
+					),
+				},
+				levelScores
+			)
+		}
+		return stats
+	}, [solutionMetrics, props.levelSet, levelN])
+
 	// GUI stuff
 	const scale = useAutoScale(scaleArgs)
 	const shouldShowMobileControls = useShouldShowMobileControls()
@@ -735,6 +773,7 @@ export function DumbLevelPlayer(props: {
 	const [caughtGlitch, setCaughtGlitch] = useState<protobuf.IGlitchInfo | null>(
 		null
 	)
+	const showPrompt = useJotaiFn(showPromptGs)
 
 	let cover: VNode | null
 	if (playerState === "pregame") {
@@ -755,8 +794,10 @@ export function DumbLevelPlayer(props: {
 			<WinCover
 				onNextLevel={goToNextLevel}
 				onSetSelector={() => setPage("")}
+				onLevelList={() => showPrompt(LevelListPrompt)}
 				onRestart={resetLevel}
 				singleLevel={!props.levelSet}
+				levelStats={winStats!}
 			/>
 		)
 	} else if (playerState === "pause") {

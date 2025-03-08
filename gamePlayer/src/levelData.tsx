@@ -47,7 +47,6 @@ import {
 import { basename, dirname } from "path-browserify"
 import { readFile, writeFile, showLoadPrompt, showDirectoryPrompt } from "./fs"
 import { atomEffect } from "jotai-effect"
-import { getRRRoutes, setRRRoutesAtomWrapped } from "./railroad"
 import { preferenceAtom, preloadFinishedAtom } from "./preferences"
 import { parse } from "path"
 import {
@@ -187,7 +186,7 @@ export async function goToNextLevelGs(get: Getter, set: Setter) {
 		const winResponse = get(levelWinInterruptResponseAtom)
 		const rec = await lSet.nextLevel(
 			winResponse
-				? { ...winResponse, totalScore: lSet.totalScore() }
+				? { ...winResponse, totalScore: lSet.totalMetrics().score }
 				: { type: "skip" }
 		)
 		set(levelWinInterruptResponseAtom, null)
@@ -272,11 +271,6 @@ export async function setLevelSetGs(
 	const importantIdent = IMPORTANT_SETS.find(
 		iset => iset.setName === lset.gameTitle()
 	)?.setIdent
-	if (importantIdent) {
-		set(setRRRoutesAtomWrapped, getRRRoutes(importantIdent, true))
-	} else {
-		set(setRRRoutesAtomWrapped, null)
-	}
 	set(levelSetIdentAtom, ident ?? importantIdent ?? CUSTOM_SET_SET_IDENT)
 	if (!get(pageAtom)?.isLevelPlayer) {
 		set(pageAtom, "play")
@@ -304,7 +298,6 @@ export function setIndividualLevelGs(
 	set(levelSetIdentAtom, CUSTOM_LEVEL_SET_IDENT)
 	set(levelAtom, level)
 	set(levelNAtom, 1)
-	set(setRRRoutesAtomWrapped, null)
 	if (!get(pageAtom)?.isLevelPlayer) {
 		set(pageAtom, "play")
 	}
@@ -650,3 +643,9 @@ export const globalC2GGameModifiersAtom = atom(
 	(get: Getter) => getGlobalLevelModifiersGs(get),
 	() => {}
 )
+
+export const importantSetAtom = atom((get, _set) => {
+	const lSet = get(levelSetAtom)
+	if (!lSet) return null
+	return IMPORTANT_SETS.find(iSet => iSet.setName === lSet.gameTitle()) ?? null
+})

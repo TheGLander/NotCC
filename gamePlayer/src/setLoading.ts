@@ -153,10 +153,12 @@ export interface ImportantSetInfo {
 	setIdent: string
 	setName: string
 	acquireInfo?: { url: string; term: string }
+	scoreboardHasScores?: boolean
 }
 export const IMPORTANT_SETS: ImportantSetInfo[] = [
 	{
 		setIdent: "cc1",
+		scoreboardHasScores: false,
 		setName: "Chips Challenge",
 		acquireInfo: {
 			url: "https://store.steampowered.com/app/346850/Chips_Challenge_1",

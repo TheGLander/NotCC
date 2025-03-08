@@ -1,5 +1,5 @@
 import clone from "clone"
-import { protoTimeToMs } from "./attemptTracker.js"
+import { protoTimeToMs, protoTimeToSubticks } from "./attemptTracker.js"
 import {
 	ScriptRunner,
 	MapInterruptResponse,
@@ -31,12 +31,8 @@ export function calculateLevelPoints(
 
 export interface SolutionMetrics {
 	timeLeft: number
-	points: number
+	score: number
 	realTime: number
-}
-
-function snapNumber(num: number, period: number): number {
-	return num - (num % period)
 }
 
 export function metricsFromAttempt(
@@ -45,43 +41,44 @@ export function metricsFromAttempt(
 ): SolutionMetrics {
 	if (!outcome.timeLeft || !outcome.absoluteTime)
 		throw new Error("Incomplete attempt info")
-	const timeLeft = snapNumber(protoTimeToMs(outcome.timeLeft) / 1000, 1 / 60)
+	const timeLeft = protoTimeToSubticks(outcome.timeLeft)
 	const points = calculateLevelPoints(
 		levelN,
-		Math.ceil(timeLeft),
+		Math.ceil(timeLeft / 60),
 		outcome.bonusScore ?? 0
 	)
-	const realTime = snapNumber(
-		protoTimeToMs(outcome.absoluteTime) / 1000,
-		1 / 60
-	)
-	return { timeLeft, points, realTime }
+	const realTime = protoTimeToMs(outcome.absoluteTime) / 1000
+
+	return { timeLeft, score: points, realTime }
 }
 
-export function findBestMetrics(info: ILevelInfo): Partial<SolutionMetrics> {
+export function findBestMetrics(info: ILevelInfo): SolutionMetrics | null {
 	if (typeof info.levelNumber !== "number")
 		throw new Error("Incomplete level info")
 	const metrics: Partial<SolutionMetrics> = {}
-	if (!info.attempts || info.attempts.length === 0) return metrics
+	if (!info.attempts || info.attempts.length === 0) return null
 	const levelN = info.levelNumber
 
 	for (const attempt of info.attempts) {
 		if (!attempt.solution?.outcome) continue
-		const { realTime, points, timeLeft } = metricsFromAttempt(
-			levelN,
-			attempt.solution.outcome
-		)
+		const {
+			realTime,
+			score: points,
+			timeLeft,
+		} = metricsFromAttempt(levelN, attempt.solution.outcome)
 		if (metrics.timeLeft === undefined || metrics.timeLeft < timeLeft) {
 			metrics.timeLeft = timeLeft
 		}
-		if (metrics.points === undefined || metrics.points < points) {
-			metrics.points = points
+		if (metrics.score === undefined || metrics.score < points) {
+			metrics.score = points
 		}
 		if (metrics.realTime === undefined || metrics.realTime > realTime) {
 			metrics.realTime = realTime
 		}
 	}
-	return metrics
+	// If we went over at least one successful attempt, we definitely populated
+	// all fields.
+	return "timeLeft" in metrics ? (metrics as SolutionMetrics) : null
 }
 
 export type LevelSetLoaderFunction = ((
@@ -132,24 +129,20 @@ export abstract class LevelSet {
 		}
 		return record as LevelSetRecordFull
 	}
-	totalScore(): number {
+	totalMetrics(): SolutionMetrics {
 		return this.listLevels()
-			.map<number>(
-				rec =>
-					rec.levelInfo.attempts?.reduce((acc, val) => {
-						const outcome = val.solution?.outcome
-						if (!outcome) return acc
-						const score = calculateLevelPoints(
-							rec.levelInfo.levelNumber ?? 0,
-							outcome.timeLeft
-								? Math.ceil(protoTimeToMs(outcome.timeLeft) / 1000)
-								: 0,
-							outcome.bonusScore ?? 0
-						)
-						return Math.max(acc, score)
-					}, 0) ?? 0
+			.map<SolutionMetrics | null>(rec => findBestMetrics(rec.levelInfo))
+			.reduce<SolutionMetrics>(
+				(acc, val) =>
+					val === null
+						? acc
+						: {
+								realTime: acc.realTime + val.realTime,
+								timeLeft: acc.timeLeft + val.timeLeft,
+								score: acc.score + val.score,
+							},
+				{ score: 0, timeLeft: 0, realTime: 0 }
 			)
-			.reduce((acc, val) => acc + val)
 	}
 }
 

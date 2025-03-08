@@ -1,6 +1,8 @@
 import { Route } from "@notcc/logic"
 import { atom } from "jotai"
+import { atomEffect } from "jotai-effect"
 import { unwrap } from "jotai/utils"
+import { importantSetAtom } from "./levelData"
 
 export interface RRRoute {
 	id: string
@@ -47,5 +49,13 @@ export async function getRRLevel(
 	return await res.json()
 }
 
-export const setRRRoutesAtomWrapped = atom<Promise<RRLevel[]> | null>(null)
-export const setRRRoutesAtom = unwrap(setRRRoutesAtomWrapped)
+export const setRRRoutesAtom = unwrap(atom<Promise<RRLevel[]> | null>(null))
+
+export const rrRoutesSyncAtom = atomEffect((get, set) => {
+	const importantSet = get(importantSetAtom)
+	if (!importantSet) {
+		set(setRRRoutesAtom, null)
+	} else {
+		set(setRRRoutesAtom, getRRRoutes(importantSet.setIdent, true))
+	}
+})
