@@ -1765,10 +1765,14 @@ static void SWIVEL_actor_left(BasicTile* self,
   Direction self_dir = (Direction)self->custom_data;
   if (dir == self_dir) {
     self->custom_data = right(self->custom_data);
-    Level_add_sfx(level, SFX_DOOR_UNLOCK);
+    if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+      Level_add_sfx(level, SFX_DOOR_UNLOCK);
+    }
   } else if (dir == right(self_dir)) {
     self->custom_data = left(self->custom_data);
-    Level_add_sfx(level, SFX_DOOR_UNLOCK);
+    if (has_flag(actor, ACTOR_FLAGS_PLAYER)) {
+      Level_add_sfx(level, SFX_DOOR_UNLOCK);
+    }
   }
 }
 static void SWIVEL_on_wire_high(BasicTile* self, Level* level, bool _real) {
@@ -3028,6 +3032,7 @@ static void GREEN_BOMB_actor_completely_joined(BasicTile* self,
       if (level->chips_left > 0) {
         level->chips_left -= 1;
       }
+      Level_add_sfx(level, SFX_ITEM_PICKUP);
       BasicTile_erase(self);
     }
   } else {
