@@ -1,7 +1,7 @@
 import colors from "tailwindcss/colors"
 import { preferenceAtom } from "./preferences"
 
-export const colorSchemeAtom = preferenceAtom<ThemeColor>("colorScheme", "blue")
+export const colorSchemeAtom = preferenceAtom<ThemeColor>("colorScheme", "cyan")
 
 const badColors = [
 	"inherit",
