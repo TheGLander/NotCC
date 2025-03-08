@@ -307,7 +307,7 @@ function LevelStatsBox(props: LevelStatsBoxProps) {
 		<div class="box my-auto rounded p-2 text-left [text-shadow:initial]">
 			<div
 				class={twJoin(
-					"grid w-auto items-end justify-items-end gap-4",
+					"grid w-auto items-end justify-items-start gap-4",
 					props.grades
 						? "[grid-template-columns:repeat(4,auto);]"
 						: "[grid-template-columns:repeat(3,auto);]"
@@ -323,8 +323,10 @@ function LevelStatsBox(props: LevelStatsBoxProps) {
 					</div>
 				)}
 				<div>Time</div>
-				<div>{formatTime(props.metrics.timeLeft)}s</div>
-				<div>
+				<div class="justify-self-end">
+					{formatTime(props.metrics.timeLeft)}s
+				</div>
+				<div class="justify-self-end">
 					{props.bestMetrics
 						? `${formatTime(props.bestMetrics.timeLeft)}s`
 						: "—"}
@@ -337,7 +339,7 @@ function LevelStatsBox(props: LevelStatsBoxProps) {
 				{props.showScore && (
 					<>
 						<div>Score</div>
-						<div class="flex flex-col">
+						<div class="flex flex-col justify-self-end">
 							<div class="border-b-theme-800 grid gap-1 rounded rounded-b-md border-b-2 text-xs [grid:auto-flow/auto_auto]">
 								<div>base score</div>
 								<div class="justify-self-end">{props.levelN * 500}pts</div>
@@ -354,7 +356,7 @@ function LevelStatsBox(props: LevelStatsBoxProps) {
 							</div>
 							<div class="self-end">{props.metrics.score}pts</div>
 						</div>
-						<div>
+						<div class="justify-self-end">
 							{props.bestMetrics ? `${props.bestMetrics.score}pts` : "—"}
 						</div>
 						{props.grades && (
