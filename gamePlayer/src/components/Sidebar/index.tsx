@@ -423,7 +423,7 @@ function getRRRoutes(
 	if (!rrLevel || !rrLevel.mainlineTimeRoute || !rrLevel.mainlineScoreRoute)
 		return []
 	function makeMetrics(route: RRRoute) {
-		return `${formatTimeLeft(route.timeLeft * 60)}s / ${route.points}pts`
+		return `${formatTimeLeft(Math.round(route.timeLeft * 60))}s / ${route.points}pts`
 	}
 	function fetchIp(route: RRRoute) {
 		return async () => {

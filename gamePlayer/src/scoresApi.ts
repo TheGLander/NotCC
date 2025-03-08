@@ -169,10 +169,15 @@ export function getReportGradeForValue(
 	return "solved"
 }
 
-function getLevelAttribute(metric: "time" | "score", level: ApiPackLevel) {
-	return level.level_attribs.find(
-		attr => attr.rule_type === "steam" && attr.metric === metric
-	)
+export function getLevelAttribute<T extends ApiPackLevel | ApiPackReport[]>(
+	metric: "time" | "score",
+	level: T
+): T extends ApiPackLevel ? ApiPackLevelAttribute : ApiPackReport {
+	return (
+		("level_attribs" in level
+			? level.level_attribs
+			: level) as ApiPackLevelAttribute[]
+	).find(attr => attr.rule_type === "steam" && attr.metric === metric) as any
 }
 
 export type MetricGrades = Record<"time" | "score", ReportGrade>
@@ -199,5 +204,19 @@ export function getReportGradesForMetrics(
 	return {
 		time: timeGrade,
 		score: getReportGradeForValue(metrics.score, scoreAttr),
+	}
+}
+
+export function getMetricsForPlayerReports(
+	reports: ApiPackReport[]
+): Partial<SolutionMetrics> {
+	const timeLeftS = reports.find(
+		val => val.metric === "time" && val.rule_type === "steam"
+	)?.reported_value
+	return {
+		timeLeft: timeLeftS === undefined ? timeLeftS : timeLeftS * 60,
+		score: reports.find(
+			val => val.metric === "score" && val.rule_type === "steam"
+		)?.reported_value,
 	}
 }

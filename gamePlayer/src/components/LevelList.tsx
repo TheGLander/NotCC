@@ -5,7 +5,7 @@ import {
 	levelSetChangedAtom,
 	setIntermissionAtom,
 } from "@/levelData"
-import { PromptComponent } from "@/prompts"
+import { PromptComponent, showPromptGs } from "@/prompts"
 import {
 	FullC2GLevelSet,
 	SolutionMetrics,
@@ -25,6 +25,7 @@ import {
 	setScoresAtom,
 } from "@/scoresApi"
 import { Grade } from "./Grade"
+import { ReportGeneratorPrompt } from "./ReportGenerator"
 
 export const showTimeFractionInMetricsAtom = preferenceAtom(
 	"showTimeFractionInMetrics",
@@ -68,6 +69,8 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 
 	const setScores = useAtomValue(setScoresAtom)
 	const setPlayerScores = useAtomValue(setPlayerScoresAtom)
+
+	const showPrompt = useJotaiFn(showPromptGs)
 
 	const showGrades = setScores && setPlayerScores
 
@@ -128,8 +131,11 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 	return (
 		<Dialog
 			header="Level list"
-			buttons={[["Close", () => {}]]}
-			onResolve={pProps.onResolve}
+			buttons={[
+				["Generate report", () => void showPrompt(ReportGeneratorPrompt)],
+				["Close", () => pProps.onResolve()],
+			]}
+			onClose={pProps.onResolve}
 		>
 			{/* 	<h3 class="text-xl">{levelSet?.gameTitle()}</h3> */}
 			{/* <div></div> */}
