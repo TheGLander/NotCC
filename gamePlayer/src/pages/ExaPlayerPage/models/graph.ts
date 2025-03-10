@@ -506,9 +506,14 @@ export class GraphModel {
 		} else {
 			// I dunno, pick a random one?
 			while (node.outConns.size > 0) {
+				const lastNode = this.constructionLastNode()
 				const conns = Array.from(node.outConns.entries())
 					.flatMap(v => v[1].map<[Node, GraphMoveSequence]>(seq => [v[0], seq]))
-					.filter(v => !this.constructedRoute.some(conn => conn.n === v[0]))
+					.filter(
+						v =>
+							!this.constructedRoute.some(conn => conn.n === v[0]) &&
+							v[0] !== lastNode
+					)
 				if (conns.length === 0) break
 				const conn = conns[0]
 				this.constructedRoute.push({ n: node, m: conn[1] })
