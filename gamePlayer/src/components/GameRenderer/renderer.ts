@@ -176,8 +176,8 @@ export class Renderer {
 		const tileSize = this.tileset.tileSize
 		ctx.drawImage(
 			this.tileset.image,
-			frame[0] * tileSize,
-			frame[1] * tileSize,
+			Math.round(frame[0] * tileSize),
+			Math.round(frame[1] * tileSize),
 			size[0] * tileSize,
 			size[1] * tileSize,
 			Math.round((pos[0] + offset[0]) * tileSize),
