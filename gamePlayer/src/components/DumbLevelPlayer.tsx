@@ -413,6 +413,70 @@ function WinCover(props: {
 	)
 }
 
+type HintRefFunc = (hint: string | null) => void
+
+function NormalHintDisplay({ hintRef }: { hintRef: Ref<HintRefFunc> }) {
+	const hintRefRef = useCallback(
+		(el: HTMLDivElement | null) => {
+			if (!el) {
+				applyRef(hintRef, () => {})
+			} else {
+				applyRef(hintRef, hint => {
+					el.innerText = hint ?? ""
+				})
+			}
+		},
+		[hintRef]
+	)
+	return (
+		<div
+			class="bg-theme-950 flex-1 whitespace-pre-line rounded p-1"
+			ref={hintRefRef}
+		></div>
+	)
+}
+
+function MobileHintCover({ hintRef }: { hintRef: Ref<HintRefFunc> }) {
+	const hintBoxRef = useRef<HTMLDivElement | null>(null)
+	const hintPlaceRef = useRef<HTMLDivElement | null>(null)
+	const [hidden, setHidden] = useState(false)
+	const hintApplier = useCallback((hint: string | null) => {
+		const hintBox = hintBoxRef.current
+		const hintPlace = hintPlaceRef.current
+		if (!hint) {
+			if (hintBox) {
+				hintBox.style.display = "none"
+			}
+		} else {
+			if (hintBox) {
+				hintBox.style.display = "flex"
+			}
+			if (hintPlace) {
+				hintPlace.innerText = hint
+			}
+		}
+	}, [])
+	useLayoutEffect(() => {
+		applyRef(hintRef, hintApplier)
+	}, [hintApplier])
+	return (
+		<div class="flex h-full w-full">
+			<div
+				class="box mx-auto mb-4 mt-auto flex flex-col gap-1"
+				ref={hintBoxRef}
+			>
+				<div
+					class={twJoin("bg-theme-950 rounded p-1", hidden && "hidden")}
+					ref={hintPlaceRef}
+				></div>
+				<button class="self-center" onClick={() => setHidden(!hidden)}>
+					{hidden ? "Show hint" : "Hide hint"}
+				</button>
+			</div>
+		</div>
+	)
+}
+
 export function DumbLevelPlayer(props: {
 	level: LevelData
 	levelSet?: LevelSet
@@ -481,18 +545,23 @@ export function DumbLevelPlayer(props: {
 	const timeLeftRef = useRef<HTMLDivElement>(null)
 	const chipsLeftRef = useRef<HTMLDivElement>(null)
 	const bonusPointsRef = useRef<HTMLDivElement>(null)
-	const hintRef = useRef<HTMLDivElement>(null)
+	const hintRef = useRef<HintRefFunc>(null)
 	const updateLevelMetrics = useCallback(() => {
 		timeLeftRef.current!.innerText = `${Math.ceil(level.timeLeft / 60)}s`
 		chipsLeftRef.current!.innerText = level.chipsLeft.toString()
 		bonusPointsRef.current!.innerText = `${level.bonusPoints}pts`
-		if (hintRef.current) {
-			hintRef.current.innerText = playerSeat.displayedHint ?? ""
-		}
+		hintRef.current?.(playerSeat.displayedHint)
 	}, [level])
 	useLayoutEffect(() => {
 		updateLevelMetrics()
 	}, [updateLevelMetrics])
+	const hintRefAppl = useCallback(
+		(ref: HintRefFunc | null) => {
+			ref?.(playerSeat.displayedHint)
+			applyRef(hintRef, ref)
+		},
+		[playerSeat]
+	)
 
 	// Attempt tracking
 	const [attempt, setAttempt] = useState<null | AttemptTracker>(null)
@@ -808,6 +877,8 @@ export function DumbLevelPlayer(props: {
 		cover = <NonlegalCover glitch={caughtGlitch!} onRestart={resetLevel} />
 	} else if (playerState === "crash") {
 		cover = <CrashCover glitch={caughtGlitch!} onRestart={resetLevel} />
+	} else if (playerState === "play" && verticalLayout) {
+		cover = <MobileHintCover hintRef={hintRefAppl} />
 	} else {
 		cover = null
 	}
@@ -912,12 +983,7 @@ export function DumbLevelPlayer(props: {
 						/>
 					</div>
 				)}
-				{!verticalLayout && (
-					<div
-						class="bg-theme-950 flex-1 whitespace-pre-line rounded p-1"
-						ref={hintRef}
-					></div>
-				)}
+				{!verticalLayout && <NormalHintDisplay hintRef={hintRefAppl} />}
 			</div>
 			<div class={twJoin("absolute", !shouldShowMobileControls && "hidden")}>
 				<MobileControls handler={inputMan.handler} />
