@@ -157,7 +157,7 @@ registerStateFunction<BasicTile>("dynamiteLit", actor =>
 	Math.floor((Number(actor.customData) / 256) * 4).toString()
 )
 registerStateFunction<BasicTile>("flameJet", actor =>
-	actor.customData ? "on" : "off"
+	actor.customData & 0x1n ? "on" : "off"
 )
 //
 interface FreeformWiresSpecialArt extends SpecialArt {
