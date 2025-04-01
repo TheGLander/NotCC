@@ -30,6 +30,7 @@ import { showTimeFractionInMetricsAtom } from "../LevelList"
 import { useJotaiFn, usePromise } from "@/helpers"
 import { getPlayerSummary, optimizerIdAtom } from "@/scoresApi"
 import { VNode } from "preact"
+import { HaikuMode, haikuModePreferenceAtom } from "../Ht"
 
 export type PrefDisplayProps<T, P = {}> = P & {
 	set: (val: T) => void
@@ -126,6 +127,22 @@ function OptimizerIdPref({
 						: playerInfoRes.value?.player}
 			</span>
 		</div>
+	)
+}
+
+function HaikuModePref({ value, set, inputId }: PrefDisplayProps<HaikuMode>) {
+	return (
+		<select
+			id={inputId}
+			value={value}
+			onInput={ev => {
+				set(ev.currentTarget.value as HaikuMode)
+			}}
+		>
+			<option value="on">Permanent haiku</option>
+			<option value="auto">Only format as required</option>
+			<option value="off">Shall never see it</option>
+		</select>
 	)
 }
 
@@ -251,6 +268,11 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 					label="Preload all files when loading from files from the directory prompt"
 					Display={BinaryDisplayPref}
 				/>
+				<Pref
+					atom={haikuModePreferenceAtom}
+					label="Haiku compatability mode"
+					Display={HaikuModePref}
+				></Pref>
 				<div class="col-span-2">
 					<button onClick={() => resetDismissablePreferences()}>
 						Reset dismissed dialogs

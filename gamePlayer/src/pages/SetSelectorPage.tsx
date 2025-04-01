@@ -13,6 +13,7 @@ import {
 	preloadFilesFromDirectoryPromptAtom,
 } from "@/levelData"
 import { saveFilesLocallyGs } from "@/setManagement"
+import { Ht } from "@/components/Ht"
 
 const altLogoAtom = atom(false)
 
@@ -21,17 +22,19 @@ function Header() {
 	return (
 		<div class="box max-w-4/5 mx-auto mt-3 flex w-fit flex-row items-center max-sm:max-w-sm max-sm:flex-wrap">
 			<img
-				class="inline-block aspect-square max-sm:ml-auto max-sm:h-10"
+				class="inline-block aspect-square self-start max-sm:ml-auto max-sm:h-10"
 				src={altLogo ? "./iconBigAlt.png" : "./iconBig.png"}
 				onClick={() => setAltLogo(val => !val)}
 				draggable={false}
 			/>
 			<div class="mx-2 flex flex-col max-sm:contents">
-				<h1 class="inline text-5xl max-sm:ml-2 max-sm:mr-auto sm:text-9xl">
+				<h1 class="inline text-5xl max-sm:ml-2 max-sm:mr-auto sm:mt-[-1rem] sm:text-9xl">
 					NotCC
 				</h1>
 				<p class="self-center text-sm max-sm:mx-auto sm:text-[1.05rem]">
-					A scoreboard-legal Chip's Challenge 2® emulator.
+					<Ht haiku="An emulator / For Chip's Challenge® Two and Steam /  Scoreboar-legal, too">
+						A scoreboard-legal Chip's Challenge 2® emulator.
+					</Ht>
 				</p>
 			</div>
 		</div>
@@ -54,7 +57,9 @@ function UploadBox() {
 	const setSearchParams = useSetAtom(searchParamsAtom)
 	return (
 		<div class="box mx-auto mt-2 w-4/5">
-			<p>Load external files:</p>
+			<p>
+				<Ht haiku="External entries:">Load external files:</Ht>
+			</p>
 			<div class="flex flex-row gap-1">
 				<button
 					class="flex-1"
@@ -74,7 +79,7 @@ function UploadBox() {
 						setIndividualLevel(Promise.resolve(levelData.level))
 					}}
 				>
-					Load file
+					<Ht haiku="Add a game file to the world">Load file</Ht>
 				</button>
 				<button
 					class="flex-1"
@@ -101,7 +106,7 @@ function UploadBox() {
 						await setLevelSet(setInfo.setData, setIdent)
 					}}
 				>
-					Load directory
+					<Ht haiku="Start directory">Load directory</Ht>
 				</button>
 			</div>
 			<div class="flex flex-col">
@@ -112,7 +117,7 @@ function UploadBox() {
 							checked={embedLevelInfo}
 							onInput={ev => setEmbedLevelInfo(ev.currentTarget.checked)}
 						/>{" "}
-						Embed level info in URL
+						<Ht haiku="Encode URL">Embed level info in URL</Ht>
 					</label>
 				)}
 				<label>
@@ -121,7 +126,9 @@ function UploadBox() {
 						checked={storeSetsLocally}
 						onInput={ev => setStoreSetsLocally(ev.currentTarget.checked)}
 					/>{" "}
-					Store sets locally
+					<Ht haiku="Started sets will persist for eons / Can always replay">
+						Store sets locally
+					</Ht>
 				</label>
 			</div>
 		</div>
@@ -149,30 +156,32 @@ function AlphaHeader() {
 					src={prewriteIcon}
 				/>
 			</h2>
-			<p>
-				Welcome to the Prewrite Alpha! This is a currently in-development
-				version of NotCC, being rewritten from scratch. Here are some cool
-				things I intend to add with the (p)rewrite:
-			</p>
-			<ul class="list-disc pl-4">
-				<li>Mobile support</li>
-				<li>Less janky UI, including loading indicators</li>
-				<li>NCCS and settings import and export</li>
-				<li>
-					A completely new ExaCC experience: graph and tree (trie?) modes, route
-					timeline, camera and RNG controls, etc
-				</li>
-				<li>
-					Ability to locally save levelsets (including CC1 Steam and CC2, say
-					goodbye to the annoying non-free dialog!!)
-				</li>
-				<li>External SFX, and maybe an update to the existing set</li>
-				<li>
-					(External) Music! While NotCC doesn't have its own soundtrack to use,
-					I intend to add support for user-provided music anyway
-				</li>
-				<li>Embed support for the bb.club wiki</li>
-			</ul>
+			<Ht haiku="Brand new edition / New features beyond compare / Will it ever come?">
+				<p>
+					Welcome to the Prewrite Alpha! This is a currently in-development
+					version of NotCC, being rewritten from scratch. Here are some cool
+					things I intend to add with the (p)rewrite:
+				</p>
+				<ul class="list-disc pl-4">
+					<li>Mobile support</li>
+					<li>Less janky UI, including loading indicators</li>
+					<li>NCCS and settings import and export</li>
+					<li>
+						A completely new ExaCC experience: graph and tree (trie?) modes,
+						route timeline, camera and RNG controls, etc
+					</li>
+					<li>
+						Ability to locally save levelsets (including CC1 Steam and CC2, say
+						goodbye to the annoying non-free dialog!!)
+					</li>
+					<li>External SFX, and maybe an update to the existing set</li>
+					<li>
+						(External) Music! While NotCC doesn't have its own soundtrack to
+						use, I intend to add support for user-provided music anyway
+					</li>
+					<li>Embed support for the bb.club wiki</li>
+				</ul>
+			</Ht>
 			<button class="ml-auto block" onClick={() => setAlphaHeaderClosed(true)}>
 				Ok, cool
 			</button>

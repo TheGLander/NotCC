@@ -47,6 +47,7 @@ import { Toast, addToastGs, removeToastGs } from "@/toast"
 import { showLoadPrompt } from "@/fs"
 import { LevelListPrompt } from "../LevelList"
 import { unwrap } from "jotai/utils"
+import { Ht } from "../Ht"
 
 export interface LevelControls {
 	restart?(): void
@@ -524,7 +525,7 @@ export function Sidebar() {
 			<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">
 				<SidebarButton icon={leafIcon}>
 					<ChooserButton
-						label="Set selector"
+						label={<Ht haiku="Choose a set to play">Set selector</Ht>}
 						shortcut="Escape"
 						onTrigger={(_get, set) => set(pageAtom, "")}
 					/>
@@ -532,55 +533,66 @@ export function Sidebar() {
 				{/* TODO dynamic icon */}
 				<SidebarButton icon={levelIcon}>
 					<ChooserButton
-						label="Reset level"
+						label={<Ht haiku="Try again, test new ideas">Reset level</Ht>}
 						shortcut="Shift+R"
 						disabled={!levelControls.restart}
 						onTrigger={() => levelControls.restart!()}
 					/>
 					<ChooserButton
-						label="Pause"
+						label={<Ht haiku="Pause a bit and rest">Pause</Ht>}
 						shortcut="P"
 						disabled={!levelControls.pause}
 						onTrigger={() => levelControls.pause!()}
 					/>
 					<hr class="mx-2 my-1" />
 					<ChooserButton
-						label="Next level"
+						label={<Ht haiku="Another level">Next level</Ht>}
 						shortcut="Shift+N"
 						disabled={!hasSet}
 						onTrigger={goToNextLevelGs}
 					/>
 					<ChooserButton
-						label="Previous level"
+						label={
+							<Ht haiku="That one you skipped twice before">Previous level</Ht>
+						}
 						shortcut="Shift+P"
 						disabled={!hasSet}
 						onTrigger={goToPreviousLevelGs}
 					/>
 					<ChooserButton
-						label="Level list"
+						label={<Ht haiku="The full arrangement">Level list</Ht>}
 						shortcut="Shift+S"
 						disabled={!hasSet}
 						onTrigger={() => showPromptGs(get, set, LevelListPrompt)}
 					/>
 				</SidebarButton>
 				<SidebarButton icon={floppyIcon}>
-					<div class="mx-2">Solutions:</div>
+					<div class="mx-2">
+						<Ht haiku="Your correct replays:">Solutions:</Ht>
+					</div>
 					<SolutionsTooltipList controls={levelControls} />
-					<ChooserButton label="All attempts" shortcut="Shift+A" />
+					<ChooserButton
+						label={<Ht haiku="All of the attempts are there">All attempts</Ht>}
+						shortcut="Shift+A"
+					/>
 					<hr class="mx-2 my-1" />
-					<div class="mx-2">Routes:</div>
+					<div class="mx-2">
+						<Ht haiku="Pre-existing plays:">Routes:</Ht>
+					</div>
 					<RoutesTooltipList controls={levelControls} />
 					<ChooserButton
-						label="Import route..."
+						label={<Ht haiku="Add one to the world">Import route...</Ht>}
 						shortcut="Shift+I"
 						onTrigger={() => importRoute(levelControls)}
 						disabled={!hasLevel}
 					/>
-					<ChooserButton label="All routes" />
+					<ChooserButton
+						label={<Ht haiku="Routings' complete collection">All routes</Ht>}
+					/>
 				</SidebarButton>
 				<SidebarButton icon={clockIcon}>
 					<ChooserButton
-						label="Toggle ExaCC"
+						label={<Ht haiku="A time-travel tool">Toggle ExaCC</Ht>}
 						shortcut="Shift+X"
 						disabled={!hasLevel}
 						onTrigger={toggleExaCC}
@@ -591,7 +603,7 @@ export function Sidebar() {
 						}
 					/>
 					<ChooserButton
-						label="New or Open ExaCC project"
+						label={<Ht haiku="Try any new route">New or Open ExaCC project</Ht>}
 						shortcut="Ctrl+Shift+X"
 						disabled={!hasLevel}
 						onTrigger={(get, set) => {
@@ -601,20 +613,22 @@ export function Sidebar() {
 						}}
 					/>
 					<ChooserButton
-						label="Save project"
+						label={
+							<Ht haiku="Please make sure to save sometimes">Save project</Ht>
+						}
 						shortcut="Ctrl+S"
 						disabled={!levelControls.exa?.save}
 						onTrigger={() => levelControls.exa!.save!()}
 					/>
 					<ChooserButton
-						label="Export current route"
+						label={<Ht haiku="Save it locally">Export current route</Ht>}
 						shortcut="Shift+E"
 						disabled={!levelControls.exa}
 						onTrigger={() => levelControls.exa!.export()}
 					/>
 					<hr />
 					<ChooserButton
-						label="Undo"
+						label={<Ht haiku="Erase a mistake">Undo</Ht>}
 						shortcut="Backspace"
 						onTrigger={() => {
 							levelControls.exa!.undo()
@@ -622,7 +636,7 @@ export function Sidebar() {
 						disabled={!levelControls.exa}
 					/>
 					<ChooserButton
-						label="Redo"
+						label={<Ht haiku="Check if that move was okay">Redo</Ht>}
 						shortcut="Enter"
 						onTrigger={() => {
 							levelControls.exa!.redo()
@@ -631,21 +645,25 @@ export function Sidebar() {
 					/>
 					<hr />
 					<ChooserButton
-						label="Camera control"
+						label={<Ht haiku="Resize the viewport">Camera control</Ht>}
 						onTrigger={() => {
 							levelControls.exa!.cameraControls()
 						}}
 						disabled={!levelControls.exa}
 					/>
 					<ChooserButton
-						label="Tile inspector"
+						label={<Ht haiku="Inspect the cell's tiles">Tile inspector</Ht>}
 						onTrigger={() => {
 							levelControls.exa!.tileInspector()
 						}}
 						disabled={!levelControls.exa}
 					/>
 					<ChooserButton
-						label="Level modifiers control"
+						label={
+							<Ht haiku="Adjust starting conditions">
+								Level modifiers control
+							</Ht>
+						}
 						onTrigger={() => {
 							levelControls.exa!.levelModifiersControls()
 						}}
@@ -653,7 +671,7 @@ export function Sidebar() {
 					/>
 					<hr />
 					<ChooserButton
-						label="Prune backfeed"
+						label={<Ht haiku="Remove unused links">Prune backfeed</Ht>}
 						onTrigger={() => {
 							levelControls.exa!.purgeBackfeed!()
 						}}
@@ -671,15 +689,20 @@ export function Sidebar() {
 
 				<SidebarButton icon={toolsIcon} reverse>
 					<ChooserButton
-						label="Preferences"
+						label={<Ht haiku="Change the haiku mode">Preferences</Ht>}
 						shortcut="Shift+C"
 						onTrigger={(get, set) => showPromptGs(get, set, PreferencesPrompt)}
 					/>
-					<ChooserButton label="Save file manager" shortcut="Alt+S" />
+					<ChooserButton
+						label={
+							<Ht haiku="Save or load whatever here">Save file manager</Ht>
+						}
+						shortcut="Alt+S"
+					/>
 				</SidebarButton>
 				<SidebarButton icon={infoIcon} reverse>
 					<ChooserButton
-						label="About"
+						label={<Ht haiku="Who made this nice app?">About</Ht>}
 						shortcut="F1"
 						onTrigger={(get, set) => showPromptGs(get, set, AboutPrompt)}
 					/>

@@ -71,6 +71,7 @@ import {
 } from "@/scoresApi"
 import { LevelListPrompt, showTimeFractionInMetricsAtom } from "./LevelList"
 import { showPromptGs } from "@/prompts"
+import { Ht } from "./Ht"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -214,10 +215,14 @@ function PauseCover(props: { onUnpause: () => void }) {
 			buttons={[["Unpause", props.onUnpause]]}
 		>
 			<div class="flex flex-1 flex-col items-center">
-				<h2 class="mt-6 text-left text-5xl">Paused</h2>
+				<h2 class="mt-6 text-left text-5xl">
+					<Ht haiku="Take some moments off">Paused</Ht>
+				</h2>
 				<div class="bg-theme-950 relative my-auto w-4/5 rounded p-2 text-left [text-shadow:initial]">
-					<div class="mb-1 text-lg">Did you know?</div>
-					{trivia[triviaIdx]}
+					<div class="mb-1 text-lg">
+						<Ht haiku="This fun fact shouldn't be unknown:">Did you know?</Ht>
+					</div>
+					<Ht haiku="JK, no facts here!">{trivia[triviaIdx]}</Ht>
 					{/* For the guaranteed space */}
 					<span class="invisible">
 						{triviaIdx + 1}/{trivia.length}
@@ -966,11 +971,17 @@ export function DumbLevelPlayer(props: {
 						!verticalLayout && "ml-1 "
 					)}
 				>
-					<div>Chips left:</div>
+					<div>
+						<Ht haiku="Electronic chips:">Chips left:</Ht>
+					</div>
 					<div class="text-[1.5em]" ref={chipsLeftRef} />
-					<div>Time left:</div>
+					<div class="text-right">
+						<Ht haiku="Moments until our game over:">Time left:</Ht>
+					</div>
 					<div class="text-[1.5em]" ref={timeLeftRef} />
-					<div>Bonus points:</div>
+					<div>
+						<Ht haiku="Extra points for you:">Bonus points:</Ht>
+					</div>
 					<div class="text-[1.5em]" ref={bonusPointsRef} />
 				</div>
 				{playerSeat && (
