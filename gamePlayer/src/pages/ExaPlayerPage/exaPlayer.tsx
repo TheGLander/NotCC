@@ -295,7 +295,7 @@ function computeDefaultCamera(
 		tilePadding: [4, 0],
 		// safetyCoefficient: 0.95,
 	})
-	if (scale > 1) scale = Math.floor(scale)
+	if (scale > 1) scale = Math.floor(scale * 4) / 4
 	else {
 		scale = 0.5
 	}
