@@ -960,6 +960,7 @@ export function RealExaPlayerPage() {
 							setHoveredTile(tilePosFromCanvasCoords([ev.offsetX, ev.offsetY]))
 						}}
 						onMouseOut={() => setHoveredTile(null)}
+						forcePerspective
 					/>
 				</div>
 				<div class="box row-start-3">

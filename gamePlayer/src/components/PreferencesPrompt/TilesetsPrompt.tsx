@@ -85,7 +85,7 @@ function TilesetPreview(props: { id: string }) {
 				tileset={tileset}
 				cameraType={tilesetLevelCameraType}
 				tileScale={PRIMARY_TILE_SIZE / tileset.tileSize}
-				// TODO: forcePerspective
+				forcePerspective
 			/>
 			<span class="text-lg">
 				{props.id.startsWith("custom") ? "custom" : props.id}

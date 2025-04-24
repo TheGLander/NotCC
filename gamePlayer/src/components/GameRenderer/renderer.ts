@@ -159,6 +159,10 @@ export class Renderer {
 	level: Level | null = null
 	playerSeat: PlayerSeat | null = null
 	cameraSize: CameraType | null = null
+	forcePerspective = false
+	hasPerspective(): boolean {
+		return this.playerSeat?.hasPerspective() || this.forcePerspective
+	}
 
 	constructor(public tileset: Tileset) {}
 	updateTileSize(canvas: HTMLCanvasElement): void {

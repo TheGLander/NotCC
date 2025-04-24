@@ -75,7 +75,7 @@ registerSpecialFunction<Actor>(
 	"perspective",
 	function (ctx, level, actor, art) {
 		const spArt = art as PerspectiveSpecialArt
-		let perspective = this.playerSeat!.hasPerspective()
+		let perspective = this.hasPerspective()
 		if (perspective && spArt.somethingUnderneathOnly) {
 			const pos = actor.position
 			const tile = level.getCell(pos[0], pos[1])

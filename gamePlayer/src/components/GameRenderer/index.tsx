@@ -27,6 +27,7 @@ export interface GameRendererProps extends HTMLProps<HTMLCanvasElement> {
 	rendererRef?: RefG<Renderer>
 	cameraType: CameraType
 	playerSeat: PlayerSeat
+	forcePerspective?: boolean
 }
 
 export function GameRenderer(props: GameRendererProps) {
@@ -39,6 +40,7 @@ export function GameRenderer(props: GameRendererProps) {
 		rendererRef,
 		cameraType,
 		playerSeat,
+		forcePerspective,
 		...canvasProps
 	} = props
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
@@ -57,11 +59,19 @@ export function GameRenderer(props: GameRendererProps) {
 		renderer.cameraSize = props.cameraType
 		renderer.playerSeat = props.playerSeat
 		renderer.tileset = props.tileset
+		renderer.forcePerspective = props.forcePerspective
 		if (canvas) {
 			renderer.updateTileSize(canvas)
 			renderer.frame(ctx!)
 		}
-	}, [props.tileset, props.cameraType, props.level, props.playerSeat, canvas])
+	}, [
+		props.tileset,
+		props.cameraType,
+		props.level,
+		props.playerSeat,
+		props.forcePerspective,
+		canvas,
+	])
 
 	useLayoutEffect(() => {
 		if (!props.autoDraw || !ctx) return
