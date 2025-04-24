@@ -59,7 +59,7 @@ export function GameRenderer(props: GameRendererProps) {
 		renderer.cameraSize = props.cameraType
 		renderer.playerSeat = props.playerSeat
 		renderer.tileset = props.tileset
-		renderer.forcePerspective = props.forcePerspective
+		renderer.forcePerspective = props.forcePerspective ?? false
 		if (canvas) {
 			renderer.updateTileSize(canvas)
 			renderer.frame(ctx!)
