@@ -258,10 +258,16 @@ registerStateFunction<BasicTile>("thinWall", tile =>
 )
 //
 registerStateFunction<BasicTile>("blueWall", actor =>
-	actor.customData & 0x100n ? "real" : "fake"
+	actor.customData & 0x10000n ? "real" : "fake"
 )
-// TODO: Green wall
-registerStateFunction<BasicTile>("greenWall", _actor => "real")
+registerStateFunction<BasicTile>("greenWall", actor => {
+	const cell = actor.getCell()
+	return actor.customData
+		? "real"
+		: cell.item || cell.actor
+			? "stepped"
+			: "fake"
+})
 registerStateFunction<BasicTile>("toggleWall", (actor, level) =>
 	!!actor.customData != level.toggleWallInverted ? "on" : "off"
 )
