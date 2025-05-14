@@ -8,6 +8,7 @@ import { parseC2M } from "@notcc/logic"
 import { cc2ArtSet } from "../GameRenderer/cc2ArtSet"
 import cga16Image from "@/tilesets/cga16.png"
 import tworldImage from "@/tilesets/tworld.png"
+import tauriImage from "@/tilesets/tauri.png"
 import {
 	canvasToBin,
 	fetchImage,
@@ -26,7 +27,9 @@ import { Gallery, GalleryItem } from "./Gallery"
 
 const PRIMARY_TILE_SIZE = 32
 export const tilesetAtom = atom<Tileset | null>(null)
-export const tilesetIdAtom = preferenceAtom("tileset", "cga16")
+const DEFAULT_TILESET = "tauri"
+
+export const tilesetIdAtom = preferenceAtom("tileset", DEFAULT_TILESET)
 export const tilesetSyncAtom = atomEffect((get, set) => {
 	void get(tilesetIdAtom)
 	if (isPreloading(get)) return
@@ -52,6 +55,13 @@ export async function getTileset(id: string): Promise<Tileset> {
 			art: cc2ArtSet,
 			tileSize: 32,
 			wireWidth: 2 / 32,
+		}
+	if (id === "tauri")
+		return {
+			image: await fetchImage(tauriImage),
+			art: cc2ArtSet,
+			tileSize: 16,
+			wireWidth: 2 / 16,
 		}
 
 	const img = removeBackground(
@@ -96,6 +106,10 @@ function TilesetPreview(props: { id: string }) {
 
 const DEFAULT_TSETS: GalleryItem[] = [
 	{
+		id: "tauri",
+		desc: "Tauri and their friend Radi try to collect chips and reach swirly exits! Will they do it? It's up to the person reading this description!",
+	},
+	{
 		id: "cga16",
 		desc: "This is how this game might have looked like if it were released in the 1980s. Not to be confused with the 4-color CC1 tileset also named CGA.",
 	},
@@ -133,7 +147,7 @@ export const TilesetsPrompt =
 		const removeTset = useCallback(
 			async (id: string) => {
 				if (chosenTset === id) {
-					setChosenTset("cga16")
+					setChosenTset(DEFAULT_TILESET)
 				}
 				await remove(`/tilesets/${id}.png`)
 				setCustomTsets(arr => {
