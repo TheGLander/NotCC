@@ -4,7 +4,6 @@
 #define LACKS_TIME_H
 #define HAVE_MMAP 0
 #define UNSIGNED_MORECORE 1
-#define MORECORE_CANNOT_TRIM 0
 #define NO_MALLOC_STATS 1
 #define ABORT __builtin_unreachable()
 #define USE_LOCKS 0
