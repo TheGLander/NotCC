@@ -8,7 +8,7 @@ export function DownloadPage() {
 	return (
 		<div class="flex flex-col items-center gap-2">
 			<Header />
-			<div class="box w-3/5">
+			<div class="box w-full lg:w-3/5">
 				<p>
 					<b>NotCC</b> is an{" "}
 					<a href="https://github.com/TheGLander/NotCC" target="_blank"></a>
