@@ -19,7 +19,7 @@
 		"window": {
 			"title": "NotCC",
 			"icon": "/dist/iconDesktop.png",
-			"enableInspector": true,
+			"enableInspector": false,
 			"resizable": true,
 			"exitProcessOnClose": true
 		}
