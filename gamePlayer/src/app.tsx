@@ -57,6 +57,7 @@ export function App() {
 	const embedMode = useAtomValue(embedModeAtom)
 	const embedReady = useAtomValue(embedReadyAtom)
 	const showPrompt = useJotaiFn(showPromptGs)
+	// PWA auto-update
 	useEffect(() => {
 		if (isDesktop()) return
 		const updateSW = pwaRegister.registerSW({
@@ -67,6 +68,7 @@ export function App() {
 			immediate: true,
 		})
 	}, [])
+	// Embed mode communication
 	useEffect(() => {
 		if (!embedReady) return
 		top?.postMessage(
@@ -74,6 +76,7 @@ export function App() {
 			"*"
 		)
 	}, [embedReady])
+	// Error handling, handles both normal and promise error events
 	useEffect(() => {
 		const listener = (ev: ErrorEvent | PromiseRejectionEvent) => {
 			// return
