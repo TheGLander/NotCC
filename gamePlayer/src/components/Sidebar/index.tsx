@@ -522,7 +522,10 @@ export function Sidebar() {
 	const hasLevel = !!useSwrLevel()
 	return (
 		<SidebarActionContext.Provider value={sidebarActions}>
-			<div id="sidebar" class="box flex rounded-none border-none p-0 xl:w-28">
+			<div
+				id="sidebar"
+				class="box sticky z-10 flex rounded-none border-none p-0 xl:w-28"
+			>
 				<SidebarButton icon={leafIcon}>
 					<ChooserButton
 						label={<Ht haiku="Choose a set to play">Set selector</Ht>}

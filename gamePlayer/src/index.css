@@ -66,22 +66,22 @@
 	@media (max-aspect-ratio: 1/1) {
 		/* Mobile */
 		#sidebar {
-			@apply h-20 w-full flex-row;
+			@apply bottom-[env(safe-area-inset-bottom,_0px)] h-20 w-full flex-row;
 		}
 		#sidebar > div {
 			@apply flex-1;
 		}
 		#sidebar > div > img {
-			@apply h-4/5;
+			@apply h-2/3;
 		}
 	}
-	@media (min-aspect-ratio: 1/1) {
+	@media (min-aspect-ratio: 1/1) or (aspect-ratio: 1/1) {
 		/* Desktop */
 		#app > div {
 			@apply flex-row;
 		}
 		#sidebar {
-			@apply h-full w-20 flex-col gap-4 py-2 max-md:overflow-y-auto;
+			@apply left-[env(safe-area-inset-left,_0px)] h-full w-20 flex-col gap-4 py-2 max-md:overflow-y-auto;
 		}
 		#sidebar > div {
 			@apply [&:nth-last-child(2)]:mt-auto;
