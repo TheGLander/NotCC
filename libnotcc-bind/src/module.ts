@@ -8,7 +8,10 @@ export function getModuleInstance() {
 	return moduleInstance
 }
 export const wasmFuncs: Record<string, Function> = {}
+let wasmInitted = false
+
 export async function initWasm(): Promise<void> {
+	if (wasmInitted) return
 	let instSource: WebAssembly.WebAssemblyInstantiatedSource
 	// Use different Wasm download method for Nodejs and bundlers
 	if (typeof Buffer !== "undefined") {
@@ -25,4 +28,5 @@ export async function initWasm(): Promise<void> {
 	moduleInstance = instSource.instance
 	Object.setPrototypeOf(wasmFuncs, instSource.instance.exports)
 	wasmFuncs.__wasm_call_ctors()
+	wasmInitted = true
 }

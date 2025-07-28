@@ -2,7 +2,11 @@ import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
 import { encodeBase64, isDesktop, useJotaiFn, zlibAsync } from "@/helpers"
 import prewriteIcon from "../prewrite.png"
-import { dismissablePreferenceAtom, preferenceAtom } from "@/preferences"
+import {
+	dismissablePreferenceAtom,
+	playEnabledAtom,
+	preferenceAtom,
+} from "@/preferences"
 import { SetsGrid } from "@/components/SetsGrid"
 import { findScriptName } from "@notcc/logic"
 import {
@@ -17,7 +21,18 @@ import { Ht } from "@/components/Ht"
 
 const altLogoAtom = atom(false)
 
-function Header() {
+function BackToMainPage() {
+	const setPlayEnabled = useSetAtom(playEnabledAtom)
+	return (
+		<div class="box">
+			<button class="text-sm" onClick={() => setPlayEnabled(false)}>
+				&lt; Back to main/downloads page
+			</button>
+		</div>
+	)
+}
+
+export function Header() {
 	const [altLogo, setAltLogo] = useAtom(altLogoAtom)
 	return (
 		<div class="box max-w-4/5 mx-auto mt-3 flex w-fit flex-row items-center max-sm:max-w-sm max-sm:flex-wrap">
@@ -56,7 +71,7 @@ function UploadBox() {
 
 	const setSearchParams = useSetAtom(searchParamsAtom)
 	return (
-		<div class="box mx-auto mt-2 w-4/5">
+		<div class="box mx-auto w-4/5">
 			<p>
 				<Ht haiku="External entries:">Load external files:</Ht>
 			</p>
@@ -140,7 +155,7 @@ const alphaHeaderClosedAtom = dismissablePreferenceAtom("alphaHeaderClosed")
 function AlphaHeader() {
 	const setAlphaHeaderClosed = useSetAtom(alphaHeaderClosedAtom)
 	return (
-		<div class="box relative mt-2 max-w-lg lg:max-w-xl">
+		<div class="box relative max-w-lg lg:max-w-xl">
 			<h2 class="text-center">
 				<img
 					class="inline-block [image-rendering:pixelated]"
@@ -191,7 +206,7 @@ function AlphaHeader() {
 
 function DesktopWipHeader() {
 	return (
-		<div class="box relative mt-2 max-w-lg lg:max-w-xl">
+		<div class="box relative max-w-lg lg:max-w-xl">
 			<h2 class="text-center text-lg">NotCC Desktop!</h2>
 			<p>
 				Hello! This is the desktop version of NotCC, and is still very much a
@@ -204,8 +219,9 @@ function DesktopWipHeader() {
 export function SetSelectorPage() {
 	const alphaHeaderClosed = useAtomValue(alphaHeaderClosedAtom)
 	return (
-		<div class="flex flex-col items-center">
+		<div class="flex flex-col items-center gap-1">
 			<Header />
+			{!isDesktop() && <BackToMainPage />}
 			{isDesktop() && <DesktopWipHeader />}
 			{!alphaHeaderClosed && <AlphaHeader />}
 			<UploadBox />

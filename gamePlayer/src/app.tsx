@@ -11,6 +11,8 @@ import { Dialog } from "./components/Dialog"
 import * as pwaRegister from "virtual:pwa-register"
 import { ToastDisplay } from "./toast"
 import { ErrorBox } from "./components/ErrorBox"
+import { playEnabledAtom } from "./preferences"
+import { DownloadPage } from "./pages/DownloadPage"
 
 const ErrorPrompt =
 	(err: Error): PromptComponent<void> =>
@@ -98,6 +100,9 @@ export function App() {
 			window.removeEventListener("unhandledrejection", listener)
 		}
 	}, [])
+	// By default, the NotCC page is just the download page,
+	const playEnabled = useAtomValue(playEnabledAtom)
+
 	return (
 		<div
 			id="app-root"
@@ -112,11 +117,11 @@ export function App() {
 			)}
 		>
 			<Prompts />
-			{!embedMode && <Sidebar />}
+			{!embedMode && playEnabled && <Sidebar />}
 			<div
 				class={twJoin(!embedMode && "isolate mx-1 mt-1 flex-1 overflow-y-auto")}
 			>
-				<Router />
+				{playEnabled ? <Router /> : <DownloadPage />}
 			</div>
 			<ToastDisplay />
 		</div>

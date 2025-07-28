@@ -1,6 +1,7 @@
 import { Getter, PrimitiveAtom, Setter, WritableAtom, atom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { writeJson } from "@/fs"
+import { isDesktop } from "./helpers"
 
 export const DEFAULT_VALUE = Symbol()
 
@@ -74,3 +75,30 @@ export const preferenceWritingAtom = atomEffect((get, _set) => {
 	const prefs = get(allPreferencesAtom)
 	writeJson("preferences.json", prefs)
 })
+
+export function localStorageAtom<T>(
+	key: string,
+	defaultValue: T
+): PrimitiveAtom<T> {
+	let atomValue
+	try {
+		const readValue = globalThis.localStorage && localStorage.getItem(key)
+		if (readValue) {
+			atomValue = JSON.parse(readValue)
+			localStorage.setItem(key, atomValue)
+		} else {
+			atomValue = defaultValue
+		}
+	} catch {}
+
+	return atom(atomValue, function (this: PrimitiveAtom<T>, _get, set, val) {
+		globalThis.localStorage?.setItem(key, JSON.stringify(val))
+		set(this, val)
+	})
+}
+
+export const playEnabledAtom = localStorageAtom(
+	"NotCC play enabled",
+	// No downloads page on desktop!
+	isDesktop()
+)

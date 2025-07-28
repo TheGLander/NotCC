@@ -43,6 +43,7 @@ function ssg(): PluginOption {
 
 const prodBuild = !process.env.SSG && process.env.NODE_ENV === "production"
 const desktopBuild = process.env.VITE_BUILD_PLATFORM === "desktop"
+// Desktop builds don't need PWA or service workers, so repace the worker installer with a random file lol
 const pwaAlias: AliasOptions = desktopBuild
 	? { "virtual:pwa-register": "/src/extra-types.d.ts" }
 	: {}
@@ -52,10 +53,11 @@ export default defineConfig({
 		preact({ babel: { plugins: [jotaiDebugLabel, jotaiReactRefresh] } }),
 		!desktopBuild &&
 			VitePWA({
-				registerType: "prompt",
 				workbox: {
-					globIgnores: ["**/ssg/**/*", "**/node_modules/**/*"],
-					globPatterns: ["**/*.{js,css,html,png,svg,wav,ogg,mp3,gif,wasm}"],
+					globIgnores: ["**/ssg/**/*"],
+					globPatterns: ["**/*.{js,css,html,png,svg,ogg,gif,wasm}"],
+					clientsClaim: true,
+					navigateFallbackDenylist: [/\.zip$/],
 				},
 				manifest: JSON.parse(
 					readFileSync("./public/manifest.webmanifest").toString("utf-8")

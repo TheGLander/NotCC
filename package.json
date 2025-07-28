@@ -13,6 +13,7 @@
 	"scripts": {
 		"build:web": "pnpm build:logic && pnpm --filter @notcc/player build",
 		"build:desktop": "pnpm build:logic && pnpm --filter @notcc/player build:neu-zip",
+		"build:web-full": "pnpm build:logic && pnpm --filter @notcc/player build:full",
 		"build:cli": "cd libnotcc;./build-native.sh release",
 		"build:libnotcc": "cd libnotcc;./build-wasm.sh release",
 		"build:libnotcc-bind": "pnpm i && pnpm build:libnotcc && pnpm --filter @notcc/logic build",

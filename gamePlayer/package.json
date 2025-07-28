@@ -8,6 +8,7 @@
 		"build": "rm -rf dist && tsc && pnpm build:ssg && vite build && rm -r dist/ssg",
 		"build:neu": "VITE_BUILD_PLATFORM=desktop pnpm build && zx makeDists.mjs",
 		"build:neu-zip": "pnpm build:neu && rm -f NotCC.zip && cd artifacts && zip -r ../NotCC.zip .",
+		"build:full": "pnpm build:neu-zip && rm -r dist && pnpm build && zx makeWebDownloads.mjs",
 		"dev:neu": "neu run",
 		"prepublish": "neu update"
 	},

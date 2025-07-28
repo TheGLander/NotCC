@@ -482,7 +482,7 @@ export function SetsGrid() {
 		bbClubSetsRes.state !== "working" && localSetsRes.state !== "working"
 	return (
 		<div
-			class="m-2 grid w-full justify-center gap-1"
+			class="grid w-full justify-center gap-1"
 			style={{
 				grid: `auto-flow / repeat(auto-fit, calc(${PREVIEW_FULL_SIZE}px + 1.5em))`,
 			}}

@@ -223,6 +223,16 @@ export function desktopPlatform(): null | "windows" | "linux" | "darwin" {
 	return isDesktop() ? (globalThis as any).NL_OS?.toLowerCase() ?? null : null
 }
 
+let ssg = false
+
+export function setSSG(val: boolean) {
+	ssg = val
+}
+
+export function isSSG(): boolean {
+	return ssg
+}
+
 // Semaphore to limit eg. concurrent requests to N at a time
 export class BasicSemaphore {
 	releaseQueue: (() => void)[] = []
