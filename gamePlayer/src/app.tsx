@@ -4,7 +4,7 @@ import { makeThemeCssVars, colorSchemeAtom } from "./themeHelper"
 import { Router, embedModeAtom, embedReadyAtom } from "./routing"
 import { PromptComponent, Prompts, showPromptGs } from "./prompts"
 import { useAtomValue } from "jotai"
-import { useEffect } from "preact/hooks"
+import { useEffect, useState } from "preact/hooks"
 import { twJoin } from "tailwind-merge"
 import { desktopPlatform, isDesktop, useJotaiFn } from "./helpers"
 import { Dialog } from "./components/Dialog"
@@ -101,7 +101,16 @@ export function App() {
 		}
 	}, [])
 	// By default, the NotCC page is just the download page,
-	const playEnabled = useAtomValue(playEnabledAtom)
+	let playEnabled = useAtomValue(playEnabledAtom)
+	// Dumb hack: (p)React *really* doesn't like when the SSG is substantially different, so
+	// force `playEnabled` to be false for the intial hydration, uugh
+	useEffect(() => {
+		setForcePlayDisabled(false)
+	}, [])
+	const [forcePlayDisabled, setForcePlayDisabled] = useState(true)
+	if (forcePlayDisabled) {
+		playEnabled = false
+	}
 
 	return (
 		<div
