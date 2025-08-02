@@ -1,7 +1,5 @@
 import {
 	AttemptTracker,
-	// CameraType,
-	// GameState,
 	InputProvider,
 	LevelSet,
 	Level,
@@ -33,7 +31,7 @@ import {
 	useJotaiFn,
 } from "@/helpers"
 import { embedReadyAtom, embedModeAtom, pageAtom, levelNAtom } from "@/routing"
-import { MobileControls, useShouldShowMobileControls } from "./MobileControls"
+import { MobileControls } from "./MobileControls"
 import { useGameInputs } from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
 import { ComponentChildren, Ref, VNode } from "preact"
@@ -72,7 +70,7 @@ import {
 import { LevelListPrompt, showTimeFractionInMetricsAtom } from "./LevelList"
 import { showPromptGs } from "@/prompts"
 import { Ht } from "./Ht"
-import { MOBILE_QUERY, PORTRAIT_QUERY } from "@/../tailwind.config"
+import { PORTRAIT_QUERY } from "@/../tailwind.config"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
