@@ -48,6 +48,7 @@ import { showLoadPrompt } from "@/fs"
 import { LevelListPrompt } from "../LevelList"
 import { unwrap } from "jotai/utils"
 import { Ht } from "../Ht"
+import { MOBILE_QUERY, PORTRAIT_QUERY } from "../../../tailwind.config"
 
 export interface LevelControls {
 	restart?(): void
@@ -115,7 +116,7 @@ function ChooserButton(props: SidebarAction) {
 				)}
 			</div>
 			{props.shortcut && (
-				<div class="closes-tooltip ml-auto pb-1 pl-8 max-md:hidden">
+				<div class="closes-tooltip mobile:hidden ml-auto pb-1 pl-8">
 					{props.shortcut}
 				</div>
 			)}
@@ -197,9 +198,6 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 	function SidebarDrawer(props, fref) {
 		const { endClosingAnim, closingAnim, ref, shouldRender } =
 			useSidebarChooserAnim<HTMLDialogElement>(!!props.open)
-		const isSidebarAtBottom = !useMediaQuery({
-			query: "(min-aspect-ratio: 1/1)",
-		})
 
 		return (
 			<dialog
@@ -211,10 +209,7 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 				}}
 				onAnimationEnd={endClosingAnim}
 				class={twJoin(
-					"box fixed left-0 right-0 z-10 mx-auto rounded-b-none border-b-0 shadow-none [transform-origin:0_100%]",
-					isSidebarAtBottom
-						? "bottom-20 w-screen"
-						: "bottom-0 left-20 w-[calc(100vw_-_theme(spacing.20))]",
+					"box fixed bottom-20 left-0 right-0 z-10 mx-auto w-screen rounded-b-none border-b-0 shadow-none [transform-origin:0_100%] landscape:bottom-0 landscape:left-20 landscape:w-[calc(100vw_-_theme(spacing.20))]",
 					props.open && "animate-drawer-open",
 					closingAnim && "animate-drawer-close",
 					!shouldRender && "hidden"
@@ -227,6 +222,7 @@ const SidebarDrawer = forwardRef<HTMLDialogElement, ComponentProps<"dialog">>(
 function SidebarButton(props: {
 	icon: string
 	children: ComponentChildren
+	addMargin?: boolean
 	reverse?: boolean
 }) {
 	const [tooltipOpened, setTooltipOpened] = useState(false)
@@ -235,20 +231,25 @@ function SidebarButton(props: {
 			dialog.focus()
 		}
 	}
-	const useDrawer = !globalThis.window
-		? false
-		: !useMediaQuery({
-				query: "(min-width: 768px) and (min-aspect-ratio: 1/1)",
-			})
-	const SidebarChooser = useDrawer ? SidebarDrawer : SidebarTooltip
+	const isMobile = useMediaQuery({
+		query: MOBILE_QUERY,
+	})
+	const isPortrait = useMediaQuery({ query: PORTRAIT_QUERY })
+
+	const SidebarChooser = isMobile || isPortrait ? SidebarDrawer : SidebarTooltip
 
 	return (
-		<div class="relative flex">
+		<div
+			class={twJoin(
+				"mobile:min-h-0 mobile:flex-1 relative flex",
+				props.addMargin && "landscape:mt-auto"
+			)}
+		>
 			<img
 				tabIndex={0}
 				draggable={false}
 				src={props.icon}
-				class="m-auto block cursor-pointer select-none md:w-1/2 lg:w-3/5"
+				class="m-auto block h-4/5 cursor-pointer select-none"
 				onClick={() => {
 					setTooltipOpened(true)
 				}}
@@ -523,8 +524,8 @@ export function Sidebar() {
 	return (
 		<SidebarActionContext.Provider value={sidebarActions}>
 			<div
+				class="box desktop:landscape:gap-4 desktop:landscape:py-2 sticky z-10 flex h-20 w-full flex-row rounded-none border-none p-0 portrait:bottom-[env(safe-area-inset-bottom,_0px)] landscape:h-full landscape:w-20 landscape:flex-col"
 				id="sidebar"
-				class="box sticky z-10 flex rounded-none border-none p-0 xl:w-28"
 			>
 				<SidebarButton icon={leafIcon}>
 					<ChooserButton
@@ -690,7 +691,7 @@ export function Sidebar() {
 					/>
 				</SidebarButton>
 
-				<SidebarButton icon={toolsIcon} reverse>
+				<SidebarButton icon={toolsIcon} reverse addMargin>
 					<ChooserButton
 						label={<Ht haiku="Change the haiku mode">Preferences</Ht>}
 						shortcut="Shift+C"

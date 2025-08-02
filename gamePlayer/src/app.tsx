@@ -117,7 +117,7 @@ export function App() {
 			id="app-root"
 			style={makeThemeCssVars(colorScheme)}
 			class={twJoin(
-				"relative h-full w-full font-sans text-neutral-100",
+				"relative h-full w-full font-sans text-neutral-100 landscape:flex-row",
 				!embedMode &&
 					"from-theme-500 to-theme-800 flex flex-col-reverse bg-gradient-to-br",
 				isDesktop() &&

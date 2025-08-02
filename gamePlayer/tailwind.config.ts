@@ -1,7 +1,18 @@
+export const MOBILE_QUERY = "(width < 800px) or (height < 600px)"
+export const DESKTOP_QUERY = "(width >= 800px) and (height >= 600px)"
+export const LANDSCAPE_QUERY = "(aspect-ratio: 1) or (min-aspect-ratio: 1)"
+export const PORTRAIT_QUERY = "(max-aspect-ratio: 1)"
+
 /** @type {import('tailwindcss').Config} */
 export default {
 	content: ["./index.html", "./src/**/*.{ts,tsx}"],
 	theme: {
+		screens: {
+			mobile: { raw: MOBILE_QUERY },
+			desktop: { raw: DESKTOP_QUERY },
+			landscape: { raw: LANDSCAPE_QUERY },
+			portrait: { raw: PORTRAIT_QUERY },
+		},
 		extend: {
 			backgroundImage: {
 				"radial-gradient": "radial-gradient(var(--tw-gradient-stops))",

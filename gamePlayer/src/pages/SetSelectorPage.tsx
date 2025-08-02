@@ -35,18 +35,18 @@ function BackToMainPage() {
 export function Header() {
 	const [altLogo, setAltLogo] = useAtom(altLogoAtom)
 	return (
-		<div class="box max-w-4/5 mx-auto mt-3 flex w-fit flex-row items-center max-sm:max-w-sm max-sm:flex-wrap">
+		<div class="box max-w-4/5 mobile:max-w-sm mobile:flex-wrap mx-auto mt-3 flex w-fit flex-row items-center">
 			<img
-				class="inline-block aspect-square self-start max-sm:ml-auto max-sm:h-10"
+				class="mobile:ml-auto mobile:h-10 inline-block aspect-square self-start"
 				src={altLogo ? "./iconBigAlt.png" : "./iconBig.png"}
 				onClick={() => setAltLogo(val => !val)}
 				draggable={false}
 			/>
-			<div class="mx-2 flex flex-col max-sm:contents">
-				<h1 class="inline text-5xl max-sm:ml-2 max-sm:mr-auto sm:mt-[-1rem] sm:text-9xl">
+			<div class="mobile:contents mx-2 flex flex-col">
+				<h1 class="mobile:ml-2 mobile:mr-auto desktop:mt-[-1rem] desktop:text-9xl inline text-5xl">
 					NotCC
 				</h1>
-				<p class="self-center text-sm max-sm:mx-auto sm:text-[1.05rem]">
+				<p class="mobile:mx-auto desktop:text-[1.05rem] self-center text-sm">
 					<Ht haiku="An emulator / For Chip's Challenge® Two and Steam /  Scoreboar-legal, too">
 						A scoreboard-legal Chip's Challenge 2® emulator.
 					</Ht>
@@ -155,7 +155,7 @@ const alphaHeaderClosedAtom = dismissablePreferenceAtom("alphaHeaderClosed")
 function AlphaHeader() {
 	const setAlphaHeaderClosed = useSetAtom(alphaHeaderClosedAtom)
 	return (
-		<div class="box relative max-w-lg lg:max-w-xl">
+		<div class="box desktop:max-w-xl relative max-w-lg">
 			<h2 class="text-center">
 				<img
 					class="inline-block [image-rendering:pixelated]"
@@ -206,7 +206,7 @@ function AlphaHeader() {
 
 function DesktopWipHeader() {
 	return (
-		<div class="box relative max-w-lg lg:max-w-xl">
+		<div class="box desktop:max-w-xl relative max-w-lg">
 			<h2 class="text-center text-lg">NotCC Desktop!</h2>
 			<p>
 				Hello! This is the desktop version of NotCC, and is still very much a

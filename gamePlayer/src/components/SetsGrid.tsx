@@ -490,7 +490,7 @@ export function SetsGrid() {
 			<div class="box col-span-full flex flex-wrap gap-2">
 				<input
 					type="text"
-					class="flex-1 max-sm:basis-full"
+					class="flex-1 portrait:basis-full"
 					placeholder="Search..."
 					value={query}
 					onInput={ev => setQuery(ev.currentTarget.value)}

@@ -8,7 +8,7 @@ export function DownloadPage() {
 	return (
 		<div class="flex flex-col items-center gap-2">
 			<Header />
-			<div class="box w-full lg:w-3/5">
+			<div class="box desktop:w-3/5 w-full">
 				<p>
 					<b>NotCC</b> is an{" "}
 					<a href="https://github.com/TheGLander/NotCC" target="_blank"></a>
@@ -23,7 +23,7 @@ export function DownloadPage() {
 					</i>
 				</p>
 			</div>{" "}
-			<div class="flex w-full gap-2 lg:w-2/3">
+			<div class="desktop:w-2/3 flex w-full gap-2">
 				<div class="box flex flex-1 flex-col gap-1">
 					<span>
 						Download NotCC to play it on Linux, macOS, or Windows computer!

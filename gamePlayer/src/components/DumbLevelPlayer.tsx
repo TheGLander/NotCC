@@ -72,6 +72,7 @@ import {
 import { LevelListPrompt, showTimeFractionInMetricsAtom } from "./LevelList"
 import { showPromptGs } from "@/prompts"
 import { Ht } from "./Ht"
+import { MOBILE_QUERY, PORTRAIT_QUERY } from "@/../tailwind.config"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -160,7 +161,7 @@ function Cover(props: {
 		>
 			{props.children}
 			{props.buttons.length !== 0 && (
-				<div class="box mb-5 mt-auto flex h-20 w-4/5 flex-row gap-1">
+				<div class="box desktop:h-20 mb-5 mt-auto flex h-16 w-4/5 flex-row gap-1">
 					{props.buttons.map(([name, callback]) => (
 						<button
 							disabled={!callback}
@@ -193,14 +194,19 @@ function PregameCover(props: {
 			buttons={props.mobile ? [["Start", props.onStart]] : []}
 		>
 			{props.set && (
-				<span class="mb-1 mt-6 text-xl">
+				<span class="text-md desktop:text-xl mb-1 mt-6">
 					{props.set.gameTitle()} #{props.set.currentLevel}:
 				</span>
 			)}
-			<h2 class={twJoin(!props.set && "mt-6", "text-5xl [line-height:1]")}>
+			<h2
+				class={twJoin(
+					!props.set && "mt-6",
+					"desktop:text-5xl text-3xl [line-height:1]"
+				)}
+			>
 				{props.level.metadata.title ?? "UNNAMED"}
 			</h2>
-			<span class="mt-1 text-2xl">
+			<span class="desktop:text-2xl mt-1 text-lg">
 				by {props.level.metadata.author ?? "???"}
 			</span>
 		</Cover>
@@ -434,10 +440,12 @@ function NormalHintDisplay({ hintRef }: { hintRef: Ref<HintRefFunc> }) {
 		[hintRef]
 	)
 	return (
-		<div
-			class="bg-theme-950 flex-1 whitespace-pre-line rounded p-1"
-			ref={hintRefRef}
-		></div>
+		<div class="bg-theme-950 relative flex-1 rounded portrait:hidden">
+			<div
+				class="absolute max-h-full overflow-auto whitespace-pre-line p-1"
+				ref={hintRefRef}
+			></div>
+		</div>
 	)
 }
 
@@ -465,7 +473,7 @@ function MobileHintCover({ hintRef }: { hintRef: Ref<HintRefFunc> }) {
 		applyRef(hintRef, hintApplier)
 	}, [hintApplier])
 	return (
-		<div class="flex h-full w-full">
+		<div class="flex h-full w-full landscape:hidden">
 			<div
 				class="box mx-auto mb-4 mt-auto flex flex-col gap-1"
 				ref={hintBoxRef}
@@ -771,8 +779,8 @@ export function DumbLevelPlayer(props: {
 		}
 	}, [])
 
-	const verticalLayout = !useMediaQuery({
-		query: "(min-aspect-ratio: 1/1)",
+	const portraitLayout = useMediaQuery({
+		query: PORTRAIT_QUERY,
 	})
 
 	const cameraType = useMemo(
@@ -787,10 +795,10 @@ export function DumbLevelPlayer(props: {
 		() => ({
 			cameraType,
 			tileSize: tileset.tileSize,
-			twPadding: verticalLayout ? [4, replay ? 14 : 6] : [6, replay ? 12 : 4],
-			tilePadding: verticalLayout ? [0, 2] : [4, 0],
+			twPadding: portraitLayout ? [4, replay ? 14 : 6] : [6, replay ? 12 : 4],
+			tilePadding: portraitLayout ? [0, 2] : [4, 0],
 		}),
-		[cameraType, tileset, verticalLayout, replay]
+		[cameraType, tileset, portraitLayout, replay]
 	)
 
 	// Level stats
@@ -843,7 +851,7 @@ export function DumbLevelPlayer(props: {
 
 	// GUI stuff
 	const scale = useAutoScale(scaleArgs)
-	const shouldShowMobileControls = useShouldShowMobileControls()
+	const mobileControls = "ontouchstart" in window
 	const goToNextLevel = useJotaiFn(goToNextLevelGs)
 	const setPage = useSetAtom(pageAtom)
 	const [caughtGlitch, setCaughtGlitch] = useState<protobuf.IGlitchInfo | null>(
@@ -857,7 +865,7 @@ export function DumbLevelPlayer(props: {
 			<PregameCover
 				set={props.levelSet}
 				level={level}
-				mobile={shouldShowMobileControls}
+				mobile={mobileControls}
 				onStart={beginLevelAttempt}
 			/>
 		)
@@ -882,7 +890,7 @@ export function DumbLevelPlayer(props: {
 		cover = <NonlegalCover glitch={caughtGlitch!} onRestart={resetLevel} />
 	} else if (playerState === "crash") {
 		cover = <CrashCover glitch={caughtGlitch!} onRestart={resetLevel} />
-	} else if (playerState === "play" && verticalLayout) {
+	} else if (playerState === "play" && portraitLayout) {
 		cover = <MobileHintCover hintRef={hintRefAppl} />
 	} else {
 		cover = null
@@ -917,9 +925,8 @@ export function DumbLevelPlayer(props: {
 	return (
 		<div
 			class={twJoin(
-				"box m-auto flex gap-2 p-2 max-md:text-sm lg:gap-4 lg:p-4 lg:text-lg",
-				verticalLayout && "flex-col",
-				!verticalLayout && "flex-row"
+				"box desktop:gap-4 desktop:p-4 desktop:text-lg m-auto flex flex-col gap-2 p-2 text-sm landscape:flex-row",
+				mobileControls && "mt-0"
 			)}
 			style={{
 				"--tile-size": `${scale * tileset.tileSize}px`,
@@ -957,20 +964,14 @@ export function DumbLevelPlayer(props: {
 				)}
 			</div>
 			<div
-				class={
-					verticalLayout
-						? "flex h-[calc(var(--tile-size)_*_2)] w-auto flex-row-reverse justify-end gap-1"
-						: "flex w-[calc(var(--tile-size)_*_4)] flex-col gap-2 lg:gap-4"
-				}
+				// class2={
+				// 	verticalLayout
+				// 		? "flex h-[calc(var(--tile-size)_*_2)] w-auto flex-row-reverse justify-end gap-1"
+				// 		: "desktop:gap-4 flex w-[calc(var(--tile-size)_*_4)] flex-col gap-2"
+				// }
+				class="flex flex-row-reverse gap-2 landscape:w-[calc(var(--tile-size_*_4))] landscape:flex-col"
 			>
-				<div
-					class={twJoin(
-						"grid w-auto items-center justify-items-end gap-x-2 [grid-template-columns:repeat(2,auto);]",
-						"gap-y-1 lg:gap-y-4",
-						verticalLayout && "flex-1",
-						!verticalLayout && "ml-1 "
-					)}
-				>
+				<div class="desktop:gap-y-4 grid w-auto items-center justify-items-end gap-x-2 gap-y-1 [grid-template-columns:repeat(2,auto);] portrait:flex-1 landscape:ml-1">
 					<div>
 						<Ht haiku="Electronic chips:">Chips left:</Ht>
 					</div>
@@ -994,9 +995,9 @@ export function DumbLevelPlayer(props: {
 						/>
 					</div>
 				)}
-				{!verticalLayout && <NormalHintDisplay hintRef={hintRefAppl} />}
+				<NormalHintDisplay hintRef={hintRefAppl} />
 			</div>
-			<div class={twJoin("absolute", !shouldShowMobileControls && "hidden")}>
+			<div class={twJoin("absolute", !mobileControls && "hidden")}>
 				<MobileControls handler={inputMan.handler} />
 			</div>
 		</div>

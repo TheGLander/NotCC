@@ -3,14 +3,6 @@ import { RepeatKeyHandler } from "@/inputs"
 import { KEY_INPUTS, KeyInputs } from "@notcc/logic"
 import { memo } from "preact/compat"
 import { useEffect, useRef } from "preact/hooks"
-import { useMediaQuery } from "react-responsive"
-
-export function useShouldShowMobileControls(): boolean {
-	const lessThanMd = !useMediaQuery({ query: "(min-width: 768px)" })
-	if (lessThanMd) return true
-	if ("ontouchstart" in document.body) return true
-	return false
-}
 
 const MOBILE_CONTROLS_PLAYER_N = 0
 
@@ -80,9 +72,9 @@ export const MobileControls = memo(function MobileControls(props: {
 	}
 
 	return (
-		<div class="pointer-events-none fixed left-0 top-0 h-full w-full">
+		<>
 			<img
-				class="pointer-events-auto absolute bottom-[10%] right-[10%] w-[40%]"
+				class="pointer-events-auto fixed bottom-[calc(theme(spacing.20)_+_4vmin)] right-[5vmin] w-[40vmin] landscape:bottom-[5vmin]"
 				src={dpadImage}
 				draggable={false}
 				ref={dpadRef}
@@ -93,6 +85,6 @@ export const MobileControls = memo(function MobileControls(props: {
 				onTouchMove={handleDpadClick}
 				onTouchEnd={handleDpadClick}
 			/>
-		</div>
+		</>
 	)
 })
