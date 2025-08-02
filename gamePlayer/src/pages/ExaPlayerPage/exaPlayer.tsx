@@ -293,10 +293,9 @@ function computeDefaultCamera(
 		cameraType: camera,
 		twPadding: [1 + 2 + 2 + 2 + 2 + 16 + 30 + 2 + 1, 1 + 2 + 2 + 1 + 2 + 6],
 		tilePadding: [4, 0],
-		// safetyCoefficient: 0.95,
+		subSteps: 4,
 	})
-	if (scale > 1) scale = Math.floor(scale * 4) / 4
-	else {
+	if (scale < 1) {
 		scale = 0.5
 	}
 	return [camera, scale]

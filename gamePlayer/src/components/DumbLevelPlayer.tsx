@@ -85,6 +85,7 @@ export interface AutoScaleConfig {
 	tilePadding?: [number, number]
 	twPadding?: [number, number]
 	safetyCoefficient?: number
+	subSteps?: number
 }
 
 export function calcScale(args: AutoScaleConfig) {
@@ -108,13 +109,17 @@ export function calcScale(args: AutoScaleConfig) {
 	const xScale = availableSize.width / (xTiles * args.tileSize)
 	const yScale = availableSize.height / (yTiles * args.tileSize)
 
-	return Math.min(xScale, yScale)
+	let subSteps = args.subSteps ?? 1
+	subSteps *= window.devicePixelRatio
+
+	const scale = Math.floor(Math.min(xScale, yScale) * subSteps) / subSteps
+	return scale
 }
 
 export function useAutoScale(args: AutoScaleConfig) {
 	const [scale, setScale] = useState(1)
 	function resize() {
-		setScale(Math.floor(calcScale(args)))
+		setScale(calcScale(args))
 	}
 	useLayoutEffect(() => {
 		resize()
