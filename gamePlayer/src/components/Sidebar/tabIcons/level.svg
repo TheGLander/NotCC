@@ -1,73 +1,35 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg width="100mm" height="100mm" viewBox="0 0 100 100" version="1.1" id="svg91237" sodipodi:docname="lvl-export.svg"
-   inkscape:version="1.2.2 (b0a84865, 2022-12-01)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-   <sodipodi:namedview id="namedview3533" pagecolor="#ffffff" bordercolor="#d9d9d9" borderopacity="0.25"
-      inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1"
-      inkscape:document-units="mm" showgrid="false" inkscape:zoom="1.2488333" inkscape:cx="126.11771"
-      inkscape:cy="208.99506" inkscape:window-width="1728" inkscape:window-height="1052" inkscape:window-x="0"
-      inkscape:window-y="65" inkscape:window-maximized="0" inkscape:current-layer="svg91237" />
-   <defs id="defs91234">
-      <marker style="overflow:visible" id="marker5756" refX="0" refY="0" orient="auto-start-reverse"
-         inkscape:stockid="EmptyTriangleIn" markerWidth="5.8241119" markerHeight="6.7330775"
-         viewBox="0 0 5.8241121 6.7330776" inkscape:isstock="true" inkscape:collect="always"
-         preserveAspectRatio="xMidYMid">
-         <path transform="scale(0.5)" style="fill:context-fill;fill-rule:evenodd;stroke:context-stroke;stroke-width:2"
-            d="M 5.77,0 -2.88,5 V -5 Z" id="path5754" />
-      </marker>
-      <marker style="overflow:visible" id="EmptyTriangleIn" refX="0" refY="0" orient="auto-start-reverse"
-         markerWidth="5.8241119" markerHeight="6.7330775" viewBox="0 0 5.8241121 6.7330776"
-         preserveAspectRatio="xMidYMid">
-         <path transform="scale(0.5)" style="fill:context-fill;fill-rule:evenodd;stroke:context-stroke;stroke-width:2"
-            d="M 5.77,0 -2.88,5 V -5 Z" id="path153" />
-      </marker>
-   </defs>
-   <g id="layer1" style="display:none">
-      <g id="g92008" transform="translate(-7.174529,-30.088831)">
-         <path id="path88742-0" style="fill:#d9d9d9;stroke-width:0.205563"
-            d="m 54.2777,58.180198 c -0.81654,-0.05371 -1.63651,0.389611 -1.8418,1.21875 -0.31202,1.207457 -0.36378,2.511838 -0.14453,3.736328 0.54805,0.94598 1.85898,1.279666 2.88611,1.038367 1.51304,-0.286703 3.09643,-1.707895 2.6821,-3.369426 -0.0792,-0.532559 -0.44335,-0.961584 -0.77329,-1.319332 -0.4821,-1.057222 -1.74608,-1.366326 -2.80859,-1.304687 z" />
-         <path id="path88740-3" style="fill:#d9d9d9;stroke-width:0.205563"
-            d="m 56.10778,68.684104 c -1.36246,-0.01966 -2.56605,1.325267 -2.48047,2.650387 0.29017,0.87161 0.96426,1.60032 0.93136,2.57209 0.49035,3.50669 0.70486,7.04242 1.1313,10.56864 0.35176,4.33048 -0.13298,8.76865 0.11312,13.13662 0.33257,1.21872 1.89531,1.70734 3.01367,1.38867 1.12085,-0.42816 2.06633,-1.72757 1.54102,-2.93555 -0.46255,-1.25827 -0.2306,-2.64144 -0.32842,-3.95923 -0.0344,-4.1701 0.039,-8.35464 -0.49867,-12.49926 -0.28231,-2.96733 -0.33486,-5.95173 -0.58434,-8.91623 -0.17734,-1.225087 -1.34783,-2.159668 -2.58701,-2.007534 -0.0839,4.65e-4 -0.16771,9.31e-4 -0.25156,0.0014 z" />
-         <path style="fill:none;stroke:#d9d9d9;stroke-width:3.928;stroke-dasharray:none"
-            d="M 46.81933,47.087589 C 37.77748,51.583887 31.0571,61.15147 28.34988,71.100611 c -2.69062,9.35699 -2.53867,19.86584 1.78429,28.71212 4.20128,7.899259 12.20073,13.729839 21.15286,14.796959 6.47709,0.7145 13.50677,0.51903 19.33649,-2.33869 6.22568,-3.05181 11.8391,-8.4428 14.62264,-14.792959 3.25256,-7.42014 3.08849,-16.41657 1.13284,-24.2787 C 84.58025,65.967942 80.08399,59.403658 74.99646,53.958864 72.17906,50.943607 67.73859,48.041235 64.79298,46.947811 59.17608,44.862794 52.18404,44.419854 46.81935,47.087589 Z"
-            id="path88718" />
-      </g>
-   </g>
-   <path
-      style="display:none;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:4.25912;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-      d="M 85.829792,17.345959 V 82.8652 L 27.351323,82.87882 14.392543,70.36641 14.178648,17.127618 Z"
-      id="path334449-4-6-0" />
-   <path
-      style="display:none;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:4.8568;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-      d="M 69.985627,18.699844 69.685074,51.641101 30.314894,51.330338 30.014368,19.010607" id="path334451-2-9-3" />
-   <g id="g338148" transform="translate(0,-0.52916663)">
-      <path
-         style="display:none;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:3.73963;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-         d="m 36.874,81.819557 0.01342,-10.356864 26.224345,-0.01088 0.01342,10.125741 v 0" id="path334453-8-9-5" />
-      <path
-         style="display:none;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:3.96118;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-         d="M 43.801752,71.44702 V 81.531849" id="path334455-8-9-3" />
-   </g>
-   <path
-      style="display:none;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:2.09106;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#EmptyTriangleIn)"
-      d="m 45.453438,42.759218 c 3.249569,1.40306 7.185767,1.087144 10.169964,-0.816233 1.458426,-0.930212 2.695233,-2.221498 3.498769,-3.75337 0.803536,-1.531872 1.163499,-3.30442 0.950594,-5.021095 -0.286522,-2.310253 -1.601548,-4.427412 -3.389988,-5.917662 -2.210956,-1.84232 -5.222049,-2.772172 -8.051213,-2.244628 -2.184789,0.40739 -4.197297,1.674711 -5.508739,3.468977"
-      id="path334463-2-0-8" />
-   <rect
-      style="display:inline;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:3.70416667;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-      id="rect342371" width="78.495552" height="45.206791" x="10.752224" y="27.540878" />
-   <path
-      style="display:none;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:2.64716;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-      d="M 33.821432,76.03433 50.399576,94.099931 66.579424,76.119545 v 0" id="path342373-7" />
-   <path
-      style="display:inline;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:3.70416667;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-      d="M 37.209382,23.338948 50.155517,10.331474 62.790618,23.277592 v 0" id="path342373-7-0" />
-   <path
-      style="display:none;fill:none;stroke:#d9d9d9;stroke-width:3.53949;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;marker-start:url(#marker5756)"
-      d="M 51.042016,15.51722 C 50.685405,25.631645 50.685405,25.631645 50.685405,25.631645" id="path4100" />
-   <path
-      style="display:inline;fill:none;fill-opacity:1;stroke:#d9d9d9;stroke-width:3.70416667;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-      d="M 62.790617,77.017661 49.844482,90.025135 37.209381,77.079017 v 0" id="path5822" />
+<svg width="100mm" height="100mm" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <marker id="marker5756" overflow="visible" markerHeight="6.7330775" markerWidth="5.8241119" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 5.8241121 6.7330776">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-fill" fill-rule="evenodd" stroke="context-stroke" stroke-width="2"/>
+  </marker>
+  <marker id="EmptyTriangleIn" overflow="visible" markerHeight="6.7330775" markerWidth="5.8241119" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 5.8241121 6.7330776">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-fill" fill-rule="evenodd" stroke="context-stroke" stroke-width="2"/>
+  </marker>
+ </defs>
+ <g display="none">
+  <g transform="translate(-7.1745 -30.089)">
+   <path d="m54.278 58.18c-0.81654-0.05371-1.6365 0.38961-1.8418 1.2188-0.31202 1.2075-0.36378 2.5118-0.14453 3.7363 0.54805 0.94598 1.859 1.2797 2.8861 1.0384 1.513-0.2867 3.0964-1.7079 2.6821-3.3694-0.0792-0.53256-0.44335-0.96158-0.77329-1.3193-0.4821-1.0572-1.7461-1.3663-2.8086-1.3047z" fill="#d9d9d9" stroke-width=".20556"/>
+   <path d="m56.108 68.684c-1.3625-0.01966-2.566 1.3253-2.4805 2.6504 0.29017 0.87161 0.96426 1.6003 0.93136 2.5721 0.49035 3.5067 0.70486 7.0424 1.1313 10.569 0.35176 4.3305-0.13298 8.7686 0.11312 13.137 0.33257 1.2187 1.8953 1.7073 3.0137 1.3887 1.1208-0.42816 2.0663-1.7276 1.541-2.9356-0.46255-1.2583-0.2306-2.6414-0.32842-3.9592-0.0344-4.1701 0.039-8.3546-0.49867-12.499-0.28231-2.9673-0.33486-5.9517-0.58434-8.9162-0.17734-1.2251-1.3478-2.1597-2.587-2.0075-0.0839 4.65e-4 -0.16771 9.31e-4 -0.25156 0.0014z" fill="#d9d9d9" stroke-width=".20556"/>
+   <path d="m46.819 47.088c-9.0418 4.4963-15.762 14.064-18.469 24.013-2.6906 9.357-2.5387 19.866 1.7843 28.712 4.2013 7.8993 12.201 13.73 21.153 14.797 6.4771 0.7145 13.507 0.51903 19.336-2.3387 6.2257-3.0518 11.839-8.4428 14.623-14.793 3.2526-7.4201 3.0885-16.417 1.1328-24.279-1.7988-7.2314-6.295-13.796-11.383-19.24-2.8174-3.0153-7.2579-5.9176-10.203-7.0111-5.6169-2.085-12.609-2.528-17.974 0.13978z" fill="none" stroke="#d9d9d9" stroke-width="3.928"/>
+  </g>
+ </g>
+ <path d="m85.83 17.346v65.519l-58.478 0.01362-12.959-12.512-0.2139-53.239z" display="none" fill="none" stroke="#d9d9d9" stroke-linejoin="round" stroke-width="4.2591"/>
+ <path d="m69.986 18.7-0.30055 32.941-39.37-0.31076-0.30053-32.32" display="none" fill="none" stroke="#d9d9d9" stroke-linejoin="round" stroke-width="4.8568"/>
+ <g transform="translate(0 -.52917)" fill="none" stroke="#d9d9d9">
+  <path d="m36.874 81.82 0.01342-10.357 26.224-0.01088 0.01342 10.126" display="none" stroke-linejoin="round" stroke-width="3.7396"/>
+  <path d="m43.802 71.447v10.085" display="none" stroke-width="3.9612"/>
+ </g>
+ <g fill="none" stroke="#d9d9d9">
+  <path d="m45.453 42.759c3.2496 1.4031 7.1858 1.0871 10.17-0.81623 1.4584-0.93021 2.6952-2.2215 3.4988-3.7534s1.1635-3.3044 0.95059-5.0211c-0.28652-2.3103-1.6015-4.4274-3.39-5.9177-2.211-1.8423-5.222-2.7722-8.0512-2.2446-2.1848 0.40739-4.1973 1.6747-5.5087 3.469" display="none" marker-end="url(#EmptyTriangleIn)" stroke-width="2.0911"/>
+  <rect x="10.752" y="27.541" width="78.496" height="45.207" stroke-linejoin="round" stroke-width="3.7042"/>
+  <g stroke-linecap="round" stroke-linejoin="round">
+   <path d="m33.821 76.034 16.578 18.066 16.18-17.98" display="none" stroke-width="2.6472"/>
+   <path d="m37.209 23.339 12.946-13.007 12.635 12.946" stroke-width="3.7042"/>
+   <path d="m51.042 15.517-0.35661 10.114" display="none" marker-start="url(#marker5756)" stroke-width="3.5395"/>
+   <path d="m62.791 77.018-12.946 13.007-12.635-12.946" stroke-width="3.7042"/>
+  </g>
+ </g>
 </svg>
