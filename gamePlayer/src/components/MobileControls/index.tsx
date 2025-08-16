@@ -1,4 +1,4 @@
-import dpadImage from "@/dpad.svg"
+import dpadImage from "./dpad.svg"
 import { RepeatKeyHandler } from "@/inputs"
 import { KEY_INPUTS, KeyInputs } from "@notcc/logic"
 import { memo } from "preact/compat"
