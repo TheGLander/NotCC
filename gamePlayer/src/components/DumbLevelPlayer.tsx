@@ -11,6 +11,7 @@ import {
 	SolutionMetrics,
 	calculateLevelPoints,
 	findBestMetrics,
+	KeyInputs,
 } from "@notcc/logic"
 import { CameraType, GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -550,6 +551,9 @@ export function DumbLevelPlayer(props: {
 					findBestMetrics(props.levelSet.currentLevelRecord().levelInfo)
 				)
 			}
+			possibleActionsRef.current?.(
+				level.playerSeats[0].getPossibleActions(level)
+			)
 			return level
 		},
 		[sfx, props.level, props.levelSet]
@@ -607,6 +611,9 @@ export function DumbLevelPlayer(props: {
 	const levelN = useAtomValue(levelNAtom)
 	// Ughh React's inability to immediately noticed changed state is very annoying
 	const processedPostLevelStuffRef = useRef<boolean>(false)
+
+	const possibleActionsRef = useRef<(actions: KeyInputs) => void>(null)
+
 	const tickLevel = useCallback(() => {
 		if (replay) {
 			level.setProviderInputs(replay)
@@ -617,6 +624,10 @@ export function DumbLevelPlayer(props: {
 			attempt?.recordAttemptStep(level)
 		}
 		level.tick()
+		// Only update this on movements subticks, since otherwise possible actions would flicker constants
+		if (level.currentSubtick === 2) {
+			possibleActionsRef.current?.(playerSeat.getPossibleActions(level))
+		}
 		inputMan.setReleasedInputs()
 		sfx?.processSfxField(level.sfx)
 		if (level.gameState === GameState.PLAYING) {
@@ -1001,7 +1012,10 @@ export function DumbLevelPlayer(props: {
 				<NormalHintDisplay hintRef={hintRefAppl} />
 			</div>
 			<div class={twJoin("absolute", !mobileControls && "hidden")}>
-				<MobileControls handler={inputMan.handler} />
+				<MobileControls
+					handler={inputMan.handler}
+					possibleActionsRef={possibleActionsRef}
+				/>
 			</div>
 		</div>
 	)

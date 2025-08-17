@@ -9,6 +9,7 @@ export const KEY_INPUTS = {
 	right: 1 << 1,
 	down: 1 << 2,
 	left: 1 << 3,
+	directional: 0b1111,
 	dropItem: 1 << 4,
 	cycleItems: 1 << 5,
 	switchPlayer: 1 << 6,

@@ -732,7 +732,7 @@ void Actor_do_idle(Actor* self, Level* level) {
   NOTIFY_ALL_LAYERS(cell, on_idle, level, self);
 }
 
-bool Level_is_movement_subtick(Level* level) {
+bool Level_is_movement_subtick(Level const* level) {
   return level->current_subtick == 2;
 }
 
@@ -1199,6 +1199,36 @@ static void Player_calculate_sliding_sfx(Actor* self, Level* level) {
   }
 }
 
+uint8_t PlayerSeat_get_possible_actions(PlayerSeat const* self,
+                                        Level const* level) {
+  if (!self)
+    return 0;
+ // Subtick -1 is effectively a movement subtick
+  if (!(level->current_subtick == -1 || Level_is_movement_subtick(level)))
+    return 0;
+  Actor const* actor = self->actor;
+  bool can_move = (actor->sliding_state == SLIDING_NONE ||
+                   (actor->sliding_state == SLIDING_WEAK &&
+                    (actor->custom_data & PLAYER_HAS_OVERRIDE) != 0));
+  // You can't swap players in multiseat if there isn't an extra player,
+  // and `players_left` is counted at the start of the level based on the map,
+  // so you can't swap to cloned or cross-level despawed players if there's only
+  // one "original" player left
+  bool can_switch = level->players_left > level->player_seats.length;
+  // Cycling shifts all items to the right and moves the rightmost item to the
+  // beginning This only does anything if there are any non-rightmost items,
+  // thus something in the non-1 slot (emptyness counts as an item for the
+  // purposes of cycling)
+  bool can_cycle = actor->inventory.item2 || actor->inventory.item3 ||
+                   actor->inventory.item4;
+  bool can_drop = !level->metadata.cc1_boots && can_move &&
+                  (actor->inventory.item1 || can_cycle);
+  return can_move * PLAYER_INPUT_DIRECTIONAL |
+         can_switch * PLAYER_INPUT_SWITCH_PLAYERS |
+         can_cycle * PLAYER_INPUT_CYCLE_ITEMS |
+         can_drop * PLAYER_INPUT_DROP_ITEM;
+}
+
 void Player_do_decision(Actor* self, Level* level) {
   PlayerSeat* seat = Level_find_player_seat(level, self);
   // It sucks having to do tile-related SFX stuff here, but SFX has to be
@@ -1210,37 +1240,40 @@ void Player_do_decision(Actor* self, Level* level) {
   if (Actor_is_moving(self) || self->frozen)
     return;
 
-  bool can_move = seat != NULL && Level_is_movement_subtick(level) &&
-                  (self->sliding_state == SLIDING_NONE ||
-                   (self->sliding_state == SLIDING_WEAK &&
-                    (self->custom_data & PLAYER_HAS_OVERRIDE) != 0));
+  uint8_t possible_actions =
+      !seat ? 0 : PlayerSeat_get_possible_actions(seat, level);
+
   bool character_switched = false;
 
-  if (seat && Level_is_movement_subtick(level)) {
-    if (level->players_left > level->player_seats.length &&
-        has_input(seat, PLAYER_INPUT_SWITCH_PLAYERS)) {
-      seat->actor = Level_find_next_player(level, self);
-      assert(seat->actor != NULL && seat->actor != self);
-      character_switched = true;
-      seat->released_inputs |= PLAYER_INPUT_SWITCH_PLAYERS;
-    }
-    if (has_input(seat, PLAYER_INPUT_CYCLE_ITEMS)) {
-      const TileType** last_item_ptr =
-          Inventory_get_rightmost_item(&self->inventory);
-      if (last_item_ptr) {
-        const TileType* last_item = *last_item_ptr;
-        *last_item_ptr = NULL;
-        Inventory_shift_right(&self->inventory);
-        self->inventory.item1 = last_item;
-      }
-      seat->released_inputs |= PLAYER_INPUT_CYCLE_ITEMS;
-    }
-    if (!level->metadata.cc1_boots && can_move &&
-        has_input(seat, PLAYER_INPUT_DROP_ITEM)) {
-      Actor_drop_item(self, level);
-      seat->released_inputs |= PLAYER_INPUT_DROP_ITEM;
-    }
+#define can_do_action(action) \
+  ((possible_actions & action) && has_input(seat, action))
+
+  if (can_do_action(PLAYER_INPUT_SWITCH_PLAYERS)) {
+    seat->actor = Level_find_next_player(level, self);
+    assert(seat->actor != NULL && seat->actor != self);
+    character_switched = true;
+    seat->released_inputs |= PLAYER_INPUT_SWITCH_PLAYERS;
   }
+
+  if (can_do_action(PLAYER_INPUT_CYCLE_ITEMS)) {
+    const TileType** last_item_ptr =
+        Inventory_get_rightmost_item(&self->inventory);
+    if (last_item_ptr) {
+      const TileType* last_item = *last_item_ptr;
+      *last_item_ptr = NULL;
+      Inventory_shift_right(&self->inventory);
+      self->inventory.item1 = last_item;
+    }
+    seat->released_inputs |= PLAYER_INPUT_CYCLE_ITEMS;
+  }
+
+  if (can_do_action(PLAYER_INPUT_DROP_ITEM)) {
+    Actor_drop_item(self, level);
+    seat->released_inputs |= PLAYER_INPUT_DROP_ITEM;
+  }
+
+#undef can_do_action
+
   bool bonked = false;
   bool was_bonking = self->custom_data & PLAYER_IS_VISUALLY_BONKING;
   if (Level_is_movement_subtick(level)) {
@@ -1254,7 +1287,8 @@ void Player_do_decision(Actor* self, Level* level) {
   }
 
   self->move_decision = DIRECTION_NONE;
-  if (!can_move || (dirs[0] == DIRECTION_NONE && dirs[1] == DIRECTION_NONE)) {
+  if (!(possible_actions & PLAYER_INPUT_DIRECTIONAL) ||
+      (dirs[0] == DIRECTION_NONE && dirs[1] == DIRECTION_NONE)) {
     // We either cannot move or we didn't input anything. If we're sliding,
     // start moving in our current direction (and get override powers if we're
     // weak-sliding)

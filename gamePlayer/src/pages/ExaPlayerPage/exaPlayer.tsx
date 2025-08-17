@@ -864,10 +864,7 @@ export function RealExaPlayerPage() {
 			const isWait = ev.code === "Space"
 			if (isWait) {
 				finalizeInput()
-			} else if (
-				input &
-				(KEY_INPUTS.up | KEY_INPUTS.right | KEY_INPUTS.down | KEY_INPUTS.left)
-			) {
+			} else if (input && input & KEY_INPUTS.directional) {
 				setInput(inputs | input)
 				if (timer === null) {
 					timer = new TimeoutTimer(finalizeInput, 0.05)

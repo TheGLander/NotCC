@@ -34,6 +34,9 @@ export class PlayerSeat extends Struct {
 	hasPerspective(): boolean {
 		return !!wasmFuncs.PlayerSeat_has_perspective(this._ptr)
 	}
+	getPossibleActions(level: Level): KeyInputs {
+		return wasmFuncs.PlayerSeat_get_possible_actions(this._ptr, level._ptr)
+	}
 }
 export class LevelMetadata extends Struct {
 	get title() {

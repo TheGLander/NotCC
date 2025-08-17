@@ -285,6 +285,7 @@ enum PlayerInputFlags {
   PLAYER_INPUT_RIGHT = 1 << 1,
   PLAYER_INPUT_DOWN = 1 << 2,
   PLAYER_INPUT_LEFT = 1 << 3,
+  PLAYER_INPUT_DIRECTIONAL = 0b1111,
   PLAYER_INPUT_DROP_ITEM = 1 << 4,
   PLAYER_INPUT_CYCLE_ITEMS = 1 << 5,
   PLAYER_INPUT_SWITCH_PLAYERS = 1 << 6
@@ -300,6 +301,8 @@ typedef uint8_t PlayerInputs;
 
 void PlayerSeat_get_movement_directions(PlayerSeat* self, Direction dirs[2]);
 bool PlayerSeat_has_perspective(const PlayerSeat* self);
+uint8_t PlayerSeat_get_possible_actions(PlayerSeat const* self,
+                                        Level const* level);
 _libnotcc_accessors_PlayerSeat;
 
 void LevelMetadata_init(LevelMetadata* self);
