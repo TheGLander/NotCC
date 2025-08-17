@@ -25,7 +25,7 @@ export async function readJson<T>(path: string): Promise<T> {
 }
 export async function writeJson<T>(path: string, val: T): Promise<void> {
 	const buf = new TextEncoder().encode(JSON.stringify(val))
-	return writeFile(path, buf)
+	return writeFile(path, buf.buffer)
 }
 
 export async function recusiveRemove(path: string): Promise<void> {

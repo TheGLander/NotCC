@@ -56,7 +56,7 @@ export function uzipAsync(data: Uint8Array): Promise<AsyncZippable> {
 export function latin1ToBuffer(str: string): Uint8Array {
 	return Uint8Array.from(str, c => c.charCodeAt(0))
 }
-export function bufferToLatin1(bytes: ArrayBuffer): string {
+export function bufferToLatin1(bytes: ArrayBufferLike): string {
 	return Array.from(new Uint8Array(bytes), byte =>
 		String.fromCharCode(byte)
 	).join("")
@@ -64,7 +64,7 @@ export function bufferToLatin1(bytes: ArrayBuffer): string {
 export function decodeBase64(str: string): Uint8Array {
 	return latin1ToBuffer(atob(str.replace(/-/g, "+").replace(/_/g, "/")))
 }
-export function encodeBase64(bytes: ArrayBuffer): string {
+export function encodeBase64(bytes: ArrayBufferLike): string {
 	return btoa(bufferToLatin1(bytes)).replace(/\+/g, "-").replace(/\//g, "_")
 }
 

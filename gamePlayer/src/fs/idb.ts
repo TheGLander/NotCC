@@ -66,13 +66,12 @@ export async function readFile(path: string): Promise<ArrayBuffer> {
 
 export async function writeFile(
 	path: string,
-	data: ArrayBuffer
+	data: ArrayBufferLike
 ): Promise<void> {
 	path = normalizeRootPath(path)
 	await assertValidPath(path)
 	if (await isDir(path)) throw new Error(`${path}: is a directory`)
 	await addDirEnt(path)
-	if (data instanceof Uint8Array) data = data.buffer
 	await set(path, data, store)
 }
 

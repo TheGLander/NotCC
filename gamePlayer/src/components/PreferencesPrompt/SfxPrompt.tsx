@@ -77,7 +77,7 @@ export const SfxPrompt =
 	pProps => {
 		const [chosenSfx, setChosenSfx] = useState(currentSfx)
 		const [customSfx, setCustomSfx] = useAtom(customSfxAtom)
-		async function addSfx(sfxZip: ArrayBuffer) {
+		async function addSfx(sfxZip: ArrayBufferLike) {
 			const id = `custom-${Date.now()}`
 			await writeFile(`/sfx/${id}.zip`, sfxZip)
 			setCustomSfx(arr => arr.concat(id))

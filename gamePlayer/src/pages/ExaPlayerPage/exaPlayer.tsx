@@ -771,7 +771,7 @@ export function RealExaPlayerPage() {
 						},
 					}
 					showSavePrompt(
-						new TextEncoder().encode(JSON.stringify(route)),
+						new TextEncoder().encode(JSON.stringify(route)).buffer,
 						"Save route export",
 						{
 							defaultPath: `./${route.For!.LevelName?.replace("/", " ") ?? "Unknown"} ${formatTimeLeft(levelStats.timeLeft, false)}s ${levelStats.totalPoints}pts.route`,

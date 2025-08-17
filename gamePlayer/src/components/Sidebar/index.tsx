@@ -256,7 +256,7 @@ function SidebarButton(props: {
 			/>
 			<SidebarChooser
 				open={tooltipOpened}
-				onfocusout={ev => {
+				onFocusOut={ev => {
 					if (
 						ev.relatedTarget &&
 						(ev.target as HTMLElement).contains(ev.relatedTarget as HTMLElement)

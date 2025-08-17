@@ -391,14 +391,14 @@ export class CResult extends Struct {
 		return this.getPtr(4)
 	}
 }
-function copyBuffer(buff: ArrayBuffer) {
+function copyBuffer(buff: ArrayBufferLike) {
 	const dataPtr = wasmFuncs.malloc(buff.byteLength)
 	if (dataPtr === 0) throw new Error("Failed to malloc ")
 	const memBuf = new Uint8Array(getWasmReader().buffer)
 	memBuf.set(new Uint8Array(buff), dataPtr)
 	return dataPtr
 }
-export function parseC2M(buff: ArrayBuffer) {
+export function parseC2M(buff: ArrayBufferLike) {
 	const dataPtr = copyBuffer(buff)
 	const levelRes = CResult.alloc()
 	wasmFuncs.parse_c2m(levelRes._ptr, dataPtr, buff.byteLength)
@@ -409,7 +409,7 @@ export function parseC2M(buff: ArrayBuffer) {
 	if (err) throw new Error(err)
 	return new Level(valPtr!)
 }
-export function parseC2MMeta(buff: ArrayBuffer) {
+export function parseC2MMeta(buff: ArrayBufferLike) {
 	const dataPtr = copyBuffer(buff)
 	const levelRes = CResult.alloc()
 	wasmFuncs.parse_c2m_meta(levelRes._ptr, dataPtr, buff.byteLength)

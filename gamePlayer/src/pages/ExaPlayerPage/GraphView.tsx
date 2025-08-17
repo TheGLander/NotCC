@@ -222,7 +222,9 @@ function SvgView(props: GraphViewProps) {
 								props.model.goTo(node)
 								props.updateLevel()
 							}}
-							ref={ref => node === props.model.current && ref?.scrollIntoView()}
+							ref={ref =>
+								node === props.model.current ? ref?.scrollIntoView() : undefined
+							}
 						/>
 					)
 				})}
@@ -554,10 +556,10 @@ export function GraphView(props: GraphViewProps) {
 					onChange={ev => {
 						setView(ev.currentTarget.value as "graph")
 					}}
+					value={view}
+					defaultValue="construction"
 				>
-					<option value="construction" defaultChecked>
-						Construction
-					</option>
+					<option value="construction">Construction</option>
 					<option value="graph">Graph</option>
 				</select>
 			</div>

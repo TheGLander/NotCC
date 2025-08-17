@@ -82,10 +82,10 @@ function UploadBox() {
 						const levelData = await promptFile()
 						if (!levelData) return
 						if (embedLevelInfo && !isDesktop()) {
-							let buf = levelData.buffer
+							let buf: ArrayBufferLike = levelData.buffer
 							const compBuf = await zlibAsync(new Uint8Array(levelData.buffer))
 							if (compBuf.byteLength < buf.byteLength) {
-								buf = compBuf
+								buf = compBuf.buffer
 							}
 							setSearchParams({
 								level: encodeBase64(buf),

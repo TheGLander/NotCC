@@ -10,14 +10,15 @@ import { Level, PlayerSeat } from "@notcc/logic"
 import { Ref as RefG } from "preact"
 import { AnimationTimer, applyRef } from "@/helpers"
 import { twJoin } from "tailwind-merge"
-import { HTMLProps } from "preact/compat"
+import { CanvasHTMLAttributes } from "preact/compat"
 
 export interface CameraType {
 	width: number
 	height: number
 }
 
-export interface GameRendererProps extends HTMLProps<HTMLCanvasElement> {
+export interface GameRendererProps
+	extends CanvasHTMLAttributes<HTMLCanvasElement> {
 	tileset: Tileset
 	level: Level | { current: Level }
 	tileScale?: number

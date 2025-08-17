@@ -52,9 +52,9 @@ export async function readFile(path: string): Promise<ArrayBuffer> {
 
 export async function writeFile(
 	path: string,
-	data: ArrayBuffer
+	data: ArrayBufferLike
 ): Promise<void> {
-	await filesystem.writeBinaryFile(await getPath(path), data)
+	await filesystem.writeBinaryFile(await getPath(path), data as ArrayBuffer)
 }
 
 export async function remove(path: string): Promise<void> {
@@ -159,13 +159,13 @@ export async function showDirectoryPrompt(
 }
 
 export async function showSavePrompt(
-	fileData: ArrayBuffer,
+	fileData: ArrayBufferLike,
 	title?: string,
 	options?: os.SaveDialogOptions
 ): Promise<boolean> {
 	const savePath = await os.showSaveDialog(title, options)
 	document.body.focus()
 	if (savePath === "") return false
-	await filesystem.writeBinaryFile(savePath, fileData)
+	await filesystem.writeBinaryFile(savePath, fileData as ArrayBuffer)
 	return true
 }
