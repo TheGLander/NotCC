@@ -373,7 +373,7 @@ export class Renderer {
 		}
 		if (
 			this.level!.playersLeft > this.level!.playerSeats.length &&
-			this.playerSeat!.actor?._ptr == tile._ptr
+			this.playerSeat?.actor?._ptr == tile._ptr
 		) {
 			this.tileBlit(ctxSession, [0, 0], this.tileset.art.currentPlayerMarker)
 		}
@@ -381,7 +381,7 @@ export class Renderer {
 	}
 	updateCameraPosition(): void {
 		if (!this.level || !this.playerSeat || !this.cameraSize) {
-			throw new Error("There's no camera without a level!")
+			return
 		}
 		const actor = this.playerSeat.actor
 		if (!actor) return
@@ -448,4 +448,19 @@ export class Renderer {
 			}
 		}
 	}
+}
+
+export function makeFullMapImage(
+	level: Level,
+	tileset: Tileset
+): HTMLCanvasElement {
+	const canvas = document.createElement("canvas")
+	const ctx = canvas.getContext("2d")!
+	const renderer = new Renderer(tileset)
+	renderer.level = level
+	renderer.cameraSize = { width: level.width, height: level.height }
+	renderer.forcePerspective = true
+	renderer.updateTileSize(canvas)
+	renderer.frame(ctx)
+	return canvas
 }

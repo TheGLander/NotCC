@@ -53,6 +53,7 @@ import { MOBILE_QUERY, PORTRAIT_QUERY } from "../../../tailwind.config"
 export interface LevelControls {
 	restart?(): void
 	pause?(): void
+	saveMapScreenshot?(): void
 	playInputs?(ip: InputProvider): void
 	exa?: {
 		undo(): void
@@ -568,6 +569,13 @@ export function Sidebar() {
 						shortcut="Shift+S"
 						disabled={!hasSet}
 						onTrigger={() => showPromptGs(get, set, LevelListPrompt)}
+					/>
+					<hr />
+					<ChooserButton
+						label="Save full map screenshot"
+						shortcut="Ctrl+Shift+P"
+						disabled={!levelControls.saveMapScreenshot}
+						onTrigger={() => levelControls.saveMapScreenshot!()}
 					/>
 				</SidebarButton>
 				<SidebarButton icon={floppyIcon}>

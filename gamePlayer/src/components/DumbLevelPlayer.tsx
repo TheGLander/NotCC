@@ -27,6 +27,7 @@ import {
 import {
 	CompensatingIntervalTimer,
 	applyRef,
+	canvasToBin,
 	formatTimeLeft,
 	sleep,
 	useJotaiFn,
@@ -72,6 +73,8 @@ import { LevelListPrompt, showTimeFractionInMetricsAtom } from "./LevelList"
 import { showPromptGs } from "@/prompts"
 import { Ht } from "./Ht"
 import { PORTRAIT_QUERY } from "@/../tailwind.config"
+import { showSavePrompt } from "@/fs"
+import { makeFullMapImage } from "./GameRenderer/renderer"
 
 // A TW unit is 0.25rem
 export function twUnit(tw: number): number {
@@ -910,6 +913,15 @@ export function DumbLevelPlayer(props: {
 		cover = null
 	}
 
+	const saveMapScreenshot = useCallback(async () => {
+		const mapCanvas = makeFullMapImage(level, tileset)
+		const mapImage = await canvasToBin(mapCanvas)
+		showSavePrompt(mapImage, "Save full map image", {
+			filters: [{ name: "Image file", extensions: ["png"] }],
+			defaultPath: `${level.metadata.title ?? "UNTITLED"} map.png`,
+		})
+	}, [level, tileset])
+
 	useEffect(() => {
 		const controls: LevelControls = {
 			restart() {
@@ -929,12 +941,13 @@ export function DumbLevelPlayer(props: {
 					: playerState === "play"
 						? () => setPlayerState("pause")
 						: undefined,
+			saveMapScreenshot,
 		}
 		applyRef(props.controlsRef, controls)
 		return () => {
 			applyRef(props.controlsRef, null)
 		}
-	}, [props.controlsRef, playerState])
+	}, [props.controlsRef, playerState, saveMapScreenshot])
 
 	return (
 		<div
