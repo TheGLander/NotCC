@@ -33,14 +33,14 @@ function BackToMainPage() {
 }
 
 export function Header() {
-	const [altLogo, setAltLogo] = useAtom(altLogoAtom)
 	return (
 		<div class="box max-w-4/5 mobile:max-w-sm mobile:flex-wrap mx-auto mt-3 flex w-fit flex-row items-center">
 			<img
 				class="mobile:ml-auto mobile:h-10 inline-block aspect-square self-start"
-				src={altLogo ? "./iconBigAlt.png" : "./iconBig.png"}
-				onClick={() => setAltLogo(val => !val)}
+				src="./iconBig.png"
 				draggable={false}
+				width={144}
+				height={144}
 			/>
 			<div class="mobile:contents mx-2 flex flex-col">
 				<h1 class="mobile:ml-2 mobile:mr-auto desktop:mt-[-1rem] desktop:text-9xl inline text-5xl">
