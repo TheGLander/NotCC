@@ -1,4 +1,4 @@
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { searchParamsAtom } from "@/routing"
 import { encodeBase64, isDesktop, useJotaiFn, zlibAsync } from "@/helpers"
 import prewriteIcon from "../prewrite.png"
