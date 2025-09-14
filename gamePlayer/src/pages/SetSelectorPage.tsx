@@ -19,8 +19,6 @@ import {
 import { saveFilesLocallyGs } from "@/setManagement"
 import { Ht } from "@/components/Ht"
 
-const altLogoAtom = atom(false)
-
 function BackToMainPage() {
 	const setPlayEnabled = useSetAtom(playEnabledAtom)
 	return (
