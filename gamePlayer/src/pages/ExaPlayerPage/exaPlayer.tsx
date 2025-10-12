@@ -860,16 +860,18 @@ export function RealExaPlayerPage() {
 		let timer: TimeoutTimer | null = null
 		const listener = (ev: KeyboardEvent) => {
 			const inputs = inputRef.current
-			const input: number | undefined = DEFAULT_KEY_MAP[ev.code as "ArrowUp"]
+			const rawInput: number | undefined = DEFAULT_KEY_MAP[ev.code as "ArrowUp"]
+			const input =
+				rawInput && rawInput & model.playerSeat.getPossibleActions(model.level)
 			const isWait = ev.code === "Space"
 			if (isWait) {
 				finalizeInput()
-			} else if (input && input & KEY_INPUTS.directional) {
+			} else if (rawInput & KEY_INPUTS.directional) {
 				setInput(inputs | input)
 				if (timer === null) {
 					timer = new TimeoutTimer(finalizeInput, 0.05)
 				}
-			} else if (input !== undefined) {
+			} else if (rawInput !== undefined) {
 				setInput((inputs & ~input) | (input & inputs ? 0 : input))
 			}
 		}

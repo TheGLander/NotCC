@@ -1203,9 +1203,6 @@ uint8_t PlayerSeat_get_possible_actions(PlayerSeat const* self,
                                         Level const* level) {
   if (!self)
     return 0;
- // Subtick -1 is effectively a movement subtick
-  if (!(level->current_subtick == -1 || Level_is_movement_subtick(level)))
-    return 0;
   Actor const* actor = self->actor;
   bool can_move = (actor->sliding_state == SLIDING_NONE ||
                    (actor->sliding_state == SLIDING_WEAK &&
@@ -1241,7 +1238,11 @@ void Player_do_decision(Actor* self, Level* level) {
     return;
 
   uint8_t possible_actions =
-      !seat ? 0 : PlayerSeat_get_possible_actions(seat, level);
+      !(seat &&
+        // Subtick -1 is effectively a movement subtick
+        (level->current_subtick == -1 || Level_is_movement_subtick(level)))
+          ? 0
+          : PlayerSeat_get_possible_actions(seat, level);
 
   bool character_switched = false;
 

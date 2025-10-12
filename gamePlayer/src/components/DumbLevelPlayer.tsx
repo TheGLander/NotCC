@@ -627,10 +627,7 @@ export function DumbLevelPlayer(props: {
 			attempt?.recordAttemptStep(level)
 		}
 		level.tick()
-		// Only update this on movements subticks, since otherwise possible actions would flicker constants
-		if (level.currentSubtick === 2) {
-			possibleActionsRef.current?.(playerSeat.getPossibleActions(level))
-		}
+		possibleActionsRef.current?.(playerSeat.getPossibleActions(level))
 		inputMan.setReleasedInputs()
 		sfx?.processSfxField(level.sfx)
 		if (level.gameState === GameState.PLAYING) {
