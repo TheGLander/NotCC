@@ -27,7 +27,7 @@ import { Gallery, GalleryItem } from "./Gallery"
 
 const PRIMARY_TILE_SIZE = 32
 export const tilesetAtom = atom<Tileset | null>(null)
-const DEFAULT_TILESET = "tauri"
+export const DEFAULT_TILESET = "tauri"
 
 export const tilesetIdAtom = preferenceAtom("tileset", DEFAULT_TILESET)
 export const tilesetSyncAtom = atomEffect((get, set) => {

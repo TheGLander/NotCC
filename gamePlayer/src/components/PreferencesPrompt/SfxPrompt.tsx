@@ -19,8 +19,10 @@ import { Dialog } from "../Dialog"
 import { PrefDisplayProps } from "."
 import { SfxBit } from "@notcc/logic"
 
+export const DEFAULT_SFXSET = "defo"
+
 export const sfxAtom = atom<AudioSfxManager | null>(null)
-export const sfxIdAtom = preferenceAtom("sfxset", "defo")
+export const sfxIdAtom = preferenceAtom("sfxset", DEFAULT_SFXSET)
 export const sfxSyncAtom = atomEffect((get, set) => {
 	void get(sfxIdAtom)
 	if (isPreloading(get)) return
@@ -106,7 +108,7 @@ export const SfxPrompt =
 		const removeSfx = useCallback(
 			async (id: string) => {
 				if (chosenSfx === id) {
-					setChosenSfx("defo")
+					setChosenSfx(DEFAULT_SFXSET)
 				}
 				await remove(`/sfx/${id}.zip`)
 				setCustomSfx(arr => {

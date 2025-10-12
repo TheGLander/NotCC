@@ -11,8 +11,10 @@ import {
 	tilesetAtom,
 	getTileset,
 	customTsetsAtom,
+	DEFAULT_TILESET,
 } from "./PreferencesPrompt/TilesetsPrompt"
 import {
+	DEFAULT_SFXSET,
 	customSfxAtom,
 	getSfxSet,
 	sfxAtom,
@@ -45,13 +47,21 @@ export function Preloader(props: { preloadComplete?: () => void }) {
 			customTsetsAtom,
 			(await readDir("/tilesets")).map(v => v.split(".").slice(0, -1).join("."))
 		)
-		set(tilesetAtom, await getTileset(get(tilesetIdAtom)))
+		set(
+			tilesetAtom,
+			await getTileset(get(tilesetIdAtom)).catch(() =>
+				getTileset(DEFAULT_TILESET)
+			)
+		)
 		setLoadingStage("sfx")
 		set(
 			customSfxAtom,
 			(await readDir("/sfx")).map(v => v.split(".").slice(0, -1).join("."))
 		)
-		set(sfxAtom, await getSfxSet(get(sfxIdAtom)))
+		set(
+			sfxAtom,
+			await getSfxSet(get(sfxIdAtom)).catch(() => getSfxSet(DEFAULT_SFXSET))
+		)
 		set(preloadFinishedAtom, true)
 		setTimeout(() => (syncAllowed_thisisstupid.val = true), 0)
 		updateVariablesFromHashGs(get, set)
