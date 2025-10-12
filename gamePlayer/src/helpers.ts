@@ -9,7 +9,7 @@ import {
 } from "fflate"
 import { Getter, Setter, useStore } from "jotai"
 import { Ref } from "preact"
-import { useCallback, useEffect, useState } from "preact/hooks"
+import { useCallback, useEffect, useRef, useState } from "preact/hooks"
 
 export type EffectFn = (get: Getter, set: Setter) => void | (() => void)
 type AnyFunction = (...args: any[]) => any
@@ -283,20 +283,29 @@ export function usePromise<T>(
 		NO_PROMISE_VALUE
 	)
 	const [error, setError] = useState<Error | undefined>(undefined)
+	const ignoreResultRef = useRef(false)
 	const doPromise = useCallback(() => {
 		setError(undefined)
 		setValue(NO_PROMISE_VALUE)
 		maker()
 			.then(val => {
+				if (ignoreResultRef.current) return
 				setValue(val)
 			})
 			.catch(err => {
+				if (ignoreResultRef.current) return
 				setError(err)
 			})
 	}, [maker])
 	useEffect(() => {
 		doPromise()
 	}, deps)
+	useEffect(
+		() => () => {
+			ignoreResultRef.current = true
+		},
+		[]
+	)
 	return {
 		value: value === NO_PROMISE_VALUE ? undefined : value,
 		error,
