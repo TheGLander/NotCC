@@ -291,7 +291,7 @@ function computeDefaultCamera(
 	let scale = calcScale({
 		tileSize: tileset.tileSize,
 		cameraType: camera,
-		twPadding: [1 + 2 + 2 + 2 + 2 + 16 + 30 + 2 + 1, 1 + 2 + 2 + 1 + 2 + 6],
+		twPadding: [1 + 2 + 2 + 2 + 2 + 64 + 2 + 1, 1 + 2 + 2 + 2 + 6 + 2 + 1],
 		tilePadding: [4, 0],
 		subSteps: 4,
 	})
@@ -939,8 +939,12 @@ export function RealExaPlayerPage() {
 	const levelStats = getLevelStats(levelN, model)
 	return (
 		<div class="flex h-full w-full">
-			<div class="m-auto grid items-center justify-center gap-2 [grid-template:auto_1fr_auto/auto_min-content]">
-				<div class="box row-span-2">
+			<div
+				class={
+					'm-auto grid w-full items-center justify-center gap-2 [grid:"render_stats"_auto_"render_moves"_1fr_"timeline_moves"_auto/_auto_1fr]'
+				}
+			>
+				<div class="box [grid-area:render]">
 					<GameRenderer
 						playerSeat={playerSeat}
 						renderRef={renderRef1}
@@ -959,7 +963,7 @@ export function RealExaPlayerPage() {
 						forcePerspective
 					/>
 				</div>
-				<div class="box row-start-3">
+				<div class="box [grid-area:timeline]">
 					<TimelineBox
 						playing={playing}
 						speedIdx={speedIdx}
@@ -974,8 +978,8 @@ export function RealExaPlayerPage() {
 						)}
 					</TimelineBox>
 				</div>
-				<div class="box col-start-2 flex w-auto gap-2">
-					<div class="row-span-full mr-16 self-center justify-self-center">
+				<div class="box flex w-auto min-w-64 gap-2 [grid-area:stats]">
+					<div class="mr-auto self-center">
 						<Inventory
 							tileset={tileset!}
 							inventory={playerSeat}
@@ -983,7 +987,7 @@ export function RealExaPlayerPage() {
 							tileScale={tileScale}
 						/>
 					</div>
-					<div class="grid items-center justify-items-end gap-2 gap-x-2 whitespace-nowrap text-end [grid-template-columns:repeat(2,auto);]">
+					<div class="grid items-center justify-items-end gap-2 whitespace-nowrap text-end [grid-template-columns:repeat(2,auto);]">
 						<div>Time left:</div>
 						<div class="font-mono">
 							{formatTimeLeft(levelStats.timeLeft, true)}s
@@ -996,7 +1000,7 @@ export function RealExaPlayerPage() {
 						<div>{levelStats.totalPoints}</div>
 					</div>
 				</div>
-				<div class="box col-start-2 row-span-2 h-full">
+				<div class="box h-full [grid-area:moves]">
 					<div class="relative h-full w-full">
 						{model instanceof LinearModel && (
 							<LinearView model={model} inputs={inputs} />
