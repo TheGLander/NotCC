@@ -940,10 +940,10 @@ export function RealExaPlayerPage() {
 	const setHoveredTile = useSetAtom(hoveredTileAtom)
 	const levelStats = getLevelStats(levelN, model)
 	return (
-		<div class="flex h-full w-full">
+		<div class="flex min-h-full min-w-full">
 			<div
 				class={
-					'm-auto grid min-w-full items-center justify-center gap-2 [grid:"render_stats"_auto_"render_moves"_1fr_"timeline_moves"_auto/_auto_1fr]'
+					'm-auto grid w-full items-center gap-2 [grid:"render_stats"_auto_"render_moves"_1fr_"timeline_moves"_auto/_auto_1fr]'
 				}
 			>
 				<div class="box [grid-area:render]">
@@ -980,7 +980,7 @@ export function RealExaPlayerPage() {
 						)}
 					</TimelineBox>
 				</div>
-				<div class="box flex w-auto min-w-64 gap-2 [grid-area:stats]">
+				<div class="box flex w-auto gap-2 [grid-area:stats]">
 					<div class="mr-auto self-center">
 						<Inventory
 							tileset={tileset!}
@@ -1016,7 +1016,6 @@ export function RealExaPlayerPage() {
 						)}
 					</div>
 				</div>
-				{/* </div> */}
 			</div>
 		</div>
 	)
