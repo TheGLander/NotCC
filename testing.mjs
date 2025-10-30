@@ -36,7 +36,8 @@ let tempDir = null
 async function downloadSet(setName) {
 	if (!setListing) {
 		const res = await fetch("https://api.bitbusters.club/custom-packs/cc2")
-		if (!res.ok) throw new Error("Failed to contact bb.club")
+		if (!res.ok)
+			throw new Error(`Failed to contact bb.club: ${await res.text()}`)
 		setListing = await res.json()
 		tempDir = path.join(os.tmpdir(), await fs.mkdtemp("notcc-test"))
 		await fs.mkdir(tempDir)
@@ -47,7 +48,7 @@ async function downloadSet(setName) {
 	const set = setListing.find(set => set.pack_name === setName)
 	if (!set) throw new Error("Set is not on bb.club")
 	const res = await fetch(set.download_url)
-	if (!res.ok) throw new Error("Failed to contact bb.club")
+	if (!res.ok) throw new Error(`Failed to contact bb.club: ${await res.text()}`)
 	const setZipPath = path.join(tempDir, `${setName}.zip`)
 	const setPath = path.join(setsDirectory, setName)
 	await fs.promises.writeFile(setZipPath, res.body)
