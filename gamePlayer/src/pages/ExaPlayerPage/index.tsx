@@ -26,14 +26,11 @@ function ExaPromptShower() {
 		if (promptShown.current) return
 		if (!levelData) return
 		promptShown.current = true
-		// Need to do this because you can't use `async` in `useEffect` lol
-		async function showExaCC() {
-			const exaCCStarted = await openExaCC(levelData!)
-			if (!exaCCStarted) {
+		openExaCC(levelData).then(opened => {
+			if (!opened) {
 				setPage("")
 			}
-		}
-		showExaCC()
+		})
 	}, [levelData])
 	return <></>
 }

@@ -621,7 +621,7 @@ export function Sidebar() {
 						onTrigger={(get, set) => {
 							const level = get(wrappedLevelAtom)
 							if (!level) return
-							openExaCC(get, set, level)
+							openExaCC(get, set, level, false)
 						}}
 					/>
 					<ChooserButton

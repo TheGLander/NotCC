@@ -161,7 +161,6 @@ export const DEFAULT_HASH_SETTINGS: HashSettings =
 
 function NewProject(props: {
 	onSubmit: (ev: ExaNewEvent & { byDefault: boolean }) => void
-	toggleMode?: boolean
 }) {
 	const [moveModel, setMoveModel] = useState<MoveModel>("linear")
 	const [hashSettings, setHashSettings] = useState<HashSettings>(
@@ -174,7 +173,7 @@ function NewProject(props: {
 			type: "new",
 			model: moveModel,
 			hashSettings,
-			byDefault: !!props.toggleMode && useByDefault,
+			byDefault: useByDefault,
 		})
 	}
 	return (
@@ -239,16 +238,14 @@ function NewProject(props: {
 					onChange={setHashSettings}
 					disabled={moveModel !== "graph"}
 				/>
-				{props.toggleMode && (
-					<label>
-						<input
-							type="checkbox"
-							checked={useByDefault}
-							onChange={ev => setUseByDefault(ev.currentTarget.checked)}
-						/>{" "}
-						Always use this configuration when toggling into ExaCC
-					</label>
-				)}
+				<label>
+					<input
+						type="checkbox"
+						checked={useByDefault}
+						onChange={ev => setUseByDefault(ev.currentTarget.checked)}
+					/>{" "}
+					Always use this configuration when toggling into ExaCC
+				</label>
 			</div>
 
 			<button type="submit">New project</button>
@@ -343,34 +340,32 @@ function OpenProject(props: {
 	)
 }
 
-export const OpenExaPrompt: (props: {
-	toggleMode: boolean
-}) => PromptComponent<(ExaInitEvent & { byDefault?: boolean }) | null> =
-	({ toggleMode }) =>
-	props => {
-		const levelSet = useAtomValue(levelSetAtom)
-		const levelN = useAtomValue(levelNAtom)
-		const setIdent = useAtomValue(levelSetIdentAtom)
-		return (
-			<Dialog
-				header="ExaCC Studio"
-				buttons={[["Cancel", () => props.onResolve(null)]]}
-				onClose={() => props.onResolve(null)}
-			>
-				<div class="flex flex-row">
-					<NewProject onSubmit={props.onResolve} toggleMode={toggleMode} />
-					<OpenProject
-						onSubmit={props.onResolve}
-						setLocation={
-							levelSet && levelN !== null && setIdent
-								? { setName: levelSet.gameTitle(), setIdent, levelN }
-								: undefined
-						}
-					/>
-				</div>
-			</Dialog>
-		)
-	}
+export const OpenExaPrompt: PromptComponent<
+	(ExaInitEvent & { byDefault?: boolean }) | null
+> = props => {
+	const levelSet = useAtomValue(levelSetAtom)
+	const levelN = useAtomValue(levelNAtom)
+	const setIdent = useAtomValue(levelSetIdentAtom)
+	return (
+		<Dialog
+			header="ExaCC Studio"
+			buttons={[["Cancel", () => props.onResolve(null)]]}
+			onClose={() => props.onResolve(null)}
+		>
+			<div class="flex flex-row">
+				<NewProject onSubmit={props.onResolve} />
+				<OpenProject
+					onSubmit={props.onResolve}
+					setLocation={
+						levelSet && levelN !== null && setIdent
+							? { setName: levelSet.gameTitle(), setIdent, levelN }
+							: undefined
+					}
+				/>
+			</div>
+		</Dialog>
+	)
+}
 
 export const exaToggleConfig = preferenceAtom<ExaNewEvent | null>(
 	"exaToggleConfig",
@@ -384,36 +379,29 @@ export async function toggleExaCC(get: Getter, set: Setter) {
 	} else {
 		const levelData = await get(levelAtom)
 		if (!levelData) return
-		let config: ExaInitEvent | null = get(exaToggleConfig)
-		if (!config) {
-			const openEv = await showPromptGs(
-				get,
-				set,
-				OpenExaPrompt({ toggleMode: true })
-			)
-			if (openEv?.byDefault && openEv.type === "new") {
-				set(exaToggleConfig, openEv)
-			}
-			config = openEv
-		}
-		if (!config) return
-		const realIndex = await import("./exaPlayer")
-		realIndex.openExaCCReal(get, set, config, levelData)
+		await openExaCC(get, set, levelData)
 	}
 }
 
 export async function openExaCC(
 	get: Getter,
 	set: Setter,
-	levelData: LevelData
+	levelData: LevelData,
+	useDefaultConfig = true
 ): Promise<boolean> {
-	const openEv = await showPromptGs(
-		get,
-		set,
-		OpenExaPrompt({ toggleMode: false })
-	)
-	if (!openEv) return false
+	let config: ExaInitEvent | null = null
+	if (useDefaultConfig) {
+		config = get(exaToggleConfig)
+	}
+	if (!config) {
+		const openEv = await showPromptGs(get, set, OpenExaPrompt)
+		if (openEv?.byDefault && openEv.type === "new") {
+			set(exaToggleConfig, openEv)
+		}
+		config = openEv
+	}
+	if (!config) return false
 	const realIndex = await import("./exaPlayer")
-	realIndex.openExaCCReal(get, set, openEv, levelData)
+	realIndex.openExaCCReal(get, set, config, levelData)
 	return true
 }

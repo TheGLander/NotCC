@@ -943,7 +943,7 @@ export function RealExaPlayerPage() {
 		<div class="flex h-full w-full">
 			<div
 				class={
-					'm-auto grid w-full items-center justify-center gap-2 [grid:"render_stats"_auto_"render_moves"_1fr_"timeline_moves"_auto/_auto_1fr]'
+					'm-auto grid min-w-full items-center justify-center gap-2 [grid:"render_stats"_auto_"render_moves"_1fr_"timeline_moves"_auto/_auto_1fr]'
 				}
 			>
 				<div class="box [grid-area:render]">
