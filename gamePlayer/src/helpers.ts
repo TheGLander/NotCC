@@ -430,6 +430,12 @@ export class PriorityQueue<T> {
 			this.siftUp(parentIdx)
 		}
 	}
+	adjust(pred: (v: T) => boolean, newPriority: number) {
+		const idx = this.items.findIndex(pred)
+		if (idx === -1) throw new Error("Predicate did not find item in heap")
+		this.priorities[idx] = newPriority
+		this.siftUp(idx)
+	}
 }
 
 export function keypressIsFocused(ev: KeyboardEvent) {
@@ -452,4 +458,14 @@ export function unzipAsync(
 			}
 		})
 	})
+}
+
+export type Falliable<T> =
+	| { result: "resolve"; value: T }
+	| { result: "reject"; error: any }
+
+export function falliable<T>(p: Promise<T>): Promise<Falliable<T>> {
+	return p
+		.then(v => ({ result: "resolve" as const, value: v }))
+		.catch(err => ({ result: "reject", error: err }))
 }

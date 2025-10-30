@@ -157,9 +157,9 @@ export const LevelListPrompt: PromptComponent<void> = pProps => {
 					<div class="text-center">Best score</div>
 				</div>
 				{levels.map(({ info, metrics }, idx) => {
-					const scoresLevel = setScores?.find(
-						lvl => lvl.level === info.levelNumber
-					)
+					const scoresLevel =
+						setScores?.result === "resolve" &&
+						setScores.value.find(lvl => lvl.level === info.levelNumber)
 					const grades =
 						metrics && scoresLevel
 							? getReportGradesForMetrics(metrics, scoresLevel)

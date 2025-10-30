@@ -4,6 +4,7 @@ import { preferenceAtom } from "./preferences"
 import { atomEffect } from "jotai-effect"
 import { importantSetAtom } from "./levelData"
 import { SolutionMetrics } from "@notcc/logic"
+import { Falliable, falliable } from "./helpers"
 
 // /players
 export interface ApiPlayerGeneric {
@@ -114,9 +115,11 @@ export const optimizerIdAtom = preferenceAtom<number | null>(
 	null
 )
 
-export const setScoresAtom = unwrap(atom<Promise<ApiPackLevel[]> | null>(null))
+export const setScoresAtom = unwrap(
+	atom<Promise<Falliable<ApiPackLevel[]>> | null>(null)
+)
 export const setPlayerScoresAtom = unwrap(
-	atom<Promise<ApiPlayerPackDetails> | null>(null)
+	atom<Promise<Falliable<ApiPlayerPackDetails>> | null>(null)
 )
 
 export const setScoresSyncAtom = atomEffect((get, set) => {
@@ -125,13 +128,13 @@ export const setScoresSyncAtom = atomEffect((get, set) => {
 	set(setPlayerScoresAtom, null)
 
 	if (!importantSet) return
-	set(setScoresAtom, getPackLevels(importantSet.setIdent))
+	set(setScoresAtom, falliable(getPackLevels(importantSet.setIdent)))
 	const optimizerId = get(optimizerIdAtom)
 
 	if (optimizerId === null) return
 	set(
 		setPlayerScoresAtom,
-		getPlayerPackDetails(optimizerId, importantSet.setIdent)
+		falliable(getPlayerPackDetails(optimizerId, importantSet.setIdent))
 	)
 })
 

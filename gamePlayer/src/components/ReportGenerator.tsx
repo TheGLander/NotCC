@@ -194,9 +194,11 @@ export const ReportGeneratorPrompt: PromptComponent<void> = pProps => {
 			.map<ReportLine | null>(level =>
 				makeReportLine(
 					level.levelInfo,
-					setScores?.find(
-						scoresLevel => scoresLevel.level === level.levelInfo.levelNumber
-					),
+					!setScores || setScores.result === "reject"
+						? undefined
+						: setScores.value.find(
+								scoresLevel => scoresLevel.level === level.levelInfo.levelNumber
+							),
 					playerScoresRes.value?.scores.levels[level.levelInfo.levelNumber!]
 				)
 			)

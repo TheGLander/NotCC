@@ -820,7 +820,9 @@ export function DumbLevelPlayer(props: {
 	const setScores = useAtomValue(setScoresAtom)
 	const importantSet = useAtomValue(importantSetAtom)
 	const levelScores = useMemo(
-		() => setScores?.find(lvl => lvl.level === props.levelSet?.currentLevel),
+		() =>
+			setScores?.result === "resolve" &&
+			setScores.value.find(lvl => lvl.level === props.levelSet?.currentLevel),
 		[props.levelSet?.currentLevel]
 	)
 	const [solutionMetrics, setSolutionMetrics] =

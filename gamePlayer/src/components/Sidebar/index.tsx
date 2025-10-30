@@ -474,9 +474,9 @@ function RoutesTooltipList(props: { controls: LevelControls }) {
 	const setIdent = useAtomValue(levelSetIdentAtom)
 	const { get, set } = useStore()
 	const routes: SidebarReplayable[] = []
-	if (levelSet && rrRoutes) {
+	if (levelSet && rrRoutes?.result === "resolve") {
 		routes.push(
-			...getRRRoutes(rrRoutes, levelSet.currentLevel, setIdent!, get, set)
+			...getRRRoutes(rrRoutes.value, levelSet.currentLevel, setIdent!, get, set)
 		)
 	}
 	return (
