@@ -34,10 +34,9 @@ export function Header() {
 	return (
 		<div class="box max-w-4/5 mobile:max-w-sm mobile:flex-wrap mx-auto mt-3 flex w-fit flex-row items-center">
 			<img
-				class="mobile:ml-auto mobile:h-10 inline-block aspect-square self-start"
+				class="mobile:ml-auto mobile:h-10 inline-block aspect-square self-center"
 				src="./iconBig.png"
 				draggable={false}
-				width={144}
 				height={144}
 			/>
 			<div class="mobile:contents mx-2 flex flex-col">
