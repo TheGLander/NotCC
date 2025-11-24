@@ -1,7 +1,7 @@
 import dpadImage from "./dpad.svg"
-import { RepeatKeyHandler } from "@/inputs"
+import { InputControls } from "@/inputs"
 import { KEY_INPUTS, KeyInputs } from "@notcc/logic"
-import { memo } from "preact/compat"
+import { RefObject, memo } from "preact/compat"
 import { useEffect, useRef } from "preact/hooks"
 import dropActiveImage from "./drop-active.svg"
 import dropInactiveImage from "./drop-inactive.svg"
@@ -10,40 +10,23 @@ import cycleInactiveImage from "./cycle-inactive.svg"
 import switchActiveImage from "./switch-active.svg"
 import switchInactiveImage from "./switch-inactive.svg"
 import { applyRef } from "@/helpers"
-import { Ref } from "preact"
 
-const MOBILE_CONTROLS_PLAYER_N = 0
+const DIRECTIONS = ["up", "right", "down", "left"]
+export const MOBILE_SOURCE_ID = "touch"
 
 export const MobileControls = memo(function MobileControls(props: {
-	handler: RepeatKeyHandler
-	possibleActionsRef: Ref<(actions: KeyInputs) => void>
+	inputsRef: RefObject<InputControls | undefined>
+	possibleActionsRef: RefObject<(actions: KeyInputs) => void>
 }) {
-	const onOffRef = useRef<
-		| [
-				(key: KeyInputs, player: number) => void,
-				(key: KeyInputs, player: number) => void,
-		  ]
-		| null
-	>(null)
-
-	useEffect(() => {
-		props.handler.addEventSource((on, off) => {
-			onOffRef.current = [on, off]
-			return () => {}
-		})
-	}, [props.handler])
-
-	const inputsRef = useRef<KeyInputs>(0)
-	function updateDpadDeltas(inputs: KeyInputs) {
+	const inputsRef = useRef([false, false, false, false])
+	function updateDpadDeltas(inputs: [boolean, boolean, boolean, boolean]) {
 		const oldInputs = inputsRef.current
-		const [on, off] = onOffRef!.current!
-		for (let input = KEY_INPUTS.up; input <= KEY_INPUTS.left; input <<= 1) {
-			if (input & inputs && !(input & oldInputs)) {
-				on(input, MOBILE_CONTROLS_PLAYER_N)
-			}
-			if (!(input & inputs) && input & oldInputs) {
-				off(input, MOBILE_CONTROLS_PLAYER_N)
-			}
+		for (const [idx, dir] of DIRECTIONS.entries()) {
+			if (inputs[idx] && !oldInputs[idx])
+				props.inputsRef.current?.on({ source: MOBILE_SOURCE_ID, code: dir })
+
+			if (!inputs[idx] && oldInputs[idx])
+				props.inputsRef.current?.off({ source: MOBILE_SOURCE_ID, code: dir })
 		}
 		inputsRef.current = inputs
 	}
@@ -68,16 +51,10 @@ export const MobileControls = memo(function MobileControls(props: {
 		}
 		x /= dpadRef.current.width
 		y /= dpadRef.current.height
-		updateDpadDeltas(
-			0 |
-				(x < 1 / 3 ? KEY_INPUTS.left : 0) |
-				(x > 2 / 3 ? KEY_INPUTS.right : 0) |
-				(y < 1 / 3 ? KEY_INPUTS.up : 0) |
-				(y > 2 / 3 ? KEY_INPUTS.down : 0)
-		)
+		updateDpadDeltas([y < 1 / 3, x > 2 / 3, y > 2 / 3, x < 1 / 3])
 	}
 	function handleDpadRelease() {
-		updateDpadDeltas(0)
+		updateDpadDeltas([false, false, false, false])
 	}
 
 	const secondaryRefs = {
@@ -105,17 +82,14 @@ export const MobileControls = memo(function MobileControls(props: {
 		applyRef(props.possibleActionsRef, updatePossibleActions)
 	}, [props.possibleActionsRef])
 
-	function handleSecondaryDown(input: KeyInputs) {
-		return () => {
-			const [on] = onOffRef!.current!
-			on(input, MOBILE_CONTROLS_PLAYER_N)
-		}
+	function handleSecondaryDown(
+		code: "dropItem" | "cycleItems" | "switchPlayer"
+	) {
+		return () => props.inputsRef.current?.on({ source: MOBILE_SOURCE_ID, code })
 	}
-	function handleSecondaryUp(input: KeyInputs) {
-		return () => {
-			const [, off] = onOffRef!.current!
-			off(input, MOBILE_CONTROLS_PLAYER_N)
-		}
+	function handleSecondaryUp(code: "dropItem" | "cycleItems" | "switchPlayer") {
+		return () =>
+			props.inputsRef.current?.off({ source: MOBILE_SOURCE_ID, code })
 	}
 
 	return (
@@ -125,24 +99,24 @@ export const MobileControls = memo(function MobileControls(props: {
 				draggable={false}
 				ref={secondaryRefs.drop}
 				src={dropInactiveImage}
-				onTouchStart={handleSecondaryDown(KEY_INPUTS.dropItem)}
-				onTouchEnd={handleSecondaryUp(KEY_INPUTS.dropItem)}
+				onTouchStart={handleSecondaryDown("dropItem")}
+				onTouchEnd={handleSecondaryUp("dropItem")}
 			/>
 			<img
 				class="pointer-events-auto absolute bottom-[25vmin] left-[22vmin] w-[12vmin] landscape:bottom-[25vmin]"
 				draggable={false}
 				ref={secondaryRefs.cycle}
 				src={cycleInactiveImage}
-				onTouchStart={handleSecondaryDown(KEY_INPUTS.cycleItems)}
-				onTouchEnd={handleSecondaryUp(KEY_INPUTS.cycleItems)}
+				onTouchStart={handleSecondaryDown("cycleItems")}
+				onTouchEnd={handleSecondaryUp("cycleItems")}
 			/>
 			<img
 				class="pointer-events-auto absolute bottom-[6vmin] left-[13vmin] w-[12vmin] landscape:bottom-[6vmin]"
 				draggable={false}
 				ref={secondaryRefs.switch}
 				src={switchInactiveImage}
-				onTouchStart={handleSecondaryDown(KEY_INPUTS.switchPlayer)}
-				onTouchEnd={handleSecondaryUp(KEY_INPUTS.switchPlayer)}
+				onTouchStart={handleSecondaryDown("switchPlayer")}
+				onTouchEnd={handleSecondaryUp("switchPlayer")}
 			/>
 			<img
 				class="pointer-events-auto absolute bottom-[4vmin] right-[5vmin] w-[40vmin] landscape:bottom-[5vmin]"

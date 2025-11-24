@@ -12,6 +12,7 @@ import {
 	calculateLevelPoints,
 	findBestMetrics,
 	KeyInputs,
+	KEY_INPUTS,
 } from "@notcc/logic"
 import { CameraType, GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -34,7 +35,16 @@ import {
 } from "@/helpers"
 import { embedReadyAtom, embedModeAtom, pageAtom, levelNAtom } from "@/routing"
 import { MobileControls } from "./MobileControls"
-import { useGameInputs } from "@/inputs"
+import {
+	InputBuffer,
+	InputControls,
+	InputSource,
+	RepeatState,
+	inputConfigAtom,
+	releaseLevelInputs,
+	setLevelInputs,
+	useInputCollector,
+} from "@/inputs"
 import { twJoin, twMerge } from "tailwind-merge"
 import { ComponentChildren, Ref, VNode } from "preact"
 import { useMediaQuery } from "react-responsive"
@@ -515,6 +525,10 @@ export function DumbLevelPlayer(props: {
 	// if (!tileset) return <div class="box m-auto p-1">No tileset loaded.</div>
 
 	const [playerState, setPlayerState] = useState("pregame" as PlayerState)
+	const isPregameRef = useRef(false)
+	useLayoutEffect(() => {
+		isPregameRef.current = playerState === "pregame"
+	}, [playerState])
 
 	useEffect(() => {
 		if (playerState === "pause") sfx?.pause()
@@ -524,7 +538,44 @@ export function DumbLevelPlayer(props: {
 	// Inputs & LevelState
 
 	const [level, setLevel] = useState(() => props.level.initLevel())
-	const inputMan = useGameInputs(level)
+	const mobileControls = "ontouchstart" in window
+	const baseInputConfig = useAtomValue(inputConfigAtom)
+	const inputConfig = useMemo(() => {
+		if (!mobileControls) return baseInputConfig
+		const config = structuredClone(baseInputConfig)
+		config.seats[0].mappings.unshift({
+			enabled: true,
+			source: "touch",
+			codes: KEY_INPUTS,
+		})
+		return config
+	}, [baseInputConfig, mobileControls])
+
+	const mobileControlInputsRef = useRef<InputControls>()
+	const extraSources = useMemo(() => {
+		if (!mobileControls) return []
+		return [
+			(controls => {
+				mobileControlInputsRef.current = controls
+				return () => {}
+			}) satisfies InputSource,
+		]
+	}, [mobileControls])
+
+	const inputBuffer = useMemo(() => new InputBuffer(), [level])
+	const inputCallback = useCallback(
+		(input: KeyInputs, player: number, state: RepeatState) => {
+			if (player !== 0) return
+			if (isPregameRef.current) {
+				beginLevelAttempt()
+				isPregameRef.current = false
+			}
+			inputBuffer.feedEvent(input, state)
+		},
+		[inputBuffer]
+	)
+	useInputCollector(inputConfig, inputCallback, extraSources)
+
 	const playerSeat = useMemo(() => level.playerSeats[0], [level])
 
 	const getGlobalLevelModifiers = useJotaiFn(getGlobalLevelModifiersGs)
@@ -621,14 +672,14 @@ export function DumbLevelPlayer(props: {
 		if (replay) {
 			level.setProviderInputs(replay)
 		} else {
-			inputMan.setLevelInputs()
+			setLevelInputs(level, [inputBuffer])
 		}
 		if (level.gameState === GameState.PLAYING) {
 			attempt?.recordAttemptStep(level)
 		}
 		level.tick()
 		possibleActionsRef.current?.(playerSeat.getPossibleActions(level))
-		inputMan.setReleasedInputs()
+		releaseLevelInputs(level, [inputBuffer])
 		sfx?.processSfxField(level.sfx)
 		if (level.gameState === GameState.PLAYING) {
 			renderInventoryRef.current?.()
@@ -679,7 +730,7 @@ export function DumbLevelPlayer(props: {
 		}
 	}, [
 		level,
-		inputMan,
+		inputBuffer,
 		submitLevelAttempt,
 		playerState,
 		attempt,
@@ -697,20 +748,6 @@ export function DumbLevelPlayer(props: {
 	}, [embedMode])
 
 	// Pregame
-	useEffect(() => {
-		if (playerState !== "pregame") return
-		const listener = (ev: KeyboardEvent) => {
-			if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && ev.code === "Space") {
-				beginLevelAttempt()
-			}
-		}
-		document.addEventListener("keydown", listener)
-		inputMan.anyInputRef.current = beginLevelAttempt
-		return () => {
-			document.removeEventListener("keydown", listener)
-			inputMan.anyInputRef.current = undefined
-		}
-	}, [playerState, inputMan])
 	useEffect(() => {
 		return () => {
 			setWinInterruptResponse(null)
@@ -867,7 +904,6 @@ export function DumbLevelPlayer(props: {
 
 	// GUI stuff
 	const scale = useAutoScale(scaleArgs)
-	const mobileControls = "ontouchstart" in window
 	const goToNextLevel = useJotaiFn(goToNextLevelGs)
 	const setPage = useSetAtom(pageAtom)
 	const [caughtGlitch, setCaughtGlitch] = useState<protobuf.IGlitchInfo | null>(
@@ -1023,12 +1059,14 @@ export function DumbLevelPlayer(props: {
 				)}
 				<NormalHintDisplay hintRef={hintRefAppl} />
 			</div>
-			<div class={twJoin("absolute", !mobileControls && "hidden")}>
-				<MobileControls
-					handler={inputMan.handler}
-					possibleActionsRef={possibleActionsRef}
-				/>
-			</div>
+			{mobileControls && (
+				<div class="absolute">
+					<MobileControls
+						inputsRef={mobileControlInputsRef}
+						possibleActionsRef={possibleActionsRef}
+					/>
+				</div>
+			)}
 		</div>
 	)
 }

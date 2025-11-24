@@ -469,3 +469,26 @@ export function falliable<T>(p: Promise<T>): Promise<Falliable<T>> {
 		.then(v => ({ result: "resolve" as const, value: v }))
 		.catch(err => ({ result: "reject", error: err }))
 }
+
+export function iterMapFind<T, R extends {}>(
+	iter: Iterable<T>,
+	f: (v: T, idx: number) => R | null
+): R | null {
+	let idx = 0
+	for (const item of iter) {
+		const res = f(item, idx)
+		idx += 1
+		if (res == null) continue
+		return res
+	}
+	return null
+}
+
+export function dedup<T>(arr: T[]): T[] {
+	const vals = new Set<T>()
+	return arr.filter(v => {
+		if (vals.has(v)) return false
+		vals.add(v)
+		return true
+	})
+}

@@ -37,7 +37,6 @@ import {
 	formatTimeLeft,
 	useJotaiFn,
 } from "@/helpers"
-import { DEFAULT_KEY_MAP } from "@/inputs"
 import { ExaNewEvent, ExaInitEvent } from "./OpenExaPrompt"
 import { Inventory } from "@/components/Inventory"
 import {
@@ -81,6 +80,7 @@ import { makeDirP, showSavePrompt, writeJson } from "@/fs"
 import { basename, join } from "path"
 import { Expl } from "@/components/Expl"
 import { dismissablePreferenceAtom } from "@/preferences"
+import { RepeatState, inputConfigAtom, useInputCollector } from "@/inputs"
 
 const modelConfigAtom = atom<ExaNewEvent | null>(null)
 type Model = LinearModel | GraphModel
@@ -813,8 +813,13 @@ export function RealExaPlayerPage() {
 
 	const [, setDummyState] = useState(false)
 
-	function updateLevel() {
+	function rerunComponent() {
 		setDummyState(ds => !ds)
+	}
+
+	function updateLevel() {
+		inputsRef.current = 0
+		rerunComponent()
 		render()
 	}
 	const tileset = useAtomValue(tilesetAtom)
@@ -831,56 +836,64 @@ export function RealExaPlayerPage() {
 	}, [model, tileset])
 
 	// Inputs
-	const [inputs, setInputs] = useState<KeyInputs>(0)
-
-	const inputRef = useRef(inputs)
-	useLayoutEffect(() => {
-		function setInput(inputsNeue: KeyInputs) {
-			inputRef.current = inputsNeue
-			setInputs(inputsNeue)
-		}
-		function finalizeInput() {
-			timer?.cancel()
-			timer = null
-			try {
-				if (model?.level.gameState !== GameState.PLAYING) return
-				if (!model!.isCurrentlyAlignedToMove()) {
-					model!.redo()
-					updateLevel()
-					return
-				}
-				const curTime = model.level.msecsPassed()
-				model!.addInput(inputRef.current)
-				checkForNonlegalGlitches(curTime)
+	const addInput = useCallback(
+		(input: KeyInputs) => {
+			if (!model) return
+			if (model.level.gameState !== GameState.PLAYING) return
+			if (!model.isCurrentlyAlignedToMove()) {
+				model.redo()
 				updateLevel()
-			} finally {
-				setInput(0)
+				return
 			}
+			const curTime = model.level.msecsPassed()
+			model.addInput(input)
+			checkForNonlegalGlitches(curTime)
+			updateLevel()
+		},
+		[model, checkForNonlegalGlitches]
+	)
+	const inputsRef = useRef<KeyInputs>(0)
+	const inputTimerRef = useRef<TimeoutTimer>()
+
+	const finaliseInput = useCallback(() => {
+		inputTimerRef.current?.cancel()
+		inputTimerRef.current = undefined
+		try {
+			addInput(inputsRef.current)
+		} finally {
+			inputsRef.current = 0
 		}
-		let timer: TimeoutTimer | null = null
-		const listener = (ev: KeyboardEvent) => {
-			const inputs = inputRef.current
-			const rawInput: number | undefined = DEFAULT_KEY_MAP[ev.code as "ArrowUp"]
-			const input =
-				rawInput && rawInput & model.playerSeat.getPossibleActions(model.level)
-			const isWait = ev.code === "Space"
-			if (isWait) {
-				finalizeInput()
+	}, [addInput])
+
+	const inputCallback = useCallback(
+		(rawInput: KeyInputs, player: number, keyState: RepeatState) => {
+			if (player !== 0 || keyState !== "held") return
+			const input = rawInput & model.playerSeat.getPossibleActions(model.level)
+			if (rawInput === 0) {
+				// Explicit wait
+				finaliseInput()
 			} else if (rawInput & KEY_INPUTS.directional) {
-				setInput(inputs | input)
-				if (timer === null) {
-					timer = new TimeoutTimer(finalizeInput, 0.05)
+				// Directional input, wait a moment for diagonal inputs
+				inputsRef.current |= input
+				if (!inputTimerRef.current) {
+					inputTimerRef.current = new TimeoutTimer(finaliseInput, 0.05)
 				}
-			} else if (rawInput !== undefined) {
-				setInput((inputs & ~input) | (input & inputs ? 0 : input))
+			} else {
+				// Secondary input
+				if (inputsRef.current & input) {
+					inputsRef.current &= ~input
+				} else {
+					inputsRef.current |= input
+				}
 			}
-		}
-		document.addEventListener("keydown", listener)
-		return () => {
-			document.removeEventListener("keydown", listener)
-			timer?.cancel()
-		}
-	}, [model, checkForNonlegalGlitches])
+			rerunComponent()
+		},
+		[model, finaliseInput]
+	)
+
+	const inputConfig = useAtomValue(inputConfigAtom)
+	useInputCollector(inputConfig, inputCallback)
+
 	// Scrollbar, scrub and playback
 	const [playing, setPlaying] = useState(false)
 	const [speedIdx, setSpeedIdx] = useState(TIMELINE_DEFAULT_IDX)
@@ -1005,12 +1018,13 @@ export function RealExaPlayerPage() {
 				<div class="box h-full [grid-area:moves]">
 					<div class="relative h-full w-full">
 						{model instanceof LinearModel && (
-							<LinearView model={model} inputs={inputs} />
+							// We make sure the component is always rerendered when ref changes, don't worry
+							<LinearView model={model} inputs={inputsRef.current} />
 						)}
 						{model instanceof GraphModel && (
 							<GraphView
 								model={model}
-								inputs={inputs}
+								inputs={inputsRef.current}
 								updateLevel={updateLevel}
 							/>
 						)}
