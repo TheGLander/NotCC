@@ -46,8 +46,8 @@ export class InputRepeater {
 		this.repeatTimer = null
 		if (this.repeatInput && !inputEq(this.repeatInput, input)) {
 			this.listener(this.repeatInput, "held")
-			this.repeatInput = null
 		}
+		this.repeatInput = null
 		return this.listener(input, "released")
 	}
 	constructor(public listener: (input: Input, state: RepeatState) => boolean) {}
