@@ -5,12 +5,13 @@
 	"scripts": {
 		"dev": "vite",
 		"build:ssg": "SSG=true vite build -c vite.config.js --ssr src/main-ssg.tsx --outDir dist/ssg",
-		"build": "rm -rf dist && tsc && pnpm build:ssg && vite build && rm -r dist/ssg",
+		"build": "rm -rf dist && tsc && pnpm build:ssg && vite build && rm -r dist/ssg && pnpm make-sw",
 		"build:neu": "VITE_BUILD_PLATFORM=desktop pnpm build && zx makeDists.mjs",
 		"build:neu-zip": "pnpm build:neu && rm -f NotCC.zip && cd artifacts && zip -r ../NotCC.zip .",
 		"build:full": "pnpm build:neu-zip && rm -r dist && pnpm build && zx makeWebDownloads.mjs",
 		"dev:neu": "neu run",
-		"prepublish": "neu update"
+		"prepublish": "neu update",
+		"make-sw": "sed \"s\\\\__SW_FILES\\\\[$(cd dist; find . | grep -E '.*(js|css|png|svg|html|webmanifest|svg|wasm|ogg)' | sort | uniq | sed 's/.*/\"\\0\",/' | tr '\\n' ' ')]\\\\g\" < ./src/sw.js > ./dist/sw.js"
 	},
 	"repository": {
 		"type": "git",
@@ -53,9 +54,7 @@
 		"tailwind-merge": "^2.6.0",
 		"tailwindcss": "^3.4.17",
 		"typescript": "^5.9.2",
-		"vite": "^4.5.14",
-		"vite-plugin-pwa": "^1.0.2",
-		"workbox-window": "^7.3.0"
+		"vite": "^4.5.14"
 	},
 	"dependencies": {
 		"@dagrejs/dagre": "^1.1.5",

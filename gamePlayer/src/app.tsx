@@ -8,7 +8,6 @@ import { useEffect, useState } from "preact/hooks"
 import { twJoin } from "tailwind-merge"
 import { desktopPlatform, isDesktop, useJotaiFn } from "./helpers"
 import { Dialog } from "./components/Dialog"
-import * as pwaRegister from "virtual:pwa-register"
 import { ToastDisplay } from "./toast"
 import { ErrorBox } from "./components/ErrorBox"
 import { playEnabledAtom } from "./preferences"
@@ -37,22 +36,10 @@ const ErrorPrompt =
 		</Dialog>
 	)
 
-const UpdatePrompt =
-	(updateSW: () => void): PromptComponent<void> =>
-	props => (
-		<Dialog
-			notModal
-			header="New update!"
-			buttons={[
-				["Apply", () => updateSW()],
-				["Dismiss", () => {}],
-			]}
-			onResolve={props.onResolve}
-		>
-			There has been an update for NotCC! Press Apply to refresh the page and
-			apply the update!
-		</Dialog>
-	)
+async function launchSw() {
+	if (!navigator.serviceWorker) return
+	await navigator.serviceWorker.register("./sw.js")
+}
 
 export function App() {
 	const colorScheme = useAtomValue(colorSchemeAtom)
@@ -61,14 +48,8 @@ export function App() {
 	const showPrompt = useJotaiFn(showPromptGs)
 	// PWA auto-update
 	useEffect(() => {
-		if (isDesktop()) return
-		const updateSW = pwaRegister.registerSW({
-			onNeedRefresh() {
-				showPrompt(UpdatePrompt(updateSW))
-			},
-			onOfflineReady() {},
-			immediate: true,
-		})
+		if (isDesktop() || location.hostname == "localhost") return
+		launchSw()
 	}, [])
 	// Embed mode communication
 	useEffect(() => {
