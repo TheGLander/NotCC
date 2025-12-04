@@ -1,5 +1,5 @@
 import { getBBClubSetReleased, getBBClubSetUpdated } from "@/setsApi"
-import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
+import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
 import { CameraType, GameRenderer } from "./GameRenderer"
 import { suspend } from "suspend-react"
 import { tilesetAtom } from "./PreferencesPrompt/TilesetsPrompt"
@@ -27,6 +27,7 @@ import {
 	useBBClubSetsPromise,
 } from "@/setManagement"
 import { useAtomValue } from "jotai"
+import { ProgressBar } from "./ProgressBar"
 
 // XXX: Make this dynamic?
 const PREVIEW_TILESET_SIZE = 32
@@ -284,11 +285,7 @@ const SetItem = memo(
 		)
 
 		const [isDownloading, setIsDownloading] = useState<boolean>(false)
-		const progressBarRef = useRef<HTMLDivElement>(null)
-		const setProgressBarProgress = useCallback((progress: number) => {
-			if (!progressBarRef.current) return
-			progressBarRef.current.style.width = `${progress * 100}%`
-		}, [])
+		const [progress, setProgress] = useState(0)
 
 		const downloadAndOverwriteBBClubSet = useJotaiFn(
 			downloadAndOverwriteBBClubSetGs
@@ -297,7 +294,7 @@ const SetItem = memo(
 
 		const userDownloadSet = useCallback(async () => {
 			setIsDownloading(true)
-			await downloadBBClubSet(props.set, setProgressBarProgress)
+			await downloadBBClubSet(props.set, setProgress)
 			setIsDownloading(false)
 		}, [props.set])
 
@@ -306,7 +303,7 @@ const SetItem = memo(
 			await removeLocalSet(props.set, false)
 			setIsDownloading(true)
 			// We just removed the same set, so we don't need to check if we're overwriting anything
-			await downloadAndOverwriteBBClubSet(props.set, setProgressBarProgress)
+			await downloadAndOverwriteBBClubSet(props.set, setProgress)
 			setIsDownloading(false)
 		}, [localSetData])
 
@@ -376,14 +373,11 @@ const SetItem = memo(
 				</div>
 				<div
 					class={twJoin(
-						"bg-theme-700 h-7 self-stretch rounded",
+						"flex flex-row self-stretch",
 						!isDownloading && "hidden"
 					)}
 				>
-					<div
-						class="bg-theme-800 h-full w-0 transition-transform"
-						ref={progressBarRef}
-					/>
+					<ProgressBar progress={progress} />
 				</div>
 				{!isDownloading && (
 					<div class=" flex w-full gap-1">
