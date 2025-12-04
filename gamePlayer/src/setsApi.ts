@@ -1,5 +1,9 @@
 import { parseC2M } from "@notcc/logic"
-import { BasicSemaphore, resErrorToString } from "./helpers"
+import {
+	BasicSemaphore,
+	progressiveBodyDownload,
+	resErrorToString,
+} from "./helpers"
 import { LevelData } from "./levelData"
 import { exists, readFile, readJson, remove, writeFile, writeJson } from "./fs"
 
@@ -148,32 +152,9 @@ export class BBClubSetsRepository {
 			this.fetchSemaphore.leave()
 			throw new Error(`Failed to download set: ${await resErrorToString(res)}`)
 		}
-		const bodyLengthStr = res.headers.get("Content-Length")
-		if (!bodyLengthStr) {
+		return progressiveBodyDownload(res, reportProgress).catch(err => {
 			this.fetchSemaphore.leave()
-			throw new Error("Failed to download set: no Content-Length set")
-		}
-
-		const bodyLength = parseInt(bodyLengthStr)
-		if (bodyLength === 0) {
-			this.fetchSemaphore.leave()
-			throw new Error("Failed to download set: no body sent")
-		}
-		const setZip = new Uint8Array(bodyLength)
-		let offset = 0
-		// Download manually, chunk-by-chunk, using a reader, to report progress
-		const reader = res.body!.getReader()
-		reportProgress?.(0)
-		while (true) {
-			const { value, done } = await reader.read()
-			if (done || !value) break
-			setZip.set(value, offset)
-			offset += value.byteLength
-			reportProgress?.(offset / bodyLength)
-		}
-		this.fetchSemaphore.leave()
-		if (offset < bodyLength)
-			throw new Error("Failed to download set: body too short")
-		return setZip.buffer
+			throw err
+		})
 	}
 }

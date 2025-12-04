@@ -492,3 +492,29 @@ export function dedup<T>(arr: T[]): T[] {
 		return true
 	})
 }
+
+export async function progressiveBodyDownload(
+	res: Response,
+	reportProgress?: (progress: number) => void
+): Promise<ArrayBuffer> {
+	const reader = res.body?.getReader()
+	if (!reader) throw new Error("Failed to get reader")
+	const bodyLengthStr = res.headers.get("Content-Length")
+	if (!bodyLengthStr) throw new Error("Failed to get content length header")
+	const bodyLength = parseInt(bodyLengthStr)
+	if (isNaN(bodyLength))
+		throw new Error("Failed to parse content length header")
+	const data = new Uint8Array(bodyLength)
+	let offset = 0
+	reportProgress?.(0)
+	while (true) {
+		const { done, value } = await reader.read()
+		if (done) break
+		data.set(value, offset)
+		offset += value.byteLength
+		reportProgress?.(offset / bodyLength)
+	}
+	if (offset < bodyLength)
+		throw new Error("Failed to download set: body too short")
+	return data.buffer
+}
