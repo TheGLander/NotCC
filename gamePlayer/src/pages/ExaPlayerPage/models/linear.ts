@@ -6,11 +6,6 @@ import {
 	charToKeyInput,
 	keyInputToChar,
 } from "@notcc/logic"
-import cloneLib from "clone"
-
-function clone<T>(src: T): T {
-	return cloneLib(src, true)
-}
 
 export function tickLevel(level: Level) {
 	level.tick()
@@ -103,7 +98,9 @@ export class MoveSequence {
 		const thisSnapshots = this.snapshots
 		//@ts-ignore We'll reattach it shortly
 		delete this.snapshots
-		const cloned = clone(this)
+		const cloned = structuredClone(this)
+		// Reattach prototype
+		Object.setPrototypeOf(cloned, Object.getPrototypeOf(this))
 		this.snapshots = thisSnapshots
 		cloned.snapshots = thisSnapshots.map(snap => ({
 			...snap,
