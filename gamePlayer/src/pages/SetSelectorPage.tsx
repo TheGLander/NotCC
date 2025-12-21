@@ -18,6 +18,7 @@ import {
 } from "@/levelData"
 import { saveFilesLocallyGs } from "@/setManagement"
 import { Ht } from "@/components/Ht"
+import { DesktopUpdater } from "@/components/DesktopUpdater"
 
 function BackToMainPage() {
 	const setPlayEnabled = useSetAtom(playEnabledAtom)
@@ -220,6 +221,7 @@ export function SetSelectorPage() {
 			<Header />
 			{!isDesktop() && <BackToMainPage />}
 			{isDesktop() && <DesktopWipHeader />}
+			{isDesktop() && <DesktopUpdater />}
 			{!alphaHeaderClosed && <AlphaHeader />}
 			<UploadBox />
 			<SetsGrid />

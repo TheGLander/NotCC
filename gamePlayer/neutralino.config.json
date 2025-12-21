@@ -13,7 +13,8 @@
 		"os.showFolderDialog",
 		"filesystem.*",
 		"os.execCommand",
-		"debug.log"
+		"debug.log",
+		"app.killProcess"
 	],
 	"modes": {
 		"window": {

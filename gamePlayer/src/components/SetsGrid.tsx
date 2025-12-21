@@ -279,10 +279,12 @@ const SetItem = memo(
 	(props: { set: ItemLevelSet; showDisambiguation?: boolean }) => {
 		const { bbClubSet, localSet: localSetData, localBBClubSet } = props.set
 
-		const { value: localSetMetadata } = usePromise(
+		const localSetMetadataRes = usePromise(
 			async () => getSetMetadata(props.set),
 			[localSetData]
 		)
+		const localSetMetadata =
+			localSetMetadataRes.state === "done" ? localSetMetadataRes.value : null
 
 		const [isDownloading, setIsDownloading] = useState<boolean>(false)
 		const [progress, setProgress] = useState(0)
@@ -417,7 +419,7 @@ export function SetsGrid() {
 		[localSetsChanged]
 	)
 	// Failing to load local sets is really bad, we probably messed something up, show an error message
-	useErrorRethrow(localSetsRes.error)
+	useErrorRethrow(localSetsRes.state === "error" ? localSetsRes.error : null)
 
 	const setsPromise = useBBClubSetsPromise()
 	const bbClubSetsRes = usePromise(() => setsPromise, [setsPromise])
@@ -425,10 +427,10 @@ export function SetsGrid() {
 
 	const sets: ItemLevelSet[] = useMemo(() => {
 		const sets: ItemLevelSet[] = []
-		if (localSetsRes.value) {
+		if (localSetsRes.state === "done") {
 			sets.push(...localSetsRes.value)
 		}
-		if (bbClubSetsRes.value) {
+		if (bbClubSetsRes.state === "done") {
 			for (const bbClubSet of bbClubSetsRes.value) {
 				const localSet = sets.find(
 					lSet => lSet.localBBClubSet?.id === bbClubSet.bbClubSet!.set.id
@@ -443,7 +445,7 @@ export function SetsGrid() {
 			}
 		}
 		return sets
-	}, [bbClubSetsRes.value, localSetsRes.value])
+	}, [bbClubSetsRes.state, localSetsRes.state])
 
 	// If there are multiple sets with the same name, we should show the set idents for those sets
 	const setsToDisambiguate = useMemo(() => {
@@ -505,7 +507,7 @@ export function SetsGrid() {
 					<option value="newest">Newest</option>
 				</select>
 			</div>
-			{bbClubSetsRes.error && (
+			{bbClubSetsRes.state === "error" && (
 				<div class="col-span-full flex w-full flex-col">
 					<div class="box mx-auto flex w-fit flex-col">
 						<span>

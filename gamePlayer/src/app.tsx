@@ -82,7 +82,7 @@ export function App() {
 		}
 	}, [])
 	// By default, the NotCC page is just the download page,
-	let playEnabled = useAtomValue(playEnabledAtom)
+	let playEnabled = useAtomValue(playEnabledAtom) || isDesktop()
 	// Dumb hack: (p)React *really* doesn't like when the SSG is substantially different, so
 	// force `playEnabled` to be false for the intial hydration, uugh
 	useEffect(() => {

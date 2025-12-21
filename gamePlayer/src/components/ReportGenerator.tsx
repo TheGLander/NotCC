@@ -199,11 +199,13 @@ export const ReportGeneratorPrompt: PromptComponent<void> = pProps => {
 						: setScores.value.find(
 								scoresLevel => scoresLevel.level === level.levelInfo.levelNumber
 							),
-					playerScoresRes.value?.scores.levels[level.levelInfo.levelNumber!]
+					playerScoresRes.state === "done"
+						? playerScoresRes.value?.scores.levels[level.levelInfo.levelNumber!]
+						: undefined
 				)
 			)
 			.filter((line): line is ReportLine => !!line)
-	}, [levelSet, setScores, playerScoresRes.value])
+	}, [levelSet, setScores, playerScoresRes.state])
 
 	const showTimeOnly = !(importantSet?.scoreboardHasScores ?? true)
 
@@ -220,6 +222,9 @@ export const ReportGeneratorPrompt: PromptComponent<void> = pProps => {
 			reportEpilogue
 		navigator.clipboard.writeText(fullReport)
 	}, [reportPrologue, lines, reportEpilogue, improvementsOnly])
+
+	const havePlayerScores =
+		playerScoresRes.state === "done" && !!playerScoresRes.value
 
 	return (
 		<Dialog
@@ -239,9 +244,9 @@ export const ReportGeneratorPrompt: PromptComponent<void> = pProps => {
 				<label>
 					<input
 						type="checkbox"
-						checked={playerScoresRes.value ? improvementsOnly : false}
+						checked={havePlayerScores && improvementsOnly}
 						onInput={ev => setImprovementsOnly(ev.currentTarget.checked)}
-						disabled={!playerScoresRes.value}
+						disabled={!havePlayerScores}
 					/>{" "}
 					Show improvements only
 				</label>

@@ -264,10 +264,10 @@ function OpenProject(props: {
 		[props.setLocation]
 	)
 	useEffect(() => {
-		if (loadedProjectsRes.error) {
+		if (loadedProjectsRes.state === "error") {
 			console.error(loadedProjectsRes.error)
 		}
-	}, [loadedProjectsRes.error])
+	}, [loadedProjectsRes.state])
 	const showAlert = useJotaiFn(showAlertGs)
 	const importProject = useCallback(async () => {
 		const res = await showLoadPrompt("Load project", {
@@ -302,9 +302,11 @@ function OpenProject(props: {
 				<div>No saved projects for level outside of a set</div>
 			)}
 			<div class="bg-theme-950 flex flex-1 flex-col gap-1 rounded p-1">
-				{!loadedProjectsRes.value || loadedProjectsRes.value.length === 0 ? (
+				{loadedProjectsRes.state !== "done" ||
+				!loadedProjectsRes.value ||
+				loadedProjectsRes.value.length === 0 ? (
 					<div class="m-auto">
-						{loadedProjectsRes.error
+						{loadedProjectsRes.state === "error"
 							? "Failed to load local project files"
 							: loadedProjectsRes.state === "working"
 								? "Loading..."

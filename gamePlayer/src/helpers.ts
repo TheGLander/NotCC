@@ -270,15 +270,16 @@ export async function resErrorToString(res: Response): Promise<string> {
 
 const NO_PROMISE_VALUE = Symbol()
 
+type UsePromise<T> = (
+	| { state: "working" }
+	| { state: "done"; value: T }
+	| { state: "error"; error: Error }
+) & { repeat(): void }
+
 export function usePromise<T>(
 	maker: () => Promise<T>,
 	deps: unknown[]
-): {
-	value?: T
-	error?: Error
-	state: "working" | "done" | "error"
-	repeat: () => void
-} {
+): UsePromise<T> {
 	const [value, setValue] = useState<T | typeof NO_PROMISE_VALUE>(
 		NO_PROMISE_VALUE
 	)
@@ -311,7 +312,7 @@ export function usePromise<T>(
 		error,
 		state: value !== NO_PROMISE_VALUE ? "done" : error ? "error" : "working",
 		repeat: doPromise,
-	}
+	} as UsePromise<T>
 }
 
 export async function aiGather<T>(ai: AsyncIterable<T>): Promise<T[]> {

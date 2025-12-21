@@ -6,9 +6,9 @@
 		"dev": "vite",
 		"build:ssg": "SSG=true vite build -c vite.config.js --ssr src/main-ssg.tsx --outDir dist/ssg",
 		"build": "rm -rf dist && tsc && pnpm build:ssg && vite build && rm -r dist/ssg && pnpm make-sw",
-		"build:neu": "VITE_BUILD_PLATFORM=desktop pnpm build && zx makeDists.mjs",
+		"build:neu": "export VITE_DESKTOP_VERSION;: \"${VITE_DESKTOP_VERSION:=$(date +%s)}\"; VITE_BUILD_PLATFORM=desktop pnpm build && zx makeDists.mjs",
 		"build:neu-zip": "pnpm build:neu && rm -f NotCC.zip && cd artifacts && zip -r ../NotCC.zip .",
-		"build:full": "pnpm build:neu-zip && rm -r dist && pnpm build && zx makeWebDownloads.mjs",
+		"build:full": "export VITE_DESKTOP_VERSION=$(date +%s); pnpm build:neu-zip && rm -r dist && pnpm build && zx makeWebDownloads.mjs",
 		"dev:neu": "neu run",
 		"prepublish": "neu update",
 		"make-sw": "sed \"s\\\\__SW_FILES\\\\[$(cd dist; find . | grep -E '.*(js|css|png|svg|html|webmanifest|svg|wasm|ogg)' | sort | uniq | sed 's/.*/\"\\0\",/' | tr '\\n' ' ')]\\\\g\" < ./src/sw.js > ./dist/sw.js"

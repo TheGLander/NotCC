@@ -122,7 +122,7 @@ function OptimizerIdPref({
 			<span>
 				{playerInfoRes.state === "working"
 					? "Loading..."
-					: playerInfoRes.error
+					: playerInfoRes.state === "error"
 						? "Failed to load"
 						: playerInfoRes.value?.player}
 			</span>
