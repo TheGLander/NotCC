@@ -13,3 +13,7 @@ Renders are made and inserted into the tileset image file manually.
 ## CGA16
 
 cga16.ase is the Aseprite file which is used to generate the CGA16 image file.
+
+## Tauri
+
+tauri.ase is the Aseprite image file for the Tauri tileset.

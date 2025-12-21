@@ -1,7 +1,16 @@
+import { atom } from "jotai"
+import { unwrap } from "jotai/utils"
+import { preferenceAtom } from "./preferences"
+import { atomEffect } from "jotai-effect"
+import { importantSetAtom } from "./levelData"
+import { SolutionMetrics } from "@notcc/logic"
+import { Falliable, falliable } from "./helpers"
+
 // /players
 export interface ApiPlayerGeneric {
 	player_id: number
 	player: string
+	country?: string
 }
 
 // /players/[id]
@@ -24,7 +33,9 @@ export interface ApiDesignedLevelsSummary {
 	level_count: number
 }
 
-export async function getPlayerSummary(id: number): Promise<ApiPlayerSummary> {
+export async function getPlayerSummary(
+	id: number
+): Promise<ApiPlayerSummary | null> {
 	const res = await fetch(`https://api.bitbusters.club/players/${id}`)
 	return await res.json()
 }
@@ -54,12 +65,6 @@ export interface ApiPackReport extends ApiAttributeIdentifier {
 	date_reported: string
 }
 
-export interface ApiDesignedLevel {
-	level: number
-	level_name: string
-	wiki_article: string
-}
-
 export async function getPlayerPackDetails(
 	id: number,
 	pack: string
@@ -67,6 +72,8 @@ export async function getPlayerPackDetails(
 	const res = await fetch(`https://api.bitbusters.club/players/${id}/${pack}`)
 	return await res.json()
 }
+
+// /packs/[pack]/levels
 
 export interface ApiPackLevel {
 	level: number
@@ -88,7 +95,9 @@ export interface ApiPackLevel {
 export interface ApiPackLevelAttribute extends ApiAttributeIdentifier {
 	attribs: {
 		melinda: number
-		highest_reported: number
+		highest_reported?: number
+		highest_public?: number
+		highest_confirmed?: number
 		casual_diff: number
 		exec_diff: number
 		luck_diff: number
@@ -101,27 +110,116 @@ export async function getPackLevels(pack: string): Promise<ApiPackLevel[]> {
 	return await res.json()
 }
 
-export interface ApiRRPackLevel {
-	level_attribs: ApiRRPackLevelAttribute[]
+export const optimizerIdAtom = preferenceAtom<number | null>(
+	"optimizerId",
+	null
+)
+
+export const setScoresAtom = unwrap(
+	atom<Promise<Falliable<ApiPackLevel[]>> | null>(null)
+)
+export const setPlayerScoresAtom = unwrap(
+	atom<Promise<Falliable<ApiPlayerPackDetails>> | null>(null)
+)
+
+export const setScoresSyncAtom = atomEffect((get, set) => {
+	const importantSet = get(importantSetAtom)
+	set(setScoresAtom, null)
+	set(setPlayerScoresAtom, null)
+
+	if (!importantSet) return
+	set(setScoresAtom, falliable(getPackLevels(importantSet.setIdent)))
+	const optimizerId = get(optimizerIdAtom)
+
+	if (optimizerId === null) return
+	set(
+		setPlayerScoresAtom,
+		falliable(getPlayerPackDetails(optimizerId, importantSet.setIdent))
+	)
+})
+
+export type ReportGrade =
+	| "better than bold"
+	| "bold confirm"
+	| "partial confirm"
+	| "bold"
+	| "better than public"
+	| "public"
+	| "solved"
+	| "unsolved"
+
+export function getReportGradeForValue(
+	value: number,
+	level: ApiPackLevelAttribute
+): ReportGrade {
+	const {
+		highest_reported: highestReported,
+		highest_confirmed: highestConfirmed,
+		highest_public: highestPublic,
+	} = level.attribs
+	if (highestReported === undefined || value > highestReported)
+		return "better than bold"
+	if (highestConfirmed === undefined)
+		throw new Error(
+			"If there's a reported score, there should also be a confirmed score. Score server error?"
+		)
+	if (value > highestConfirmed)
+		return value === highestReported ? "bold confirm" : "partial confirm"
+	if (value === highestReported) return "bold"
+	if (highestPublic === undefined || value > highestPublic)
+		return "better than public"
+	if (value === highestPublic) return "public"
+	return "solved"
 }
 
-export interface ApiRRPackLevelAttribute extends ApiAttributeIdentifier {
-	attribs: {
-		highest_reported: number
-		highest_confirmed: number
+export function getLevelAttribute<T extends ApiPackLevel | ApiPackReport[]>(
+	metric: "time" | "score",
+	level: T
+): T extends ApiPackLevel ? ApiPackLevelAttribute : ApiPackReport {
+	return (
+		("level_attribs" in level
+			? level.level_attribs
+			: level) as ApiPackLevelAttribute[]
+	).find(attr => attr.rule_type === "steam" && attr.metric === metric) as any
+}
+
+export type MetricGrades = Record<"time" | "score", ReportGrade>
+
+export function getReportGradesForMetrics(
+	metrics: SolutionMetrics,
+	level: ApiPackLevel
+): MetricGrades {
+	const timeAttr = getLevelAttribute("time", level)
+	if (!timeAttr) throw new Error("Scores level is missing Steam time attribute")
+
+	const timeGrade = getReportGradeForValue(
+		Math.ceil(metrics.timeLeft / 60),
+		timeAttr
+	)
+	// If there's no score leaderboard (eg. CC1 Steam), assume no levels have flags and time === score,  grade-wise
+	const scoreAttr = getLevelAttribute("score", level)
+	if (!scoreAttr) {
+		return {
+			time: timeGrade,
+			score: timeGrade,
+		}
+	}
+	return {
+		time: timeGrade,
+		score: getReportGradeForValue(metrics.score, scoreAttr),
 	}
 }
 
-export async function getRRPackLevels(pack: string): Promise<ApiRRPackLevel[]> {
-	const res = await fetch(`https://glander.club/railroad/bolds/${pack}`)
-	return await res.json()
-}
-
-export function tryGetRRPackLevels(
-	pack: string
-): Promise<ApiRRPackLevel[] | ApiPackLevel[]> {
-	return getRRPackLevels(pack).catch(err => {
-		console.error(err)
-		return getPackLevels(pack)
-	})
+export function getMetricsForPlayerReports(
+	reports: ApiPackReport[]
+): Partial<SolutionMetrics> {
+	const timeLeftS = reports.find(
+		val => val.metric === "time" && val.rule_type === "steam"
+	)?.reported_value
+	return {
+		timeLeft: timeLeftS === undefined ? timeLeftS : timeLeftS * 60,
+		score: reports.find(
+			val => val.metric === "score" && val.rule_type === "steam"
+		)?.reported_value,
+	}
 }

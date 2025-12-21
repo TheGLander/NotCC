@@ -107,8 +107,9 @@ original.bmp
 
 *.pb.*
 
-desktopPlayer/bin
-desktopPlayer/.tmp
-desktopPlayer/artifacts
-desktopPlayer/NotCC.app/Contents/MacOS
-desktopPlayer/NotCC.zip
+# Neutralino browser binaries
+gamePlayer/bin
+gamePlayer/neuDist
+gamePlayer/artifacts
+gamePlayer/NotCC.zip
+.tmp

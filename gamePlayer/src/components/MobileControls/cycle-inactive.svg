@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg width="40" height="50" version="1.1" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none" stroke="#d9d9d9" stroke-linejoin="round">
+  <path d="m1.6329 1.6329h36.785v46.809h-36.785z" stroke-width="3.8"/>
+  <path d="m35.461 9.5388-30.922 30.922m0-30.922 30.922 30.922m-3.0922-14.688" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.8"/>
+ </g>
+ <path d="m25.723 24.446 3.9104 3.9104 3.9104-3.9104m-22.032-7.0311c3.0384-3.0058 7.5778-3.9075 11.534-2.2911 4.0132 1.6374 6.5475 5.5343 6.5473 9.8687m-15.316 0.56055-3.9104-3.9104-3.9104 3.9104m22.032 7.0311c-3.0384 3.0058-7.5778 3.9075-11.534 2.2911-4.0132-1.6374-6.5475-5.5343-6.5473-9.8687" fill="none" stroke="#d9d9d9" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".5" stroke-width="3.8"/>
+</svg>

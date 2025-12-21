@@ -1,0 +1,44 @@
+{
+	"name": "@notcc/logic",
+	"version": "2.0.0",
+	"description": "Game logic for NotCC, a Chip's Challenge 2® emulator",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"type": "module",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build:src": "tsc",
+		"build:proto": "pbjs -t static-module --force-number -w es6 src/nonbind/nccs.proto -o src/nonbind/nccs.pb.js && pbts -o src/nonbind/nccs.pb.d.ts src/nonbind/nccs.pb.js && pnpm make-proto-hacks",
+		"make-proto-hacks": "sed -i '/import Long = require(\"long\");/d' ./src/nonbind/nccs.pb.d.ts && sed -i 's:import\\ \\*\\ as\\ \\$protobuf\\ from\\ \\\"protobufjs/minimal\\\"\\;:import\\ \\$protobuf\\ from\\ \\\"protobufjs/minimal.js\\\"\\;:' ./src/nonbind/nccs.pb.js",
+		"dev": "tsc --watch --declaration",
+		"build": "pnpm build:proto && pnpm build:src && cp ./src/nonbind/nccs.pb.js ./src/nonbind/nccs.pb.d.ts ./dist/nonbind && cp ../libnotcc/build/libnotcc.so ./dist/libnotcc.wasm",
+		"prepublish": "pnpm build"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/TheGLander/NotCC.git"
+	},
+	"author": "G lander",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/TheGLander/NotCC/issues"
+	},
+	"homepage": "https://github.com/TheGLander/NotCC#readme",
+	"devDependencies": {
+		"@types/clone": "^2.1.3",
+		"@types/node": "^20.14.2",
+		"protobufjs-cli": "^1.1.2",
+		"typescript": "^4.9.5"
+	},
+	"dependencies": {
+		"clone": "^2.1.2",
+		"fast-printf": "^1.6.9",
+		"protobufjs": "^7.2.5"
+	},
+	"files": [
+		"./dist",
+		"package.json",
+		"README.md"
+	]
+}

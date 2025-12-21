@@ -1,0 +1,18 @@
+{
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"target": "ES2021",
+		"module": "ESNext",
+		"moduleResolution": "NodeNext",
+		"resolveJsonModule": true,
+		"declaration": true,
+		"sourceMap": true,
+		"strict": true,
+		"outDir": "dist",
+		"allowJs": true
+	},
+	"buildOptions": {
+		"incremental": true
+	},
+	"include": ["./src/*"]
+}

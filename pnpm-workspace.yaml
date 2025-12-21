@@ -1,5 +1,3 @@
 packages:
-  - cli
-  - logic
+  - libnotcc-bind
   - gamePlayer
-  - desktopPlayer

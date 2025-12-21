@@ -30,8 +30,31 @@ if (!(await fs.exists(defaultSyncPath))) {
 	process.exit(1)
 }
 
+let setListing = null
+let tempDir = null
+
 async function downloadSet(setName) {
-	await $`wget -r -nH --cut-dirs=3 -P ${setsDirectory} --no-parent --reject="index.html*" "https://bitbusters.club/gliderbot/sets/cc2/${setName}/"`
+	if (!setListing) {
+		const res = await fetch("https://api.bitbusters.club/custom-packs/cc2")
+		if (!res.ok)
+			throw new Error(`Failed to contact bb.club: ${await res.text()}`)
+		setListing = await res.json()
+		tempDir = path.join(os.tmpdir(), await fs.mkdtemp("notcc-test"))
+		await fs.mkdir(tempDir)
+		process.on("exit", async () => {
+			fs.rmdirSync(tempDir, { recursive: true })
+		})
+	}
+	const set = setListing.find(set => set.pack_name === setName)
+	if (!set) throw new Error("Set is not on bb.club")
+	const res = await fetch(set.download_url)
+	if (!res.ok) throw new Error(`Failed to contact bb.club: ${await res.text()}`)
+	const setZipPath = path.join(tempDir, `${setName}.zip`)
+	const setPath = path.join(setsDirectory, setName)
+	await fs.promises.writeFile(setZipPath, res.body)
+	await fs.mkdirp(setPath)
+	await $`cd ${setPath} && unzip ${setZipPath}`
+	await fs.rm(setZipPath)
 }
 
 await fs.mkdirp(setsDirectory)
@@ -48,7 +71,7 @@ for (const setName of setsToTest) {
 	}
 	const syncPath = path.join(syncDirectory, `${setName}.sync`)
 	const syncExists = await fs.exists(syncPath)
-	const verifyProcess = $`pnpm notcc verify ${setPath} --ci --sync ${
+	const verifyProcess = $`pnpm cli ${setPath} -s ${
 		syncExists ? syncPath : defaultSyncPath
 	}`
 	await verifyProcess.nothrow()

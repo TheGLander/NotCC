@@ -1,42 +1,61 @@
 {
 	"name": "@notcc/player",
 	"private": true,
-	"version": "0.2.0",
+	"version": "2.0.0",
 	"scripts": {
-		"dev": "vite --force",
-		"build": "tsc && vite build --force",
-		"build-desktop": "VITE_BUILD_TYPE=desktop pnpm build",
-		"preview": "vite preview"
+		"dev": "vite",
+		"build:ssg": "SSG=true vite build -c vite.config.js --ssr src/main-ssg.tsx --outDir dist/ssg",
+		"build": "rm -rf dist && tsc && pnpm build:ssg && vite build && rm -r dist/ssg && pnpm make-sw",
+		"build:neu": "export VITE_DESKTOP_VERSION;: \"${VITE_DESKTOP_VERSION:=$(date +%s)}\"; VITE_BUILD_PLATFORM=desktop pnpm build && zx makeDists.mjs",
+		"build:neu-zip": "pnpm build:neu && rm -f NotCC.zip && cd artifacts && zip -r ../NotCC.zip .",
+		"build:full": "export VITE_DESKTOP_VERSION=$(date +%s); pnpm build:neu-zip && rm -r dist && pnpm build && zx makeWebDownloads.mjs",
+		"dev:neu": "neu run",
+		"prepublish": "neu update",
+		"make-sw": "sed \"s\\\\__SW_FILES\\\\[$(cd dist; find . | grep -E '.*(js|css|png|svg|html|webmanifest|svg|wasm|ogg)' | sort | uniq | sed 's/.*/\"\\0\",/' | tr '\\n' ' ')]\\\\g\" < ./src/sw.js > ./dist/sw.js"
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/TheGLander/NotCC.git"
 	},
 	"author": "G lander",
-	"license": "MIT",
+	"license": "GPL-3.0-or-later",
 	"bugs": {
 		"url": "https://github.com/TheGLander/NotCC/issues"
 	},
 	"homepage": "https://github.com/TheGLander/NotCC#readme",
+	"type": "module",
 	"devDependencies": {
-		"@neutralinojs/lib": "^3.12.0",
+		"@neutralinojs/lib": "^5.6.0",
+		"@neutralinojs/neu": "^11.5.0",
 		"@notcc/logic": "workspace:^",
-		"@types/clone": "^2.1.3",
-		"@types/is-hotkey": "^0.1.8",
-		"@types/path-browserify": "^1.0.1",
-		"base64-js": "^1.5.1",
-		"dialog-polyfill": "^0.5.6",
-		"fast-printf": "^1.6.9",
+		"@preact/preset-vite": "^2.10.2",
+		"@types/is-hotkey": "^0.1.10",
+		"@types/node": "^15.14.9",
+		"@types/path-browserify": "^1.0.3",
+		"autoprefixer": "^10.4.21",
+		"fast-printf": "^1.6.10",
 		"fflate": "^0.7.4",
+		"idb-keyval": "^6.2.2",
 		"is-hotkey": "^0.2.0",
-		"less": "^4.2.0",
+		"jotai": "^2.13.1",
+		"jotai-effect": "^1.1.6",
 		"lz-string": "^1.5.0",
 		"path-browserify": "^1.0.1",
-		"typescript": "^4.9.5",
-		"vite": "^4.5.0"
+		"postcss": "^8.5.6",
+		"preact": "^10.27.0",
+		"preact-render-to-string": "^6.5.13",
+		"react": "npm:@preact/compat@^18.3.1",
+		"react-dom": "npm:@preact/compat@^18.3.1",
+		"react-draggable": "^4.5.0",
+		"react-responsive": "^9.0.2",
+		"suspend-react": "^0.1.3",
+		"tailwind-merge": "^2.6.0",
+		"tailwindcss": "^3.4.17",
+		"typescript": "^5.9.2",
+		"vite": "^4.5.14"
 	},
-	"type": "module",
 	"dependencies": {
-		"clone": "^2.1.2"
+		"@dagrejs/dagre": "^1.1.5",
+		"react-error-boundary": "^4.1.2"
 	}
 }

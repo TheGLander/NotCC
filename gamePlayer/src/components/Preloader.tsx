@@ -1,0 +1,91 @@
+import { useStore } from "jotai"
+import { useEffect, useState } from "preact/compat"
+import { initNotCCFs, isFile, readDir, readJson } from "@/fs"
+import {
+	allPreferencesAtom,
+	preloadFinishedAtom,
+	syncAllowed_thisisstupid,
+} from "@/preferences"
+import {
+	tilesetIdAtom,
+	tilesetAtom,
+	getTileset,
+	customTsetsAtom,
+	DEFAULT_TILESET,
+} from "./PreferencesPrompt/TilesetsPrompt"
+import {
+	DEFAULT_SFXSET,
+	customSfxAtom,
+	getSfxSet,
+	sfxAtom,
+	sfxIdAtom,
+} from "./PreferencesPrompt/SfxPrompt"
+import { Throbber } from "./Throbber"
+import { initWasm } from "@notcc/logic"
+import { updateVariablesFromHashGs } from "@/routing"
+
+export function Preloader(props: { preloadComplete?: () => void }) {
+	const { get, set } = useStore()
+	const [loadingStage, setLoadingStage] = useState("javascript")
+	async function prepareAssets() {
+		setLoadingStage("game logic")
+		await initWasm()
+		setLoadingStage("user data")
+		await initNotCCFs()
+		let prefs: any = {}
+		try {
+			if (await isFile("preferences.json")) {
+				prefs = await readJson("preferences.json")
+			}
+		} catch (err) {
+			console.error(`Couldn't load preferences: ${err}`)
+		}
+		set(allPreferencesAtom, prefs)
+
+		setLoadingStage("tileset")
+		set(
+			customTsetsAtom,
+			(await readDir("/tilesets")).map(v => v.split(".").slice(0, -1).join("."))
+		)
+		set(
+			tilesetAtom,
+			await getTileset(get(tilesetIdAtom)).catch(() =>
+				getTileset(DEFAULT_TILESET)
+			)
+		)
+		setLoadingStage("sfx")
+		set(
+			customSfxAtom,
+			(await readDir("/sfx")).map(v => v.split(".").slice(0, -1).join("."))
+		)
+		set(
+			sfxAtom,
+			await getSfxSet(get(sfxIdAtom)).catch(() => getSfxSet(DEFAULT_SFXSET))
+		)
+		set(preloadFinishedAtom, true)
+		setTimeout(() => (syncAllowed_thisisstupid.val = true), 0)
+		updateVariablesFromHashGs(get, set)
+	}
+	useEffect(() => {
+		if (!globalThis.window) return
+		prepareAssets().then(() => props.preloadComplete?.())
+	}, [])
+	return (
+		<div class="flex h-full">
+			<div class="box m-auto w-36 text-center">
+				<b>Pre</b>paring...
+				<br />
+				Loading {loadingStage}
+				<br />
+				<div class="m-auto w-[32px]">
+					<Throbber />
+				</div>
+				<noscript>
+					<br />
+					It appears you have JavaScript disabled. You need to enable it to play
+					NotCC
+				</noscript>
+			</div>
+		</div>
+	)
+}

@@ -1,0 +1,67 @@
+import { applyRef } from "@/helpers"
+import { ComponentChildren, Ref } from "preact"
+import { ReactNode, forwardRef, useRef } from "preact/compat"
+import Draggable from "react-draggable"
+import { twJoin } from "tailwind-merge"
+
+export const Dialog = forwardRef(function (
+	props: {
+		header: ReactNode
+		children: ComponentChildren
+		notModal?: boolean
+		buttons: [string, () => void | Promise<void>][]
+		onResolve?: () => void
+		onClose?: () => void
+	},
+	ref: Ref<HTMLDialogElement>
+) {
+	const normalSubmitRef = useRef(false)
+	return (
+		<Draggable handle=".dialog-handle">
+			<dialog
+				class={twJoin(
+					"box mobile:max-w-[95vw] fixed bottom-0 top-0 z-10 flex max-h-[75vh] max-w-[75vw] flex-col p-0",
+					!props.notModal ? "modal min-w-[33vw]" : "nonModal"
+				)}
+				ref={refVal => {
+					if (props.notModal) {
+						refVal?.show()
+					} else {
+						refVal?.showModal()
+					}
+					applyRef(ref, refVal)
+				}}
+				onClose={ev => {
+					ev.preventDefault()
+					if (props.onClose) {
+						props.onClose()
+						return
+					}
+					if (normalSubmitRef.current) return
+					props.onResolve?.()
+				}}
+			>
+				<header class="bg-theme-950 dialog-handle cursor-move px-2 py-1">
+					{props.header}
+				</header>
+				<section class="mx-2 my-1 overflow-auto">{props.children}</section>
+				<footer class="bg-theme-950 flex flex-row justify-end gap-1 p-1">
+					{props.buttons.map(([label, action]) => (
+						<button
+							onClick={async ev => {
+								ev.preventDefault()
+								normalSubmitRef.current = true
+								await action()?.catch(() => {
+									normalSubmitRef.current = false
+								})
+								props.onResolve?.()
+							}}
+						>
+							{label}
+						</button>
+					))}
+				</footer>
+			</dialog>
+		</Draggable>
+	)
+})
