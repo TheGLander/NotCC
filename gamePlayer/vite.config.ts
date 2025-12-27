@@ -17,6 +17,7 @@ process.env["VITE_BUILD_TIME"] = new Date().toISOString()
 export default defineConfig({
 	build: {
 		sourcemap: true,
+		emptyOutDir: false,
 	},
 	base: "./",
 	assetsInclude: ["**/*.c2m"],
