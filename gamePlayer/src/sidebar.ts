@@ -8,9 +8,10 @@ import { instanciateTemplate } from "./utils"
 import { exaPlayerPage } from "./pages/exaPlayer"
 import { openAllAttemptsDialog } from "./allAttemptsDialog"
 import { generateSolutionTooltipEntries } from "./solutionTooltip"
+import { Direction } from "@notcc/logic"
 
 interface TooltipEntry {
-	name: string
+	name: string | ((pager: Pager) => string)
 	shortcut: string | null
 	action?(pager: Pager): void
 	enabledPages?: Page[]
@@ -88,6 +89,15 @@ export const tooltipGroups: Record<string, TooltipEntries> = {
 				}
 			},
 			enabledPages: playerPages,
+		},
+		"breakline",
+		{
+			name: pager =>
+				`Change RFF direction (${Direction[pager.startingRffDirection]})`,
+			shortcut: "shift+f",
+			action(pager) {
+				pager.startingRffDirection = (pager.startingRffDirection + 1) % 4
+			},
 		},
 	],
 	solution: [
@@ -242,7 +252,10 @@ export function openTooltip(
 
 		const tooltipName = document.createElement("div")
 		tooltipName.classList.add("buttonTooltipItem")
-		tooltipName.textContent = tooltipEntry.name
+		tooltipName.textContent =
+			tooltipEntry.name instanceof Function
+				? tooltipEntry.name(pager)
+				: tooltipEntry.name
 		tooltipRow.appendChild(tooltipName)
 
 		if (tooltipEntry.shortcut !== null) {

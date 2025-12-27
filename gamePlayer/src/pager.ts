@@ -1,4 +1,9 @@
-import { LevelData, LevelSet, MapInterruptResponse } from "@notcc/logic"
+import {
+	Direction,
+	LevelData,
+	LevelSet,
+	MapInterruptResponse,
+} from "@notcc/logic"
 import { loadingPage } from "./pages/loading"
 import { Tileset } from "./renderer"
 import { setSidebarLevelN } from "./sidebar"
@@ -36,6 +41,7 @@ export class Pager {
 	loadedSetIdent: string | null = null
 	loadedLevel: LevelData | null = null
 	tileset: Tileset | null = null
+	startingRffDirection = Direction.UP
 	settings: Settings = clone(defaultSettings)
 	constructor() {
 		this._initPage(loadingPage)

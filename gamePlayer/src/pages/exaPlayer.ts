@@ -353,6 +353,9 @@ export const exaPlayerPage = {
 			return
 		}
 		const ip = new RouteFileInputProvider(route)
+		if (route["Initial Slide"] !== undefined) {
+			pager.startingRffDirection = route["Initial Slide"]
+		}
 		this.loadLevel(pager, ip)
 		// TODO compare route.For metadata
 		await this.transcribeInputs(ip)

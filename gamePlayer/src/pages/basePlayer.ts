@@ -89,6 +89,7 @@ export const playerPageBase = {
 		if (!this.renderer) throw new Error("No renderer set")
 
 		this.currentLevel = createLevelFromData(level)
+		this.currentLevel.randomForceFloorDirection = pager.startingRffDirection
 		this.initScriptLevelState(pager)
 		this.renderer.level = this.currentLevel
 		this.renderer.cameraSize = this.currentLevel.cameraType

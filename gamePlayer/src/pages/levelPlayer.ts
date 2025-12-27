@@ -140,7 +140,7 @@ export const levelPlayerPage = {
 			if (isValidStartKey(ev.code)) {
 				ev.preventDefault()
 				ev.stopPropagation()
-				this.endPreplay()
+				this.endPreplay(pager)
 			}
 		})
 		if (this.overlayLevelName) {
@@ -174,8 +174,9 @@ export const levelPlayerPage = {
 		setAttributeExistence(this.gameOverlay!, "data-gz", this.isGz)
 		setAttributeExistence(this.gameOverlay!, "data-nonlegal", this.isNonLegal)
 	},
-	endPreplay(): void {
+	endPreplay(pager: Pager): void {
 		this.isPreplay = false
+		this.currentLevel!.randomForceFloorDirection = pager.startingRffDirection
 		this.updateOverlayState()
 		this.preplayKeyListener?.remove()
 		this.preplayKeyListener = null
@@ -392,7 +393,7 @@ export const levelPlayerPage = {
 		this.currentLevel!.onGlitch = null
 		this.currentLevel!.inputProvider = new SolutionInfoInputProvider(sol)
 		this.basePage!.classList.add("solutionPlayback")
-		this.endPreplay()
+		this.endPreplay(pager)
 	},
 	extraTileScale: [
 		0.25 + // Padding
