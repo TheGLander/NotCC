@@ -348,7 +348,7 @@ export const exaPlayerPage = {
 			await showAlert(
 				"Warning: Adapting a Lynx or MS route to Steam. Best effort, so don't expect it to work..."
 			)
-		} else if (route.Rule !== "STEAM") {
+		} else if (route.Rule.toUpperCase() !== "STEAM") {
 			showAlert("Unknown ruleset")
 			return
 		}
