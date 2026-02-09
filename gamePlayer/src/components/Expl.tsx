@@ -37,6 +37,7 @@ export function Expl(props: ExplDialogProps) {
 	return (
 		<ExplButton
 			onClick={ev => {
+				ev.preventDefault()
 				ev.stopPropagation()
 				showPrompt(ExplPrompt(props))
 			}}
