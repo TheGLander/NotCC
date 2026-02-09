@@ -14,7 +14,8 @@
 		"filesystem.*",
 		"os.execCommand",
 		"debug.log",
-		"app.killProcess"
+		"app.killProcess",
+		"window.center"
 	],
 	"modes": {
 		"window": {

@@ -1,4 +1,9 @@
-import { filesystem, init as neuInit, os } from "@neutralinojs/lib"
+import {
+	filesystem,
+	init as neuInit,
+	os,
+	window as win,
+} from "@neutralinojs/lib"
 import { basename, dirname, join, parse } from "path"
 import { applicationConfigPath } from "./configPath"
 import { desktopPlatform } from "@/helpers"
@@ -44,6 +49,7 @@ async function getPath(pathName: string) {
 export async function initFilesystem(): Promise<void> {
 	await loadNeuGlobalVariables()
 	neuInit()
+	if (desktopPlatform() === "windows") win.center()
 }
 
 export async function readFile(path: string): Promise<ArrayBuffer> {
