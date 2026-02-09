@@ -110,11 +110,7 @@ function ChooserButton(props: SidebarAction) {
 				)}
 			>
 				{props.label}
-				{props.expl && (
-					<Expl mode="dialog" title={props.label}>
-						{props.expl}
-					</Expl>
-				)}
+				{props.expl && <Expl title={props.label}>{props.expl}</Expl>}
 			</div>
 			{props.shortcut && (
 				<div class="closes-tooltip mobile:hidden ml-auto pb-1 pl-8">

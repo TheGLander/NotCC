@@ -172,11 +172,7 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 			<>
 				<label for={inputId} class="mr-2">
 					{props.label}:
-					{props.expl && (
-						<Expl mode="dialog" title={props.label}>
-							{props.expl}
-						</Expl>
-					)}
+					{props.expl && <Expl title={props.label}>{props.expl}</Expl>}
 				</label>
 				<props.Display
 					value={val === DEFAULT_VALUE ? defaultedDefaultValue : val}

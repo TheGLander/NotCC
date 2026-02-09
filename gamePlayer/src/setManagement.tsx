@@ -39,8 +39,8 @@ export interface LocalBBClubLinkData {
 	setIdent: string
 	id: number
 	/**
-		* A Unix timestamp
-		*/
+	 * A Unix timestamp
+	 */
 	lastUpdated: number
 }
 
@@ -259,7 +259,7 @@ export async function moveLocalSet(set: ItemLevelSet, newIdent: string) {
 }
 
 export const SetIdentExpl = () => (
-	<Expl mode="dialog" title="Set ident">
+	<Expl title="Set ident">
 		A set identifier is a unique name of the set which NotCC uses for the set's
 		directory/file name.
 	</Expl>
@@ -270,56 +270,56 @@ const SameIdentSetExistsPrompt =
 		newSetName: string,
 		oldSet: ItemLevelSet
 	): PromptComponent<"overwrite" | "rename local" | "cancel"> =>
-		pProps => {
-			return (
-				<Dialog
-					header="Set ident conflict!"
-					buttons={[
-						["Overwrite", () => pProps.onResolve("overwrite")],
-						["Rename local", () => pProps.onResolve("rename local")],
-						["Cancel", () => pProps.onResolve("cancel")],
-					]}
-					onClose={() => pProps.onResolve("cancel")}
-				>
-					The set you're trying to add, "{newSetName}", has the same set ident{" "}
-					<SetIdentExpl /> as the local set "{oldSet.setName}", which has been
-					previously loaded from a local file or directory. To add the new set,
-					you must do one of the following:
-					<ul>
-						<li>
-							Overwrite - if the added set is an newer version of the local set,
-							you can replace the local set with the new set.
-						</li>
-						<li>
-							Rename local - if the local set is unrelated to the new set and you
-							wish to keep both sets, the local set's ident can be changed to
-							allow both to be stored.
-						</li>
-					</ul>
-				</Dialog>
-			)
-		}
+	pProps => {
+		return (
+			<Dialog
+				header="Set ident conflict!"
+				buttons={[
+					["Overwrite", () => pProps.onResolve("overwrite")],
+					["Rename local", () => pProps.onResolve("rename local")],
+					["Cancel", () => pProps.onResolve("cancel")],
+				]}
+				onClose={() => pProps.onResolve("cancel")}
+			>
+				The set you're trying to add, "{newSetName}", has the same set ident{" "}
+				<SetIdentExpl /> as the local set "{oldSet.setName}", which has been
+				previously loaded from a local file or directory. To add the new set,
+				you must do one of the following:
+				<ul>
+					<li>
+						Overwrite - if the added set is an newer version of the local set,
+						you can replace the local set with the new set.
+					</li>
+					<li>
+						Rename local - if the local set is unrelated to the new set and you
+						wish to keep both sets, the local set's ident can be changed to
+						allow both to be stored.
+					</li>
+				</ul>
+			</Dialog>
+		)
+	}
 
 const SameTitleSetExistsPrompt =
 	(newSetName: string): PromptComponent<"continue" | "overwrite" | "cancel"> =>
-		pProps => {
-			return (
-				<Dialog
-					header="Set title conflict!"
-					buttons={[
-						["Continue", () => pProps.onResolve("continue")],
-						["Overwrite", () => pProps.onResolve("overwrite")],
-						["Cancel", () => pProps.onResolve("cancel")],
-					]}
-					onClose={() => pProps.onResolve("cancel")}
-				>
-					It appears that a set with the title of "{newSetName}" already exists.
-					Multiple sets with the same title will use the same save file, which is
-					generally undersirable behavior. If this set is a new version of the
-					local set, you can overwrite this set.
-				</Dialog>
-			)
-		}
+	pProps => {
+		return (
+			<Dialog
+				header="Set title conflict!"
+				buttons={[
+					["Continue", () => pProps.onResolve("continue")],
+					["Overwrite", () => pProps.onResolve("overwrite")],
+					["Cancel", () => pProps.onResolve("cancel")],
+				]}
+				onClose={() => pProps.onResolve("cancel")}
+			>
+				It appears that a set with the title of "{newSetName}" already exists.
+				Multiple sets with the same title will use the same save file, which is
+				generally undersirable behavior. If this set is a new version of the
+				local set, you can overwrite this set.
+			</Dialog>
+		)
+	}
 
 export async function findLocalSetConflictsGs(
 	get: Getter,

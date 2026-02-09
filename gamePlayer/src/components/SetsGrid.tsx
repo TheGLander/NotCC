@@ -122,7 +122,7 @@ function SetItemPreviewError(props: FallbackProps) {
 	return (
 		<>
 			Failed to get preview{" "}
-			<Expl mode="dialog" title="Failed to download preview">
+			<Expl title="Failed to download preview">
 				Got the following error when downloading the preview:
 				<ErrorBox error={error} />
 			</Expl>
@@ -182,7 +182,7 @@ const SetInfoPrompt =
 					<div class="grid h-fit flex-1 grid-cols-2 gap-2">
 						<span>
 							Set name{" "}
-							<Expl mode="dialog" title="Set name">
+							<Expl title="Set name">
 								The set name, as specified in the main C2G script
 							</Expl>
 						</span>
@@ -193,7 +193,7 @@ const SetInfoPrompt =
 						<span>{set.setIdent}</span>
 						<span>
 							Set has metadata{" "}
-							<Expl mode="dialog" title="Set metadata">
+							<Expl title="Set metadata">
 								Sets may have additional metadata, as specified by the author.{" "}
 								<a
 									href="https://github.com/TheGLander/NotCC/blob/prewrite/scriptMetadata.md"
@@ -512,7 +512,7 @@ export function SetsGrid() {
 					<div class="box mx-auto flex w-fit flex-col">
 						<span>
 							Failed to load bb.club sets{" "}
-							<Expl mode="dialog" title="bb.club fetch error">
+							<Expl title="bb.club fetch error">
 								Failed to load bb.club sets due to the following error:
 								<ErrorBox error={bbClubSetsRes.error} />
 								This may indicate that you're offline, bb.club is down, or that

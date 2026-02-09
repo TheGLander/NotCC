@@ -2,17 +2,11 @@ import { useJotaiFn } from "@/helpers"
 import { PromptComponent, showPromptGs } from "@/prompts"
 import { ComponentChildren } from "preact"
 import { HTMLAttributes } from "preact/compat"
-import { useState } from "preact/hooks"
 import { Dialog } from "./Dialog"
 
-interface ExplInlineProps {
-	children: ComponentChildren
-	mode?: "inline"
-}
 interface ExplDialogProps {
 	children: ComponentChildren
-	title: ComponentChildren
-	mode: "dialog"
+	title?: ComponentChildren
 }
 
 function ExplButton(props: HTMLAttributes<HTMLDivElement>) {
@@ -30,7 +24,7 @@ const ExplPrompt =
 	(props: ExplDialogProps): PromptComponent<void> =>
 	pProps => (
 		<Dialog
-			header={`Info: ${props.title}`}
+			header={<>Expl{props.title && <>: {props.title}</>}</>}
 			buttons={[["Ok", () => {}]]}
 			onResolve={pProps.onResolve}
 		>
@@ -38,23 +32,14 @@ const ExplPrompt =
 		</Dialog>
 	)
 
-export function Expl(props: ExplDialogProps | ExplInlineProps) {
-	const [open, setOpen] = useState(false)
+export function Expl(props: ExplDialogProps) {
 	const showPrompt = useJotaiFn(showPromptGs)
-	if (props.mode === "dialog") {
-		return (
-			<ExplButton
-				onClick={ev => {
-					ev.stopPropagation()
-					showPrompt(ExplPrompt(props))
-				}}
-			/>
-		)
-	}
 	return (
-		<span>
-			<ExplButton onClick={() => setOpen(!open)} />
-			<span class="text-sm">{open && props.children}</span>
-		</span>
+		<ExplButton
+			onClick={ev => {
+				ev.stopPropagation()
+				showPrompt(ExplPrompt(props))
+			}}
+		/>
 	)
 }

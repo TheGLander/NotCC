@@ -66,7 +66,7 @@ const gradeMap: Record<ReportGrade, [ComponentChild, ComponentChild]> = {
 
 export function ExplGrade() {
 	return (
-		<Expl title="Score grade" mode="dialog">
+		<Expl title="Score grade">
 			<div class="grid gap-2 [grid-template-columns:repeat(2,auto);]">
 				<div>Grade</div>
 				<div>Meaning</div>
