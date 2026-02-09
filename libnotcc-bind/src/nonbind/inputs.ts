@@ -15,6 +15,11 @@ export const KEY_INPUTS = {
 	switchPlayer: 1 << 6,
 }
 
+export function filterSimulChar(input: KeyInputs): KeyInputs {
+	if (input & KEY_INPUTS.switchPlayer) return KEY_INPUTS.switchPlayer
+	return input
+}
+
 export interface LevelModifiers extends C2GLevelModifiers {
 	randomForceFloorDirection?: Direction
 	blobMod?: number

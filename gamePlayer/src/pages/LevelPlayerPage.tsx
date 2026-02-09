@@ -24,6 +24,11 @@ export const endOnNonlegalGlitchAtom = preferenceAtom<boolean>(
 	true
 )
 
+export const filterSimulCharPlayAtom = preferenceAtom<boolean>(
+	"filterSimulCharPlay",
+	true
+)
+
 function SetIntermissionComponent({
 	intermission,
 }: {
@@ -86,6 +91,7 @@ export function LevelPlayerPage() {
 	const set = useAtomValue(levelSetAtom)
 	const gameModifiers = useAtomValue(globalC2GGameModifiersAtom)
 	const endOnNonlegalGlitch = useAtomValue(endOnNonlegalGlitchAtom)
+	const filterSimulChar = useAtomValue(filterSimulCharPlayAtom)
 	const [controls, setControls] = useAtom(levelControlsAtom)
 
 	const lastLevelRef = useRef(level)
@@ -137,6 +143,7 @@ export function LevelPlayerPage() {
 				levelSet={set ?? undefined}
 				controlsRef={controlsRefCallback}
 				endOnNonlegalGlitch={endOnNonlegalGlitch}
+				filterSimulChar={filterSimulChar}
 				levelFinished={tryAdvanceC2GAutoAdvance}
 				speedMult={gameModifiers.speedMultiplier}
 			/>

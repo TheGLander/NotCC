@@ -29,6 +29,7 @@ import {
 	ItemIndex,
 	InputProvider,
 	DETERMINISTIC_BLOB_MOD,
+	filterSimulChar,
 } from "@notcc/logic"
 import { tilesetAtom } from "@/components/PreferencesPrompt/TilesetsPrompt"
 import {
@@ -51,7 +52,11 @@ import {
 	levelSetAtom,
 	useSwrLevel,
 } from "@/levelData"
-import { exaComplainAboutNonlegalGlitches, modelAtom } from "."
+import {
+	exaComplainAboutNonlegalGlitches,
+	filterSimulCharExaAtom,
+	modelAtom,
+} from "."
 import { calcScale } from "@/components/DumbLevelPlayer"
 import { PromptComponent, showPromptGs } from "@/prompts"
 import { Dialog } from "@/components/Dialog"
@@ -617,6 +622,7 @@ export function RealExaPlayerPage() {
 		updateLevel()
 	}
 	const complainAboutNonlegal = useAtomValue(exaComplainAboutNonlegalGlitches)
+	const filterSimulCharEnabled = useAtomValue(filterSimulCharExaAtom)
 	const checkForNonlegalGlitches = useCallback(
 		(lastCheck: number) => {
 			if (!complainAboutNonlegal) return
@@ -858,6 +864,9 @@ export function RealExaPlayerPage() {
 	const finaliseInput = useCallback(() => {
 		inputTimerRef.current?.cancel()
 		inputTimerRef.current = undefined
+		if (filterSimulCharEnabled) {
+			inputsRef.current = filterSimulChar(inputsRef.current)
+		}
 		try {
 			addInput(inputsRef.current)
 		} finally {

@@ -13,6 +13,8 @@ export const exaComplainAboutNonlegalGlitches = preferenceAtom(
 	"exaPreventNonlegalGlitches",
 	false
 )
+export const filterSimulCharExaAtom = preferenceAtom("filterSimulCharExa", true)
+
 const RealExaPlayerPage = lazy(() =>
 	import("./exaPlayer").then(mod => mod.RealExaPlayerPage)
 )

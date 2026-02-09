@@ -19,8 +19,14 @@ import {
 import { TilesetPrefDisplay, tilesetIdAtom } from "./TilesetsPrompt"
 import { SfxPrefDisplay, sfxIdAtom } from "./SfxPrompt"
 import { Expl } from "../Expl"
-import { exaComplainAboutNonlegalGlitches } from "@/pages/ExaPlayerPage"
-import { endOnNonlegalGlitchAtom } from "@/pages/LevelPlayerPage"
+import {
+	exaComplainAboutNonlegalGlitches,
+	filterSimulCharExaAtom,
+} from "@/pages/ExaPlayerPage"
+import {
+	endOnNonlegalGlitchAtom,
+	filterSimulCharPlayAtom,
+} from "@/pages/LevelPlayerPage"
 import {
 	ShowEpilogueMode,
 	preloadFilesFromDirectoryPromptAtom,
@@ -213,18 +219,30 @@ export const PreferencesPrompt: PromptComponent<void> = ({ onResolve }) => {
 				/>
 				<h3 class="col-span-2 text-xl">Audio</h3>
 				<Pref atom={sfxIdAtom} label="Sound effects" Display={SfxPrefDisplay} />
-				<h3 class="col-span-2 text-xl">Behavior</h3>
+				<h3 class="col-span-2 text-xl">Play</h3>
+				<Pref
+					atom={filterSimulCharPlayAtom}
+					label="Filter non-legal simul-char inputs"
+					expl="Makes it so that you cannot accidentally perform the non-legal simultaneous movement glitch. Must be on for reporting scores."
+					Display={BinaryDisplayPref}
+				/>
 				<Pref
 					atom={endOnNonlegalGlitchAtom}
-					label="Prevent nonlegal glitches"
-					expl="When on, trying to perform a glitch that is not scoreboard-legal will immediately end the current attempt. Must be on for reporting scores."
+					label="Stop on non-legal glitch"
+					expl="Stops the current attempt if a non-legal glitch would have happened. Filtered out simul-char inputs don't trigger this. Must be on for reporting scores."
 					Display={BinaryDisplayPref}
 				/>
 				<h3 class="col-span-2 text-xl">ExaCC</h3>
 				<Pref
+					atom={filterSimulCharExaAtom}
+					label="Filter non-legal simul-char inputs"
+					expl="Makes it so that you cannot accidentally perform the non-legal simultaneous movement glitch. Should be on for scoreboard-legal routing."
+					Display={BinaryDisplayPref}
+				/>
+				<Pref
 					atom={exaComplainAboutNonlegalGlitches}
-					label="Warn about nonlegal glitches"
-					expl="When on, trying to perform a glitch that is not scoreboard-legal will generate a warning message. Keep enabled unless you know what you are doing."
+					label="Display warning on non-legal glitch"
+					expl="ExaCC will show a warning when an otherwise non-legal move was to happen. Filtered out simul-char inputs don't trigger this. Should be on for scoreboard-legal routing."
 					Display={BinaryDisplayPref}
 				/>
 				<h3 class="col-span-2 text-xl">Miscellaneous</h3>

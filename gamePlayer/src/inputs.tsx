@@ -258,7 +258,6 @@ export function releaseLevelInputs(level: Level, buffers: InputBuffer[]) {
 	for (const [idx, buffer] of buffers.entries()) {
 		if (idx >= level.playerSeats.length) break
 		const seat = level.playerSeats[idx]
-		seat.inputs = buffer.getInputs()
 		buffer.releaseInputs(seat.releasedInputs)
 	}
 }

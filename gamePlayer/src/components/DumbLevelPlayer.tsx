@@ -13,6 +13,7 @@ import {
 	findBestMetrics,
 	KeyInputs,
 	KEY_INPUTS,
+	filterSimulChar,
 } from "@notcc/logic"
 import { CameraType, GameRenderer } from "./GameRenderer"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -511,7 +512,7 @@ export function DumbLevelPlayer(props: {
 	level: LevelData
 	levelSet?: LevelSet
 	controlsRef?: Ref<LevelControls | null>
-	preventSimultaneousMovement?: boolean
+	filterSimulChar?: boolean
 	endOnNonlegalGlitch?: boolean
 	speedMult?: number
 	levelFinished?: () => void
@@ -672,6 +673,9 @@ export function DumbLevelPlayer(props: {
 		if (replay) {
 			level.setProviderInputs(replay)
 		} else {
+			if (props.filterSimulChar) {
+				inputBuffer.inputs = filterSimulChar(inputBuffer.inputs)
+			}
 			setLevelInputs(level, [inputBuffer])
 		}
 		if (level.gameState === GameState.PLAYING) {
@@ -736,6 +740,7 @@ export function DumbLevelPlayer(props: {
 		attempt,
 		props.endOnNonlegalGlitch,
 		props.levelFinished,
+		props.filterSimulChar,
 		levelN,
 	])
 
