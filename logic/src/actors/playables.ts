@@ -204,6 +204,7 @@ export abstract class Playable extends Actor {
 		return true
 	}
 	replaceWith(other: (typeof actorDB)[string]): Actor {
+		const playablesPos = this.level.playables.indexOf(this)
 		const newActor = super.replaceWith(other) as Playable
 		// `replaceWith` calls `destroy`, which is usually considered death, but
 		// transformation isn't death, so actually undo all of the death reporting
@@ -213,6 +214,8 @@ export abstract class Playable extends Actor {
 			this.level.selectedPlayable = newActor
 		}
 		this.level.gameState = GameState.PLAYING
+		this.level.playables.splice(this.level.playables.indexOf(newActor), 1)
+		this.level.playables.splice(playablesPos, 0, newActor)
 		return newActor
 	}
 }
