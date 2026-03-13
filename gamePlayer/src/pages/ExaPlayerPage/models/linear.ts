@@ -1,5 +1,6 @@
 import {
 	GameState,
+	HashSettings,
 	KeyInputs,
 	Level,
 	PlayerSeat,
@@ -14,6 +15,25 @@ export function tickLevel(level: Level) {
 	// @ts-ignore Typescript bug: level.tick actually mutates level.gameState lol
 	if (level.gameState === GameState.WON) return
 	level.tick()
+}
+
+export function isLevelMidInput(level: Level, seat: PlayerSeat): boolean {
+	return (
+		level.gameState === GameState.PLAYING &&
+		!!seat.actor &&
+		seat.actor.moveProgress !== 0
+	)
+}
+
+export function applyInputToCompletion(
+	input: KeyInputs,
+	level: Level,
+	seat: PlayerSeat
+) {
+	seat.inputs = input
+	do {
+		tickLevel(level)
+	} while (isLevelMidInput(level, seat))
 }
 
 export const SNAPSHOT_PERIOD = 50
@@ -45,13 +65,6 @@ export class MoveSequence {
 			if (level.gameState !== GameState.PLAYING) return
 		}
 	}
-	_add_tickLevel(input: KeyInputs, level: Level, seat: PlayerSeat) {
-		if ((this.tickLen + this.snapshotOffset) % SNAPSHOT_PERIOD === 0) {
-			this.snapshots.push({ tick: this.tickLen, level: level.clone() })
-		}
-		seat.inputs = input
-		tickLevel(level)
-	}
 	/**
 	 * @returns The amount of subticks passed between this input and the next time the player has agency
 	 * */
@@ -61,18 +74,18 @@ export class MoveSequence {
 		let char = keyInputToChar(input, false)
 		let firstTick = true
 		do {
-			this._add_tickLevel(input, level, seat)
+			if ((this.tickLen + this.snapshotOffset) % SNAPSHOT_PERIOD === 0) {
+				this.snapshots.push({ tick: this.tickLen, level: level.clone() })
+			}
+			seat.inputs = input
+			tickLevel(level)
 			inputsToPush.push(char)
 			this.moves.push(char)
 			this.userMoves.push(firstTick)
 			input = 0
 			char = "-"
 			firstTick = false
-		} while (
-			level.gameState === GameState.PLAYING &&
-			seat.actor &&
-			seat.actor.moveProgress != 0
-		)
+		} while (isLevelMidInput(level, seat))
 		if (inputsToPush.length === 4 && !inputsToPush[0].endsWith("-")) {
 			this.displayMoves.push(keyInputToChar(ogInput, true), "", "", "")
 		} else {
@@ -121,6 +134,18 @@ export class MoveSequence {
 		return this.snapshots.findLast(
 			snapshot => snapshot.tick <= tickFromStartOfSeq
 		)
+	}
+	*userHashes(
+		level: Level,
+		seat: PlayerSeat,
+		hashSettings: HashSettings
+	): IterableIterator<number> {
+		for (let moveIdx = 0; moveIdx < this.moves.length; moveIdx += 1) {
+			if (this.userMoves[moveIdx] && moveIdx !== 0)
+				yield level.hash(hashSettings)
+			seat.inputs = charToKeyInput(this.moves[moveIdx])
+			tickLevel(level)
+		}
 	}
 }
 

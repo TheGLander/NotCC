@@ -2,13 +2,13 @@ import {
 	GameState,
 	KeyInputs,
 	Level,
-	PlayerSeat,
 	charToKeyInput,
 	HashSettings,
 	RouteFileInputProvider,
 	splitRouteCharString,
+	keyInputToChar,
 } from "@notcc/logic"
-import { MoveSeqenceInterval, MoveSequence, Snapshot } from "./linear"
+import { MoveSequence, Snapshot } from "./linear"
 import { PriorityQueue } from "@/helpers"
 
 export interface SerializedConnection {
@@ -32,39 +32,180 @@ export interface SerializedGraph {
 	nodes: Record<number, SerializedNode>
 }
 
+/**
+ * Traces a path, using Dijkstra's algorithm, between `pointB` and the latest possible item in `pointsA`.
+ */
+function dijkstraTrace(
+	pointsA: Node[],
+	pointB: Node,
+	startingFromA: boolean
+): { pointA: Node; path: ConnPtr[] } | null {
+	const dists = new Map<Node, [ConnPtr | null, number]>([[pointB, [null, 0]]])
+	const toVisit = new PriorityQueue<[Node, number]>()
+	toVisit.push([pointB, 0], 0)
+	let bestANode: [idx: number, dist: number] | undefined
+	while (true) {
+		const visiting = toVisit.pop()
+		if (!visiting) break
+		const [node, baseDist] = visiting
+		const aIdx = pointsA.indexOf(node)
+		if (aIdx !== -1) {
+			// We've reached an A point. If it's a node that's either later in the arr or
+			// closer than the current node (former is more important), that's the new
+			// best node
+			if (
+				!bestANode ||
+				aIdx > bestANode[0] ||
+				(aIdx === bestANode[0] && baseDist < bestANode[1])
+			) {
+				bestANode = [aIdx, baseDist]
+			}
+			// Don't go further here, any path through this node would reach an A point
+			// twice, which is clearly silly
+			continue
+		}
+		for (const conn of node[
+			!startingFromA ? "findShortestChildConns" : "findShortestParentConns"
+		]()) {
+			const dist = baseDist + conn.m.tickLen
+			const target = dists.get(conn.n)
+			if (!target) {
+				toVisit.push([conn.n, dist], -dist)
+				dists.set(conn.n, [{ n: node, m: conn.m }, dist])
+			} else if (dist < target[1]) {
+				toVisit.adjust(v => v[0] === conn.n, -dist)
+				dists.set(conn.n, [{ n: node, m: conn.m }, dist])
+			}
+		}
+	}
+	if (!bestANode) return null
+	const path: ConnPtr[] = []
+	let node: Node = pointsA[bestANode[0]]
+	// If `startingFromA`, we're constructing a path from `bestANode` to `pointB`
+	// `dists`' `ConnPtr`s store connection from the node closer to point B to the
+	// indexed node. When the dest is B, we need the connections to go from the keyed
+	// node to the node closer to B, so we construct new `ConnPtr`s where the `n`
+	// is the keyed node in that case. For when dest is A, going from the closer
+	// node is the desired behaviour, so we can reuse the existing `ConnPtrs then`
+	while (node) {
+		const [nextConn] = dists.get(node)!
+		if (!nextConn) break
+		path.push(!startingFromA ? nextConn : { n: node, m: nextConn.m })
+		node = nextConn.n
+	}
+	if (!startingFromA) {
+		// Oh yeah, since we always start from A when constructing the node, the whole
+		// construction has to be reversed to accomodate the fact that we, indeed,
+		// start from B in this case
+		path.reverse()
+	}
+	return { pointA: pointsA[bestANode[0]], path }
+}
+
+function constrTracePathThrough(
+	constr: ConnPtr[] | Node,
+	source: Node | ConnPtr
+): ConnPtr[] {
+	let constrNodes: Node[]
+	if (constr instanceof Array) {
+		constrNodes = constr.map(v => v.n)
+		if (constr.length !== 0) constrNodes.push(constrLastNode(constr))
+	} else {
+		constrNodes = [constr]
+		constr = []
+	}
+	let newConstr = [] as ConnPtr[]
+	// 1. Find a connection from the latest possible construction node to the source (or source's start in case of a `ConnPtr`)
+	const toSourceConstr = dijkstraTrace(
+		constrNodes,
+		source instanceof Node ? source : source.n,
+		true
+	)
+	if (toSourceConstr === null) {
+		// FIXME: Implement multiroot, that's the only case when tracing to can fail
+		// when the root is involved
+		throw new Error("Multiroot unsupported!")
+	} else {
+		// Connect from root to the beginning of the to-source constr
+		const constrConnIdx = constrNodes.indexOf(toSourceConstr.pointA)
+		newConstr.push(...constr.slice(0, constrConnIdx))
+		// Connect from the beginning of to-source constr to the source ('s start)
+		newConstr.push(...toSourceConstr.path)
+		// Remove all connections from consideration that have already appeared in the construction
+		// The `+ 1` excludes the connection immediately after the source's parent node, because if it were to appear in `fromSourceConstr`, we'd be going through source's parent twice, which is not allowed
+		constr = constr.slice(constrConnIdx + 1)
+		constrNodes = constrNodes.slice(constrConnIdx + 1)
+	}
+	// 2. If `source` is a connection, we're want the trace to include both the source and destination, so add the connection destination in the construction
+	if (!(source instanceof Node)) {
+		newConstr.push(source)
+	}
+
+	// 3. Find a connection from the source ('s end) to the earliest node
+	constrNodes.reverse()
+	const fromSourceConstr = dijkstraTrace(
+		constrNodes,
+		source instanceof Node ? source : source.n.findConnectedNode(source.m)!,
+		false
+	)
+	// If `fromSourceConstr` is empty, `source` ('end ) is the end
+	if (fromSourceConstr) {
+		// Connect from the source ('s end) to the from-source node on the constr
+		newConstr.push(...fromSourceConstr.path)
+		// Connect from from-source node to the end of the construction
+		// We reversed the `constrNodes` array, so to find the equivalent index in
+		// `constr`, we need to flip the index dir
+		const constrConnIdx =
+			constrNodes.length - 1 - constrNodes.indexOf(fromSourceConstr.pointA)
+		newConstr.push(...constr.slice(constrConnIdx))
+	}
+	return newConstr
+}
+
+function constrLastNode(constr: ConnPtr[]): Node {
+	const last = constr[constr.length - 1]
+	if (!last)
+		throw new Error("Construction must have some elements to find the last one")
+	return last.n.findConnectedNode(last.m)!
+}
+
+// Continue the construction from the last node to the closest winning node if
+// we can, arbitary nodes otherwise
+function constrAutoComplete(constrArg: ConnPtr[] | Node): ConnPtr[] {
+	let lastNode: Node
+	let constr: ConnPtr[]
+	if (constrArg instanceof Node) {
+		lastNode = constrArg
+		constr = []
+	} else {
+		lastNode = constrLastNode(constrArg)
+		constr = constrArg.concat()
+	}
+	// Pick the closest winning node if we can
+	if (lastNode.winTarget) {
+		while (lastNode.winTarget) {
+			constr.push(lastNode.winTarget)
+		}
+	} else {
+		// Pick arbitrary nodes as deep as we can go
+		while (lastNode.outConns.size > 0) {
+			const conns = Array.from(lastNode.outConnsAsPtr()).filter(
+				v =>
+					// Make sure we don't have circular references
+					!constr.some(conn => conn.n === v.n) && v.n !== lastNode
+			)
+			if (conns.length === 0) break
+			const conn = conns[0]
+			constr.push({ n: lastNode, m: conn.m })
+			lastNode = conn.n
+		}
+	}
+	return constr
+}
+
 // Welp. ExaCC graph mode. This is gonna be confusing.
 // In this mode, all routes stem from the root node, with nodes being specific level states, and edges (referred here as connections) being sequences of moves connecting them.
 // The model tries to minimize the number of nodes for readability and performance reasons, so not all level states are automatically made into nodes. More details in the actual model class
-
-// Same as `MoveSequence`, but additionally tracks hashes for each player move
-export class GraphMoveSequence extends MoveSequence {
-	hashes: (number | null)[] = []
-	snapshotOffset = 1
-	constructor(public hashSettings: HashSettings) {
-		super()
-	}
-	add(input: KeyInputs, level: Level, seat: PlayerSeat): number {
-		const lastTickLen = this.tickLen
-		const moveLength = super.add(input, level, seat)
-		const nullsN = this.tickLen - lastTickLen - 1
-		for (let i = 0; i < nullsN; i += 1) {
-			this.hashes.push(null)
-		}
-		this.hashes.push(level.hash(this.hashSettings))
-		return moveLength
-	}
-	get lastHash() {
-		return this.hashes[this.tickLen - 1]!
-	}
-	trim(interval: MoveSeqenceInterval): void {
-		super.trim(interval)
-		this.hashes.splice(...interval)
-	}
-	merge(other: this): void {
-		super.merge(other)
-		this.hashes.push(...other.hashes)
-	}
-}
 
 // The Node class represents a single level state achievable from the root node by following a sequence of moves. It tracks its inputs, outputs, and distance to the closest win and root nodes
 export class Node {
@@ -78,13 +219,10 @@ export class Node {
 	hashSettings: HashSettings
 	// Distance to closest win node. Tracked by using incremental Dijkstra's
 	winDistance?: number
-	// XXX: Replace with `ConnPtr`?
-	winTargetNode?: Node
-	winTargetSeq?: GraphMoveSequence
+	winTarget?: ConnPtr
 	// Same as above, but for the closest root node
 	rootDistance: number = 0
-	rootTargetNode?: Node
-	rootTargetSeq?: GraphMoveSequence
+	rootTarget?: ConnPtr
 	constructor(node: Node)
 	constructor(level: Level, hashSettings: HashSettings)
 	constructor(level: Level | Node, hashSettings?: HashSettings) {
@@ -101,7 +239,7 @@ export class Node {
 	// If there are multiple moveSeqs from a single node to this one, that node appears here multiple times
 	inNodes: Node[] = []
 	// A node may be connected to another node with multiple move sequences at once, the shortes moveSeq is typically considered when checkign win/root dists and the like.
-	outConns: Map<Node, GraphMoveSequence[]> = new Map()
+	outConns: Map<Node, MoveSequence[]> = new Map()
 	// Like with `inNodes`, if there are multiple sequences connecting two nodes, the connected child node appears multiple times here
 	get outNodes(): Node[] {
 		const nodes: Node[] = []
@@ -134,39 +272,39 @@ export class Node {
 		if (this.level.gameState !== GameState.WON) return 0
 		return this.level.currentSubtick - 1
 	}
-	newChild(inputs: GraphMoveSequence): Node {
+	newChild(inputs: MoveSequence, level: Level, hash: number): Node {
 		const child = new Node(this)
+		child.level = level
 		child.inNodes.push(this)
 		this.outConns.set(child, [inputs])
-		child.hash = inputs.lastHash
+		child.hash = hash
 		child.rootDistance = this.rootDistance + inputs.tickLen * 3
-		child.rootTargetNode = this
-		child.rootTargetSeq = inputs
+		child.rootTarget = { n: this, m: inputs }
 		return child
 	}
-	findShortestParentConns(): ConnPtr[] {
-		return (
-			Array.from(this.inNodes)
-				// Remove multiple copies of the parent node, which will happen if we have multiple connections
-				.filter((node, i, arr) => arr.indexOf(node) === i)
-				.map<ConnPtr>(node => {
-					const connArr = node.outConns.get(this)!
-					const shortestSeq = connArr.reduce(
-						(acc, val) => (val.tickLen < acc.tickLen ? val : acc),
-						connArr[0]
-					)
-					return { n: node, m: shortestSeq }
-				})
-		)
+	*findShortestParentConns(): IterableIterator<ConnPtr> {
+		const seenNodes = new WeakSet<Node>()
+		for (const node of this.inNodes) {
+			// Remove multiple copies of the parent node, which will happen if we have multiple connections
+			if (seenNodes.has(node)) continue
+			seenNodes.add(node)
+
+			const connArr = node.outConns.get(this)!
+			const shortestSeq = connArr.reduce(
+				(acc, val) => (val.tickLen < acc.tickLen ? val : acc),
+				connArr[0]
+			)
+			yield { n: node, m: shortestSeq }
+		}
 	}
-	findShortestChildConns(): ConnPtr[] {
-		return Array.from(this.outConns).map<ConnPtr>(([node, seqs]) => {
+	*findShortestChildConns(): IterableIterator<ConnPtr> {
+		for (const [node, seqs] of this.outConns) {
 			const shortestSeq = seqs.reduce(
 				(acc, val) => (val.tickLen < acc.tickLen ? val : acc),
 				seqs[0]
 			)
-			return { n: node, m: shortestSeq }
-		})
+			yield { n: node, m: shortestSeq }
+		}
 	}
 	cascadeWinDist() {
 		if (this.winDistance === undefined) return
@@ -174,16 +312,14 @@ export class Node {
 		toCascade.push(this, -this.winDistance)
 		while (toCascade.size > 0) {
 			const node = toCascade.pop()!
-			const conns = node.findShortestParentConns()
-			for (const conn of conns) {
+			for (const conn of node.findShortestParentConns()) {
 				const newDist =
 					node.winDistance! + node.getWinSubtickOffset() + conn.m.tickLen * 3
 				if (conn.n.winDistance !== undefined && newDist > conn.n.winDistance) {
 					continue
 				}
 				conn.n.winDistance = newDist
-				conn.n.winTargetNode = node
-				conn.n.winTargetSeq = conn.m
+				conn.n.winTarget = { n: node, m: conn.m }
 				toCascade.push(conn.n, -newDist)
 			}
 		}
@@ -193,16 +329,14 @@ export class Node {
 		toCascade.push(this, -this.rootDistance)
 		while (toCascade.size > 0) {
 			const node = toCascade.pop()!
-			const conns = node.findShortestChildConns()
-			for (const conn of conns) {
+			for (const conn of node.findShortestChildConns()) {
 				const newDist =
 					node.rootDistance + conn.m.tickLen * 3 + conn.n.getWinSubtickOffset()
 				if (newDist > conn.n.rootDistance) {
 					continue
 				}
 				conn.n.rootDistance = newDist
-				conn.n.rootTargetNode = node
-				conn.n.rootTargetSeq = conn.m
+				conn.n.rootTarget = { n: node, m: conn.m }
 				toCascade.push(conn.n, -newDist)
 			}
 		}
@@ -227,12 +361,12 @@ export class Node {
 		newNode.cascadeWinDist()
 		this.cascadeRootDist()
 	}
-	findConnectedNode(seq: GraphMoveSequence): Node | undefined {
+	findConnectedNode(seq: MoveSequence): Node | undefined {
 		return Array.from(this.outConns.entries()).find(([, seqs]) =>
 			seqs.includes(seq)
 		)?.[0]
 	}
-	removeConnection(seq: GraphMoveSequence): void {
+	removeConnection(seq: MoveSequence): void {
 		const [endNode, seqs] = Array.from(this.outConns.entries()).find(
 			([, seqs]) => seqs.includes(seq)
 		)!
@@ -244,9 +378,10 @@ export class Node {
 	}
 	// For a `seq` that's on this node, split it into two sequences `seq1` and `seq2` at the tick offset `offset`, with a new node `node` in the middle. This operation is the opposite of dissolving a node
 	insertNodeOnSeq(
-		seq: GraphMoveSequence,
-		offset: number
-	): { node: Node; seq1: GraphMoveSequence; seq2: GraphMoveSequence } {
+		seq: MoveSequence,
+		offset: number,
+		hash: number
+	): { node: Node; seq1: MoveSequence; seq2: MoveSequence } {
 		const [endNode] = Array.from(this.outConns.entries()).find(([, seqs]) =>
 			seqs.includes(seq)
 		)!
@@ -257,15 +392,14 @@ export class Node {
 		seq2.trim([0, offset])
 		let midNode: Node
 		// XXX: Is this edge case useful?
-		if (seq.lastHash === endNode.hash) {
+		if (hash === endNode.hash) {
 			midNode = endNode
 			const conns = this.outConns.get(endNode) ?? []
 			conns.push(seq)
 			this.outConns.set(endNode, conns)
 			midNode.inNodes.push(this)
 		} else {
-			midNode = this.newChild(seq)
-			midNode.level = this.level.clone()
+			midNode = this.newChild(seq, this.level.clone(), hash)
 			seq.applyToLevel(midNode.level, midNode.playerSeat)
 		}
 		midNode.outConns.set(endNode, [seq2])
@@ -274,7 +408,7 @@ export class Node {
 		this.cascadeRootDist()
 		return { node: midNode, seq1: seq, seq2 }
 	}
-	getLooseMoveSeq(): GraphMoveSequence {
+	getLooseMoveSeq(): MoveSequence {
 		if (this.inNodes.length > 1) {
 			throw new Error("Node has multiple move sequences")
 		}
@@ -314,7 +448,7 @@ export interface ConnPtr {
 	// the parent `n`ode
 	n: Node
 	// the `m`ove sequence
-	m: GraphMoveSequence
+	m: MoveSequence
 }
 
 // A small thing describing a specific move index on a move sequence on a node
@@ -342,6 +476,15 @@ export class GraphModel {
 	constructedRoute: ConnPtr[] = []
 	nodeHashMap: Map<number, Node> = new Map()
 	hashMap: Map<number, MovePtr> = new Map()
+	// True if the current `level` is used in a node or move sequence. We need to track this separately
+	// instead of just always copying when jumping to nodes to make redoing completely copy-free
+	levelReferenced = true
+	makeLevelUnreferenced() {
+		if (this.levelReferenced) {
+			this.level = this.level.clone()
+			this.levelReferenced = false
+		}
+	}
 	get playerSeat() {
 		return this.level.playerSeats[0]
 	}
@@ -356,120 +499,173 @@ export class GraphModel {
 	}
 	addInput(input: KeyInputs, forceNewNode?: boolean): number {
 		if (this.level.gameState !== GameState.PLAYING) return 0
-		let node: Node, moveSeq: GraphMoveSequence, parent: Node, moveLength: number
-		if (!(this.current instanceof Node)) {
-			moveSeq = new GraphMoveSequence(this.hashSettings)
-			moveLength = moveSeq.add(input, this.level, this.playerSeat)
-			const curMoveSeq = this.current.m.moves.slice(this.current.o)
-			if (moveSeq.moves.every((move, i) => curMoveSeq[i] === move)) {
-				if (this.current.o + moveSeq.tickLen === this.current.m.tickLen) {
-					this.current = this.nodeHashMap.get(moveSeq.lastHash)!
-					this.level = this.current.level
-				} else {
-					this.current.o += moveSeq.tickLen
-				}
-				this.cleanConstruction()
-				return moveLength
-			}
-			const constrIdx = this.constructedRoute.findIndex(
-				conn => conn.n === (this.current as MovePtr).n
-			)
-			const { node: parent2, seq1 } = this.insertNodeOnSeq(this.current)
-			this.constructedRoute.splice(constrIdx)
-			this.constructedRoute.push({ n: this.current.n, m: seq1 })
-			this.constructedRoute.push({ n: parent2, m: moveSeq })
-			parent = parent2
-			node = parent.newChild(moveSeq)
-			node.level = this.level
-			this.current = node
-		} else if (
-			!this.current.loose ||
-			this.current === this.rootNode ||
-			forceNewNode
+		let node: Node, moveSeq: MoveSequence, parent: Node, moveLength: number
+
+		// If we're on a loose (and non-root) node, we always just extend the connection between the current node and the parent
+		// There's no auto-completion to do here
+		if (
+			!forceNewNode &&
+			this.current instanceof Node &&
+			this.current.loose &&
+			this.current !== this.rootNode
 		) {
-			moveSeq = new GraphMoveSequence(this.hashSettings)
-			this.level = this.level.clone()
-			moveLength = moveSeq.add(input, this.level, this.playerSeat)
-			const constrIdx = this.getConstructionIdx()
-			for (const [node, conns] of this.current.outConns) {
-				for (const conn of conns) {
-					if (moveSeq.moves.every((move, i) => move === conn.moves[i])) {
-						if (this.constructedRoute[constrIdx]?.m !== conn) {
-							this.constructedRoute.splice(constrIdx)
-							this.constructedRoute.push({ n: this.current, m: conn })
-						}
-						if (conn.tickLen === moveSeq.tickLen) {
-							this.current = node
-							this.level = node.level
-							this.cleanConstruction()
-						} else {
-							this.current = { n: this.current, m: conn, o: moveSeq.tickLen }
-							this.constructionAutoComplete(node)
-						}
-						return moveLength
-					}
-				}
-			}
-			this.constructedRoute.splice(constrIdx)
-			parent = this.current
-			node = parent.newChild(moveSeq)
-			node.level = this.level
-			this.current = node
-			this.constructedRoute.push({ n: parent, m: moveSeq })
-		} else {
 			node = this.current
 			parent = node.inNodes[0]
 			moveSeq = node.getLooseMoveSeq()
+			// Change the hash of the last move to point to the move on the connection rather than the node (we'll be changing the node's hash)
 			this.nodeHashMap.delete(node.hash)
 			this.hashMap.set(node.hash, {
 				n: parent,
 				m: moveSeq,
 				o: moveSeq.tickLen,
 			})
+			// The loose node's `level` needs to be synced to the latest changes, so if we
+			// somehow don't have it referenced already to the model's level, alias them
+			if (!this.levelReferenced) {
+				node.level = this.level
+				this.levelReferenced = true
+			}
 			moveLength = moveSeq.add(input, this.level, this.playerSeat)
-			node.hash = moveSeq.lastHash
+			node.hash = this.level.hash(this.hashSettings)
+			// XXX: Equivalent to `+= moveLength`?
 			node.rootDistance = parent.rootDistance + moveSeq.tickLen * 3
+		} else {
+			// First to to see if the input matches an existing connection, in which case just seek to there
+			let existingConn: MovePtr | undefined
+			const charInput = keyInputToChar(input, false)
+			if (this.current instanceof Node) {
+				// Different connections from the same node are guaranteed to start with different moves,
+				// so just checking the first move is enough to identify identical paths
+				const conn = [...this.current.outConnsAsPtr()].find(
+					conn => conn.m.moves[0] === charInput
+				)
+				if (conn) {
+					existingConn = { n: this.current, m: conn.m, o: 0 }
+					// We only need to change construction if we're going to a connection that isn't in the construction
+					// Note that this is the only place we need to handle construction for existing conns, since otherwise
+					// we'll be on the current construction node anyways
+					const constrIdx = this.getConstructionIdx()
+					const constrItem = this.constructedRoute[constrIdx]
+					if (constrItem && constrItem.m !== conn.m) {
+						this.constructedRoute.splice(constrIdx)
+					}
+					this.constructedRoute = constrTracePathThrough(
+						this.constructedRoute.length === 0
+							? this.current
+							: this.constructedRoute,
+						{ n: this.current, m: conn.m }
+					)
+				}
+			} else if (this.current.m.moves[this.current.o] === charInput) {
+				existingConn = this.current
+			}
+			// If there is, just seek to the move aftet the current one
+			if (existingConn) {
+				const newMoveOffset = existingConn.m.userMoves.indexOf(
+					true,
+					existingConn.o + 1
+				)
+				if (newMoveOffset === -1) {
+					this.current = existingConn.n.findConnectedNode(existingConn.m)!
+					this.level = this.current.level
+					this.levelReferenced = true
+					return existingConn.m.tickLen - existingConn.o
+				} else {
+					this.makeLevelUnreferenced()
+					existingConn.m.applyToLevel(this.level, this.playerSeat, [
+						existingConn.o,
+						newMoveOffset,
+					])
+					const offsetOffset = newMoveOffset - existingConn.o
+					existingConn.o = newMoveOffset
+					this.current = existingConn
+					return offsetOffset
+				}
+			}
+			// Looks like this has to be a brand new move sequence
+
+			if (this.current instanceof Node) {
+				parent = this.current
+				// Replace all consturction after the current point with the new connection
+				this.constructedRoute.splice(this.getConstructionIdx())
+			} else {
+				// Insert a node if we are currently in the middle of a sequence
+				const { node: midNode } = this.insertNodeOnSeq(
+					this.current,
+					this.level.hash(this.hashSettings)
+				)
+				parent = midNode
+				// As above, remove construction that comes after the current move
+				// Though since `getConstructionIdx` returns the earlier node when on a move sequence and we don't need to remove the sequence we're currently on from the construction, we have to add 1 to the index
+
+				this.constructedRoute.splice(this.getConstructionIdx() + 1)
+			}
+			moveSeq = new MoveSequence()
+			// Need to make sure we don't mutate a level copy used elsewhere
+			this.makeLevelUnreferenced()
+			moveLength = moveSeq.add(input, this.level, this.playerSeat)
+			node = parent.newChild(
+				moveSeq,
+				this.level,
+				this.level.hash(this.hashSettings)
+			)
+			this.constructedRoute.push({ n: parent, m: moveSeq })
 		}
-		const newHash = moveSeq.lastHash
+
+		const newHash = this.level.hash(this.hashSettings)
 		const nodeMergee = this.nodeHashMap.get(newHash)
 		const moveMergee = this.hashMap.get(newHash)
 		if (nodeMergee) {
+			// Found a node to merge into, `node` is unnecessary
 			parent.moveConnections(nodeMergee, node)
 			this.current = nodeMergee
+			// `node` is dead, so it's no longer referencing `level`
+			this.levelReferenced = false
 		} else if (moveMergee) {
-			const { node: midNode } = this.insertNodeOnSeq(moveMergee)
+			// Found a non-node point on a move sequence, create a new `midNode`
+			const { node: midNode } = this.insertNodeOnSeq(moveMergee, newHash)
 			parent.moveConnections(midNode, node)
 			this.current = midNode
+			// Same as above, `level` is no longer referenced
+			this.levelReferenced = false
 		} else {
+			// No mergee, this is a new, loose node
 			this.nodeHashMap.set(node.hash, node)
 			if (node.level.gameState === GameState.WON) {
 				node.winDistance = 0
 				node.rootDistance += node.getWinSubtickOffset()
 				node.cascadeWinDist()
 			}
+			this.current = node
 		}
 		this.cleanConstruction()
 		return moveLength
 	}
 	// Like the `Node` method, but corrects `nodeHashMap`/`hashMap`/sequence state
-	insertNodeOnSeq(pos: MovePtr) {
-		const res = pos.n.insertNodeOnSeq(pos.m, pos.o)
+	insertNodeOnSeq(pos: MovePtr, hash: number) {
+		// TODO: Explain
+		const res = pos.n.insertNodeOnSeq(pos.m, pos.o, hash)
 		const { node: midNode, seq1, seq2 } = res
 		this.nodeHashMap.set(midNode.hash, midNode)
 		this.hashMap.delete(midNode.hash)
-
-		for (const hash of seq2.hashes) {
-			if (hash === null) continue
-			const ent = this.hashMap.get(hash)
-			if (!ent) continue
+		const level = midNode.level.clone()
+		const levelHashes = seq2.userHashes(
+			level,
+			level.playerSeats[0],
+			this.hashSettings
+		)
+		for (const hash of levelHashes) {
+			const ent = this.hashMap.get(hash)!
 			ent.n = midNode
 			ent.m = seq2
 			ent.o -= seq1.tickLen
 		}
+
 		return res
 	}
 	cleanConstruction() {
-		const lastNode = this.constructionLastNode()
+		if (this.constructedRoute.length === 0) return
+		const lastNode = constrLastNode(this.constructedRoute)
 		const redundantNodeIdx = this.constructedRoute.findIndex(
 			ptr => ptr.n === lastNode
 		)
@@ -477,16 +673,17 @@ export class GraphModel {
 			this.constructedRoute.splice(redundantNodeIdx)
 		}
 		if (this.current === lastNode) {
-			this.constructionAutoComplete(lastNode)
+			this.constructedRoute = constrAutoComplete(
+				this.constructedRoute.length === 0
+					? this.current
+					: this.constructedRoute
+			)
 		}
 	}
-	constructionLastNode() {
-		if (this.constructedRoute.length === 0) {
-			return this.current as Node
-		} else {
-			const lastPtr = this.constructedRoute[this.constructedRoute.length - 1]
-			return lastPtr.n.findConnectedNode(lastPtr.m)!
-		}
+	constructionLastNode(): Node {
+		return this.constructedRoute.length === 0
+			? (this.current as Node)
+			: constrLastNode(this.constructedRoute)
 	}
 	getConstructionIdx() {
 		const node = this.current instanceof Node ? this.current : this.current.n
@@ -496,32 +693,7 @@ export class GraphModel {
 		}
 		return constrIdx
 	}
-	constructionAutoComplete(node: Node): void {
-		if (node.winDistance !== undefined) {
-			while (node.winTargetSeq) {
-				this.constructedRoute.push({ n: node, m: node.winTargetSeq! })
-				if (!node.winTargetNode) break
-				node = node.winTargetNode
-			}
-		} else {
-			// I dunno, pick a random one?
-			while (node.outConns.size > 0) {
-				const lastNode = this.constructionLastNode()
-				const conns = Array.from(node.outConns.entries())
-					.flatMap(v => v[1].map<[Node, GraphMoveSequence]>(seq => [v[0], seq]))
-					.filter(
-						v =>
-							!this.constructedRoute.some(conn => conn.n === v[0]) &&
-							v[0] !== lastNode
-					)
-				if (conns.length === 0) break
-				const conn = conns[0]
-				this.constructedRoute.push({ n: node, m: conn[1] })
-				node = conn[0]
-			}
-		}
-	}
-	undo(into?: GraphMoveSequence) {
+	undo(into?: MoveSequence) {
 		let toGoTo: Node | MovePtr
 		if (!(this.current instanceof Node)) {
 			toGoTo = { ...this.current }
@@ -554,9 +726,9 @@ export class GraphModel {
 		if (toGoTo.o === 0) {
 			toGoTo = toGoTo.n
 		}
-		this.goTo(toGoTo)
+		this.jumpTo(toGoTo)
 	}
-	redo(into?: GraphMoveSequence) {
+	redo(into?: MoveSequence) {
 		let lastO: number
 		if (!(this.current instanceof Node)) {
 			lastO = this.current.o
@@ -581,116 +753,84 @@ export class GraphModel {
 				m: into,
 				o: into.userMoves.indexOf(true, 1),
 			}
-			if (this.current.o !== -1) {
-				this.level = this.level.clone()
-			}
 		}
 		if (this.current.o === -1) {
-			this.current = this.current.n.findConnectedNode(this.current.m)!
-			this.level = this.current.level
+			// We try to avoid level cloning as much as possible, so we try to use an
+			// existing non-referenced level as much as possible instead of discarding it
+			// since we'd then need to clone the level again if we redo again onto a
+			// non-cached level position
+			if (this.levelReferenced) {
+				this.current = this.current.n.findConnectedNode(this.current.m)!
+				this.level = this.current.level
+			} else {
+				this.current.m.applyToLevel(this.level, this.playerSeat, [
+					lastO,
+					Infinity,
+				])
+				this.current = this.current.n.findConnectedNode(this.current.m)!
+			}
 		} else {
+			this.makeLevelUnreferenced()
 			this.current.m.applyToLevel(this.level, this.playerSeat, [
 				lastO,
 				this.current.o,
 			])
 		}
-		this.cleanConstruction()
+	}
+	/**
+	 * Updates the model to be on `pos`.
+	 */
+	goTo(pos: MovePtr | Node): void {
+		this.constructedRoute = constrTracePathThrough(
+			this.constructedRoute.length === 0
+				? (this.current as Node)
+				: this.constructedRoute,
+			pos instanceof Node ? pos : { n: pos.n, m: pos.m }
+		)
+		this.jumpTo(pos)
 	}
 
-	goTo(pos: MovePtr | Node): void {
-		let node = pos instanceof Node ? pos : pos.n
-		const lastNode = this.constructionLastNode()
-		const toAppend: ConnPtr[] = []
-		let pathFound = false
-		while (true) {
-			if (node === lastNode) {
-				pathFound = true
-				break
-			}
-			for (let idx = this.constructedRoute.length - 1; idx >= 0; idx -= 1) {
-				const ptr = this.constructedRoute[idx]
-				if (ptr.n === node) {
-					if (toAppend.length !== 0) {
-						this.constructedRoute.splice(idx)
-					}
-					pathFound = true
-					break
-				}
-			}
-			if (pathFound) {
-				break
-			}
-			if (node.rootTargetNode === undefined) break
-			toAppend.push({ n: node.rootTargetNode!, m: node.rootTargetSeq! })
-			node = node.rootTargetNode!
-		}
-		toAppend.reverse()
-		if (!pathFound) {
-			this.constructedRoute = toAppend
-		} else {
-			this.constructedRoute.push(...toAppend)
-		}
-
+	/**
+	 * Changes `this.level` to refer to the specified position. `pos` must be on
+	 * the current construction to maintain soundness
+	 */
+	jumpTo(pos: MovePtr | Node) {
 		this.current = pos
-		this.cleanConstruction()
+
 		if (pos instanceof Node) {
 			this.level = pos.level
+			this.levelReferenced = true
 			return
 		}
 		const closestSnapshot: Snapshot = pos.m.findSnapshot(pos.o) ?? {
 			level: pos.n.level,
 			tick: 0,
 		}
-		this.level = closestSnapshot.level.clone()
-		pos.m.applyToLevel(this.level, this.playerSeat, [
-			closestSnapshot.tick,
-			pos.o,
-		])
-	}
-	resetLevel() {
-		this.goTo(this.rootNode)
-	}
-	buildReferences() {
-		this.nodeHashMap.clear()
-		this.hashMap.clear()
-		this.rootNode.inNodes = []
-		const nodesToVisit: Node[] = [this.rootNode]
-		const visitedNodes = new WeakSet<Node>()
-		while (nodesToVisit.length > 0) {
-			const node = nodesToVisit.shift()!
-			visitedNodes.add(node)
-			this.nodeHashMap.set(node.hash, node)
-			for (const [tNode, conns] of node.outConns.entries()) {
-				if (!visitedNodes.has(tNode)) {
-					nodesToVisit.push(tNode)
-					tNode.inNodes = []
-				}
-				for (const conn of conns) {
-					tNode.inNodes.push(node)
-					let moveOffset = conn.userMoves.indexOf(true, 1)
-					while (moveOffset !== -1) {
-						this.hashMap.set(conn.hashes[moveOffset - 1]!, {
-							n: node,
-							m: conn,
-							o: moveOffset,
-						})
-						moveOffset = conn.userMoves.indexOf(true, moveOffset + 1)
-					}
-				}
-			}
+		this.level = closestSnapshot.level
+		this.levelReferenced = true
+
+		if (closestSnapshot.tick !== pos.o) {
+			this.level = this.level.clone()
+			this.levelReferenced = false
+			pos.m.applyToLevel(this.level, this.playerSeat, [
+				closestSnapshot.tick,
+				pos.o,
+			])
 		}
 	}
-	findBackfeedConns(): ConnPtr[] {
+	resetLevel() {
+		this.jumpTo(this.rootNode)
+	}
+	*findBackfeedConns(): IterableIterator<ConnPtr> {
 		const nodesToVisit: [Node, Node[]][] = [[this.rootNode, []]]
 		const visited: WeakSet<Node> = new WeakSet()
 		visited.add(this.rootNode)
-		const backConns: ConnPtr[] = []
 		while (nodesToVisit.length > 0) {
 			const [node, parents] = nodesToVisit.shift()!
 			for (const [tNode, conns] of node.outConns.entries()) {
 				if (parents.includes(tNode) || node === tNode) {
 					for (const conn of conns) {
-						backConns.push({ n: node, m: conn })
+						yield { n: node, m: conn }
 					}
 				} else {
 					if (!visited.has(tNode)) {
@@ -700,7 +840,6 @@ export class GraphModel {
 				}
 			}
 		}
-		return backConns
 	}
 	isAlignedToMove(pos: MovePtr | Node): boolean {
 		if (pos instanceof Node) return true
@@ -713,6 +852,7 @@ export class GraphModel {
 		return this.constructionLastNode() === this.current
 	}
 	step() {
+		this.makeLevelUnreferenced()
 		if (this.level.currentSubtick !== 1) {
 			this.level.tick()
 			return
@@ -726,7 +866,6 @@ export class GraphModel {
 				return
 			}
 			this.current = { n: ptr.n, m: ptr.m, o: 0 }
-			this.level = this.level.clone()
 		}
 		this.playerSeat.inputs = charToKeyInput(
 			this.current.m.moves[this.current.o]
@@ -741,7 +880,7 @@ export class GraphModel {
 	}
 	serialize(): SerializedGraph {
 		const nodeNum = uniqueNumberMapper<Node>()
-		const connNum = uniqueNumberMapper<GraphMoveSequence>()
+		const connNum = uniqueNumberMapper<MoveSequence>()
 		return {
 			rootNode: nodeNum(this.rootNode),
 			hashSettings: this.hashSettings,
@@ -818,7 +957,7 @@ export class GraphModel {
 			for (const [connNum, conn] of Object.entries(
 				serializedNode.connections
 			)) {
-				this.goTo(pos)
+				this.jumpTo(pos)
 				const ip = new RouteFileInputProvider(splitRouteCharString(conn.moves))
 				let tick = 0
 				while (!ip.outOfInput(tick * 3)) {
@@ -846,7 +985,10 @@ export class GraphModel {
 				}
 
 				if (!(this.current instanceof Node)) {
-					this.current = this.insertNodeOnSeq(this.current).node
+					this.current = this.insertNodeOnSeq(
+						this.current,
+						this.level.hash(this.hashSettings)
+					).node
 				}
 				nodeNumMap[conn.target] = this.current
 				if (!loadedNodes.has(conn.target)) {
@@ -886,5 +1028,17 @@ export class GraphModel {
 	}
 	isBlank(): boolean {
 		return this.nodeHashMap.size === 1
+	}
+	removeConnection(conn: ConnPtr): void {
+		conn.n.removeConnection(conn.m)
+		const level = conn.n.level.clone()
+		const levelHashes = conn.m.userHashes(
+			level,
+			level.playerSeats[0],
+			this.hashSettings
+		)
+		for (const hash of levelHashes) {
+			this.hashMap.delete(hash)
+		}
 	}
 }

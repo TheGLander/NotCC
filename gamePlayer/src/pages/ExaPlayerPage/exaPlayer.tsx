@@ -616,9 +616,8 @@ export function RealExaPlayerPage() {
 	function purgeBackfeed() {
 		if (!(model instanceof GraphModel)) return
 		for (const ptr of model.findBackfeedConns()) {
-			ptr.n.removeConnection(ptr.m)
+			model.removeConnection(ptr)
 		}
-		model.buildReferences()
 		updateLevel()
 	}
 	const complainAboutNonlegal = useAtomValue(exaComplainAboutNonlegalGlitches)
@@ -887,6 +886,7 @@ export function RealExaPlayerPage() {
 				if (!inputTimerRef.current) {
 					inputTimerRef.current = new TimeoutTimer(finaliseInput, 0.05)
 				}
+				rerunComponent()
 			} else {
 				// Secondary input
 				if (inputsRef.current & input) {
@@ -894,8 +894,8 @@ export function RealExaPlayerPage() {
 				} else {
 					inputsRef.current |= input
 				}
+				rerunComponent()
 			}
-			rerunComponent()
 		},
 		[model, finaliseInput]
 	)

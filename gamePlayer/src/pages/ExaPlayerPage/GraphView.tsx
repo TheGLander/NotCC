@@ -1,11 +1,5 @@
 import { GameState, KeyInputs, generateSecondaryChars } from "@notcc/logic"
-import {
-	ConnPtr,
-	GraphModel,
-	GraphMoveSequence,
-	MovePtr,
-	Node,
-} from "./models/graph"
+import { ConnPtr, GraphModel, MovePtr, Node } from "./models/graph"
 import { graphlib, layout } from "@dagrejs/dagre"
 import { twJoin, twMerge } from "tailwind-merge"
 import { twUnit } from "@/components/DumbLevelPlayer"
@@ -14,6 +8,7 @@ import { useCallback, useState } from "preact/hooks"
 import { HTMLAttributes } from "preact/compat"
 import { Timeline, TimelineHead } from "@/components/Timeline"
 import { formatTicks } from "@/helpers"
+import { MoveSequence } from "./models/linear"
 
 interface GraphViewProps {
 	model: GraphModel
@@ -168,7 +163,7 @@ function SvgView(props: GraphViewProps) {
 				{graph.edges().map(id => {
 					const edge = graph.edge(id)
 					// const node = edge.node as Node
-					const conns = edge.conns as GraphMoveSequence[]
+					const conns = edge.conns
 					const strokePath = `M${edge.points[0].x + marginLeft},${
 						edge.points[0].y + marginTop
 					}L${edge.points
@@ -256,9 +251,10 @@ export function MovesList(props: {
 	composeOverlay: KeyInputs
 	moves: string[]
 }) {
-	const { moves, offset, composeOverlay } = props
+	let { moves, offset, composeOverlay } = props
 	const composeText = generateSecondaryChars(composeOverlay)
 	let futureMoves: VNode
+	while (moves[offset] === "") offset += 1
 	if (offset === moves.length) {
 		futureMoves = <span class={MOVE_CURSOR_CLASS}>{composeText} </span>
 	} else if (!composeText) {
@@ -292,7 +288,7 @@ export function Infobox(props: GraphViewProps) {
 	const model = props.model
 	const composeText = generateSecondaryChars(props.inputs)
 	if ("m" in model.current || model.current.loose) {
-		let seq: GraphMoveSequence
+		let seq: MoveSequence
 		let offset: number
 		if ("m" in model.current) {
 			seq = model.current.m
