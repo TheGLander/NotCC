@@ -49,5 +49,5 @@ export function parseNCCS(data: ArrayBuffer): ISetInfo {
 	const setInfo = SetInfo.decode(
 		new Uint8Array(view.buffer.slice(8 + versionLength))
 	)
-	return setInfo.toJSON()
+	return setInfo
 }

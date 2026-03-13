@@ -68,7 +68,7 @@ export class StepRecorder {
 		this.attemptSteps[stepPos + 1] += 1
 	}
 	finalizeSteps() {
-		return this.attemptSteps.slice(0, this.currentStep * 2 + 1)
+		return this.attemptSteps.slice(0, (this.currentStep + 1) * 2)
 	}
 }
 

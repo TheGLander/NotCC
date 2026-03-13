@@ -87,7 +87,7 @@ export class SolutionInfoInputProvider extends InputProvider {
 		return levelInit
 	}
 	getLength(): number {
-		return this.inputs[0].length
+		return this.inputs[0].length * 3
 	}
 }
 
