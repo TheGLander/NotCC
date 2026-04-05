@@ -2,9 +2,14 @@ import { Actor, ItemIndex } from "./actor.js"
 import { wasmFuncs } from "./module.js"
 import { Struct, getStringAt, getWasmReader } from "./struct.js"
 
+const tileTypeNames: Record<number, string> = {}
+
 export class TileType extends Struct {
 	get name() {
-		return getStringAt(this.getPtr(0))
+		if (this._ptr in tileTypeNames) return tileTypeNames[this._ptr]!
+		const str = getStringAt(this.getPtr(0))!
+		tileTypeNames[this._ptr] = str
+		return str
 	}
 	get itemIndex(): ItemIndex {
 		return wasmFuncs.TileType_get_item_index(this._ptr)
